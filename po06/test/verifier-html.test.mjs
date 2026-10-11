@@ -15,7 +15,7 @@ import {
 } from '../lib/verifier-html.js'
 import { RESULT, actionableFailures, hasInfrastructureError } from '../lib/verifier.js'
 
-const DIR = 'C:/Users/WestFox/.dsh/exp/po06/verify-fixtures'
+const DIR = mkdtempSync(join(tmpdir(), 'po06-verify-fixtures-'))
 const HERE = dirname(fileURLToPath(import.meta.url))
 
 let pass = 0

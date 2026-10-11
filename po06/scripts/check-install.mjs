@@ -152,7 +152,7 @@ if (existsSync(profileDir) && pkgPresent) {
 if (dump !== null) {
   const hasLayer = dump.includes(PKG_NAME)
   say('- ' + (hasLayer ? '✅' : '❌') + ' 组合出的装配树里' + (hasLayer ? '有' : '**没有**') + ' `' + PKG_NAME + '` 这一层')
-  /*MUTANT: 不在 bundles 里也不拦 ⇒ "装了却永远不会被装配"会被放行*/
+if (!hasLayer) problems.push('装配树里没有该包 ⇒ 装上也不会生效（EV-0066 同款）')
   const oldLayer = dump.includes(OLD_PKG)
   say('- ' + (oldLayer ? '⚠' : '✅') + ' 同一 profile 里' + (oldLayer ? '**也有**旧插件' : '没有旧插件')
     + (oldLayer ? ' ⇒ 0.6 会以 `DOUBLE_INTERCEPT` **拒绝启用**（刻意的）' : '（不会撞双重拦截）'))
