@@ -1238,7 +1238,7 @@ const MUTANTS = [
     file: 'lib/eval-e001.js',
     testFile: 'test/eval-rehearsal.test.mjs',
     // S1 run1 就是"只存 chars 不存正文"，白花 42,884；想验证假设时手上没有包。
-    from: "    try { writeFileSync(join(dir, packetCacheName(task.id, fp)), c.text, 'utf8') } catch { /* 落盘失败不影响本轮 */ }",
+    from: "    try { writeFileSync(cached, c.text, 'utf8') } catch { /* 落盘失败不影响本轮 */ }",
     to: '    /*MUTANT: 包不落盘（正文丢掉）*/',
     expectFailIncludes: ['产物落盘'],
   },
@@ -2093,14 +2093,45 @@ const MUTANTS = [
   },
 ]
 
+/**
+ * 套件汇总**不一定是 stdout 的全部**：缺证据文件时套件会先打印若干 `{"skip":…}` 行再打汇总。
+ * 旧实现只认"整段 stdout 恰好是一份 JSON"，于是**合法的跳过**被判成"输出无法解析"⇒ 门禁变红；
+ * 而红不红取决于这台机器上那些（不在仓里的）证据文件在不在，不是被测行为（2026-10-11 B 机实测）。
+ * 现在扫描平衡括号里的每个 JSON，取**最后一份带 pass/fail 的汇总**：跳过行可以有，汇总本身仍必须合法。
+ */
+function parseSuiteSummary(text) {
+  const s = String(text == null ? '' : text)
+  const found = []
+  let depth = 0, start = -1, inStr = false, esc = false
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue }
+    if (c === '"') { inStr = true; continue }
+    if (c === '{') { if (depth === 0) start = i; depth += 1; continue }
+    if (c === '}') {
+      if (depth > 0) {
+        depth -= 1
+        if (depth === 0 && start >= 0) {
+          try { found.push(JSON.parse(s.slice(start, i + 1))) } catch { /* 不是 JSON，忽略 */ }
+          start = -1
+        }
+      }
+    }
+  }
+  for (let k = found.length - 1; k >= 0; k--) {
+    const o = found[k]
+    if (o && typeof o === 'object' && (typeof o.pass === 'number' || typeof o.fail === 'number')) return o
+  }
+  return null
+}
+
 function runSuite(testRel) {
   const r = spawnSync(process.execPath, [path.join(ROOT, testRel)], { encoding: 'utf8' })
-  try {
-    const j = JSON.parse(r.stdout)
-    return { pass: j.pass, fail: j.fail, failures: (j.failures || []).map((f) => f.name) }
-  } catch {
+  const j = parseSuiteSummary(r.stdout)
+  if (!j) {
     return { parseError: true, stdout: String(r.stdout).slice(0, 160), stderr: String(r.stderr).split('\n').slice(0, 3).join(' | ') }
   }
+  return { pass: j.pass, fail: j.fail, failures: (j.failures || []).map((f) => f.name) }
 }
 
 const results = []

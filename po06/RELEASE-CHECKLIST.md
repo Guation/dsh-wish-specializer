@@ -25,7 +25,7 @@
 | 版本 | `0.8.3-stable` |
 | tag / commit | `v0.8.3-stable` / `7893720` |
 | Release | id `408038297` · <https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/tag/v0.8.3-stable>（`prerelease=false`） |
-| 附件 | `dsh-external-dsh-arbiter-wf-0.8.3-stable.tgz`（23,670,392 B）、`SHA256SUMS.txt`（111 B） |
+| 附件 | `dsh-external-dsh-arbiter-wf-0.8.3-stable.tgz`（23,670,392 B）、`SHA256SUMS-0.8.3-stable.txt`（111 B） |
 | tgz sha256 | `65e3976e7dfac309db844377835f60c945a466ae6bdc67f007d7c82683bc11cc`（API 上的 digest 与本地一致） |
 | 远程复核 | `releases/latest` → `v0.8.3-stable`；两个附件均在且非空；无认证接口可读 |
 | 发版门 | `check-release.mjs`：**1,003 项测试 0 失败**、打包自足性 **PASS**、文档门 **PASS** |
