@@ -2,8 +2,8 @@
 
 ## 0.8.4-stable 发布登记（准备中 · 2026-10-16 · 六条线上 issue）
 
-> ⚠ **本版尚未发布**：本机网络**连不上 github.com**（`api.github.com` 可通、`github.com:443` 超时），
-> 因此推送 / 打 tag / 建 Release 这三步**在本机无法执行**。下面凡是"待发布"的行都还没发生，不许当成已完成。
+> ✅ **本版已发布**（2026-10-16）：提交与 tag 已推送，Release 已建，两个附件均已上传且非空。
+> 发布过程中本机网络一度连不上 `github.com`（`api.github.com` 可通），随后恢复；失败与恢复都记在下面，不抹掉。
 
 | 项 | 值 |
 |---|---|
@@ -11,12 +11,15 @@
 | 版本 | `0.8.4-stable`（真源：`po06/package.json`；根 `package.json` 为派生薄壳，已同步） |
 | 发版门 | `check-release.mjs` → **PASS**：**104 套 / 1141 项 / 0 失败**；变异 **234 个 / 漏捕 0**；打包自足性 **PASS**（63 个 lib 模块）；文档门 **PASS**。清单：`po06/eval/release-check.json` |
 | 修掉的线上条目 | #29 安装排障（文档）· #30 落账与失败卡片 · #31 解析被拒无兜底 + 配对扫描 · #32 材料失败不可引用 + status 写死 · #33A 非 delivery 误拒 · #33B 英文翻译韧性 · #34 无产出空闲判死 |
-| 未完成项（如实登记） | ① **推送/打 tag/建 Release 未执行**：本机 `github.com` 不可达（`api.github.com` 可通、`github.com:443` 超时、未配代理）。② 任务试运行未做：本机运行实例仍是上一版，`0.8.4-stable` 未在真实 GUI 里跑过一轮。③ 顾问 claim 路径在**超过 8 个真实文件版本**时会保留前 8 条（不改判、不放行，但那份截断没有在状态里显式记账）。④ 英文后处理降级（`english-postprocess-skipped`）后，最终包是否仍满足「英文内部协作」没有端到端复现（只有单元级证据）。⑤ 未做性能跑分，不声称更快或更强。 |
+| 未完成项（如实登记） | ① 访客直链的**完整重下**未完成（CDN 限速中断，见上一行）；已用 GitHub 自算 digest 佐证。② 任务试运行未做：本机运行实例仍是上一版，`0.8.4-stable` 未在真实 GUI 里跑过一轮。③ 顾问 claim 路径在**超过 8 个真实文件版本**时会保留前 8 条（不改判、不放行，但那份截断没有在状态里显式记账）。④ 英文后处理降级（`english-postprocess-skipped`）后，最终包是否仍满足「英文内部协作」没有端到端复现（只有单元级证据）。⑤ 未做性能跑分，不声称更快或更强。 |
 | 已知环境依赖 | `answer-audit.test.mjs` 里 4 条**真实产物**用例读的是作者机上的文件，在别的机器上会**显式跳过**（`skipped` 字段已记账，不再冒充通过）；变异门里对应的两条期望片段已补上跨机器的合成用例名 |
 | 本地产物（已生成，未上传） | `dsh-external-dsh-arbiter-wf-0.8.4-stable.tgz`（**21,391,844 B、243 个成员、63 个 lib 模块**）｜ sha256 `a99ace3d0ac568e2f768e5aa207ef57d528375fb7d43a1287ac387973a6be160` ｜ 校验和文件 `SHA256SUMS-0.8.4-stable.txt`。两者都在 `~/.dsh/release-0.8.4/`（仓库内不放 tgz） |
 | 产物核对（本机实测） | `node po06/scripts/verify-artifact.mjs --tag <本次发布提交或 tag> --tgz <上面那个 tgz> --repo .` → **成员 243（lib 63）｜多 0 ｜少 0 ｜声明缺 0；逐字节比对 243 个、不同 0；包内版本 0.8.4-stable 且文件名与 name+version 相符** |
 | ⚠ 打包位置是**决定** | Release 附件必须是**从 `po06/` 打的包**（成员是 `lib/…`、`runtime/…`）。从**仓库根**打出来的薄壳（成员 `po06/lib/…`）是给 git / 本地装配用的另一件东西：拿它当附件会让 `verify-artifact.mjs` 报"多 244 / 少 241 / 不同 2"。两种包的**文件名完全相同**，所以必须记住这一点 |
-| 待发布（三步，本机做不了） | tag `v0.8.4-stable`、推送提交、建 Release 并上传两个附件、`releases/latest` 复核 |
+| tag / commit | `v0.8.4-stable` / `7d953f60457b2c4718fa0d159b6fda6f61b2bb15`（已推送：`832e330..7d953f6`、`[new tag] v0.8.4-stable`） |
+| Release | id `413694608` · <https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/tag/v0.8.4-stable>（`prerelease=false`） |
+| 远程复核 | `releases/latest` → `v0.8.4-stable`；两个附件在且非空；**GitHub 自算 digest = `sha256:a99ace3d…a6be160`，与本地一致**；`SHA256SUMS` 的 digest `sha256:9593b45d…a520` |
+| 访客路径实测 | `releases/download/…` 直链下载在本机被 CDN 限速（280 s 只到 4.2 MB / 21.4 MB，超时中断）⇒ **没有拿到"完整重下后逐字节相同"这条证据**。替代证据是 GitHub 对已存资产自算的 digest 与本地 sha256 完全一致，且 size 21391844 与本地一致 |
 
 ### 本机可执行的发布步骤（网络恢复后逐条跑）
 
