@@ -2,6 +2,8 @@
 
 **中文** ｜ [English](README.en.md)
 
+PTC模式是最好的选择!
+
 效果展示:皆为Windows+DSH+PTC环境,OneShoot
 (其中插件档位为"重度")
 模型DeepSeek-V4.1-Flash
