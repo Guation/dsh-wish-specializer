@@ -2,6 +2,8 @@
 
 **English** ｜ [中文](README.md)
 
+PTC is the best choice!
+
 Effect demo — all captured on Windows + DSH + PTC, in one shot.
 (the plugin tier was set to "Heavy")
 With DeepSeek-V4.1-Flash
