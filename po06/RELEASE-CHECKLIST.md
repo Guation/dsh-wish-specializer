@@ -19,7 +19,7 @@
 | tag / commit | `v0.8.4-stable` / `7d953f60457b2c4718fa0d159b6fda6f61b2bb15`（已推送：`832e330..7d953f6`、`[new tag] v0.8.4-stable`） |
 | Release | id `413694608` · <https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/tag/v0.8.4-stable>（`prerelease=false`） |
 | 远程复核 | `releases/latest` → `v0.8.4-stable`；两个附件在且非空；**GitHub 自算 digest = `sha256:a99ace3d…a6be160`，与本地一致**；`SHA256SUMS` 的 digest `sha256:9593b45d…a520` |
-| 访客路径实测 | `releases/download/…` 直链下载在本机被 CDN 限速（280 s 只到 4.2 MB / 21.4 MB，超时中断）⇒ **没有拿到"完整重下后逐字节相同"这条证据**。替代证据是 GitHub 对已存资产自算的 digest 与本地 sha256 完全一致，且 size 21391844 与本地一致 |
+| 访客路径实测 | `releases/latest` 与两个附件的**无认证可读性**已确认；直链下载**两次尝试都被本机网络的 CDN 限速打断**（4.2 MB / 2.9 MB，均未下完 21.4 MB）⇒ **没有拿到「完整重下后逐字节相同」这条证据**。替代证据更强且来自 GitHub 自己：它对已存资产自算的 digest = `sha256:a99ace3d…a6be160`，与本地通过 `verify-artifact` 逐字节校验的那份**完全一致**，size 21391844 也一致。（上一版 0.8.3 的登记只做到「附件在且非空、无认证可读」，本次结论不弱于它。） |
 
 ### 本机可执行的发布步骤（网络恢复后逐条跑）
 
