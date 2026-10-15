@@ -1,0 +1,357 @@
+{
+  "revision": "capability-recovery-1",
+  "frozenBaseline": "contribution-selection-4",
+  "historicalBehavior": "route-a-1 bilingual core and tiers recovered from confirmed successful archive edits",
+  "implementation": {
+    "restored": [
+      "Exact historical optimizer core and all three tiers",
+      "Historical advisor COMMON and APPROACH prose, with current role/version explanations retained",
+      "Opportunity-based consultation; independent important acceptance retained"
+    ],
+    "kept": [
+      "Native English and faithful user text",
+      "Host-owned provenance and IDs, material roles/currentness",
+      "Cancellation and advisor no default deadline",
+      "Stage constraints/full status and confirmed failures",
+      "Machine intent stays explicitly non-authoritative at end"
+    ],
+    "fixed": [
+      "Actual paid tools-fallback usage aggregate; missing fields/calls marked unknown",
+      "Cancelled model replies never initiate a new paid fallback",
+      "Mode-specific corrections without weakening validation",
+      "Partial outputs explicitly diagnostic in tool result/progress/metadata",
+      "Pending/stale stage contracts summarized by counts with callable full status; confirmed failures remain actionable",
+      "Genuinely empty assistance has no persistent workflow",
+      "Machine generation failure notice is a nonblocking proposal, not a user uncertainty or requirement"
+    ],
+    "newNormalModelCalls": 0,
+    "domainTemplates": false,
+    "fixedContentQuotas": false
+  },
+  "tests": {
+    "files": 36,
+    "nodeTests": 299,
+    "pass": 299,
+    "fail": 0,
+    "skipped": 0,
+    "log": ".po06-tmp/recovery-final-regression.log",
+    "actualChecks": [
+      "Default equals independent historical fixtures, prior candidate4 migrates, modified custom stays file",
+      "Both reported fallback streams counted, unknown usage marked",
+      "Caller cancellation does not issue a second model call",
+      "Wrong mode returns actionable correction without runtime",
+      "Interrupted diagnostics stay in progress and cannot be accepted",
+      "Compact stage counts/failed IDs/full reviewSpec/advance refusal survive",
+      "Empty context suppresses workflow, real identity and stage errors remain visible",
+      "Machine failure neither asks user again nor appears as a user pending decision"
+    ]
+  },
+  "naturalExperiment": {
+    "task": "制作一个单HTML交互科普展页，主题是“下潜：从海面到深渊”。我希望画面有明确的空间深度、氛围和精细设计，而不是信息卡片模板。用户能控制下潜、暂停、回到海面，也能拖动深度查看对应环境，看到潜水器和沿途生物/地貌随着下潜变化。展页有一组可探索的科普标注，不把未经证实的说法当知识。桌面和手机都可用，键盘能完成主要操作。所有内容放在一个HTML，资源自行生成，不读取本地其他文件，不依赖网络。",
+    "route": {
+      "provider": "deepseek-official",
+      "model": "deepseek-flash",
+      "reasoningEffort": "max"
+    },
+    "preregisteredBeforeGeneration": true,
+    "arms": [
+      "original",
+      "current",
+      "recovery"
+    ],
+    "sameTaskAndCriteria": true,
+    "initialSetupFault": "24000 output cap cut all three executor outputs before any final text; preserve failures, no quality inference.",
+    "productionAdjustment": "Only executor outputs regenerated once with SDK production default output budget; no new optimization, same model/max/task/advice/criteria.",
+    "originalControl": {
+      "outcome": "idle stream timeout",
+      "partialHtml": true,
+      "reportedUsageMissing": true,
+      "claim": "No valid final artifact, not proof of assistance improvement over original prompt."
+    },
+    "artifactExtraction": {
+      "method": "Identical exact unique-document extraction; no generated HTML code changed. Transport failures remain failures.",
+      "entries": [
+        {
+          "arm": "original",
+          "saved": false,
+          "transportError": "DeepSeek Messages stream idle timeout",
+          "rawChars": 14831
+        },
+        {
+          "arm": "recovery",
+          "saved": true,
+          "file": ".po06-tmp/recovery-natural-recovery.html",
+          "sourceStart": 255,
+          "sourceEnd": 68908,
+          "htmlChars": 68653,
+          "formatCompliant": false,
+          "reportedTokens": 87600,
+          "ms": 463955
+        },
+        {
+          "arm": "current",
+          "saved": true,
+          "file": ".po06-tmp/recovery-natural-current.html",
+          "sourceStart": 58,
+          "sourceEnd": 52680,
+          "htmlChars": 52622,
+          "formatCompliant": false,
+          "reportedTokens": 74634,
+          "ms": 400323
+        }
+      ]
+    },
+    "comparisons": {
+      "current": {
+        "reportedTokens": 84735,
+        "ms": 465547,
+        "optimization": {
+          "ms": 65224,
+          "usage": {
+            "inputTokens": 320,
+            "outputTokens": 9397,
+            "cacheReadTokens": 384,
+            "cacheWriteTokens": 0,
+            "totalTokens": 10101
+          }
+        },
+        "execution": {
+          "ms": 400323,
+          "usage": {
+            "inputTokens": 203,
+            "outputTokens": 72639,
+            "cacheReadTokens": 1792,
+            "cacheWriteTokens": 0,
+            "totalTokens": 74634
+          }
+        },
+        "adviceChars": 2586
+      },
+      "recovery": {
+        "reportedTokens": 101203,
+        "ms": 555544,
+        "optimization": {
+          "ms": 91589,
+          "usage": {
+            "inputTokens": 464,
+            "outputTokens": 13011,
+            "cacheReadTokens": 128,
+            "cacheWriteTokens": 0,
+            "totalTokens": 13603
+          }
+        },
+        "execution": {
+          "ms": 463955,
+          "usage": {
+            "inputTokens": 226,
+            "outputTokens": 84814,
+            "cacheReadTokens": 2560,
+            "cacheWriteTokens": 0,
+            "totalTokens": 87600
+          }
+        },
+        "adviceChars": 3931
+      }
+    },
+    "manualCodeRepair": false,
+    "userExperience": {
+      "source": "direct human experience during recovery implementation",
+      "text": "恢复组明显强于current组，虽然截图上可能觉得后者更好，但实际体验上，恢复组做的动效，以及知识科普和各个东西的联动都远超current组",
+      "appliesTo": "single preregistered underwater exhibit task; recovery/current exact unpatched generated artifacts",
+      "assessment": "meaningful evidence for the experience dimension; not a statistical estimate or evidence the prototype has no bugs",
+      "effectOnDecision": "Prioritize actual interaction/content linkage over static image ranking; retain detected pause/manual-scrub defect and cost difference."
+    },
+    "behavioralFinding": "Both complete artifacts run offline with no page Runtime exceptions, mobile widths fit. Recovery manual scrub while paused fails because dt=0 freezes target interpolation; no manual code patch. Surface action works after its normal animation duration. Custom widget/native-input and reversed drag directions are not inherently defects.",
+    "screenshotLimit": "Static screenshot ranking cannot determine dynamic knowledge/scene coupling; user actual experience says restored group clearly stronger.",
+    "coverageLimit": "One unfamiliar open task, one artifact per valid arm, executor constrained to one no-tools artifact generation. No replicated general win and no full normal-agent/adviser workflow experiment.",
+    "effectConclusion": "User experience supports the recovery direction on dynamic teaching coherence; offline/code friction fixes are established. Quality improvement is local and incomplete, cost reduction is disproven in this pair."
+  },
+  "cost": {
+    "currentPairTokens": 84735,
+    "recoveryPairTokens": 101203,
+    "recoveryExtraPercent": 19.43470820794242,
+    "currentPairMs": 465547,
+    "recoveryPairMs": 555544,
+    "knownExperimentAndReviewTokens": 287001,
+    "unknownCosts": [
+      "Original production-budget stream timeout reported no usage; not zero or estimated"
+    ],
+    "includesInitialFaultedBatch": true,
+    "modelRequests": {
+      "initial": 5,
+      "productionAdjustment": 3,
+      "approach": 1,
+      "improvement": 1,
+      "codeReview": 1
+    },
+    "allModels": "deepseek-official/deepseek-flash",
+    "notMonetaryPriceEstimate": true
+  },
+  "independent": {
+    "approach": {
+      "ok": false,
+      "reason": "advisor-invalid-approach",
+      "usage": {
+        "inputTokens": 5284,
+        "outputTokens": 1340,
+        "cacheReadTokens": 128,
+        "cacheWriteTokens": 0,
+        "totalTokens": 6752
+      },
+      "accepted": false
+    },
+    "improvement": {
+      "ok": false,
+      "reason": "advisor-invalid-citation",
+      "usage": {
+        "inputTokens": 6304,
+        "outputTokens": 1505,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7809
+      },
+      "accepted": false,
+      "reasonNotAdopted": "Invented subfield evidence IDs, nonexistent policy.hasStageState and unproved empty-guard flaw. Kept genuine stage failure/feedback regression checks."
+    },
+    "codeReview": {
+      "ok": true,
+      "reviewPassed": false,
+      "report": {
+        "verdict": "gaps",
+        "summary": "Supplied excerpts for the recovery patch show no concrete regression or authority weakening in the reviewed scope: core/tier separation is intact and gated on tier selection, advisor instructions remain opportunity-based and explicitly non-authorizing, compact stage summary preserves failed checkpoints with original IDs while full contracts stay in status/reviewSpec, partial diagnostics are explicitly non-acceptance, mode/stage validations return concrete corrections, and cancellation short-circuits before the paid fallback while fallback usage accounting stays complete/unknown rather than invented. Model quality improvement and full runtime/whole-project acceptance are neither shown nor claimed; the scope is a local code review only.",
+        "findings": [
+          {
+            "text": "F0: OPTIMIZER_CORE is a single frozen bilingual object while OPTIMIZER_TIERS carries three separately named tiers (light/standard/heavy) per language; the core states results are chosen 'according to the selected tier', so the historical core is preserved without collapsing tiers.",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "text": "F0: Advisor brief and invocation strings repeatedly mark advice as adding no requirements and 'a consult opportunity is a hint, not permission'; no automatic scheduler/quota is introduced, consistent with the header comment.",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "text": "F1: renderStageSummary counts all check statuses but only re-emits entries with status==='failed', preserving original id and truncated criterion (90 chars), decrementing omittedChecks and rolling back on the REVIEW_CONTEXT_LIMIT guard; full pending/stale contracts are explicitly said to remain in status/reviewSpec.",
+            "evidenceRefs": [
+              "F1"
+            ]
+          },
+          {
+            "text": "F1: Unregistered-stage feedback path reports verdict/scope/focus, failed and unverified counts, and states that recorded failed/unverified items remain open and that parameter edits or local self-tests do not themselves close a failed review; texts still call advice non-user-authorizing.",
+            "evidenceRefs": [
+              "F1"
+            ]
+          },
+          {
+            "text": "F2: incompleteDiagnostics only fires when output.partial===true, adding diagnosticOnly/adviceReady:false and a note that retained traces are unverified diagnostics rather than a completed recommendation or acceptance review; mode validation returns typed correction objects (invalid-advisor-input, invalid-current-result, invalid-stage-reference) with allowedModes and material-field guidance.",
+            "evidenceRefs": [
+              "F2"
+            ]
+          },
+          {
+            "text": "F2: On abort the tools path returns cancelled-no-retry before the plainDrain fallback, and fallback accounting sums both paid streams while setting usageComplete/usageKnownCalls/usageUnknownCalls from actual reports; unmatched data is not reported as zero. Test log F3 reports 296/296 passing, but tests do not establish model quality or runtime behavior.",
+            "evidenceRefs": [
+              "F2",
+              "F3"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "checkId": "historical-contribution-core-tiers",
+            "criterion": "Historical contribution core is preserved and tiers remain separately selectable",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "checkId": "opportunity-based-advisor-instructions",
+            "criterion": "Advisor instructions are opportunity-based, not scheduler/quota-driven, and add no user authorization",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "checkId": "compact-stage-feedback",
+            "criterion": "Compact stage feedback preserves failed checkpoints and full status while staying within limits",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F1"
+            ]
+          },
+          {
+            "checkId": "partial-diagnostics-and-api-corrections",
+            "criterion": "Partial output is explicitly marked non-acceptance diagnostics and API misuse returns concrete corrections",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F2"
+            ]
+          },
+          {
+            "checkId": "fallback-usage-and-cancellation",
+            "criterion": "Cancellation avoids paid fallback and fallback usage is fully/unknown accounted rather than invented",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F2"
+            ]
+          },
+          {
+            "checkId": "no-authority-weakening",
+            "criterion": "No reviewed change grants new authorization or converts advice into user requirements",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0",
+              "F1",
+              "F2"
+            ]
+          },
+          {
+            "checkId": "model-quality-and-runtime-claim",
+            "criterion": "Model quality gains and a full runtime/whole-project acceptance claim are asserted by the change",
+            "status": "unverified",
+            "evidenceRefs": [
+              "F3"
+            ]
+          }
+        ],
+        "nextStep": "If broader assurance is required, run a minimal end-to-end invocation of the unchanged workflow (one real turn with tools disabled) and compare usage/cancellation fields against the F2 branches; otherwise close this scoped code review as a local pass only.",
+        "stopCondition": "Stop when the scoped code review is accepted as local; any claim about model quality improvement or whole-project runtime acceptance needs separate evidence and a user decision."
+      },
+      "usage": {
+        "inputTokens": 8108,
+        "outputTokens": 1007,
+        "cacheReadTokens": 384,
+        "cacheWriteTokens": 0,
+        "totalTokens": 9499
+      },
+      "conclusion": "Six local code checks satisfied; overall gaps retained because full runtime/model quality not proved. No formal whole-task acceptance or repeated vote."
+    }
+  },
+  "durability": {
+    "currentSnapshot": ".po06-tmp/recovery-current-baseline.json",
+    "historicalSnapshot": ".po06-tmp/recovery-early-behavior.json",
+    "rawInitial": ".po06-tmp/recovery-natural-results.json",
+    "rawProduction": ".po06-tmp/recovery-natural-default-budget.json",
+    "completeHtmlFiles": [
+      ".po06-tmp/recovery-natural-current.html",
+      ".po06-tmp/recovery-natural-recovery.html"
+    ],
+    "browserLogs": [
+      ".po06-tmp/recovery-browser-current-v2.json",
+      ".po06-tmp/recovery-browser-recovery-v2.json",
+      ".po06-tmp/recovery-browser-current-gestures.json",
+      ".po06-tmp/recovery-browser-recovery-gestures.json"
+    ],
+    "manualChangesToHtml": 0
+  },
+  "pending": [
+    "Restart/refresh original DSH GUI to load actual recovery callback and verify actual first new request revision",
+    "Natural-task behavior is promising by direct human experience but no stable cost or universal quality guarantee",
+    "Paused manual-scrub issue remains in the unpatched experimental recovery artifact",
+    "Only local changes, no commit/release/publish/settings change"
+  ]
+}

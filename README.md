@@ -1,4 +1,4 @@
-# dsh-arbiter-wf **v0.8.3-stable** · 独立裁判层（DSH Web 插件）
+# dsh-arbiter-wf **v0.8.4-stable** · 独立裁判层（DSH Web 插件）
 
 **中文** ｜ [English](README.en.md)
 
@@ -23,10 +23,10 @@
 >
 > 想找 0.1 ~ 0.6 的旧版本？见 [`old/`](old/README.md)（含各代简介与下载方法）。
 > 想自己发一版？见 [`RELEASING.md`](docs/RELEASING.md)（9 步发布规程 + 检查清单）。
-> ### 30 秒装上 0.8.3-stable
+> ### 30 秒装上 0.8.4-stable
 >
 > ```powershell
-> $v = '0.8.3-stable'; $d = "$env:USERPROFILE\Downloads"
+> $v = '0.8.4-stable'; $d = "$env:USERPROFILE\Downloads"
 > Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$d\dsh-external-dsh-arbiter-wf-$v.tgz"
 > Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
 > Get-Content "$d\SHA256SUMS-$v.txt"     # 与上一行下载到的 tgz 对 sha256（Release 页也有同一份）
@@ -39,6 +39,19 @@
 > 详细版（含 4 步自检、常见装不上的原因）见 [`po06/README.md`](po06/README.md)。
 > **不要装进 0.5.x 所在的那个 profile**：同装配会被 `DOUBLE_INTERCEPT` 守卫拒绝启用（这是刻意的），
 > 两者也**不共用配置**（0.6 的启用意图在 `<home>/po06.json`，不会碰 0.5 的 `prompt-optimizer.json`）。
+
+> ### 装不上时的排查顺序（issue #29）
+>
+> 先分清**是哪条路**在失败——多数「装不上」其实是走错了渠道：
+>
+> | 你看到的 | 真正的原因 | 怎么办 |
+> |---|---|---|
+> | 插件市场报 `npm registry search: no matching package found`，随后回落到 **git 安装** | 本插件**按设计不发 npm**（`private: true`），registry 上永远搜不到 | 别让安装器去搜 npm：按上面那段用 **Release 附件**（`.tgz`）装 |
+> | git 安装报 `schannel: next InitializeSecurityContext failed: SEC_E_INVALID_TOKEN` | 这是**你本机 git 的 TLS/代理**问题（命令连 GitHub 都没连上），与插件无关 | 要么改用 Release 附件（不需要 git），要么修本机 git：`git config --global http.sslBackend openssl`（或配好代理）后重试 |
+> | 安装器提示 `git-hosted plugins build on install via their prepare script … allowBuilds` | 这是安装器的**通用**提示：本包**没有任何构建步骤**（`package.json` 里连 `scripts` 都没有），允许构建不会改变任何结果 | 不用去改 `allowBuilds`；按上一条排查 TLS |
+> | 装完面板没有拦截，状态里是 `gate: rollout-off` | 档位还停在 `关闭` | 把档位拨到 `标准` 或 `重度` |
+>
+> 想自己从仓库装？见 [`docs/PACKAGING-NOTICE.md`](docs/PACKAGING-NOTICE.md)：git 安装要在本机装 peer 依赖并自跑构建，普通使用没必要。
 
 ---
 
@@ -120,31 +133,31 @@
 
 ## 诚实声明（请按这个预期使用）
 
-- ✅ **内部自洽有证据**：**93 套测试全绿**（`node po06/scripts/run-suites.mjs`；各套件自报用例合计 1,003 项；含打包自足性、文档漂移门禁）。**两种 shell 下均已复验**（bash 与 pwsh）。
+- ✅ **内部自洽有证据**：**104 套测试全绿**（`node po06/scripts/run-suites.mjs`；各套件自报用例合计 1141 项；含打包自足性、文档漂移门禁）。**两种 shell 下均已复验**（bash 与 pwsh）。
 - 📊 **作者实测观察（不是专业跑分）**：测试主要在 **DeepSeek-V4.1-Flash + PTC + PowerShell** 环境下进行。
   **目前没有做过专业的跑分测试**；但在常见的各类 one-shot 任务与长任务迭代中，
   **实际效果明显强于同环境、同提示词下的 DeepSeek-V4.1-Flash**；另据**少量项目**的统计，
   **疑似会降低 token 消耗量、节省开销**。
-- 📌 本版（0.8.3-stable）改了什么：
-  ⓪ **解释协议 v3（本版主线）** —— 发送前那一轮的优化协议被重写成"短协议"：模型只收到**共用核心 + 当前档位 + 薄输出格式**，
-     输出改成 `intent / clarify / add / ask` 四类；条目编号、来源标记、状态更新**由插件负责**，不再让模型填工程字段。
-     中文普通组合 **596 / 599 / 639 字符**（轻度 / 标准 / 重度）——此前是三段叠加的数千字符。
-  ① **三档按用途区分**（不再靠条数或问题配额）—— 轻度＝把原意讲清楚、消除歧义、指出必要反问；
-     标准＝澄清表达并补足影响结果最大的缺口；重度＝围绕已有目标做**全方位正向补充**、构思与方法，并呈现实质取舍。
-  ② **补充可以为零** —— "读懂了但没有值得补充的内容"是合法结果，不再硬造条目；同时取消了旧的 12 条 / 300 字 / 提问配额，
-     长建议与多条反问完整进入上下文与审查面板。
-  ③ **机器建议不会冒充你的要求** —— 模型产出的澄清与建议始终标为机器产出；你明说的才算要求，原话独立保留、原样发出。
-  ④ **界面可核对** —— 详情里同时给出「当前设置的完整组合预览」与「本会话最后一次**实际发送**的协议 / 字符数 / 思考档位」。
-  ⑤ **CI 可移植性修复** —— 旧 Node 上 zstd 具名导入会让整个模块链接失败（CI Node 20 实测），改为能力探测 + 显式跳过；
-     安装检查的 `dsh` 命令改为可注入，单测自带桩命令，不再依赖某台机器是否装了 DSH。
-  ⑥ 其余能力（英文模式、实验性推理增强、独立顾问 `consult_task`、内置 Bash、斜杠命令允许列表、拦截浮层流式显示）自 0.8.1 / 0.8.2 起提供。
-  **未做专业跑分**：协议变短不等于模型更快，实际价值请自己在同一任务上对照三档判断。详见 [`CHANGELOG.md`](CHANGELOG.md)。
-
+- 📌 本版（0.8.4-stable）改了什么：
+  ⓪ **顾问闭环（本版主线）** —— 复核按**每条结论实际引用的证据**核对：无关材料的截断不再整体否决，
+     被引用的截断材料仍必须完整补读；源码 / 截图 / 运行记录不互相冒充。真实失败、缺证与版本变化继续可见。
+  ① **"我读不到这个文件"不再让整次咨询作废**（#32）—— 读不到的材料可以正常被引用，缺口如实记进结果；
+     `/po06/api/status` 也不再写死"只读未开"，报告的是本会话真实设置。
+  ② **解析被拒不再直接 no-packet**（#31）—— 一个字都没吐与"吐坏了"从此同等对待：先重试一次，
+     仍坏则由宿主补一条**如实说明**的兜底条目（不发明任何新要求）。配对扫描只取第一段**完整**对象，绝不猜 JSON。
+  ③ **分段读同一个文件不再把复核结果丢掉**（#30）—— 材料按**文件版本**归并（同一文件读 5 段 = 1 行，改过的版本不会被吞掉，超过 8 个真实版本仍然拒绝）；失败 / 中断的卡片真的显示已产出的思考尾部与查证记录。
+  ④ **两处"必然失败"的路被修掉**（#33）—— 非 delivery 下的 `requiredScopes` / `requiredReviews` 是纯 no-op，
+     不再整次拒掉（真机某会话 21 连败 0 成功）；英文翻译遇到上游抖动时有界重试，每次尝试都写进台账。
+  ⑤ **顾问长时间没有任何产出时提前结束**（#34）—— 只在**完全没有产出**时触发（默认 90 秒），
+     一旦有增量产出就重置；它不是总截止，`DSH_PO06_ADVISOR_STALL_MS=0` 可完全关闭。
+  ⑥ **安装排障表**（#29）—— 本插件按设计不发 npm，安装器回落到 git 安装时的 TLS 失败与 allowBuilds 提示怎么处理，见上面。
+  ⑦ 其余能力（英文模式、实验性推理增强、独立顾问 `consult_task`、内置 Bash、斜杠命令允许列表、拦截浮层流式显示）沿用 0.8.3。
+  **未做专业跑分**：本版是正确性与可用性修复，不代表模型更快或产物必然更强。详见 [`CHANGELOG.md`](CHANGELOG.md)。
 ## 版本与证据
 
 - 更新日志：[`CHANGELOG.md`](CHANGELOG.md) ｜ 人工验收：[`po06/HUMAN-TEST.md`](po06/HUMAN-TEST.md) ｜
   发版登记（含每次真跑过的装机演练）：[`po06/RELEASE-CHECKLIST.md`](po06/RELEASE-CHECKLIST.md)
-- 安装与自检：[`po06/README.md`](po06/README.md) ｜ 当前 Release：**[v0.8.3-stable](https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/tag/v0.8.3-stable)**
+- 安装与自检：[`po06/README.md`](po06/README.md) ｜ 当前 Release：**[v0.8.4-stable](https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/tag/v0.8.4-stable)**
 - 💬 **欢迎加入 QQ 群：1121399051** 获取最新消息、安装帮助与版本公告。
 - 兼容：`dsh-0.1.7-rc.2`（本机实测运行）｜ `dsh-0.2.0-rc.2`（逐成员静态契约核对通过，实机待验，见 [`docs/DSH-0.2-COMPAT.md`](docs/DSH-0.2-COMPAT.md)）｜ 作者：啃轮胎的西狐
 - **上一代（0.5 线，仍可用，但已不再更新）**：装在另一个包 `@dsh-external/dsh-prompt-optimizer`，

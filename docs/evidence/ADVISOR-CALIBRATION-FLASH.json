@@ -1,0 +1,1025 @@
+{
+  "revision": "advisor-calibration-1",
+  "recordedAt": "2026-10-13T06:59:47.284Z",
+  "onlyModel": "deepseek-official/deepseek-flash",
+  "offline": {
+    "testFiles": 19,
+    "passed": 167,
+    "failed": 0,
+    "log": ".po06-tmp/advisor-calibration-regression.log"
+  },
+  "contributionPilot": {
+    "reasoningEffort": "low",
+    "outputTokenCap": 8192,
+    "perCallMs": 120000,
+    "cases": [
+      {
+        "id": "interval-code",
+        "domain": "code",
+        "task": "Implement mergeIntervals(intervals) as a JavaScript function expression. Intervals are finite numeric half-open [start,end] pairs with end>=start. Return sorted merged intervals, merge touching boundaries, ignore zero-length intervals, support unsorted/nested/duplicate and negative coordinates, and do not mutate input. No imports or side effects. Return JSON only {\"artifact\":\"function mergeIntervals(intervals){...}\"}.",
+        "baseline": {
+          "artifact": "function mergeIntervals(intervals){const cleaned=[];for(let i=0;i<intervals.length;i++){const s=intervals[i][0],e=intervals[i][1];if(e>s)cleaned.push([s,e]);}cleaned.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const merged=[];for(const [s,e] of cleaned){if(merged.length===0){merged.push([s,e]);continue;}const last=merged[merged.length-1];if(s<=last[1]){if(e>last[1])last[1]=e;}else{merged.push([s,e]);}}return merged;}"
+        },
+        "revised": {
+          "artifact": "function mergeIntervals(intervals){const cleaned=[];for(let i=0;i<intervals.length;i++){const s=intervals[i][0],e=intervals[i][1];if(e>s)cleaned.push([s,e]);}cleaned.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const merged=[];for(const [s,e] of cleaned){if(merged.length===0){merged.push([s,e]);continue;}const last=merged[merged.length-1];if(s<=last[1]){if(e>last[1])last[1]=e;}else{merged.push([s,e]);}}return merged;}"
+        },
+        "advisor": {
+          "ok": true,
+          "reason": null,
+          "report": {
+            "verdict": "keep",
+            "summary": "The current draft satisfies every stated requirement of the original task: zero-length intervals are dropped (e>s), touching half-open boundaries merge (s<=last[1]), output is start-sorted, nested/duplicate/negative inputs work, and input is never mutated (new [s,e] arrays are pushed and only those copies are updated). Traced [[1,4],[2,3],[5,7],[6,8]]→[[1,4],[5,8]] and [[1,2],[1,2]]→[[1,2]] both correct. No substantive gain found over the current text.",
+            "contribution": "",
+            "assumptions": [
+              "Input elements are always well-formed [start,end] numeric pairs with end>=start, as the task states; no malformed-input handling is required and none is added."
+            ],
+            "findings": [
+              {
+                "text": "Zero-length filtering uses e>s; since the spec guarantees end>=start, this is exactly 'drop when end===start' with no valid interval lost.",
+                "evidenceRefs": [
+                  "R0"
+                ]
+              },
+              {
+                "text": "Merge condition s<=last[1] correctly implements touching-boundary merging for half-open intervals; nested intervals are handled by the e>last[1] guard and duplicates collapse.",
+                "evidenceRefs": [
+                  "R0"
+                ]
+              },
+              {
+                "text": "Non-mutation holds because only freshly constructed [s,e] arrays enter cleaned/merged; the sort and last[1]=e writes touch copies, not the caller's arrays.",
+                "evidenceRefs": [
+                  "R0"
+                ]
+              },
+              {
+                "text": "Sort comparator a[0]-b[0]||a[1]-b[1] is numeric and safe for negative coordinates; the secondary end-key is harmless though not strictly required.",
+                "evidenceRefs": [
+                  "R0"
+                ]
+              }
+            ],
+            "checks": [],
+            "nextStep": "Keep current result as-is; no change yields a demonstrable gain against the stated requirements.",
+            "stopCondition": "Stop unless the caller reveals an unstated requirement (e.g., malformed input, non-array elements, or a non-JSON wrapper), which would change the evaluation."
+          },
+          "ms": 10034,
+          "usage": {
+            "inputTokens": 970,
+            "outputTokens": 1564,
+            "cacheReadTokens": 640,
+            "cacheWriteTokens": 0,
+            "totalTokens": 3174
+          },
+          "improvementAvailable": false,
+          "retainCurrent": true,
+          "model": "deepseek-official/deepseek-flash",
+          "revision": "stable-quality-1"
+        },
+        "baseFinish": {
+          "kind": "stop"
+        },
+        "checks": {
+          "checks": 18,
+          "passed": 18,
+          "rows": [
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            }
+          ]
+        },
+        "afterChecks": {
+          "checks": 18,
+          "passed": 18,
+          "rows": [
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            },
+            {
+              "output": true,
+              "immutable": true
+            }
+          ]
+        },
+        "revisionSkipped": "keep-current"
+      },
+      {
+        "id": "grouped-data",
+        "domain": "data-analysis",
+        "task": "Analyze success rates for method A versus B. Easy group: A 81 successes of 90, B 234 of 270. Hard group: A 192 of 240, B 55 of 75. Explain the pooled-versus-group relationship and whether the pooled result alone supports choosing B; keep the explanation within 180 words, distinguish description from causal conclusions. Return JSON {\"artifact\":\"analysis\",\"metrics\":{\"easyA\":number,\"easyB\":number,\"hardA\":number,\"hardB\":number,\"pooledA\":number,\"pooledB\":number},\"decision\":\"A|B|insufficient\"}. Rates must be proportions.",
+        "baseline": {
+          "artifact": "analysis",
+          "metrics": {
+            "easyA": 0.9,
+            "easyB": 0.8666666666666667,
+            "hardA": 0.8,
+            "hardB": 0.7333333333333333,
+            "pooledA": 0.8272727272727273,
+            "pooledB": 0.8376811594202898
+          },
+          "decision": "A",
+          "explanation": "Easy: A 0.900 vs B 0.867; hard: A 0.800 vs B 0.733. A has higher observed success in both groups. Pooled: A 0.827 vs B 0.838, so B appears higher only when groups are combined. This reversal is Simpson's paradox: B's pooled rate is boosted because 78% of B cases are easy (270/345), while only 55% of A cases are easy (90/330); easy cases have higher success. Pooled result alone therefore does not support choosing B; it is confounded by case-mix. Descriptively, the stratified rates favor A. Causal conclusion—that A causes better outcomes—requires assumptions such as no unmeasured confounding; these data alone do not prove causation. Decision uses descriptive within-group comparisons: A."
+        },
+        "revised": {
+          "artifact": "analysis",
+          "metrics": {
+            "easyA": 0.9,
+            "easyB": 0.8666666666666667,
+            "hardA": 0.8,
+            "hardB": 0.7333333333333333,
+            "pooledA": 0.8272727272727273,
+            "pooledB": 0.8376811594202898
+          },
+          "decision": "A",
+          "explanation": "Easy: A 0.900 vs B 0.867; hard: A 0.800 vs B 0.733. A has higher observed success in both groups. Pooled: A 0.827 vs B 0.838, so B appears higher only when groups are combined. This reversal is Simpson's paradox: B's pooled rate is boosted because 78% of B cases are easy (270/345), while only 27% of A cases are easy (90/330); easy cases have higher success. Pooled result alone therefore does not support choosing B; it is confounded by case-mix. Descriptively, the stratified rates favor A. Causal conclusion—that A causes better outcomes—requires assumptions such as no unmeasured confounding; these data alone do not prove causation. Decision uses descriptive within-group comparisons: A."
+        },
+        "advisor": {
+          "ok": true,
+          "reason": null,
+          "report": {
+            "verdict": "suggestion",
+            "summary": "R0's metrics, decision, and Simpson's-paradox reasoning are correct, but the explanation contains a concrete arithmetic error: it states only 55% of A cases are easy (90/330), which is actually ~27%. This misstates the case-mix imbalance that drives the pooled reversal, so the correction is high-value and low-risk.",
+            "contribution": "Local replacement for the explanation string (fixing only the erroneous figure, preserving length <180 words and all correct content):\n\n\"Easy: A 0.900 vs B 0.867; hard: A 0.800 vs B 0.733. A has higher observed success in both groups. Pooled: A 0.827 vs B 0.838, so B appears higher only when groups are combined. This reversal is Simpson's paradox: B's pooled rate is boosted because 78% of B cases are easy (270/345), while only 27% of A cases are easy (90/330); easy cases have higher success. Pooled result alone therefore does not support choosing B; it is confounded by case-mix. Descriptively, the stratified rates favor A. Causal conclusion—that A causes better outcomes—requires assumptions such as no unmeasured confounding; these data alone do not prove causation. Decision uses descriptive within-group comparisons: A.\"\n\nIntegration point: replace the value \"55%\" in R0's explanation with \"27%\". Grounds: 90/330 = 0.2727, so 27% correctly conveys A's case-mix (mostly hard), which is the contrast against B's 78% easy. Strengths to retain: the corrected sentence still ties the mix difference directly to the pooled reversal, keeps the description/causation distinction, and stays within the 180-word limit.",
+            "assumptions": [
+              "Choice of A as decision is accepted as a descriptive (non-causal) call; no separate causal inference is claimed."
+            ],
+            "findings": [
+              {
+                "text": "Factual error: R0 says 'only 55% of A cases are easy (90/330)'; 90/330 = 27.3%, not 55%. The stated fraction is wrong and understates the case-mix imbalance that produces Simpson's paradox, weakening the explanation central to the original goal.",
+                "evidenceRefs": [
+                  "R0"
+                ]
+              },
+              {
+                "text": "Verified correct: metrics easyA 0.9 (81/90), easyB 0.8667 (234/270), hardA 0.8 (192/240), hardB 0.7333 (55/75), pooledA 0.827 (273/330), pooledB 0.838 (289/345); B's 78% easy (270/345) is correct. Decision 'A' and the pooled-vs-stratified reversal description are sound.",
+                "evidenceRefs": [
+                  "R0"
+                ]
+              },
+              {
+                "text": "Explanation word count is ~112, safely under the 180-word limit, so the single-figure fix does not breach the constraint.",
+                "evidenceRefs": [
+                  "R0"
+                ]
+              }
+            ],
+            "checks": [],
+            "nextStep": "Apply the one-word figure change (55% -> 27%) in R0's explanation and confirm word count remains <180; otherwise keep current.",
+            "stopCondition": "Stop after the figure is corrected and no other metric/word-count deviation is found."
+          },
+          "ms": 13595,
+          "usage": {
+            "inputTokens": 1145,
+            "outputTokens": 2413,
+            "cacheReadTokens": 640,
+            "cacheWriteTokens": 0,
+            "totalTokens": 4198
+          },
+          "improvementAvailable": true,
+          "retainCurrent": false,
+          "model": "deepseek-official/deepseek-flash",
+          "revision": "stable-quality-1"
+        },
+        "baseFinish": {
+          "kind": "stop"
+        },
+        "checks": {
+          "checks": 8,
+          "passed": 8,
+          "rows": [
+            {
+              "check": "easyA",
+              "pass": true
+            },
+            {
+              "check": "easyB",
+              "pass": true
+            },
+            {
+              "check": "hardA",
+              "pass": true
+            },
+            {
+              "check": "hardB",
+              "pass": true
+            },
+            {
+              "check": "pooledA",
+              "pass": true
+            },
+            {
+              "check": "pooledB",
+              "pass": true
+            },
+            {
+              "check": "pooled-alone-not-causal-decision",
+              "pass": true
+            },
+            {
+              "check": "explanation-word-limit",
+              "pass": true
+            }
+          ],
+          "judgmentLimit": "numeric/explicit constraints only; explanatory quality requires human comparison"
+        },
+        "afterChecks": {
+          "checks": 8,
+          "passed": 8,
+          "rows": [
+            {
+              "check": "easyA",
+              "pass": true
+            },
+            {
+              "check": "easyB",
+              "pass": true
+            },
+            {
+              "check": "hardA",
+              "pass": true
+            },
+            {
+              "check": "hardB",
+              "pass": true
+            },
+            {
+              "check": "pooledA",
+              "pass": true
+            },
+            {
+              "check": "pooledB",
+              "pass": true
+            },
+            {
+              "check": "pooled-alone-not-causal-decision",
+              "pass": true
+            },
+            {
+              "check": "explanation-word-limit",
+              "pass": true
+            }
+          ],
+          "judgmentLimit": "numeric/explicit constraints only; explanatory quality requires human comparison"
+        }
+      },
+      {
+        "id": "incident-message",
+        "domain": "writing",
+        "task": "Draft a public incident update of at most 110 words. Facts: some users cannot finish file uploads; other operations are being monitored; investigation is ongoing; no root cause or restoration ETA is confirmed; support is gathering affected upload IDs via the status page; next update at 14:30 UTC. Be clear, empathetic and useful. Do not promise restoration or declare data safety without evidence. Return JSON only with an artifact string containing the actual incident update you wrote, not the word message or any schema placeholder.",
+        "baseline": {
+          "artifact": "We're aware that some users are unable to complete file uploads. Other operations are being monitored while our team investigates. We do not yet have a confirmed root cause or restoration ETA. If your upload was affected, please share the upload ID through the status page so Support can gather details. We're sorry for the disruption and will share the next update at 14:30 UTC."
+        },
+        "revised": {
+          "artifact": "We're aware that some users are unable to complete file uploads. Other operations are being monitored while our team investigates. We do not yet have a confirmed root cause or restoration ETA. If your upload was affected, please share the upload ID through the status page so Support can gather details. We're sorry for the disruption and will share the next update at 14:30 UTC."
+        },
+        "advisor": {
+          "ok": false,
+          "reason": "advisor-empty-output",
+          "report": null,
+          "improvementAvailable": false,
+          "retainCurrent": false,
+          "revision": "stable-quality-1"
+        },
+        "baseFinish": {
+          "kind": "stop"
+        },
+        "checks": {
+          "checks": 5,
+          "passed": 5,
+          "rows": [
+            {
+              "check": "nonempty",
+              "pass": true
+            },
+            {
+              "check": "110-word-limit",
+              "pass": true
+            },
+            {
+              "check": "precise-update-time",
+              "pass": true
+            },
+            {
+              "check": "affected-operation",
+              "pass": true
+            },
+            {
+              "check": "action-channel",
+              "pass": true
+            }
+          ],
+          "judgmentLimit": "surface factual constraints only; empathy, clarity and factual entailment need human review"
+        },
+        "afterChecks": {
+          "checks": 5,
+          "passed": 5,
+          "rows": [
+            {
+              "check": "nonempty",
+              "pass": true
+            },
+            {
+              "check": "110-word-limit",
+              "pass": true
+            },
+            {
+              "check": "precise-update-time",
+              "pass": true
+            },
+            {
+              "check": "affected-operation",
+              "pass": true
+            },
+            {
+              "check": "action-channel",
+              "pass": true
+            }
+          ],
+          "judgmentLimit": "surface factual constraints only; empathy, clarity and factual entailment need human review"
+        },
+        "revisionSkipped": "no-complete-advice"
+      }
+    ],
+    "independentArithmeticCheck": {
+      "expression": "90/330",
+      "exact": 0.2727272727272727,
+      "roundedPercent": 27,
+      "baselineStatedPercent": 55,
+      "revisedStatedPercent": 27,
+      "warning": "Local factual correction, not a universal quality score. Both versions had correct six main rates; surface checks did not detect the explanatory arithmetic error."
+    }
+  },
+  "choicePilot": {
+    "reasoningEffort": "off",
+    "outputTokenCap": 1536,
+    "tools": "Identical neutral consult_task definition using real ADVISOR_PARAMETERS; proposals are not executed",
+    "old": "stable-quality-1 English workflow snapshot",
+    "new": "advisor-calibration-1 English workflow",
+    "rows": [
+      {
+        "id": "consequential-direction",
+        "condition": "old",
+        "text": "I'll get one concrete, adoptable design/algorithm contribution on the key bottleneck—maintainable structure choice plus crash recovery semantics—before locking in the implementation.",
+        "finish": {
+          "kind": "tool-calls"
+        },
+        "proposals": [
+          {
+            "name": "consult_task",
+            "arguments": {
+              "mode": "develop_approach",
+              "question": "Goal: a local (no server/DB-service) document index for a large mixed-format archive (many GB, hundreds of thousands of files, mixed text/PDF/office/binary), with three hard constraints: (1) bounded memory — must not load the corpus or a huge index into RAM; (2) frequent file updates — files are added/modified/deleted continuously, re-indexing must be incremental; (3) crash recovery — indexing is frequently interrupted and must resume correctly after a kill, without corruption or duplicated/stale entries. Deliverable is working Python code (single machine, stdlib + maybe one common dep) using SQLite as the candidate structure.\n\nDecisions I need made concretely, since I have not locked these: (a) Is SQLite actually the right maintainable structure versus e.g. a directory of JSON/segment files with a manifest, or an append-only log + compaction? Give the trade-off and a definite pick. (b) Exact schema + WAL/pragma settings for bounded memory and concurrent read-during-write. (c) Exact crash-recovery semantics: what makes a file \"done\", how checkpoints/watermarks work, how to detect and redo files that were in-flight at crash time, and how to avoid marking a partially-indexed file as complete. (d) Incremental update detection that is cheap: mtime+size vs content hash, and how to avoid re-reading unchanged large files. (e) Mixed-format extraction that fails gracefully so one bad PDF doesn't abort the batch. (f) Batch/transaction granularity that keeps memory bounded and fsync cost sane. Return a specific recommended design with schema DDL, the indexing loop, and the recovery procedure.\n\nNote: I want the design decided now and then implemented; I don't want an exhaustive survey. Prefer the smallest design that satisfies all three constraints.",
+              "hypothesis": "Single SQLite file in WAL mode; one row per file with a status column (pending/done/error); per-file transactions committed in batches; journal_mode=WAL + synchronous=NORMAL; completion marked only after content rows are committed, so a crash leaves files in 'pending' and a resume pass re-scans them; incremental updates via mtime_ns+size fast-path with content hash to disambiguate."
+            }
+          }
+        ],
+        "executed": false,
+        "valid": true
+      },
+      {
+        "id": "consequential-direction",
+        "condition": "new",
+        "text": "I'll lock down the design before writing code, since the structure choice (single SQLite file vs. append-only log vs. directory-of-files index) is consequential and hard to reverse.",
+        "finish": {
+          "kind": "tool-calls"
+        },
+        "proposals": [
+          {
+            "name": "consult_task",
+            "arguments": {
+              "mode": "develop_approach",
+              "scope": "code",
+              "focus": "Local document index for a large mixed-format archive: bounded memory, frequent incremental updates, crash/interrupt recovery mid-index. Choosing the persistent structure and the checkpoint/journal protocol before implementing.",
+              "question": "I need to pick a maintainable persistent index structure + recovery protocol for a local archive indexer. Constraints: (1) bounded memory regardless of archive size (millions of files, mixed formats: text, PDF, docx, images with sidecar text); (2) frequent updates — files added/changed/deleted continuously, so re-index must be incremental; (3) interrupted indexing must be recoverable without full re-scan and without corrupting the index; (4) it must be maintainable by one person (no server, no external service). Candidate: SQLite as single-file store with WAL + a per-batch checkpoint, streaming extraction in batches, and content-hash-based change detection. Questions I want an independent take on: Is SQLite the right backbone versus an append-only segment + compaction log (Lucene-style) or a plain directory-of-JSON-files index? What is the minimal correct recovery protocol — what exactly must be committed atomically per batch so that a crash leaves the index in a consistent state and progress can resume from the last completed batch? What are the specific failure modes I should design against (partial extraction, killed process mid-batch, file changed between hash and extract, duplicate inserts after resume)?",
+              "hypothesis": "SQLite (WAL mode) as the index backbone, with one transaction per batch containing both document rows and a progress/checkpoint row, content hashes for change detection, and resume driven by the checkpoint table rather than by rescanning the archive."
+            }
+          }
+        ],
+        "executed": false,
+        "valid": true
+      },
+      {
+        "id": "substantive-draft",
+        "condition": "new",
+        "text": "I'll review the draft against the task requirements before delivering.",
+        "finish": {
+          "kind": "tool-calls"
+        },
+        "proposals": [
+          {
+            "name": "consult_task",
+            "arguments": {
+              "mode": "review_result",
+              "scope": "code",
+              "focus": "mergeIntervals function expression: correctness of merging touching boundaries, dropping zero-length intervals, sorting, immutability, no side effects; JSON-only output shape {\"artifact\":\"function mergeIntervals(intervals){...}\"}",
+              "question": "Verify the returned artifact meets: function expression (not declaration) named mergeIntervals, returns sorted merged finite half-open intervals, merges touching boundaries (e.g. [1,2],[2,3] -> [1,3]), ignores zero-length [x,x], supports unsorted/nested/duplicate/negative, no input mutation, no imports/side effects. Also confirm the wrapper output is JSON only with key \"artifact\". Report any concrete defect with a failing input.",
+              "currentResult": "{\"artifact\":\"function mergeIntervals(intervals){const cleaned=[];for(let i=0;i<intervals.length;i++){const s=intervals[i][0],e=intervals[i][1];if(e>s)cleaned.push([s,e]);}cleaned.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const merged=[];for(const [s,e] of cleaned){if(merged.length===0){merged.push([s,e]);continue;}const last=merged[merged.length-1];if(s<=last[1]){if(e>last[1])last[1]=e;}else{merged.push([s,e]);}}return merged;}\"}"
+            }
+          }
+        ],
+        "executed": false,
+        "valid": true
+      },
+      {
+        "id": "substantive-draft",
+        "condition": "old",
+        "text": "",
+        "finish": {
+          "kind": "tool-calls"
+        },
+        "proposals": [
+          {
+            "name": "consult_task",
+            "arguments": {
+              "mode": "improve_result",
+              "scope": "code",
+              "focus": "mergeIntervals JS function expression correctness against spec: sorted merged output, touching merged, zero-length ignored, unsorted/nested/duplicate/negative handled, input not mutated, no imports/side effects, JSON-only output format",
+              "question": "Review this candidate for any correctness gap vs the spec (e.g. duplicate sorting stability, zero-length filtering edge, negative coords, mutation of nested arrays, output JSON validity). Return adoptable exact code if a fix is needed; else confirm.",
+              "currentResult": "{\"artifact\":\"function mergeIntervals(intervals){const cleaned=[];for(let i=0;i<intervals.length;i++){const s=intervals[i][0],e=intervals[i][1];if(e>s)cleaned.push([s,e]);}cleaned.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const merged=[];for(const [s,e] of cleaned){if(merged.length===0){merged.push([s,e]);continue;}const last=merged[merged.length-1];if(s<=last[1]){if(e>last[1])last[1]=e;}else{merged.push([s,e]);}}return merged;}",
+              "hypothesis": "Draft is correct; touching merged because s<=last[1]; zero-length skipped via e>s; new arrays created so input not mutated."
+            }
+          }
+        ],
+        "executed": false,
+        "valid": true
+      },
+      {
+        "id": "simple-acknowledgment",
+        "condition": "old",
+        "text": "There's nothing left to continue — you said \"that is all,\" and no deliverables or open work items remain. If you'd like me to pick something back up, tell me which artifact or task to revisit.",
+        "finish": {
+          "kind": "stop"
+        },
+        "proposals": [],
+        "executed": false,
+        "valid": true
+      },
+      {
+        "id": "simple-acknowledgment",
+        "condition": "new",
+        "text": "There's nothing pending in this task — the previous turn only acknowledged that no further work was requested. There's no deliverable, draft, or unresolved question for me to act on.\n\nIf you want me to continue, tell me what to pick up. For example:\n- A specific file, draft, or result you want improved or reviewed\n- A question or problem you want solved\n- A build, test, or analysis you want run\n\nPoint me at the target and I'll get started.",
+        "finish": {
+          "kind": "stop"
+        },
+        "proposals": [],
+        "executed": false,
+        "valid": true
+      }
+    ],
+    "valid": true,
+    "finding": "Both policies proposed consultation in two of three states; purpose changed from improve_result to review_result at delivery. No measured increase in overall invocation propensity."
+  },
+  "metering": {
+    "paidRequestsWithUsage": 25,
+    "totals": {
+      "inputTokens": 18395,
+      "outputTokens": 37611,
+      "cacheReadTokens": 15744,
+      "totalTokens": 71750
+    },
+    "includes": "route check, initial invalid fixtures/caps, local-contract debugging, reasoning-low exploratory choices and final choices",
+    "batches": [
+      {
+        "artifact": "advisor-calibration-flash.json",
+        "localAttempts": 11,
+        "meteredRequests": 5,
+        "usage": {
+          "inputTokens": 2955,
+          "outputTokens": 8466,
+          "cacheReadTokens": 640,
+          "totalTokens": 12061
+        }
+      },
+      {
+        "artifact": "advisor-calibration-flash-v2.json",
+        "localAttempts": 13,
+        "meteredRequests": 7,
+        "usage": {
+          "inputTokens": 4771,
+          "outputTokens": 19539,
+          "cacheReadTokens": 1920,
+          "totalTokens": 26230
+        }
+      },
+      {
+        "artifact": "advisor-calibration-flash-v3.json",
+        "localAttempts": 6,
+        "meteredRequests": 6,
+        "usage": {
+          "inputTokens": 5207,
+          "outputTokens": 7600,
+          "cacheReadTokens": 6784,
+          "totalTokens": 19591
+        }
+      },
+      {
+        "artifact": "advisor-calibration-flash-v4.json",
+        "localAttempts": 6,
+        "meteredRequests": 6,
+        "usage": {
+          "inputTokens": 5435,
+          "outputTokens": 2001,
+          "cacheReadTokens": 6400,
+          "totalTokens": 13836
+        }
+      }
+    ],
+    "missingUsageForLocalFailures": "Twelve choice attempts failed before network serialization with missing assistant source; not model refusals.",
+    "scope": "Pilot/fixture/choice experiments only; live independent code-review calls recorded separately"
+  },
+  "limitations": [
+    "Tiny artificial sessions, one sample per condition; no production invocation-rate estimate.",
+    "All model-generated baseline artifacts were produced without planted faults. The first fixture/cap setup was invalid and retained separately.",
+    "Decision enum/placeholder and whitespace/time check defects were corrected offline transparently; no numerical quality gain is inferred from aggregate checks.",
+    "Writing advisor exhausted the 8192-token test cap in about 53 seconds without a complete answer; no writing gain was established.",
+    "No image, interaction or long project evaluation; no claim of surpassing a strong model.",
+    "User runtime still stable-quality-1 when last inspected; disk changes need restart.",
+    "Independent code reviewer later became available and confirmed all three code criteria, but formal stage pass remained unverified due evidence-range safeguards."
+  ],
+  "independentCodeReview": {
+    "route": "deepseek-official/deepseek-flash",
+    "taskId": "Te52f0782-4fea-4d20-adb2-202381ba4b43",
+    "stageId": "S1",
+    "attempts": [
+      {
+        "artifact": "advisor-calibration-code-review.json",
+        "model": "deepseek-official/deepseek-flash",
+        "ok": true,
+        "reviewPassed": false,
+        "report": {
+          "verdict": "gaps",
+          "summary": "中文/英文共用规则与工具描述接线、豁免语义在源码层面一致且可定位；但唯一指向的定向回归日志在 workspace 中不存在，F3 测试源码无执行输出，实际注入调用点未确认，故 K3 未验证。当前运行旧模块、磁盘新版本待重启，更不支持任何生效结论。",
+          "findings": [
+            {
+              "text": "修订标记一致：F0 的 ADVISOR_INVOCATION_REVISION='advisor-calibration-1' 与 optimizer-protocol.js:6 的 OPTIMIZER_PROMPT_REVISION 同值，并写入 index.js:665 台账字段与 :988 请求记录，可观测性成立。",
+              "evidenceRefs": [
+                "F0",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/optimizer-protocol.js",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/index.js"
+              ]
+            },
+            {
+              "text": "旧默认迁移与自定义保留在源码有明确分支：isLegacyDefaultPrompt 用哈希集合识别，resolvePrompt 命中旧默认返回 builtin+migration，自定义文本返回 source:'file'；但哈希与实际历史默认是否匹配、运行行为如何，均无执行证据。",
+              "evidenceRefs": [
+                "read:plugins/dsh-prompt-optimizer/po06/lib/optimizer-protocol.js",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/control-api.js"
+              ]
+            },
+            {
+              "text": "工作模型工具描述（advisor.js:614）由 ADVISOR_INVOCATION.zh 的 approach/improve/review/economy 拼接，英文侧由 EN_WORKFLOW 注入 en 条目；属同一共享源按语言接入，非规则分叉。",
+              "evidenceRefs": [
+                "read:plugins/dsh-prompt-optimizer/po06/lib/advisor.js",
+                "F0",
+                "F1",
+                "F2"
+              ]
+            },
+            {
+              "text": "F3 是覆盖工具注册、双语文档注入、版本标记、旧默认/自定义解析四类断言的定向测试源码，但调用方指向的回归日志路径在 workspace 中不存在（glob .po06-tmp/* 无匹配），无任何一次执行通过输出，不能据此宣称接线已生效。",
+              "evidenceRefs": [
+                "F3"
+              ]
+            },
+            {
+              "text": "index.js 中仅确认 advisorInvocationRevision 的台账/记录接入，未在本次轮次内确认 withAdvisorWorkflow 在运行路径的调用点，实际注入链路仍属未证实环节。",
+              "evidenceRefs": [
+                "read:plugins/dsh-prompt-optimizer/po06/lib/index.js"
+              ]
+            }
+          ],
+          "checks": [
+            {
+              "checkId": "S1.K1",
+              "criterion": "重要方向和实质初稿的咨询不以已知缺陷为必要条件，简单直接可核对任务及当前版本独立覆盖保留豁免，不新增固定调用或自动循环。",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F0",
+                "F1",
+                "F2",
+                "F3"
+              ]
+            },
+            {
+              "checkId": "S1.K2",
+              "criterion": "共用规则在中文/英文工作指引及实际工具描述中一致接入，验收review_result与improve_result/keep的含义保持分离。",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F0",
+                "F1",
+                "F2",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/advisor.js",
+                "F3"
+              ]
+            },
+            {
+              "checkId": "S1.K3",
+              "criterion": "实际注入、工具注册、版本标记与旧默认/自定义兼容具有定向离线证据；不得把接线通过或小样本当生产调用率或普遍质量结论。",
+              "status": "unverified",
+              "evidenceRefs": [
+                "F3",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/optimizer-protocol.js",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/control-api.js",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/index.js"
+              ]
+            }
+          ],
+          "nextStep": "实际运行 F3 定向测试并用 deepseek-official/deepseek-flash 之外不涉及（测试不调模型），把输出落盘为可引用的日志，另在 index.js 确认 withAdvisorWorkflow 的调用点，以补上 K3 的执行证据。",
+          "stopCondition": "若定向测试失败或仍无任何执行日志，停止以源码接线或小样本宣称触发覆盖生效，交用户决定是否重启后再验。"
+        },
+        "stageRecording": {
+          "ok": false,
+          "reason": "invalid-stage-material"
+        },
+        "ms": 90784,
+        "usage": {
+          "inputTokens": 35692,
+          "outputTokens": 14261,
+          "cacheReadTokens": 26752,
+          "cacheWriteTokens": 0,
+          "totalTokens": 76705
+        },
+        "materials": [
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/advisor-invocation.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/advisor-workflow.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/english-prompts.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/test/advisor-invocation.test.mjs",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/optimizer-protocol.js",
+            "status": "truncated",
+            "selectionComplete": false,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/advisor.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/index.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/optimizer-protocol.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/control-api.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          }
+        ]
+      },
+      {
+        "artifact": "advisor-calibration-code-review-followup.json",
+        "model": "deepseek-official/deepseek-flash",
+        "ok": true,
+        "reviewPassed": false,
+        "report": {
+          "verdict": "unverified",
+          "summary": "证据范围不完整，不能将局部通过视为整体通过。已按补验范围独立核对三项：F0-F2 源码语义与中英一致接入成立，K3 由我自行读 index.js/advisor.js 与磁盘日志 tail 交叉验证，实际注入点、consult_task 注册、revision 标记与旧默认兼容的定向离线证据齐备。仅离线证据，未作生产调用率或质量结论。",
+          "findings": [
+            {
+              "text": "F3 证据包被截断（sentChars 16000/19898，wholeFileComplete=false），完整测试源码未随包读完，但 F3 声明的日志文件在磁盘存在且 tail 与 exit code 0 相符，未依赖其摘要作结论。",
+              "evidenceRefs": [
+                "F3"
+              ]
+            },
+            {
+              "text": "实际注入点自验：index.js:1816 由 withAdvisorWorkflow('',pol,'',workingText) 填充 systemPrompt context（:1785-1793），非仅测试接线。",
+              "evidenceRefs": [
+                "read:plugins/dsh-prompt-optimizer/po06/lib/index.js"
+              ]
+            },
+            {
+              "text": "consult_task 经 scope.tools.register 注册（advisor.js:612-613），描述中直接复述 ADVISOR_INVOCATION 中文四条，与 F0/F1 同一来源。",
+              "evidenceRefs": [
+                "read:plugins/dsh-prompt-optimizer/po06/lib/advisor.js",
+                "F0"
+              ]
+            },
+            {
+              "text": "版本标记可观测：ADVISOR_INVOCATION_REVISION='advisor-calibration-1' 用于 advisor.js:532 日志与 index.js:665/988 请求记录；旧默认/自定义兼容有定向测试（advisor-invocation.test.mjs:44 等），测试数不计入生产调用率。",
+              "evidenceRefs": [
+                "F0",
+                "F3",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/advisor.js"
+              ]
+            }
+          ],
+          "checks": [
+            {
+              "checkId": "S1.K1",
+              "criterion": "重要方向和实质初稿的咨询不以已知缺陷为必要条件，简单直接可核对任务及当前版本独立覆盖保留豁免，不新增固定调用或自动循环。",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F0",
+                "F1",
+                "F2"
+              ]
+            },
+            {
+              "checkId": "S1.K2",
+              "criterion": "共用规则在中文/英文工作指引及实际工具描述中一致接入，验收review_result与improve_result/keep的含义保持分离。",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F0",
+                "F1",
+                "F2",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/advisor.js"
+              ]
+            },
+            {
+              "checkId": "S1.K3",
+              "criterion": "实际注入、工具注册、版本标记与旧默认/自定义兼容具有定向离线证据；不得把接线通过或小样本当生产调用率或普遍质量结论。",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F3",
+                "F0",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/index.js",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/advisor.js"
+              ]
+            }
+          ],
+          "nextStep": "本阶段三个检查项均可交付，无需再补验；磁盘新修订是否生效仍由用户重启后的真机使用决定。",
+          "stopCondition": "若用户后续要求生产调用率或模型效果结论，需另行采集真机数据，在此之前停止重复离线复验。"
+        },
+        "stageRecording": {
+          "ok": true,
+          "taskId": "Te52f0782-4fea-4d20-adb2-202381ba4b43",
+          "stageId": "S1"
+        },
+        "ms": 112799,
+        "usage": {
+          "inputTokens": 40991,
+          "outputTokens": 16789,
+          "cacheReadTokens": 35456,
+          "cacheWriteTokens": 0,
+          "totalTokens": 93236
+        },
+        "materials": [
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/advisor-invocation.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/advisor-workflow.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/english-prompts.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/.po06-tmp/advisor-calibration-review-evidence.txt",
+            "status": "truncated",
+            "selectionComplete": false,
+            "wholeFileComplete": false
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/index.js",
+            "status": "truncated",
+            "selectionComplete": false,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/advisor.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          }
+        ]
+      },
+      {
+        "artifact": "advisor-calibration-code-review-final.json",
+        "model": "deepseek-official/deepseek-flash",
+        "ok": true,
+        "reviewPassed": false,
+        "report": {
+          "verdict": "unverified",
+          "summary": "证据范围不完整，不能将局部通过视为整体通过。S1 三项检查均有可定位离线证据：共用规则中英双语一致接入注入工作指引与 consult_task 工具描述，实际注入点与注册行在磁盘源码中独立核对存在，版本标记与旧默认/自定义兼容分支及四项校准测试源码属实。仅针对离线代码接线，不含生产调用率或通用质量结论。",
+          "findings": [
+            {
+              "text": "F3 所引用的完整日志尾部（tests 167 / pass 167 / fail 0 / exit 0）我只看到 F3 摘录；磁盘上 test/advisor-invocation.test.mjs 内容与 F3 所引四个用例逐行一致，lib 实现也逐条对上，故摘录可信但非我复核的原始日志本体。",
+              "evidenceRefs": [
+                "F3",
+                "read:plugins/dsh-prompt-optimizer/po06/test/advisor-invocation.test.mjs"
+              ]
+            },
+            {
+              "text": "生产注入点独立核对：index.js:1785-1816 的装配 context 在 enableGate 与 pol.injectPacket!==true 两处硬短路后调用 withAdvisorWorkflow('',pol,'',...)，不存在自动排程或每轮固定调用代码。",
+              "evidenceRefs": [
+                "read:plugins/dsh-prompt-optimizer/po06/lib/index.js",
+                "F1"
+              ]
+            },
+            {
+              "text": "英文侧为纯英文工作指引（F2 EN_WORKFLOW 逐条对应 zh），测试含 EN_WORKFLOW 无中文字符断言；工具描述用 zh 四段拼接，与中英指引同源同一常量。",
+              "evidenceRefs": [
+                "F2",
+                "F0",
+                "F3"
+              ]
+            }
+          ],
+          "checks": [
+            {
+              "checkId": "S1.K1",
+              "criterion": "重要方向和实质初稿的咨询不以已知缺陷为必要条件，简单直接可核对任务及当前版本独立覆盖保留豁免，不新增固定调用或自动循环。",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F0",
+                "F1",
+                "F2",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/advisor-invocation.js",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/index.js",
+                "read:plugins/dsh-prompt-optimizer/po06/test/advisor-invocation.test.mjs"
+              ]
+            },
+            {
+              "checkId": "S1.K2",
+              "criterion": "共用规则在中文/英文工作指引及实际工具描述中一致接入，验收review_result与improve_result/keep的含义保持分离。",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F0",
+                "F1",
+                "F2",
+                "F3",
+                "read:plugins/dsh-prompt-optimizer/po06/test/advisor-invocation.test.mjs"
+              ]
+            },
+            {
+              "checkId": "S1.K3",
+              "criterion": "实际注入、工具注册、版本标记与旧默认/自定义兼容具有定向离线证据；不得把接线通过或小样本当生产调用率或普遍质量结论。",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F3",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/index.js",
+                "read:plugins/dsh-prompt-optimizer/po06/test/advisor-invocation.test.mjs",
+                "read:plugins/dsh-prompt-optimizer/po06/lib/advisor-invocation.js"
+              ]
+            }
+          ],
+          "nextStep": "可交付该离线接线结论：重启后用磁盘新版做一次真实会话抽测即可，无需再重复源码核对或补测试。",
+          "stopCondition": "若需生产调用率/普遍质量结论，或重启后实测注入未生效，则以新的实机证据重新评估；在此之前不重复本轮离线查证。"
+        },
+        "stageRecording": {
+          "ok": true,
+          "taskId": "Te52f0782-4fea-4d20-adb2-202381ba4b43",
+          "stageId": "S1"
+        },
+        "ms": 78752,
+        "usage": {
+          "inputTokens": 39446,
+          "outputTokens": 12625,
+          "cacheReadTokens": 32256,
+          "cacheWriteTokens": 0,
+          "totalTokens": 84327
+        },
+        "materials": [
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/advisor-invocation.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/advisor-workflow.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/english-prompts.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/.po06-tmp/advisor-calibration-review-compact.txt",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": true
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/test/advisor-invocation.test.mjs",
+            "status": "truncated",
+            "selectionComplete": false,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          },
+          {
+            "path": "plugins/dsh-prompt-optimizer/po06/lib/index.js",
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": false,
+            "source": "advisor-read"
+          }
+        ]
+      }
+    ],
+    "conclusion": "Latest model report marked all three code checks satisfied; host verdict remained unverified and reviewPassed=false due evidence-range safeguards. No formal stage pass is claimed.",
+    "tokens": 254268
+  },
+  "totalReportedTokensIncludingIndependentReviews": 326018
+}

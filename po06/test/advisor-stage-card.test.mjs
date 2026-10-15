@@ -162,3 +162,24 @@ test('presentationMeta-only failed recording or partial never shows advancement'
   assert.doesNotMatch(text,/当前阶段可放行|Current stage may advance/)
  }
 })
+
+test('quality suggestion renders improvement content without acceptance/checkpoint panels', () => {
+  const mod = load()
+  const value = { ok: true, mode: 'improve_result', invocationSucceeded: true, reviewPassed: false, completionClaimAllowed: false,
+    improvementAvailable: true, report: { verdict: 'suggestion', summary: 'Concrete quality gain', contribution: 'Replace the opening with a causal explanation.', assumptions: [], findings: [], checks: [], nextStep: 'Compare the actual versions', stopCondition: 'Stop without a real gain' } }
+  const tree = row(mod, value, { mode: 'improve_result', question: 'Improve the result' })
+  const text = render(tree)
+  assert.match(text, /Advisor · Result improvement/); assert.match(text, /Replace the opening/)
+  assert.match(text, /Not acceptance/)
+  assert.equal(find(tree, n => n.props['data-po06-advisor-checks']).length, 0)
+  assert.equal(find(tree, n => n.props['data-po06-advisor-outcome']).length, 0)
+  assert.equal(find(tree, n => n.props['data-po06-advisor-stage-state']).length, 0)
+})
+
+test('quality keep is displayed as keep-current rather than passed', () => {
+  const mod = load()
+  const value = { ok: true, mode: 'improve_result', retainCurrent: true, reviewPassed: false,
+    report: { verdict: 'keep', summary: 'No substantive gain found', contribution: '', assumptions: [], findings: [], checks: [], nextStep: 'Keep current', stopCondition: 'New evidence' } }
+  const text = render(row(mod, value, { mode: 'improve_result' }))
+  assert.match(text, /Keep current result/); assert.doesNotMatch(text, /Reviewed scope passed|Verification pending/)
+})

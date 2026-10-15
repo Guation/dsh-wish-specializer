@@ -19,6 +19,8 @@ test('actual plugin apply registers both adviser tools and disposes them without
   assert.ok(typeof mod.adapter.reviewFeedback==='function')
   assert.ok(defs.get('advisor_stage').parameters.properties.subjectPaths)
   assert.ok(defs.get('consult_task').parameters.properties.taskId)
+  assert.ok(defs.get('consult_task').parameters.properties.mode.enum.includes('improve_result'))
+  assert.ok(defs.get('consult_task').parameters.properties.currentResult)
   assert.equal(defs.get('advisor_stage').presentCall({action:'status'}).card,'generic')
   assert.equal(defs.get('advisor_stage').presentCall({action:'status'}).kind,'other')
   for(const dispose of effects.reverse())dispose()

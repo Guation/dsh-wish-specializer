@@ -45,7 +45,7 @@ cd po06
 node --test test/            # 或逐套跑：node test/xxx.test.mjs
 ```
 
-**核对**：全部用例通过（当前基线 **71 套 / 209 项**，`node --test po06/test/*.test.mjs`；bash 与 pwsh 两种 shell 下均需全绿）。有任何一套红，先修再谈发布。
+**核对**：全部用例通过（当前基线以 `node po06/scripts/run-suites.mjs` 的实测行为准：**104 套 / 1138 项**；bash 与 pwsh 两种 shell 下均需全绿。数字会随新增用例变化，**只信本轮实测**，别照抄这一行）。有任何一套红，先修再谈发布。
 
 改源码只改 `po06/` 下的东西。`old/` 只读，不修历史版本。
 
@@ -96,14 +96,27 @@ cd po06 && for f in test/*.test.mjs; do node "$f" >/dev/null 2>&1 || echo "FAIL 
 发布前先在本机把它装上跑一次，确认**装得上、跑得起来**：
 
 ```bash
-cd /path/to/dsh-prompt-optimizer
-npm pack --pack-destination /tmp
+cd /path/to/dsh-prompt-optimizer/po06      # ⚠ 必须从 po06/ 打（见下）
+npm pack --pack-destination <仓库外的临时目录>
 ```
 
-然后检查产物（这一步防的是「包发出去了但内容不对」）：
+然后**用仓库自己的核对脚本**判（这一步防的是「包发出去了但内容不对」）：
 
-ⓐ 解包看 `package.json` 的 `name` / `version` / `main` 是否指向本次版本；
-ⓑ 确认 `po06/runtime/usr/bin/bash.exe` 与 `po06/cordis.patch.yml` **都在包内**（漏了 runtime 会出现「装上但跑不了命令」）。
+```bash
+node po06/scripts/verify-artifact.mjs --tag <本次提交或 tag> --tgz <刚打的 tgz> --repo .
+```
+
+**核对**：成员数、lib 模块数、**逐字节比对"不同 0"**、包内版本与文件名相符、登记值一致 —— 全对才算过。
+
+⚠️ **打包位置是决定，不是风格**（2026-10-16 实测踩到）：
+
+| 从哪打 | 成员的形状 | 用途 |
+|---|---|---|
+| **`po06/`** | `lib/…`、`runtime/…`、`cordis.patch.yml` | ✅ **Release 附件就是它**；`verify-artifact.mjs` 判的就是这份 |
+| 仓库根 | `po06/lib/…`、`po06/runtime/…` | 给 git / 本地装配的**薄壳**，不是附件 |
+
+两种包的**文件名完全相同**（都来自同一个 `name` + `version`）。拿薄壳当附件时 `verify-artifact.mjs` 会报
+「多 244 / 少 241 / 逐字节不同 2（`README.md`、`package.json`）」—— 那不是内容坏了，是**打错了地方**。
 
 ### 步骤 6 · 提交并推送
 
@@ -129,11 +142,19 @@ git push origin v0.7.5
 
 ### 步骤 8 · 生成 Release 并上传附件
 
-用仓库里的发布脚本一步完成（它会：同步根包 → 校验 tag → 推送 → `npm pack` → 算 sha256 → 建 Release → 传附件 → 复查）：
-
-```bash
-node po06-beta/make-release.mjs
-```
+> ⚠️ **本文原来指向的 `po06-beta/make-release.mjs` 在本仓库里不存在**（2026-10-16 核对：仓里没有这个文件，照抄会直接报错）。
+> 现在按**手动步骤**做，每一步都能单独核对：
+>
+> ```bash
+> node po06/scripts/check-release.mjs        # 门禁：PASS 才继续（包装自足演练也在这里跑）
+> git push origin HEAD:main                  # 先推提交
+> git tag v<版本>; git push origin v<版本>    # 再推 tag
+> npm pack --pack-destination <临时目录>      # 产物 dsh-external-dsh-arbiter-wf-<版本>.tgz
+> # 建 Release（GitHub 页面或 API）并上传 tgz 与 SHA256SUMS-<版本>.txt
+> ```
+>
+> ⚠️ **本机实测（2026-10-16）**：这台机器**连不上 `github.com`**（`api.github.com` 可通、`github.com:443` 超时、未配代理），
+> 所以推送/打 tag/建 Release 三步**只能换网络或换机器做**；发版门可以在本机跑到 PASS。
 
 **核对（三项都要看）**：
 
@@ -154,7 +175,7 @@ node po06-beta/make-release.mjs
 [ ] 2  CHANGELOG.md 顶部有对应一节
 [ ] 3  README 里旧版本号已全部替换（搜过）
 [ ] 3b README / docs 里的**相对链接逐个确认文件存在**（移动过文件时尤其重要）
-[ ] 4  71 套测试全绿（209 项；bash 与 pwsh 都跑过）
+[ ] 4  全量测试全绿（本轮：104 套 / 1138 项；bash 与 pwsh 都跑过；数字以本轮实测为准）
 [ ] 5  npm pack 产物里 name/version/main 正确、runtime 与 patch 都在
 [ ] 6  已提交，工作树干净，且**推的是 main**
 [ ] 7  tag 已打并推到远程

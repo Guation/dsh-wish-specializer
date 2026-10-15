@@ -1,0 +1,40 @@
+{
+  "candidate": "contribution-selection-4",
+  "runtimeBeforeRestart": {
+    "revision": "contribution-selection-2",
+    "model": "deepseek-flash"
+  },
+  "naturalTask": {
+    "source": "session-b4410b11-4f67-4206-91f5-f9e7919ba1f0",
+    "candidate2PacketChars": 8109,
+    "confirmedProblems": "Full recipe, constraint expansion, unsupported precision, no advisor invocation, substitute validation; real browser later reached ready.",
+    "candidate3PacketChars": 4052,
+    "candidate4PacketChars": 2603,
+    "candidate4AddCount": 10,
+    "candidate4NumericTokens": 18,
+    "candidate4Imperatives": 6,
+    "difficultContent": [
+      "tracks",
+      "arc length",
+      "differential drive",
+      "suspension",
+      "turret",
+      "lighting",
+      "performance"
+    ],
+    "candidate4OutputTokens": 13222,
+    "candidate4TotalTokens": 13825,
+    "candidate4Ms": 81176
+  },
+  "verification": {
+    "offlineTests": 250,
+    "fail": 0,
+    "skipped": 0,
+    "log": ".po06-tmp/contribution-selection-regression-v4.log",
+    "focusedTests": 65,
+    "reviewPassed": false,
+    "reviewVerdict": "unverified",
+    "effectConclusion": "local packet convergence only; general quality and cost unproven"
+  },
+  "next": "restart DSH, verify revision 4, then one new natural task; do not repeat tank follow-up"
+}

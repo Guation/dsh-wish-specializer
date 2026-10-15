@@ -24,6 +24,10 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const D01 = 'C:/Users/WestFox/.dsh/exp/po06/bench/D-01'
 
 let pass = 0
+// 真实产物用例在**没有那份产物**的机器上会跳过。跳过必须**显式记账**：
+// 把它记成 PASS 会让"这套守卫在本机到底跑没跑"永远看不出来（变异门就是这么发现问题的）。
+let skipped = 0
+const skip = (what) => { skipped += 1; console.log(JSON.stringify({ skip: what })) }
 const failures = []
 function ok(c, what) { if (!c) throw new Error(what || 'expected truthy') }
 function eq(a, b, what) { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${what || 'value'}: expected ${y}, got ${x}`) }
@@ -77,7 +81,7 @@ const cmdPath = join(D01, 'D-05x.output.md')
 const hasReal = existsSync(cmdPath)
 
 t('真实 D-01：0.5.x 的命令里**必须**抽出疑似放大（否则本模块是摆设）', () => {
-  if (!hasReal) { console.log(JSON.stringify({ skip: 'D-05x.output.md not found' })); return }
+  if (!hasReal) { skip('D-05x.output.md not found'); return }
   const cmd = readFileSync(cmdPath, 'utf8')
   // 用户原话（逐字，来自 D-01 README 记录的开发集原话）
   const user = '不要预览文件夹内的其他文件,制作一个单html程序,要求是极其精细的现代主战坦克模型,可以预览,操控,真实,帅气,炫技写真.'
@@ -91,7 +95,7 @@ t('真实 D-01：0.5.x 的命令里**必须**抽出疑似放大（否则本模�
 
 t('真实 0.6 意图包：抽到的**全部是它自己的小节标题**（结构性假阳性），不是新造约束', () => {
   const smoke = 'C:/Users/WestFox/.dsh/exp/po06/probe-reports/smoke-1789888956759.json'
-  if (!existsSync(smoke)) { console.log(JSON.stringify({ skip: 'smoke report not found' })); return }
+  if (!existsSync(smoke)) { skip('smoke report not found'); return }
   const j = JSON.parse(readFileSync(smoke, 'utf8'))
   ok(typeof j.packetText === 'string' && j.packetText.length > 0, '冒烟报告里应有真实意图包')
   const a = auditAnswer({ userText: '给这个 CLI 加上彩色输出。', answerText: j.packetText, label: 'H-12 packet' })
@@ -168,7 +172,7 @@ t('合成：没有问句 ⇒ 全 0（不制造无谓告警）', () => {
 
 t('**真实 A 臂产物**：无插件那一臂确实问了实现细节（H-12 判据下的失败）', () => {
   const p = 'C:/Users/WestFox/.dsh/exp/po06/smoke/H-12-A.md'
-  if (!existsSync(p)) { console.log(JSON.stringify({ skip: 'H-12-A.md not found' })); return }
+  if (!existsSync(p)) { skip('H-12-A.md not found'); return }
   const a = auditQuestions({ answerText: readFileSync(p, 'utf8'), label: 'H-12 A 臂（无插件）' })
   ok(a.total > 0, '它确实提了问题；实际 0 条')
   eq(a.asksImplementation, true,
@@ -216,7 +220,7 @@ t('合成：中英混杂的"加依赖"也要认（不能只认 npm install 这�
 
 t('**真实 A 臂产物**：抽出的是"是否允许加依赖"（未被否定），而"不想加依赖"要被排除', () => {
   const p = 'C:/Users/WestFox/.dsh/exp/po06/smoke/H-12-A.md'
-  if (!existsSync(p)) { console.log(JSON.stringify({ skip: 'H-12-A.md not found' })); return }
+  if (!existsSync(p)) { skip('H-12-A.md not found'); return }
   const a = auditConstraintHold({ constraintText: CONSTRAINT, answerText: readFileSync(p, 'utf8'), label: 'H-12 A 臂' })
   ok(a.violationCount >= 1, '它确实在问能不能加依赖')
   const joined = a.violations.map((v) => v.clause).join(' | ')
@@ -402,6 +406,8 @@ t('questionBreakdown：两桶分开报，且**不得**把总数当成可比数�
 const total = pass + failures.length
 console.log(JSON.stringify({
   suite: 'po06-answer-audit', phase: 'P7', total, pass, fail: failures.length, failures,
+  // 显式记账：本机没跑的真实产物用例数（不写这个字段，跳过会被读成"通过"）。
+  skipped, skippedReason: skipped > 0 ? 'author-machine real artifacts not present on this machine' : null,
   note: '只做事实抽取与分类，不做质量判定；假阳性类别（关于意图包自身的说明）需人读。',
 }, null, 2))
 process.exit(failures.length === 0 ? 0 : 1)

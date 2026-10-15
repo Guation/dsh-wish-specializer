@@ -93,7 +93,7 @@ test('review exceptions revoke prior pass without poisoning unrelated legacy led
   const failed=await invoke(args,x.exec)
   assert.equal(failed.invocationSucceeded,false);assert.equal(failed.reviewPassed,false)
   assert.equal((await x.tool({action:'advance',...ref})).ok,false)
-  assert.ok(failed.stageState.stage.limitations.includes('model unavailable'))
+  assert.ok(failed.stageState.stage.limitations.some(reason=>reason.includes('model unavailable')), '具体模型异常原因保留，允许附带来源前缀')
  }finally{x.cleanup()}
 })
 

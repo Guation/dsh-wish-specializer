@@ -323,9 +323,14 @@ export function executeReadOnlyTool(root, name, args) {
 /** 组装一条"助手请求工具"的消息（形状错了模型就看不到自己的调用）。
  *  宿主有 `createAssistantMessage` 时走工厂：它负责 **id 与冻结**（0.1.7 的 id 是 brand 类型，
  *  手搓字符串等于绕开契约）；没有才退回手搓（更早的宿主）。 */
-export function assistantToolCallMessage(calls, provider, model, mod) {
-  const content = calls.map((c) => ({ type: 'tool-call', id: c.id, name: c.name, arguments: c.arguments }))
-  const source = { provider: String(provider || ''), model: String(model || '') }
+export function assistantToolCallMessage(calls, provider, model, mod, response=null) {
+  // Preserve the exact provider response blocks/signatures when the SDK supplies them. Tool-only
+  // reconstruction loses native thinking replay required by current Messages routes.
+  const observed=Array.isArray(response?.content)?response.content:null
+  const observedCalls=observed?.filter(b=>b.type==='tool-call')||[]
+  const complete=observed && observedCalls.length===calls.length && calls.every(c=>observedCalls.some(b=>b.id===c.id&&b.name===c.name&&b.arguments===c.arguments))
+  const content = complete ? observed : calls.map((c) => ({ type: 'tool-call', id: c.id, name: c.name, arguments: c.arguments }))
+  const source = { provider: String(provider || ''), model: String(model || ''),...(complete&&response.replayState!==undefined?{replayState:response.replayState}:{}) }
   if (mod && typeof mod.createAssistantMessage === 'function') {
     return mod.createAssistantMessage({ content, source })
   }
@@ -368,6 +373,7 @@ export async function drainWithTools(stream, t0, sink) {
   const out = {
     text: '', reasoning: '', usage: null, finish: null, error: null,
     ms: 0, calls: [], chunkTypes: {},
+    content: [], replayState: undefined,
   }
   // P11：**思维层要有内容**（用户 2026-09-21："只读工具开启时看不见思维"）。
   // 工具路径此前不接 sink ⇒ 进度面收不到任何流式片段 ⇒ 界面只有一个"已用 N 秒"。
@@ -388,13 +394,17 @@ export async function drainWithTools(stream, t0, sink) {
         if (!call) { call = { id: chunk.id, name: '', arguments: '' }; out.calls.push(call) }
         if (chunk.name) call.name = chunk.name
         call.arguments += String(chunk.argumentsDelta || '')
-      } else if (t === 'block-end' && chunk.block && chunk.block.type === 'tool-call') {
+      } else if (t === 'block-end' && chunk.block) {
+        if(['text','reasoning','tool-call'].includes(chunk.block.type))out.content.push({index:Number.isSafeInteger(chunk.index)?chunk.index:out.content.length,block:chunk.block})
+        if(chunk.block.type==='tool-call'){
         const b = chunk.block
         const hit = out.calls.find((c) => c.id === b.id)
         // block-end 给的是**装配好的**参数 ⇒ 覆盖 delta 拼出来的那份（文件头观察点）
         if (hit) { hit.name = b.name || hit.name; hit.arguments = b.arguments || hit.arguments }
         else out.calls.push({ id: b.id, name: b.name, arguments: b.arguments })
+        }
       } else if (t === 'finish') {
+        if(chunk.replayState!==undefined)out.replayState=chunk.replayState
         out.finish = chunk.reason || chunk.finish || null
         const kind = out.finish && out.finish.kind
         if (kind === 'error' || kind === 'aborted') {
@@ -416,6 +426,7 @@ export async function drainWithTools(stream, t0, sink) {
   } catch (e) {
     out.error = String((e && e.message) || e)
   }
+  out.content=out.content.sort((a,b)=>a.index-b.index).map(x=>x.block)
   out.ms = Date.now() - t0
   return out
 }
@@ -454,8 +465,8 @@ export async function runReadOnlyToolLoop(opts) {
   // 硬上限在这里兜住：调用方传 999 也只会跑到 6
   const want = Math.max(1, Math.floor(Number(o.count) || LOOP_DEFAULT_ROUNDS))
   const maxRounds = Math.min(want, LOOP_HARD_MAX_ROUNDS)
-  const budgetMs = Math.max(1000, Number(o.budgetMs) || LOOP_BUDGET_MS)
-  const deadline = t0 + budgetMs
+  const budgetMs = o.budgetMs === null ? null : Math.max(1000, Number(o.budgetMs) || LOOP_BUDGET_MS)
+  const deadline = budgetMs === null ? null : t0 + budgetMs
   const base = { root, maxRounds, budgetMs }
   const fail = (error) => ({
     ...base, ok: false, empty: true, error: String(error), text: '', rounds: 0,
@@ -500,6 +511,7 @@ export async function runReadOnlyToolLoop(opts) {
 
   const notify = (event) => { try { if (typeof o.onEvent === 'function') o.onEvent(event) } catch { /* UI only */ } }
   const usageSum = {}
+  let usageKnownCalls=0,usageUnknownCalls=0
   const trace = []
   let rounds = 0
   let capped = false
@@ -507,7 +519,7 @@ export async function runReadOnlyToolLoop(opts) {
   let text = ''
   for (let round = 1; round <= maxRounds + 1; round += 1) {
     if (signal?.aborted) { error = 'cancelled'; break }
-    const useTools = round <= maxRounds && now() < deadline
+    const useTools = round <= maxRounds && (deadline === null || now() < deadline)
     if (round > 1) {
       // 上一轮的正文是**脚手架**（"我先读一下项目结构…"），到下一轮就作废。
       // 不清掉的话，最终产出会被脚手架污染——这是 0.5 实测踩到的。
@@ -541,11 +553,11 @@ export async function runReadOnlyToolLoop(opts) {
         ...(signal ? { signal } : {}),
       })
     } catch (e) {
-      return { ...base, ok: false, empty: true, error: 'stream-threw:' + String((e && e.message) || e), text: '',
-        rounds, toolCalls: trace.length, names: namesOf(trace), trace, capped, ms: now() - t0 }
+      usageUnknownCalls++;error='stream-threw:'+String((e&&e.message)||e);break
     }
     const r = await drainWithTools(stream, rt, typeof opts.onDelta === 'function' ? opts.onDelta : null)
     rounds = round
+    if(r.usage&&Object.values(r.usage).some(x=>typeof x==='number'&&Number.isFinite(x)))usageKnownCalls++;else usageUnknownCalls++
     if (r.usage) for (const [key, value] of Object.entries(r.usage)) {
       if (typeof value === 'number' && Number.isFinite(value)) usageSum[key] = (usageSum[key] || 0) + value
     }
@@ -553,7 +565,7 @@ export async function runReadOnlyToolLoop(opts) {
     if (r.error) { error = r.error; break }
     const calls = Array.isArray(r.calls) ? r.calls.filter((c) => c && c.id && c.name) : []
     if (!useTools || calls.length === 0) break
-    messages.push(assistantToolCallMessage(calls, cfg.provider, cfg.model, llmMod))
+    messages.push(assistantToolCallMessage(calls, cfg.provider, cfg.model, llmMod, r))
     const outputs = []
     for (const call of calls) {
       let args = {}
@@ -581,7 +593,7 @@ export async function runReadOnlyToolLoop(opts) {
   const outText = String(text || '')
   return {
     ...base, ok: !error, error, text: outText, rounds, toolCalls: trace.length,
-    usageSum: Object.keys(usageSum).length ? usageSum : null,
+    usageSum: Object.keys(usageSum).length ? usageSum : null,usageComplete:usageUnknownCalls===0,usageKnownCalls,usageUnknownCalls,
     names: namesOf(trace), trace, capped, ms: now() - t0, empty: outText.trim().length === 0,
   }
 }

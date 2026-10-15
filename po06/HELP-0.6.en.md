@@ -43,6 +43,20 @@ In a hurry? Click **Skip and send** any time while it is working.
 
 **Built-in Bash is Windows-only** (the bundled runtime is a Windows MSYS2 build); on other platforms the model does not get this tool.
 
+**Solution and result-improvement advisors**
+
+The local `advisor-loop-1` candidate associates evidence with actual citations. Uncited supplemental gaps do not veto a stated local claim; cited clipped content still needs a complete targeted read. Visual review observes actual images independently before useful source support. Source cannot certify appearance or runtime behavior. Optional `subjectPaths` binds the actual artifact version.
+
+Improvement consultations retain only previously observed excerpts and image attachments within the same session, request, object and focus. Different versions do not establish a benefit; `keep` is not acceptance. One recorded, no-value-change advisory JSON repair is supported; acceptance JSON stays strict.
+
+An additive turn-tail annotation can show known defects, verification pending, scoped review, and advisory/comparison state. It does not block file sharing or prevent assistant wording. It uses exact turn records and current evidence versions, offers manual refresh, and remains explicitly unavailable on unsupported hosts or unreadable data.
+
+- Before a consequential approach is locked, the working AI can use `consult_task(mode="develop_approach")` for independent, directly usable methods and content.
+- With a first result, `improve_result` identifies quality bottlenecks and supplies implementable changes. Send actual text as `currentResult`, or files/images with authorized read-only access enabled.
+- Improving an already acceptable result is useful. `keep` retains current when no substantive gain is found; quality advice is not acceptance and does not close defects.
+- Both modes reuse the optimizer model and reasoning effort; no stronger fallback model is introduced. For Route A, choose the same weak model for the main and optimizer roles (for example DeepSeek Flash).
+- Calls are task-dependent, not guaranteed every turn. Apply useful contributions and compare actual old/new results; recommendations alone do not prove improvement.
+
 **Reasoning boost** (experimental, off by default)
 
 - Lives at the very bottom, under "Experimental", behind a divider. When on, one generation can become several calls

@@ -20,8 +20,8 @@ test('evidence rules are compact and do not prescribe new assets or workloads',(
 })
 test('PTC example executes consult task and keeps outer timeout margin',()=>{
  assert.ok(ADVISOR_WORKFLOW.includes('await tools.consult_task'))
- assert.ok(ADVISOR_WORKFLOW.includes('360000'))
- assert.ok(ADVISOR_WORKFLOW.includes('多60秒'))
+ assert.ok(ADVISOR_WORKFLOW.includes('默认不设总截止'))
+ assert.ok(ADVISOR_WORKFLOW.includes('用户取消仍有效'))
 })
 test('context contribution honors off gate and includes bounded feedback only when enabled',()=>{
  assert.equal(withAdvisorWorkflow('',{injectPacket:true}),ADVISOR_WORKFLOW)
@@ -30,11 +30,11 @@ test('context contribution honors off gate and includes bounded feedback only wh
  assert.equal(withAdvisorWorkflow('packet',undefined,'stage'),'packet')
 })
 test('顾问限时：默认 5 分钟；环境变量可调并钳制；报告长度设上限',()=>{
-  assert.equal(ADVISOR_TIMEOUT_MS, 300000, '默认 5 分钟（150s 真机超时过，太短）')
+  assert.equal(ADVISOR_TIMEOUT_MS, null, '用户要求默认不设总截止')
   assert.equal(resolveAdvisorTimeoutMs({}), ADVISOR_TIMEOUT_MS, '没设环境变量就用默认')
   assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: '600000' }), 600000, '合法值原样采纳')
-  assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: '1' }), ADVISOR_TIMEOUT_MIN_MS, '过小钳到下限')
-  assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: '99999999' }), ADVISOR_TIMEOUT_MAX_MS, '过大钳到上限')
+  assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: '1' }), 1, '显式截止不钳制')
+  assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: '99999999' }), 99999999, '显式截止不钳制')
   assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: 'abc' }), ADVISOR_TIMEOUT_MS, '非法值回落默认，不静默变 0')
   assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: '-5' }), ADVISOR_TIMEOUT_MS, '负数也是非法值')
   // 长输出是超时主因之一：提示词里必须有长度纪律，否则放宽限时只是把超时往后推
@@ -49,5 +49,5 @@ test('顾问schema不含宿主已确认不支持的maxItems，必填字段和模
   assert.equal(ADVISOR_PARAMETERS.properties.artifacts.maxItems,undefined)
   assert.deepEqual(ADVISOR_PARAMETERS.required,['mode','question'])
   // develop_approach 是 2026-10-05 增加的第三个用途（独立解题）；它不计入验收通过，见 advisor.js 的 completionClaimAllowed。
-  assert.deepEqual(ADVISOR_PARAMETERS.properties.mode.enum,['diagnose_failure','review_result','develop_approach'])
+  assert.deepEqual(ADVISOR_PARAMETERS.properties.mode.enum,['diagnose_failure','review_result','develop_approach','improve_result'])
 })

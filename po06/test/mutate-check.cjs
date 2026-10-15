@@ -846,7 +846,10 @@ const MUTANTS = [
     testFile: 'test/answer-audit.test.mjs',
     from: "  for (const m of ABSOLUTE_MARKERS) if (clause.includes(m)) hit.push(m)",
     to: '  /*MUTANT: 不认绝对词*/',
-    expectFailIncludes: ['真实 D-01'],
+    // ⚠ 期望片段必须把**合成用例**也算进去（2026-10-16）：'真实 D-01' 那条读的是作者机上的产物，
+    //   在别的机器上会 skip ⇒ 只剩合成用例在咬。只写 '真实 D-01' 会把"已被捕获"误报成"变异存活"，
+    //   而下一个人据此去削弱测试——方向正好反了。实测另一条咬住它的用例名见下。
+    expectFailIncludes: ['真实 D-01', '凭空多出来的禁止句'],
   },
   // ── 问句审计：按 H-12 判据（偏好该问、实现细节该自定）────────────────
   {
@@ -863,7 +866,8 @@ const MUTANTS = [
     testFile: 'test/answer-audit.test.mjs',
     from: "  '库', '依赖', 'library', 'chalk', 'picocolors', 'colorama', 'rich', 'click',",
     to: "  '库', /*MUTANT: 实现细节词表被削*/",
-    expectFailIncludes: ['真实 A 臂'],
+    // 同上：'真实 A 臂' 依赖作者机上的产物；合成用例是跨机器真正咬住它的那条。
+    expectFailIncludes: ['真实 A 臂', '越俎代庖'],
   },
   {
     name: 'audit: questions-never-detected',
@@ -1767,8 +1771,11 @@ const MUTANTS = [
     name: 'evalpackets: packet-written-under-bare-taskid',
     file: 'lib/eval-e001.js',
     testFile: 'test/eval-rehearsal.test.mjs',
-    from: "    writeFileSync(cached, c.text, 'utf8')",
-    to: "    writeFileSync(join(dir, task.id + '.md'), c.text, 'utf8') /*MUTANT: 缓存落盘丢失协议指纹*/",
+    // ⚠ 锚点 2026-10-16 修：这一段后来被包进 try/catch（落盘失败不该整轮抛出），
+    //   裸 writeFileSync 的旧锚点因此永远匹配不上 ⇒ 这个守卫之前一直等于不存在（ANCHOR-MISSING）。
+    //   锚点必须跟着**当前真实代码**走，否则变异门只会报"锚点过期"，而不是"测试变弱"。
+    from: "    try { writeFileSync(cached, c.text, 'utf8') } catch { /* 落盘失败不影响本轮 */ }",
+    to: "    try { writeFileSync(join(dir, task.id + '.md'), c.text, 'utf8') } catch { /* 落盘失败不影响本轮 */ } /*MUTANT: 缓存落盘丢失协议指纹*/",
     expectFailIncludes: ['指纹不符的包'],
   },
   {

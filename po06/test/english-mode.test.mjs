@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {protectEnglishLiterals,restoreEnglishTranslation,validateEnglishExcerpt,createEnglishMode,prepareEnglishInterpretation,finishEnglishInput} from '../lib/english-mode.js'
+import {protectEnglishLiterals,restoreEnglishTranslation,validateEnglishExcerpt,createEnglishMode,prepareEnglishInterpretation,finishEnglishInput,resolveEnglishInterpretation,extractTranslationJson,ENGLISH_TRANSLATE_MAX_ATTEMPTS} from '../lib/english-mode.js'
 import {EN_INTERPRETER,EN_CAPABILITY,EN_SELECT,EN_FEEDBACK} from '../lib/english-prompts.js'
 import {parseInterpreterOutput} from '../lib/interpreter.js'
 import {reduce} from '../lib/reducer.js'
@@ -162,7 +162,223 @@ test('slash commands stay literal and allowlisted commands remain interceptable 
  assert.ok(source.includes("if (t.startsWith('/') && !slashAllowedDraft(t)) return 'slash-command'"),'英文模式不得整体放行斜杠命令')
  assert.ok(!/englishOn\s*&&\s*draftNow\(\)\.startsWith\('\/'\)/.test(source),'不得因英文模式跳过允许列表命令')
 })
+// ── GitHub #33 B 段：翻译容错 / 有界重试 / attempts 台账 / 后处理降级 ─────────────────────
+const fence=String.fromCharCode(96).repeat(3)
+const streamOf=(...events)=>(async function*(){for(const e of events)yield e})()
+const textThenFinish=(text,kind='stop')=>streamOf({type:'text-delta',text},{type:'block-end',block:{type:'text',text}},{type:'finish',reason:{kind}})
+const failureOf=async run=>{try{await run()}catch(e){return e}throw new Error('expected the operation to fail')}
+
+test('translation JSON tolerates fences, prose and trailing junk but never unwraps an array',()=>{
+ const ok={translation:'Hello'}
+ assert.deepEqual(extractTranslationJson(fence+'json\n{"translation":"Hello"}\n'+fence),ok)
+ assert.deepEqual(extractTranslationJson('Sure, here it is:\n{"translation":"Hello"}\nHope this helps.'),ok)
+ assert.deepEqual(extractTranslationJson('{"translation":"Hello"}{"translation":"second"}'),ok,'首个完整对象之后的垃圾要容忍，且不得挑后面的')
+ assert.deepEqual(extractTranslationJson('{"translation":"Hello"}}'),ok)
+ assert.deepEqual(extractTranslationJson('{"translation":"Hello"} } trailing'),ok)
+ assert.equal(extractTranslationJson(fence+'json\n[{"translation":"wrong"}]\n'+fence),null,'顶层数组不是翻译结果')
+ assert.equal(extractTranslationJson('[{"translation":"wrong"}]'),null)
+ assert.equal(extractTranslationJson(fence+'\n[{"translation":"wrong"}]\n'+fence),null)
+ assert.equal(extractTranslationJson('no json at all'),null)
+ assert.equal(extractTranslationJson(''),null)
+ assert.equal(extractTranslationJson(null),null)
+ // 字符串内部的花括号与转义引号不参与配平
+ const tricky=JSON.stringify({translation:'He said "use {braces} and \\ backslash" now'})
+ assert.deepEqual(extractTranslationJson(tricky),JSON.parse(tricky))
+ assert.deepEqual(extractTranslationJson('prefix '+tricky+' ... suffix'),JSON.parse(tricky))
+ // 对象内部的数组是正常内容，不因此被拒
+ const nested=JSON.stringify({translations:{'ops[0].text':'Keep [a] and {b}'}})
+ assert.deepEqual(extractTranslationJson(nested),JSON.parse(nested))
+})
+
+test('the balanced scan is bounded and never selects an object beyond the budget',()=>{
+ const junk='{"junk"'.repeat(40)
+ const started=Date.now()
+ assert.equal(extractTranslationJson(junk+'{"translation":"ok"}'),null,'候选越界必须返回 null，而不是挑一个越界的对象')
+ assert.equal(extractTranslationJson('{'.repeat(100000)),null)
+ assert.ok(Date.now()-started<5000,'病态输入必须有界（不能退化成 O(n²) 重扫）')
+ assert.deepEqual(extractTranslationJson('{"translation":"in-budget"}'),{translation:'in-budget'})
+})
+
+test('an error-kind finish is retried and only the retry result is used and cached',async()=>{
+ const source='不要读取其它文件。制作单HTML文件，保存到 @"D:/项目/结果.html"。'
+ const prepared=protectEnglishLiterals(source)
+ const english='Do not read other files. Create one HTML file; keep '+prepared.literals.map(l=>l.token).join(' ')
+ const expected=prepared.literals.reduce((s,l)=>s.split(l.token).join(l.value),english)
+ let calls=0;const seen=[]
+ const llm={stream:options=>{calls++;seen.push(options);return calls===1
+  ?textThenFinish('{"translation":"WRONG FIRST ATTEMPT"}','error')
+  :textThenFinish(JSON.stringify({translation:english}))}}
+ const service=createEnglishMode()
+ const result=await service.translate(source,{llm,cfg})
+ assert.equal(calls,2,'第一轮以 finish error 结束 ⇒ 必须重试')
+ assert.equal(result.text,expected,'必须用**重试那轮**的结果（且字面量已原样恢复）')
+ assert.ok(!result.text.includes('WRONG FIRST ATTEMPT'))
+ for(const literal of prepared.literals)assert.ok(result.text.includes(literal.value),'字面量必须原样恢复')
+ assert.equal(result.attempts.length,2)
+ assert.equal(result.attempts[0].ok,false);assert.equal(result.attempts[0].finish,'error')
+ assert.equal(result.attempts[1].ok,true)
+ for(const options of seen){assert.deepEqual(options.tools,[]);assert.equal(options.maxTokens,undefined)}
+ assert.equal(seen[0].system,seen[1].system,'重试不得偷换系统提示（不许新增输出语言要求）')
+ assert.equal(seen[0].messages[0].content[0].text,seen[1].messages[0].content[0].text,'重试必须发同一份保真载荷')
+ const again=await service.translate(source,{llm,cfg})
+ assert.equal(again.cached,true,'只有成功那轮能进缓存');assert.equal(again.text,expected);assert.equal(calls,2)
+ assert.equal((await service.translate('Reply in Chinese.',{llm,cfg})).text,'Reply in Chinese.')
+ assert.equal(calls,2,'原生英文不该多打一次模型')
+})
+
+test('unjparseable translation JSON is retried to the bound then fails loudly with attempts',async()=>{
+ let calls=0
+ const llm={stream:()=>{calls++;return textThenFinish('I cannot translate that.')}}
+ const error=await failureOf(()=>createEnglishMode().translate('你好，请制作一个文件。',{llm,cfg}))
+ assert.equal(calls,ENGLISH_TRANSLATE_MAX_ATTEMPTS,'重试次数必须封顶')
+ assert.equal(error.message,'english-translation-invalid-json')
+ assert.equal(error.attempts.length,ENGLISH_TRANSLATE_MAX_ATTEMPTS)
+ assert.ok(error.attempts.every(a=>a.ok===false&&a.stage==='json'&&a.retryable===true))
+})
+
+test('permanent upstream failures and an aborted caller are never retried',async()=>{
+ const source='你好，请制作一个文件。'
+ let deniedCalls=0
+ const deniedThrow={stream:()=>{deniedCalls++;throw Object.assign(new Error('quota exhausted for this account'),{status:403})}}
+ const denied=await failureOf(()=>createEnglishMode().translate(source,{llm:deniedThrow,cfg}))
+ assert.equal(deniedCalls,1,'401/403/配额类永久错误只打一次')
+ assert.equal(denied.attempts.length,1);assert.equal(denied.attempts[0].status,403);assert.equal(denied.attempts[0].retryable,false)
+ let quotaCalls=0
+ const quotaFinish={stream:()=>{quotaCalls++;return streamOf({type:'finish',reason:{kind:'error',failure:{code:'HTTP 401 unauthorized: invalid api key'}}})}}
+ const deniedFinish=await failureOf(()=>createEnglishMode().translate(source,{llm:quotaFinish,cfg}))
+ assert.equal(quotaCalls,1,'finish.reason 里的永久错误同样不重试')
+ assert.equal(deniedFinish.attempts.length,1)
+ let jitterCalls=0
+ const jitter={stream:()=>{jitterCalls++;throw Object.assign(new Error('503 no_healthy_account'),{status:503})}}
+ const transient=await failureOf(()=>createEnglishMode().translate(source,{llm:jitter,cfg}))
+ assert.equal(jitterCalls,ENGLISH_TRANSLATE_MAX_ATTEMPTS,'503 类抖动必须重试到上界')
+ assert.ok(transient.attempts.every(a=>a.retryable===true))
+ assert.equal(transient.message,'503 no_healthy_account')
+ const pre=new AbortController();pre.abort();let preCalls=0
+ const never={stream:()=>{preCalls++;throw new Error('must not be called')}}
+ const aborted=await failureOf(()=>createEnglishMode().translate(source,{llm:never,cfg,signal:pre.signal}))
+ assert.equal(preCalls,0);assert.equal(aborted.message,'english-aborted');assert.deepEqual(aborted.attempts,[])
+ const mid=new AbortController();let midCalls=0
+ const cancelling={stream:async function*(){midCalls++;yield {type:'text-delta',text:'partial'};mid.abort();yield {type:'finish',reason:{kind:'error'}}}}
+ const cancelled=await failureOf(()=>createEnglishMode().translate(source,{llm:cancelling,cfg,signal:mid.signal}))
+ assert.equal(midCalls,1,'调用方取消后不得再开一轮')
+ assert.equal(cancelled.message,'english-aborted')
+ assert.equal(cancelled.attempts.length,1);assert.equal(cancelled.attempts[0].retryable,false)
+})
+
+test('every translation failure path exposes an attempts ledger',async()=>{
+ const source='你好，请制作一个文件。'
+ const cases=[
+  ['error-kind finish',{stream:()=>streamOf({type:'finish',reason:{kind:'error'}})},'english-translation-incomplete'],
+  ['finish missing entirely',{stream:()=>streamOf({type:'text-delta',text:'{"translation":"x"}'})},'english-translation-incomplete'],
+  ['unjparseable JSON',{stream:()=>textThenFinish('no json here')},'english-translation-invalid-json'],
+  ['empty translation',{stream:()=>textThenFinish('{"translation":"  "}')},'english-translation-empty'],
+ ]
+ for(const [label,llmApi,message] of cases){
+  const error=await failureOf(()=>createEnglishMode().translate(source,{llm:llmApi,cfg}))
+  assert.equal(error.message,message,label)
+  assert.ok(Array.isArray(error.attempts),label+' 必须带 attempts')
+  assert.equal(error.attempts.length,ENGLISH_TRANSLATE_MAX_ATTEMPTS,label)
+ }
+ const mismatch=()=>textThenFinish('{"translations":{}}')
+ const assist=await failureOf(()=>createEnglishMode().translateInterpretation({englishTask:'你好',understanding:{summary:'中文概要',action:'execute'}},'你好，制作文件。',{llm:{stream:mismatch},cfg}))
+ assert.equal(assist.message,'english-assistance-field-mismatch')
+ assert.ok(Array.isArray(assist.attempts)&&assist.attempts.length===ENGLISH_TRANSLATE_MAX_ATTEMPTS)
+ const earlyAbort=new AbortController();earlyAbort.abort()
+ const abortedAssist=await failureOf(()=>createEnglishMode().translateInterpretation({understanding:{summary:'中文概要'}},'你好',{llm:{stream:mismatch},cfg,signal:earlyAbort.signal}))
+ assert.equal(abortedAssist.message,'english-aborted')
+ assert.deepEqual(abortedAssist.attempts,[],'还没发起调用时 attempts 是空数组，而不是 undefined')
+ const prose=await failureOf(()=>createEnglishMode().translateProse([1],{llm:{stream:mismatch},cfg}))
+ assert.equal(prose.message,'english-prose-invalid-input')
+ assert.deepEqual(prose.attempts,[])
+ const proseInner=await failureOf(()=>createEnglishMode().translateProse(['第一段中文','第二段中文'],{llm:{stream:mismatch},cfg}))
+ assert.equal(proseInner.message,'english-assistance-field-mismatch')
+ assert.equal(proseInner.attempts.length,ENGLISH_TRANSLATE_MAX_ATTEMPTS,'包装层重抛不许丢台账')
+})
+
+test('failed English post-processing degrades to the raw model output with a disclosed warning',async()=>{
+ const original='把结果保存到 @"D:/项目/结果.html"'
+ const raw={englishTask:'',ops:[{op:'add_item',item:{id:'r1',kind:'user_requirement',quote:'把结果保存到',text:'模型给的原始正文',sourceRefs:[]}}],understanding:{summary:'模型给的原始概要',relation:'new',action:'execute',focus:'原始焦点'},support:{mode:'develop',reason:'原始理由',contribution:'原始贡献'}}
+ const snapshot=JSON.parse(JSON.stringify(raw))
+ let repairCalls=0
+ const service={translateInterpretation:async()=>{repairCalls++;throw new Error('english-translation-incomplete')}}
+ const result=await resolveEnglishInterpretation({value:raw,originalText:original,service})
+ assert.equal(result.translation,null)
+ assert.equal(result.postProcessed,false)
+ assert.equal(repairCalls,1,'先尝试修复，修复不了才降级')
+ assert.equal(result.repair.ok,false)
+ assert.ok(result.warnings.some(w=>w.reason==='english-postprocess-skipped'),'降级必须如实记录')
+ assert.deepEqual(result.value,snapshot,'必须退回**未经后处理**的模型输出')
+ assert.deepEqual(raw,snapshot,'后处理不得改动解释层已经产出的对象')
+ let called=0
+ const broken=await resolveEnglishInterpretation({value:undefined,originalText:'你好',service:{translateInterpretation:async()=>{called++;return {}}}})
+ assert.equal(called,0)
+ assert.equal(broken.translation,null)
+ assert.ok(broken.warnings.some(w=>w.reason==='english-postprocess-skipped'))
+ const good={englishTask:'Hello',understanding:{summary:'The user has only said hello.',action:'acknowledge'},ops:[],support:{mode:'none'}}
+ const kept=await resolveEnglishInterpretation({value:good,originalText:'你好',service:{translateInterpretation:async()=>{throw new Error('must not be called')}}})
+ assert.equal(kept.translation.text,'Hello');assert.equal(kept.postProcessed,true)
+ assert.ok(!kept.warnings.some(w=>w.reason==='english-postprocess-skipped'))
+})
+
+test('a failed fallback translation keeps its attempts ledger for the caller',async()=>{
+ const service=createEnglishMode(),token=service.begin('s','m','你好')
+ const error=Object.assign(new Error('english-translation-incomplete'),{attempts:[{attempt:1,ok:false},{attempt:2,ok:false}]})
+ const out=await finishEnglishInput({service,token,enabled:()=>true,produced:null,translate:async()=>{throw error}})
+ assert.equal(out.ok,false);assert.equal(out.reason,'english-translation-incomplete')
+ assert.ok(Array.isArray(out.attempts),'调用方要靠它写 englishAttempts 台账')
+ assert.equal(out.attempts.length,2)
+ const llm={stream:()=>streamOf({type:'finish',reason:{kind:'error'}})}
+ const real=await finishEnglishInput({service,token,enabled:()=>true,produced:null,translate:()=>service.translate('你好，制作文件。',{llm,cfg})})
+ assert.equal(real.ok,false);assert.equal(real.reason,'english-translation-incomplete')
+ assert.equal(real.attempts.length,ENGLISH_TRANSLATE_MAX_ATTEMPTS)
+})
+
+test('a fence inside a top-level array cannot smuggle its object out',()=>{
+ assert.equal(extractTranslationJson('["'+fence+'json",{"translation":"WRONG"},"'+fence+'"]'),null,'顶层数组里的围栏同样不是翻译结果')
+ assert.equal(extractTranslationJson('['+fence+'json\n{"translation":"WRONG"}\n'+fence+']'),null)
+ assert.deepEqual(extractTranslationJson('prose '+fence+'json\n{"translation":"ok"}\n'+fence+' tail'),{translation:'ok'})
+})
+
+test('quota signals win over a generic 429 or "try again" wording',async()=>{
+ const source='你好，请制作一个文件。'
+ let quotaCalls=0
+ const quota429={stream:()=>{quotaCalls++;throw Object.assign(new Error('insufficient_quota'),{status:429})}}
+ const quota=await failureOf(()=>createEnglishMode().translate(source,{llm:quota429,cfg}))
+ assert.equal(quotaCalls,1,'insufficient_quota 即使带 429 也只打一次')
+ assert.equal(quota.attempts.length,1);assert.equal(quota.attempts[0].retryable,false)
+ let forbiddenCalls=0
+ const forbidden={stream:()=>{forbiddenCalls++;throw Object.assign(new Error('quota exhausted; try again later'),{status:403})}}
+ const denied=await failureOf(()=>createEnglishMode().translate(source,{llm:forbidden,cfg}))
+ assert.equal(forbiddenCalls,1,'403 加 try again 也只打一次')
+ assert.equal(denied.attempts[0].retryable,false)
+ let jitterCalls=0
+ const jitter={stream:()=>{jitterCalls++;throw Object.assign(new Error('no_healthy_account quota pool empty'),{status:503})}}
+ await failureOf(()=>createEnglishMode().translate(source,{llm:jitter,cfg}))
+ assert.equal(jitterCalls,ENGLISH_TRANSLATE_MAX_ATTEMPTS,'issue #33 点名的抖动码仍必须重试')
+})
+
+test('a pre-flight config failure still exposes attempts instead of a bare TypeError',async()=>{
+ const error=await failureOf(()=>createEnglishMode().translate('你好',{llm:{}}))
+ assert.equal(error.message,'english-model-route-unavailable')
+ assert.deepEqual(error.attempts,[])
+ const assist=await failureOf(()=>createEnglishMode().translateInterpretation({englishTask:'你好'},'你好',{llm:{}}))
+ assert.equal(assist.message,'english-model-route-unavailable')
+ assert.deepEqual(assist.attempts,[])
+})
 
 
 
 
+
+
+
+test('宿主接线守卫：#33B 的 attempts 台账必须真的写进日志与返回值（只改 english-mode = 台账仍然查不到）',async()=>{
+  const {readFileSync}=await import('node:fs')
+  const source=readFileSync(new URL('../lib/index.js',import.meta.url),'utf8')
+  assert.ok(/const thrownAttempts = Array\.isArray\(e && e\.attempts\)/.test(source),'catch 分支要取 error.attempts')
+  assert.ok(/englishAttempts: thrownAttempts/.test(source),'intercept-threw 要把它写进台账')
+  assert.ok(/const tries=Array\.isArray\(result\.attempts\)/.test(source),'english 失败分支要取 result.attempts')
+  assert.ok(/englishAttempts:tries/.test(source),'english 失败要把它写进台账')
+  assert.ok(/englishAttempts:tries\}:\{\}\)\}\s*\n\s*return \{ok:false,reason:result\.reason/.test(source)||/return \{ok:false,reason:result\.reason[^}]*englishAttempts/.test(source),'返回值里也要带上，否则调用方看不到试了几次')
+})

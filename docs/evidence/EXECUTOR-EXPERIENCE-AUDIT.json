@@ -1,0 +1,115 @@
+{
+  "kind": "executor-facing end-to-end audit",
+  "implementationChanged": false,
+  "realModelCalls": 0,
+  "basis": {
+    "sources": [
+      "po06/lib/index.js",
+      "po06/lib/optimizer-protocol.js",
+      "po06/lib/capability.js",
+      "po06/lib/advisor.js",
+      "po06/lib/advisor-context.js",
+      "po06/lib/advisor-stage-tool.js",
+      "po06/lib/advisor-contribution.js",
+      "po06/lib/advisor-scopes.js",
+      "po06/lib/advisor-workflow.js",
+      "po06/lib/bash/bash-diagnostics.mjs"
+    ],
+    "sessions": [
+      {
+        "id": "session-b4410b11-4f67-4206-91f5-f9e7919ba1f0",
+        "originalChars": 74,
+        "optimizationMs": 177155,
+        "packetChars": 8109,
+        "reportedTotalTokens": 32408,
+        "contextSnapshots": 5,
+        "eachChars": 8838
+      },
+      {
+        "id": "session-33973b46-66ff-49c4-acc7-0ee2c1d9a652",
+        "originalChars": 74,
+        "optimizationMs": 131949,
+        "packetChars": 4659,
+        "reportedTotalTokens": 21551,
+        "contextSnapshots": 6,
+        "eachChars": 5388,
+        "adviser": {
+          "elapsedMs": 300029,
+          "tools": 14,
+          "modelRounds": 4,
+          "reasoningChars": 112943,
+          "reportDraftChars": 0,
+          "partial": true,
+          "images": 0
+        },
+        "postAdvisorEdits": 6
+      }
+    ],
+    "currentExperience": "Repeated stale stage status remains visibly present in the current full-process discussion; no complete own-session recurrence statistic was obtained."
+  },
+  "confirmedProbes": {
+    "fallbackUsage": {
+      "first": 5,
+      "second": 7,
+      "actualTotal": 12,
+      "returnedTotal": 7,
+      "code": "interpretViaLlm tools-fallback branch",
+      "changed": false
+    },
+    "modeContract": [
+      {
+        "mode": "diagnose_failure",
+        "fields": [
+          "taskId",
+          "stageId"
+        ],
+        "reason": "invalid-stage-reference",
+        "runtimeInvoked": false
+      },
+      {
+        "mode": "diagnose_failure",
+        "fields": [
+          "currentResult"
+        ],
+        "reason": "invalid-current-result",
+        "runtimeInvoked": false,
+        "callerFault": true
+      }
+    ],
+    "workflowAtNoAdditions": {
+      "enabledChars": 270,
+      "disabledChars": 0
+    }
+  },
+  "interpretations": {
+    "useful": [
+      "Preserved user source, literal translations, material roles and freshness",
+      "Concrete independent content may change a important choice",
+      "Run results and cancellation/provenance keep evidence trustworthy"
+    ],
+    "harmfulOrUnproved": [
+      "Full initial recipe repeatedly active and user restriction strengthened",
+      "API/state complexity becomes execution work",
+      "Partial thinking can be mistaken for a usable completed review",
+      "Tests/parameter edits mistaken for final artifact proof"
+    ],
+    "causality": "Observations do not prove attention-weight changes or all poor output caused by the plugin; model/executor/environment limitations remain."
+  },
+  "recommendations": [
+    "Separate incomplete diagnostic traces from validated advice, preserving diagnostics access.",
+    "Represent which version and actual path were tested and which original-goal quality is unverified.",
+    "Keep only relevant current context/state; preserve long necessary construction and full records on demand.",
+    "Aggregate paid fallback usage and differentiate sent, discarded and superseded calls.",
+    "Reduce mode-specific API ambiguity without expanding permissions or obligations."
+  ],
+  "nonGoals": [
+    "No fixed content quota, domain playbook or forced consultation routine",
+    "No new model route, automatic loop, mandatory adoption score or release"
+  ],
+  "auditLimitations": [
+    "Complete large development-session decoding ran out of worker memory due the audit method; no count derived from it.",
+    "UI insights come from code and actual tool messages, not a new DOM interaction test.",
+    "Context snapshots do not imply per-snapshot added billable tokens.",
+    "Only the existing patched static WebGL view supports visual observations."
+  ]
+}

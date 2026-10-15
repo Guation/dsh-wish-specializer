@@ -97,9 +97,9 @@ t('功能：更新实例抢走 token 后，旧实例的**重挂**不再注册（
   const first = loadClientModule(win)       // 第一个实例（模拟 HMR 前的旧实例）
   // P10：挂载点从 `conversation.input.dock` **搬到** `conversation.input.left`（原来是"新增一个"，
   // 现在是"换过去"，所以总数仍是 3：input.left + shell.overlay + settings.plugins.tab）
-  eq(first.calls.filter((c) => c.def).length, 6, '第一个实例先注册了 5 个')
+  eq(first.calls.filter((c) => c.def).length, 7, '第一个实例先注册了 5 个')
   const second = loadClientModule(win)      // 第二个实例抢注 token
-  eq(second.calls.filter((c) => c.def).length, 6, '第二个实例也注册 5 个（最新获胜）')
+  eq(second.calls.filter((c) => c.def).length, 7, '第二个实例也注册 5 个（最新获胜）')
   // 旧实例的"自愈重挂"再跑一次：因为 token 已被第二个实例抢走，**不得**再注册
   const remount = first.mod.__debug && first.mod.__debug.remount
   eq(typeof remount, 'function', '要有可驱动的重挂钩子（__debug.remount）')
@@ -448,7 +448,7 @@ t('崩溃回归②：没有 locale 服务时（访问即抛）apply 仍要成功
   const calls = []
   const ctx = cordisLikeCtx({}, calls)          // 只提供 slots；其它服务读取即抛（真机就是这样）
   const { mod } = loadClientModule(undefined, undefined, undefined, ctx)
-  eq(calls.filter((c) => c.def).length, 6, '五个座位仍要注册上')
+  eq(calls.filter((c) => c.def).length, 7, '五个座位仍要注册上')
   eq(mod.__debug.locale(), 'zh', '拿不到语言服务 ⇒ 中文兜底（不是崩、也不是空白）')
 })
 
@@ -461,7 +461,7 @@ t('崩溃回归③：有 locale 服务时按它定语言，并订阅切换', () 
   }
   const ctx = cordisLikeCtx({ locale: face }, calls)
   const { mod } = loadClientModule(undefined, undefined, undefined, ctx)
-  eq(calls.filter((c) => c.def).length, 6, '五个座位仍要注册上')
+  eq(calls.filter((c) => c.def).length, 7, '五个座位仍要注册上')
   eq(mod.__debug.locale(), 'en', 'DSH 语言为 en ⇒ 界面语言 en')
 })
 
@@ -471,7 +471,7 @@ t('功能：apply 真的注册了五个座位（3 个 list 插槽 + 2 个 keyed 
   // P10：控件从 `conversation.input.dock` 搬到 `conversation.input.left`（挂载点换了，数量不变）
   // 2026-09-24：**多了一个 keyed 座位** `tool.call.toolview`（key=`posix`）——
   // 用户要求"要能一眼看出用的是虚拟工具"，而宿主把 terminal 卡统一渲染成"运行命令"。
-  eq(registered, ['conversation.input.left', 'shell.overlay', 'settings.plugins.tab', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview'],
+  eq(registered, ['conversation.input.left', 'shell.overlay', 'settings.plugins.tab', 'conversation.chat.turnTail', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview'],
     '五个座位都必须被真的注册')
   const bar = calls.filter((c) => c.def && c.def.name === 'conversation.input.left')[0]
   eq([bar.def.id, bar.def.order], ['prompt-optimizer', 20], "控件栏必须是 id='prompt-optimizer' / order=20")
@@ -485,7 +485,7 @@ t('功能：apply 真的注册了五个座位（3 个 list 插槽 + 2 个 keyed 
   // 两条注册契约不同：list 座位要唯一 id；keyed 座位要 key（**没有 id**）。
   ok(calls.every((c) => c.def && (typeof c.def.id === 'string' && c.def.id.length > 0
     || typeof c.def.key === 'string' && c.def.key.length > 0)), '每个注册都要带唯一 id（list）或 key（keyed）')
-  eq(calls.filter((c) => c.Comp !== undefined && c.Comp !== null).length, 6, '每个座位都要带组件（不能是 undefined）')
+  eq(calls.filter((c) => c.Comp !== undefined && c.Comp !== null).length, 7, '每个座位都要带组件（不能是 undefined）')
   eq(typeof dispose, 'function', 'apply 必须返回释放函数')
   const before = calls.length
   dispose()
@@ -614,9 +614,9 @@ t('顾问专用卡片：嵌套结果取 content，摘要始终可见，过程与
   eq(checks.props.open, false, '验收默认收起')
   ok(textOf(expanded).includes('待验证'), '收起时仍可见验收概况')
   // 直观性：状态色点 + 进度条 + 运行中默认展开思考（收起时也能一眼看出成没成）
-  eq(mod.__debug.advisorProgressPct(150, true), 0.5, '兜底上限 300s ⇒ 150s 走一半')
+  eq(mod.__debug.advisorProgressPct(150, true), null, '顾问无默认截止，不制造300s进度上限')
   eq(mod.__debug.advisorProgressPct(50, true, 100000), 0.5, '有本轮限时记录时按它换算（100s 的一半）')
-  eq(mod.__debug.advisorProgressPct(999, true), 0.97, '没结束不画满')
+  eq(mod.__debug.advisorProgressPct(999, true, 300000), 0.97, '显式截止下没结束不画满')
   eq(mod.__debug.advisorProgressPct(30, false), null, '跑完了不画进度条')
   ok(walk(folded).some(n => n.props && n.props.role === 'status' && (n.children || []).some(c => c && c.props && c.props['aria-hidden'])), '状态旁要有色点')
   // 强调：标题与四个分区题干用主题色 + 加粗（其余保持灰阶 ⇒ 灰度下仍分得出区块）

@@ -1,0 +1,3830 @@
+{
+  "requestedAnchor": [
+    300,
+    301,
+    302,
+    303,
+    304,
+    305
+  ],
+  "originalJournal": "C:/Users/33875/.dsh/sessions/--C-Users-33875-.dsh--/session-911f56f0-da85-45e3-9f9d-d03dd45d7d21/session.v4.jsonl.zstd",
+  "rounds": [
+    {
+      "turn": 300,
+      "seq": 43859,
+      "at": "2026-10-11T15:55:42.919Z",
+      "data": {
+        "turn": 300
+      }
+    },
+    {
+      "turn": 301,
+      "seq": 43882,
+      "at": "2026-10-11T16:02:31.045Z",
+      "data": {
+        "turn": 301
+      }
+    },
+    {
+      "turn": 302,
+      "seq": 44224,
+      "at": "2026-10-11T16:28:43.650Z",
+      "data": {
+        "turn": 302
+      }
+    },
+    {
+      "turn": 303,
+      "seq": 44249,
+      "at": "2026-10-11T16:33:44.380Z",
+      "data": {
+        "turn": 303
+      }
+    },
+    {
+      "turn": 304,
+      "seq": 44273,
+      "at": "2026-10-11T16:35:05.913Z",
+      "data": {
+        "turn": 304
+      }
+    },
+    {
+      "turn": 305,
+      "seq": 44378,
+      "at": "2026-10-12T01:51:35.539Z",
+      "data": {
+        "turn": 305
+      }
+    },
+    {
+      "turn": 306,
+      "seq": 44390,
+      "at": "2026-10-12T01:51:46.781Z",
+      "data": {
+        "turn": 306
+      }
+    }
+  ],
+  "reconstruction": {
+    "anchor": {
+      "turns": [
+        300,
+        301,
+        302,
+        303,
+        304,
+        305
+      ],
+      "endSeq": 44389,
+      "commit": "832e330",
+      "preEditTree": "Only three pre-existing eval JSONs modified at seq43898; source clean"
+    },
+    "path": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\exact-turn305",
+    "edits": [
+      {
+        "seq": 43970,
+        "turn": 301,
+        "relative": "po06/lib/optimizer-protocol.js",
+        "op": "edit"
+      },
+      {
+        "seq": 43972,
+        "turn": 301,
+        "relative": "po06/lib/optimizer-protocol.js",
+        "op": "edit"
+      },
+      {
+        "seq": 43974,
+        "turn": 301,
+        "relative": "po06/lib/optimizer-protocol.js",
+        "op": "edit"
+      },
+      {
+        "seq": 43976,
+        "turn": 301,
+        "relative": "po06/lib/optimizer-protocol.js",
+        "op": "edit"
+      },
+      {
+        "seq": 43978,
+        "turn": 301,
+        "relative": "po06/lib/optimizer-protocol.js",
+        "op": "edit"
+      },
+      {
+        "seq": 43980,
+        "turn": 301,
+        "relative": "po06/lib/index.js",
+        "op": "edit"
+      },
+      {
+        "seq": 43987,
+        "turn": 301,
+        "relative": "po06/lib/advisor-contribution.js",
+        "op": "write"
+      },
+      {
+        "seq": 43994,
+        "turn": 301,
+        "relative": "po06/lib/advisor-scopes.js",
+        "op": "edit"
+      },
+      {
+        "seq": 43996,
+        "turn": 301,
+        "relative": "po06/lib/advisor-scopes.js",
+        "op": "edit"
+      },
+      {
+        "seq": 43998,
+        "turn": 301,
+        "relative": "po06/lib/advisor-scopes.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44000,
+        "turn": 301,
+        "relative": "po06/lib/advisor-scopes.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44002,
+        "turn": 301,
+        "relative": "po06/lib/advisor-scopes.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44004,
+        "turn": 301,
+        "relative": "po06/lib/advisor-scopes.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44006,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44010,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44012,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44014,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44016,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44018,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44020,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44022,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44024,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44031,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44033,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44035,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44037,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44039,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44043,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44045,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44047,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44049,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44051,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44053,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44055,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44057,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44059,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44061,
+        "turn": 301,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44072,
+        "turn": 301,
+        "relative": "po06/lib/advisor-workflow.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44076,
+        "turn": 301,
+        "relative": "po06/lib/english-prompts.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44078,
+        "turn": 301,
+        "relative": "po06/lib/client.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44080,
+        "turn": 301,
+        "relative": "po06/lib/client.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44082,
+        "turn": 301,
+        "relative": "po06/lib/client.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44084,
+        "turn": 301,
+        "relative": "po06/lib/client.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44086,
+        "turn": 301,
+        "relative": "po06/lib/client.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44088,
+        "turn": 301,
+        "relative": "po06/lib/client.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44097,
+        "turn": 301,
+        "relative": "po06/lib/client.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44099,
+        "turn": 301,
+        "relative": "po06/test/advisor-workflow.test.mjs",
+        "op": "edit"
+      },
+      {
+        "seq": 44130,
+        "turn": 301,
+        "relative": "po06/test/quality-contribution.test.mjs",
+        "op": "write"
+      },
+      {
+        "seq": 44175,
+        "turn": 301,
+        "relative": "po06/test/advisor-stage-card.test.mjs",
+        "op": "edit"
+      },
+      {
+        "seq": 44177,
+        "turn": 301,
+        "relative": "po06/test/quality-contribution.test.mjs",
+        "op": "edit"
+      },
+      {
+        "seq": 44181,
+        "turn": 301,
+        "relative": "po06/test/quality-contribution.test.mjs",
+        "op": "edit"
+      },
+      {
+        "seq": 44183,
+        "turn": 301,
+        "relative": "po06/test/advisor-host-registration.test.mjs",
+        "op": "edit"
+      },
+      {
+        "seq": 44192,
+        "turn": 301,
+        "relative": "po06/HELP-0.6.md",
+        "op": "edit"
+      },
+      {
+        "seq": 44194,
+        "turn": 301,
+        "relative": "po06/HELP-0.6.md",
+        "op": "edit"
+      },
+      {
+        "seq": 44196,
+        "turn": 301,
+        "relative": "po06/HELP-0.6.en.md",
+        "op": "edit"
+      },
+      {
+        "seq": 44310,
+        "turn": 304,
+        "relative": "po06/test/advisor-stage-card.test.mjs",
+        "op": "edit"
+      },
+      {
+        "seq": 44319,
+        "turn": 304,
+        "relative": "po06/lib/advisor.js",
+        "op": "edit"
+      },
+      {
+        "seq": 44321,
+        "turn": 304,
+        "relative": "po06/test/quality-contribution.test.mjs",
+        "op": "edit"
+      },
+      {
+        "seq": 44323,
+        "turn": 304,
+        "relative": "po06/test/quality-contribution.test.mjs",
+        "op": "edit"
+      }
+    ],
+    "failures": [],
+    "files": {
+      "po06/lib/optimizer-protocol.js": {
+        "bytes": 13185,
+        "sha256": "ea58c9e98d94383321ad573b9315093b48412ac9a807ccd8394a5911e3f23d33",
+        "lastEdit": {
+          "seq": 43978,
+          "turn": 301,
+          "relative": "po06/lib/optimizer-protocol.js",
+          "op": "edit"
+        }
+      },
+      "po06/lib/index.js": {
+        "bytes": 192052,
+        "sha256": "f513b029c6d2aa440096b57b11ae1db6898527d04b1a7c6c6eae680a6ce1d701",
+        "lastEdit": {
+          "seq": 43980,
+          "turn": 301,
+          "relative": "po06/lib/index.js",
+          "op": "edit"
+        }
+      },
+      "po06/lib/advisor-contribution.js": {
+        "bytes": 9194,
+        "sha256": "d663843b81b23a373c02fadb838e3a2bf0ef3b252503e9fd910dc8c04fb96758",
+        "lastEdit": {
+          "seq": 43987,
+          "turn": 301,
+          "relative": "po06/lib/advisor-contribution.js",
+          "op": "write"
+        }
+      },
+      "po06/lib/advisor-scopes.js": {
+        "bytes": 8200,
+        "sha256": "04f835d09f8b064623dc9a4c86855ad0bf7fbd1900078c5e194060d9bb1d397a",
+        "lastEdit": {
+          "seq": 44004,
+          "turn": 301,
+          "relative": "po06/lib/advisor-scopes.js",
+          "op": "edit"
+        }
+      },
+      "po06/lib/advisor.js": {
+        "bytes": 57531,
+        "sha256": "c4696010c4e978e506b0492e5372d6c1c5e5e0ac901bbd2befec5ca680839832",
+        "lastEdit": {
+          "seq": 44319,
+          "turn": 304,
+          "relative": "po06/lib/advisor.js",
+          "op": "edit"
+        }
+      },
+      "po06/lib/advisor-workflow.js": {
+        "bytes": 2847,
+        "sha256": "c3478943b963fc87bc07189d6700431f223ecf3df30eee50c0573a98b58973f2",
+        "lastEdit": {
+          "seq": 44072,
+          "turn": 301,
+          "relative": "po06/lib/advisor-workflow.js",
+          "op": "edit"
+        }
+      },
+      "po06/lib/english-prompts.js": {
+        "bytes": 4086,
+        "sha256": "53af0d106817b7133db46434c66497b2a2ec007ddb652e7b36a74fe3ba6f2e86",
+        "lastEdit": {
+          "seq": 44076,
+          "turn": 301,
+          "relative": "po06/lib/english-prompts.js",
+          "op": "edit"
+        }
+      },
+      "po06/lib/client.js": {
+        "bytes": 290792,
+        "sha256": "a9504712424058d5b012b627b95d33fbf56111e6214b8435d629b9fc35851563",
+        "lastEdit": {
+          "seq": 44097,
+          "turn": 301,
+          "relative": "po06/lib/client.js",
+          "op": "edit"
+        }
+      },
+      "po06/test/advisor-workflow.test.mjs": {
+        "bytes": 4200,
+        "sha256": "7c4711121aa01d6451e52d27b4bb08b33eb94f06d50990697e5ba602a31ece99",
+        "lastEdit": {
+          "seq": 44099,
+          "turn": 301,
+          "relative": "po06/test/advisor-workflow.test.mjs",
+          "op": "edit"
+        }
+      },
+      "po06/test/quality-contribution.test.mjs": {
+        "bytes": 12403,
+        "sha256": "5d915e9a9632e5b4674227c9d16fde4faec786ad5d6f8b45e35e79c296a32139",
+        "lastEdit": {
+          "seq": 44323,
+          "turn": 304,
+          "relative": "po06/test/quality-contribution.test.mjs",
+          "op": "edit"
+        }
+      },
+      "po06/test/advisor-stage-card.test.mjs": {
+        "bytes": 11317,
+        "sha256": "e3f1b3ad43b6839f1bb572a1e97047144c428abebfe3ed581c8511451ca2dfd5",
+        "lastEdit": {
+          "seq": 44310,
+          "turn": 304,
+          "relative": "po06/test/advisor-stage-card.test.mjs",
+          "op": "edit"
+        }
+      },
+      "po06/test/advisor-host-registration.test.mjs": {
+        "bytes": 1942,
+        "sha256": "5db714704cf95238c88ca2ca5e82afe3dd13de327ebb405478aa9ea7769262c6",
+        "lastEdit": {
+          "seq": 44183,
+          "turn": 301,
+          "relative": "po06/test/advisor-host-registration.test.mjs",
+          "op": "edit"
+        }
+      },
+      "po06/HELP-0.6.md": {
+        "bytes": 7331,
+        "sha256": "0e28fb26a39ed163c7fabcb1cff9b4ab05b31b5ffe55f50f7235f8064ae26782",
+        "lastEdit": {
+          "seq": 44194,
+          "turn": 301,
+          "relative": "po06/HELP-0.6.md",
+          "op": "edit"
+        }
+      },
+      "po06/HELP-0.6.en.md": {
+        "bytes": 7317,
+        "sha256": "350aec1711750f89923a42f3587435f722f6475a0a803a86f8d5d2412aa4666d",
+        "lastEdit": {
+          "seq": 44196,
+          "turn": 301,
+          "relative": "po06/HELP-0.6.en.md",
+          "op": "edit"
+        }
+      }
+    }
+  },
+  "preRollbackFreeze": ".po06-tmp/pre-exact-turn305-current.json",
+  "installed": {
+    "revision": "round305-baseline-1",
+    "files": [
+      {
+        "path": "po06/lib/advisor-context.js",
+        "sha256": "7f9e19bb9c759310a30aed38c55db1327967901deb233ba7a82a0fd22063f362"
+      },
+      {
+        "path": "po06/lib/advisor-coverage.js",
+        "sha256": "d99837e8c6a516c143599c82bb015412d932df4e3ee5b1f33ecbe907b0420c15"
+      },
+      {
+        "path": "po06/lib/advisor-outcome.js",
+        "sha256": "e94d6b7ed58fdfbf05259b27111bcfb8104f0829a02ece5aa1abfc119ceda26f"
+      },
+      {
+        "path": "po06/lib/advisor-progress.js",
+        "sha256": "b24a342a1a56370fba763845a9fbdf759ea3aa000defc19166cfad16dd0f6c24"
+      },
+      {
+        "path": "po06/lib/advisor-stage-tool.js",
+        "sha256": "e2d823ddfee741279a5766226ea4151e199753b8cd1fbc3f0794a3b2f9615cac"
+      },
+      {
+        "path": "po06/lib/answer-audit.js",
+        "sha256": "326cb336bf00485bb9c76c28b9e6741eba9bd01aaf3193c169c7e03e90480989"
+      },
+      {
+        "path": "po06/lib/assembly-gate.js",
+        "sha256": "dec0a2238f20599bdc9037d49dc17d5edcdff5553ec2595e40aadd435e9bf8d4"
+      },
+      {
+        "path": "po06/lib/bash/bash-diagnostics.mjs",
+        "sha256": "999ff986dc23428136efaf32d6b4c59e7543e5b5eba8be424763330371f461b3"
+      },
+      {
+        "path": "po06/lib/bash/bash-output.mjs",
+        "sha256": "c12381ce838c91962e20de88b627a24f127eda3e750f8db05077bfbf3cda1e34"
+      },
+      {
+        "path": "po06/lib/bash/index.js",
+        "sha256": "b2591445f78a391354440f25b5a086dc53cdaf1309d10047d4eb6690f2134f79"
+      },
+      {
+        "path": "po06/lib/bash/pg-jobport.mjs",
+        "sha256": "d065d78a6bf0cf2b1b29388368b90aa37dcf92021221ee9dd9df9953a61baeac"
+      },
+      {
+        "path": "po06/lib/bash/process-governance.mjs",
+        "sha256": "a7bfe7881558971df4d6f258400d07706844bf95369595624ce9e6bb4a6026ef"
+      },
+      {
+        "path": "po06/lib/bash/runtime-integrity.mjs",
+        "sha256": "6a3386e671c9010ba281d5371d254968a242e2cf22c8721cd20b4df9c2f5dddb"
+      },
+      {
+        "path": "po06/lib/bash/runtime-layout.mjs",
+        "sha256": "3cdc8f77fa5e05784fa14e7bc3f0a8a7718485812ea852787e82577f6c84e3f1"
+      },
+      {
+        "path": "po06/lib/bash/runtime-provision.mjs",
+        "sha256": "6dafde6355e9ef9dcc83e1717aeac395833e278b90fd9867ff325c0c4952dbd9"
+      },
+      {
+        "path": "po06/lib/bash/shell-capability.mjs",
+        "sha256": "abd4d42c2b062ea2fbb0706580dba1c2b8f8a8d19c0051019f7718fc2f7b40d0"
+      },
+      {
+        "path": "po06/lib/bash/workspace-semantics.mjs",
+        "sha256": "ec9a7689e0c6e72333f0bc1f46d4da1501d6a84854d17d2aea1db27d7f19f60e"
+      },
+      {
+        "path": "po06/lib/capability.js",
+        "sha256": "d853ab26eedb5f7c3e0eba08f57af0a93dbc23f14e19cd98d0ae4944701b7f9c"
+      },
+      {
+        "path": "po06/lib/clarifier.js",
+        "sha256": "b18aa91213aa0c15b89aa2aa96ae3e1e2052a85d9ec0ce0c3149297ad80e22a7"
+      },
+      {
+        "path": "po06/lib/compiler.js",
+        "sha256": "0859ac6a0faa1fea27333c30ba7293d93c770bd8a526be14522d5693aa782be2"
+      },
+      {
+        "path": "po06/lib/control-api.js",
+        "sha256": "4274f47227e24a9a809586d2b331e63a5b38ddaa714384aa6ae240db1a3d4843"
+      },
+      {
+        "path": "po06/lib/detect-old.js",
+        "sha256": "3091998a6f1ba8447e5a7ef4e861d85c6cb4dc5eafeceec993684bd0435f1e71"
+      },
+      {
+        "path": "po06/lib/eval-e001.js",
+        "sha256": "010544bbb00cf897ebd36073b2ae3f2cc86c2d863051814f93da51a56a7b5656"
+      },
+      {
+        "path": "po06/lib/eval-llm.js",
+        "sha256": "22478f4e8535af8785c019d420a27f02fb677e4641d27b698084738d4565ec94"
+      },
+      {
+        "path": "po06/lib/eval-plan.js",
+        "sha256": "38adbf75782f0e79220ffd12cc4717f4473c5bb74b020961d6f09a8a40f6278a"
+      },
+      {
+        "path": "po06/lib/eval-run.js",
+        "sha256": "f3d7973a3fbcebb4d4f0ff3db0d2b559a14d5511cda48776338e5ab4d385d5eb"
+      },
+      {
+        "path": "po06/lib/eval-smoke.js",
+        "sha256": "e3a95d796ef2960fb72d73e8fe66ec9e71d5830d573c32664f1f5aaffe75d6cc"
+      },
+      {
+        "path": "po06/lib/feedback.js",
+        "sha256": "14b5dc8e4af35266e99bcc469b61d3084847320d46f75e4bcdaa27f3f6f82113"
+      },
+      {
+        "path": "po06/lib/framing.js",
+        "sha256": "172c227750ab4cc64efd9dcbf0791bd84cb0f195139d84d7fef593a1ca23495a"
+      },
+      {
+        "path": "po06/lib/gate.js",
+        "sha256": "f458847afff2711eddcac165586a1a92b4722f28a27889099fa8f4545e7d3429"
+      },
+      {
+        "path": "po06/lib/host-migrate.js",
+        "sha256": "ae59f9a8c4e0f9228f9457fb74f92506de224a66e4ae21a7c706c71d54cb1c8f"
+      },
+      {
+        "path": "po06/lib/inference-boost.js",
+        "sha256": "28869e90901845007402dbe785b47bb5ee735366a77f221da84a65c7f8297415"
+      },
+      {
+        "path": "po06/lib/inference-trace.js",
+        "sha256": "01d2c7e62239cfaa418da31483f258634f7d28ed4dd8ebf1bb7a8eecfc35e7f5"
+      },
+      {
+        "path": "po06/lib/llm-lib.js",
+        "sha256": "31ee1eeffb312c38d0fa6e76e0e20aeb17e9616f6664f84b3e1335037d34bcf0"
+      },
+      {
+        "path": "po06/lib/lossless-json.js",
+        "sha256": "f94940700a7a1a1b5644a7f20e0624466f011ee2021a5411e68d7d17a6d24567"
+      },
+      {
+        "path": "po06/lib/migration.js",
+        "sha256": "e2e5bb467223397711da1d3c0498e53e97bd9ee086b480d22a2b55a088b4e10a"
+      },
+      {
+        "path": "po06/lib/playbook.js",
+        "sha256": "c2c6aaa617f6a90c2651f4a7832af77a545c7a698ff9ce205784be110203022a"
+      },
+      {
+        "path": "po06/lib/policy.js",
+        "sha256": "59653d67b7d0b2f2877ddff2352db709ccdf62ce0e3eb67b8d3d82bb1abb39a8"
+      },
+      {
+        "path": "po06/lib/posix.js",
+        "sha256": "399bfa13bc6ba511a4c6f2645265fb6243a047f9e8cbbdaa250be909537b60a8"
+      },
+      {
+        "path": "po06/lib/projection.js",
+        "sha256": "2190b5196548b7b411a726e40785560b77ab167506f647bfd69f8d0d9ec5f35e"
+      },
+      {
+        "path": "po06/lib/reducer.js",
+        "sha256": "c45c5b5d8fb757a4bbe4f32e8072c6e0415924addf6cd2c8d0ac26c2a886d62a"
+      },
+      {
+        "path": "po06/lib/rollout.js",
+        "sha256": "a87085a09c561a15c7ae658c869a75029c0525e8502814e5f2f8514081ad866d"
+      },
+      {
+        "path": "po06/lib/schema.js",
+        "sha256": "f8ad4119fd5118f84bbfa4606102516bbaf9539dcc24362dc1ea7b21cb9c021d"
+      },
+      {
+        "path": "po06/lib/session-context.js",
+        "sha256": "cf5a0bd03e156d5583de73f66d396de0155c361b42b6adde077e5d6e616114d4"
+      },
+      {
+        "path": "po06/lib/settings.js",
+        "sha256": "23cba71ca0823d710e1717dddaf19a31dfdaddb99ecfe5380ffb642546ac843b"
+      },
+      {
+        "path": "po06/lib/store.js",
+        "sha256": "06921cd957236982737a265ae11ca06746c543dcf5154d3399efdd9d54a1322f"
+      },
+      {
+        "path": "po06/lib/strategy.js",
+        "sha256": "d5f82b773d57e3726f7460709d385ae74df2a4bf8bcf22510a5f9d1cca50fea9"
+      },
+      {
+        "path": "po06/lib/temp-sweep.js",
+        "sha256": "5595e5273fddcdf06dcb9e6b3891326335db07a27c90cd2c216905408fe19ac5"
+      },
+      {
+        "path": "po06/lib/verifier-html.js",
+        "sha256": "ee448943042e6b19b543a4d5d86b6f5da638aeb729a93d976f3d2f6546e81414"
+      },
+      {
+        "path": "po06/lib/verifier.js",
+        "sha256": "4ebcf648b4f302fce0afd6a983a4e3b54c6332c5c5566f9fe04ce6d5a5aa43f1"
+      },
+      {
+        "path": "po06/lib/wire.js",
+        "sha256": "73f4c8c9dc488023996e02fdd94bfc5409977f7fbda8cd8f8f8b951bbb371f72"
+      },
+      {
+        "path": "po06/lib/advisor-contribution.js",
+        "sha256": "d663843b81b23a373c02fadb838e3a2bf0ef3b252503e9fd910dc8c04fb96758"
+      },
+      {
+        "path": "po06/lib/advisor-scopes.js",
+        "sha256": "04f835d09f8b064623dc9a4c86855ad0bf7fbd1900078c5e194060d9bb1d397a"
+      },
+      {
+        "path": "po06/lib/read-tools.js",
+        "sha256": "9598f56b35f8b31d1a47256acba6fba065f2989c4580c32bb3951fd83439f485"
+      },
+      {
+        "path": "po06/lib/client.js",
+        "sha256": "6e22a73d88dd1153095770bb136fc27e1cb10ca2c77155da1ed4ff4d2152af1f"
+      },
+      {
+        "path": "po06/lib/advisor-workflow.js",
+        "sha256": "a2e8aa6e9e89c075d71f760583d665aa90257e2f6b61199422d7157b58ba48ea"
+      },
+      {
+        "path": "po06/lib/english-prompts.js",
+        "sha256": "b5321cc45333cebe11af0d8d593ebafcaf291b6a8c498b0461cfba3d75826444"
+      },
+      {
+        "path": "po06/lib/optimizer-protocol.js",
+        "sha256": "6a94f99761314fa7f4e970dd1339d2dc4de7961afdf8dfb1a7475ab291780d7c"
+      },
+      {
+        "path": "po06/lib/english-mode.js",
+        "sha256": "f6aff489c0eae2e10d06ad3776e4dbfe51c9f87814a21fb437963f2628d64026"
+      },
+      {
+        "path": "po06/lib/interpreter.js",
+        "sha256": "079cd148edb432a03c07789fba983a1cfdfc46fbb9a6c61f80c2dae1422f16c3"
+      },
+      {
+        "path": "po06/lib/index.js",
+        "sha256": "8f0cf1c24bc5da55346af8d28c3262d50f8e6347130d5768bb5e3cd14901695e"
+      },
+      {
+        "path": "po06/lib/pipeline.js",
+        "sha256": "63e595ede7a0a87cdb11983241682db8de913db23223ec3ae37c790e7fb9ceb0"
+      },
+      {
+        "path": "po06/lib/advisor-materials.js",
+        "sha256": "2a5c59e4c17b8c8a779db7e263853da29acbfe9babac1caaa1db1119bcbc2325"
+      },
+      {
+        "path": "po06/lib/advisor-read-materials.js",
+        "sha256": "35a16cc8a58313feb1139575a94e57b0022f614eeda8312db1a018c6b724e000"
+      },
+      {
+        "path": "po06/lib/advisor.js",
+        "sha256": "afac558d05ce57dbaf530d4ded2870a0452b4c3e18f9ab81d47fbfc3945ed9f2"
+      },
+      {
+        "path": "po06/lib/advisor-stages.js",
+        "sha256": "98a3a3308e5dd4e74535ae39c47c816ee805e76caa1b73cc6a7ddc8dfd971153"
+      },
+      {
+        "path": "po06/test/adaptive-collaboration.test.mjs",
+        "sha256": "c4d40b43a2a727103d480ac49356c8cf8908fb8cbf2e722cfae44ae0917f0335"
+      },
+      {
+        "path": "po06/test/advisor-context.test.mjs",
+        "sha256": "c0c0cf986cb2ad8bbc30249d20752040104a60e0e685feebc76b65d9779fe349"
+      },
+      {
+        "path": "po06/test/advisor-coverage.test.mjs",
+        "sha256": "7f3915029b59a89eeac2b252d0d6b052cbb2fbf6db5192afdc1919f72a0c0638"
+      },
+      {
+        "path": "po06/test/advisor-feedback.test.mjs",
+        "sha256": "e6040ea4b55ddd000baf22af5997cb149915e28df9adb632b9f65c7c44486523"
+      },
+      {
+        "path": "po06/test/advisor-generality.test.mjs",
+        "sha256": "a885812ea4e435a2917df8e290092ca0b05c16ed1e083816de885cc935c8eb7a"
+      },
+      {
+        "path": "po06/test/advisor-materials.test.mjs",
+        "sha256": "b8fc13577e55abe6b05cc25d231f54ec1f76242da0bb257416f9f5298467e311"
+      },
+      {
+        "path": "po06/test/advisor-progress-delta.test.mjs",
+        "sha256": "320ed6d83b50dc3140d457157cbe368738c0f46c69dca818ed9e6a289b3bf1ca"
+      },
+      {
+        "path": "po06/test/advisor-progress.test.mjs",
+        "sha256": "edf48e95c229879b7277b9c03f1dbcb6f8f28103709d06a9edc953ff01d64868"
+      },
+      {
+        "path": "po06/test/advisor-result-contract.test.mjs",
+        "sha256": "99b0c126d96cf7380c6f807ecb0f9b9e10381c648049a005d08bf0eef680d487"
+      },
+      {
+        "path": "po06/test/advisor-scopes.test.mjs",
+        "sha256": "7793234493c7c99f9f56c2deccad7b923bd6c3f1382f798b08d2237c6faaa2ad"
+      },
+      {
+        "path": "po06/test/advisor-stage-integration.test.mjs",
+        "sha256": "7bc265e0a75058b3b54b95928085aab2e262d1023867f098bb81597245d40852"
+      },
+      {
+        "path": "po06/test/advisor-stage-status.test.mjs",
+        "sha256": "a9edfbefac3a78fff1d77499bfbbdb5fba813b4eb8b9485f43dd59b3be1a17bf"
+      },
+      {
+        "path": "po06/test/advisor-stages.test.mjs",
+        "sha256": "328cae2f8bec59f47f06314decd6b87e7ab93f52962994d32aa4daecb4c990f1"
+      },
+      {
+        "path": "po06/test/advisor.test.mjs",
+        "sha256": "faca33c7136e3c187cc00e5794d74e25b383f11653d450f2eed1ddc7611b5ee0"
+      },
+      {
+        "path": "po06/test/analyze-e001.test.mjs",
+        "sha256": "ea67a38794a3c4ba2e66a4a695304ab27ddda8fa6ba4ab73c4be6983d8919441"
+      },
+      {
+        "path": "po06/test/answer-audit.test.mjs",
+        "sha256": "ddeb6db276ff98fa9f765e205dfdbcf7b6f5f89a0ed570235dd1f95636eff942"
+      },
+      {
+        "path": "po06/test/assembly-gate.test.mjs",
+        "sha256": "48a54f610f2b3aa51594d34f00b27677e5b537eae6468a3d713d9f639cf32e4f"
+      },
+      {
+        "path": "po06/test/audit-clarify.test.mjs",
+        "sha256": "0e942294e95180afda1c14620e8cfeb0b32067d4940b8940daa2c5d7c0284cf3"
+      },
+      {
+        "path": "po06/test/bash-diagnostics.test.mjs",
+        "sha256": "64ae7f52f58deedc1a07d8d69ca3b9a4fb2e31c47815f17306fb498927da0bab"
+      },
+      {
+        "path": "po06/test/bash-execute.test.mjs",
+        "sha256": "e0882300008cc7622a46f4ef01b2446bc9ef52f68e16532c8536d30b76d21e50"
+      },
+      {
+        "path": "po06/test/bash-governance-reliability.test.mjs",
+        "sha256": "ef451f12d9fc8e37c14698140327eb3d75763970585222d5264aeb73d63b2054"
+      },
+      {
+        "path": "po06/test/bash-home.test.mjs",
+        "sha256": "8e0c2192a9e32883318bb697b1a45da64c5d7898ef3e383fd94bcf910dfc8cbd"
+      },
+      {
+        "path": "po06/test/bash-inflight.test.mjs",
+        "sha256": "a95755dedeb4bdf2d6e66fc269da5a0228108d670c48db1011ffa4b775d30f91"
+      },
+      {
+        "path": "po06/test/bash-output.test.mjs",
+        "sha256": "3ef20c6f3b740f8f674108564454d178f1720d9ef8f9cb75d0e06e4f5d1896fd"
+      },
+      {
+        "path": "po06/test/bash-runtime-cache.test.mjs",
+        "sha256": "e19bb9a67081fa4b2c74acc6f850bfcde3fb02891f6d934ee6ec406fdc5fcd25"
+      },
+      {
+        "path": "po06/test/bash-tmp-fallback.test.mjs",
+        "sha256": "d3547a933bdc57f31a2fc277536a04133a30e02ab4695696fdfc1cb9e2e574ed"
+      },
+      {
+        "path": "po06/test/bash-toggle.test.mjs",
+        "sha256": "7680011029772a37c18d7ad84e1515de61f4bb324ae9abec009453cae569e409"
+      },
+      {
+        "path": "po06/test/bash-usage.test.mjs",
+        "sha256": "fe8ca55edde6016e7782ce9cf3eb7ca5286e546368d269ab4f01338ae615f831"
+      },
+      {
+        "path": "po06/test/bash-yield.test.mjs",
+        "sha256": "67f65f5b1de29cf7b17bb550de0db99390ab189057eab9303bb477d236f2dcff"
+      },
+      {
+        "path": "po06/test/capability.test.mjs",
+        "sha256": "4b1079f54785367f2a1fbb94e0f727cf9872da4e3fae36cf1931b5b205556619"
+      },
+      {
+        "path": "po06/test/carryover.test.mjs",
+        "sha256": "2dd5cc6f048d99833c490fc7cb29d6512060501b181452d87044667d7291f930"
+      },
+      {
+        "path": "po06/test/check-docs.test.mjs",
+        "sha256": "74a2d2f4823bd2d180a85e32a637bb614dcc2f4ae212aa83d4a54117cd39c1c9"
+      },
+      {
+        "path": "po06/test/check-install.test.mjs",
+        "sha256": "debe87728dffcdf5bac76e90b0a3e00108c915a0eb1c71e95c1891bb46ca963c"
+      },
+      {
+        "path": "po06/test/clarifier.test.mjs",
+        "sha256": "d83b8e127a474bf2d2bf8bf60b452f2d1ea89ea2afe2550e807892447535ce65"
+      },
+      {
+        "path": "po06/test/client-advisor-stream.test.mjs",
+        "sha256": "f95b79fc2957192dc4b4b277b2e6da6e9534a49790b2058b1a57d0edce67cf9c"
+      },
+      {
+        "path": "po06/test/client-file.test.mjs",
+        "sha256": "3462acf8ccb23b3089ba4f25fccbf5f4552f0184c35a1e64a8d92b8b4307f4e3"
+      },
+      {
+        "path": "po06/test/client-hold-bridge.test.mjs",
+        "sha256": "9a9e3765a2291d1508ef463ee17e46d1a631ff0ed23d334d954096dfb82dea8a"
+      },
+      {
+        "path": "po06/test/client-overlay-z.test.mjs",
+        "sha256": "fe91599aa960dbf90f50c5e3d25421c91e468c85edb3d0f898d353ce9110c920"
+      },
+      {
+        "path": "po06/test/coexist-config.test.mjs",
+        "sha256": "d2d64dea783e122a3bc9774c225b9129e043258bde11726c6da59bac3893d4c3"
+      },
+      {
+        "path": "po06/test/compiler.test.mjs",
+        "sha256": "41ea075a4342b73e873515c3e99d87b393a8c366be2cf68058abc2072bbbd398"
+      },
+      {
+        "path": "po06/test/control-api.test.mjs",
+        "sha256": "86ce8ab31be7db4f7f15debb69052edd65f5bd9a60cb2fd4ef1fb9c299883661"
+      },
+      {
+        "path": "po06/test/detect-old.test.mjs",
+        "sha256": "6417128fdcc99d8887852edf5c2db4f8f32f1ee78be9f9eab221ee7120e35d9a"
+      },
+      {
+        "path": "po06/test/dump-wire.test.mjs",
+        "sha256": "1433ab058f4885db8ec256bde93f613bec529e5e61ca9fa6d7eba5621e06684e"
+      },
+      {
+        "path": "po06/test/english-mode.test.mjs",
+        "sha256": "a33f273302d69c36469bfa4efcd00f133030eafe8c51e70cb06fef95e1c6d42a"
+      },
+      {
+        "path": "po06/test/eval-e001.test.mjs",
+        "sha256": "78ab1857fc66ca4f5115fb6877c8ed986b469f700e50dea6a45b384a74ecd3e0"
+      },
+      {
+        "path": "po06/test/eval-plan.test.mjs",
+        "sha256": "e5bb543a9802348c444d3932707f65f4a9afb886b980c1b98d3549babc371e09"
+      },
+      {
+        "path": "po06/test/eval-rehearsal.test.mjs",
+        "sha256": "c321fdbb92166a7064a5fcff79be8677e27e6d63aecaa9bd38e4d53220c49755"
+      },
+      {
+        "path": "po06/test/eval-run.test.mjs",
+        "sha256": "800e870ed9c1adb5f600502abbaee5edf10a4c9063cd985adea6278e94238453"
+      },
+      {
+        "path": "po06/test/feedback.test.mjs",
+        "sha256": "deb3d8ea2a88da31ce7898c6bc581a27392cce16eb9f4083a634db7bb62e04ce"
+      },
+      {
+        "path": "po06/test/fixtures/legacy-interpreter-default.md",
+        "sha256": "6d340804647f07fc79cd65bbb547c0757b014fbee54d1d04c76bcea3a5f26e7d"
+      },
+      {
+        "path": "po06/test/fixtures/llm-lib-017.mjs",
+        "sha256": "123c251fb9f2fb37504abe5d10e217e4271d1d52f05aabc76b952c0ade239e68"
+      },
+      {
+        "path": "po06/test/framing-note.test.mjs",
+        "sha256": "dc4845701dbe28dfc05ec250e634961b731ce091886cdd447a862047ca8d1d5a"
+      },
+      {
+        "path": "po06/test/framing-voice.test.mjs",
+        "sha256": "0173ff0f20afd977973fba489493798ee8471f3aacd396f1f47e55d3229bc454"
+      },
+      {
+        "path": "po06/test/framing.test.mjs",
+        "sha256": "f08d7513c062f3da529f5dd87d7e0713422f167c8fb65ff4cac6712db8494486"
+      },
+      {
+        "path": "po06/test/gate.test.mjs",
+        "sha256": "a00182a5b261b45e98aa964800df4b575a63de09e7a5be8d3bb43f01b01d9449"
+      },
+      {
+        "path": "po06/test/holdout-clarify.test.mjs",
+        "sha256": "f1b702a083afe7f9294db5190ca854a4b8faef9002c8d683f6913732dfd182ba"
+      },
+      {
+        "path": "po06/test/holdout-longtask.test.mjs",
+        "sha256": "368b6935ca0ce11032b0f36e23e4426e0ee0aa3bd55c7cce3f252d0ece3ba79b"
+      },
+      {
+        "path": "po06/test/host-migrate.test.mjs",
+        "sha256": "6bee9721d5409856985033bac73a5da5edaaa2f57f28492ed758b3057a69481f"
+      },
+      {
+        "path": "po06/test/identity.test.mjs",
+        "sha256": "cd63b82b492b4d0f1b034eba9d83bf8a2be1a51f9dafd3f746157c286d51a6a1"
+      },
+      {
+        "path": "po06/test/inference-boost.test.mjs",
+        "sha256": "f6a78a22e0e6ef0994914232adfae35abaa59a555877ed5655f89a67af6f1dd9"
+      },
+      {
+        "path": "po06/test/inference-ui.test.mjs",
+        "sha256": "e7d07f128e16878211b57a0e3449aa0e85f672338915eeb1d64ab8520ecdf6d0"
+      },
+      {
+        "path": "po06/test/intercept-output-stream.test.mjs",
+        "sha256": "53957c571cc1ef34d978f59af5b18b2577ff87e54655a5823a9b5e4df031c9f9"
+      },
+      {
+        "path": "po06/test/intercept-timing.test.mjs",
+        "sha256": "6440f4be1b3760a3f981a811c93a1ccb8c92d7e5230be9aaa3f64cb825b3bc5d"
+      },
+      {
+        "path": "po06/test/interpreter.test.mjs",
+        "sha256": "6524605f3b68915cdad74babde77d14cdc57d504b2540c01714ff03e7dc0f1f1"
+      },
+      {
+        "path": "po06/test/llm-lib.test.mjs",
+        "sha256": "5f5bd6cc16c40a51e51b23c57bfc14ec62a5e43ad5eb792bd3648131e9961a93"
+      },
+      {
+        "path": "po06/test/longtask.test.mjs",
+        "sha256": "0c0e9b91be92b593228d3a75582e0e55635782cac450715f8f2772ec389805a7"
+      },
+      {
+        "path": "po06/test/lossless-json.test.mjs",
+        "sha256": "a483b7cc645d37bc72aee8834ab765df03ee9be9496b3c0c54a17e729e8f720b"
+      },
+      {
+        "path": "po06/test/migration.test.mjs",
+        "sha256": "8a047b58a1a2df163566c18f02ecc1befad66d06cdb2bc247aa8f6f8a93a8fa6"
+      },
+      {
+        "path": "po06/test/mutate-check.cjs",
+        "sha256": "d3ea7e0a14a6a35480e676ae5ac8e1cec00ded2cbefb061842f17f417a67f8a7"
+      },
+      {
+        "path": "po06/test/no-inherit.test.mjs",
+        "sha256": "6718918fa22f25a3253fad7e38d3a85b2e7cc7a0fb1d5d260b03f2931338603f"
+      },
+      {
+        "path": "po06/test/optimizer-protocol.test.mjs",
+        "sha256": "a197b63c7cd844d37f2d92b96b0f45c221d84eb72fdbfa2b7b1b1b36eb648e77"
+      },
+      {
+        "path": "po06/test/packet-shape.test.mjs",
+        "sha256": "56021ad3b2b0d480376e5c14a5fba3a1270b5ec362452300e3d75d08b1af9d8f"
+      },
+      {
+        "path": "po06/test/pipeline.test.mjs",
+        "sha256": "4e352fa9ecddacf6d2f1037eb0149420fe7aa6db16a232d23f6f1281e6c01b40"
+      },
+      {
+        "path": "po06/test/policy.test.mjs",
+        "sha256": "9f83b5fdb13e54a68f89b180f80b1879857640b507eb86f3f712aadc4e4884aa"
+      },
+      {
+        "path": "po06/test/posix-tool-schema.test.mjs",
+        "sha256": "faaacc173182d0910ce88fea999ca60a1837c123ea6887745bf0f50f016b45bb"
+      },
+      {
+        "path": "po06/test/preflight-e001.test.mjs",
+        "sha256": "11140efccdcbf7b3af249f838d0c5fcc3f15bb4c26ceb571cdb0b57f69534b40"
+      },
+      {
+        "path": "po06/test/projection.test.mjs",
+        "sha256": "6f0ce87ea5e8a6c0a17be0345a3c087bcbab6767319e3adb63d7a46bfa074e3f"
+      },
+      {
+        "path": "po06/test/provenance-ref.test.mjs",
+        "sha256": "fbcc0523b610a38249cf11bbc3d625e99e88c74c830360f73af55bfef0a5f007"
+      },
+      {
+        "path": "po06/test/provenance.test.mjs",
+        "sha256": "459a7341e1b59498e1bf0688f540d903f15c6e5f57ff213e63d13c32a741f631"
+      },
+      {
+        "path": "po06/test/read-session.test.mjs",
+        "sha256": "00f40e2ba5ba7c6183b2a8a5c370d10b21ce75640d6a7016144f17113f76ceee"
+      },
+      {
+        "path": "po06/test/read-tools.test.mjs",
+        "sha256": "296fc6d3c55ad2d13db8b406504797da2597e580538377bfdbf8a52e36763e51"
+      },
+      {
+        "path": "po06/test/recap.test.mjs",
+        "sha256": "f64a6085012e3ff10833b4aa9ae2c3f272887bd212a876f0200d8046d4c7113e"
+      },
+      {
+        "path": "po06/test/reducer.test.mjs",
+        "sha256": "cca60faeec1f17ed30f328eb6008e58293f3834eafbc1d1153ff729e326bac99"
+      },
+      {
+        "path": "po06/test/rollout.test.mjs",
+        "sha256": "18fcb36a82bda6140119b0b4dc1297dd0bafe8da0706305399744eee3383d089"
+      },
+      {
+        "path": "po06/test/session-tier.test.mjs",
+        "sha256": "04b4069de301118d654bfc9937bebf96e2d3ee2b3b501db568eb494ac98f66e1"
+      },
+      {
+        "path": "po06/test/settings.test.mjs",
+        "sha256": "c6a63984de103f80fbd2c2a6b5190bbd17a3e5e553559e0eac42883e7acf3409"
+      },
+      {
+        "path": "po06/test/single-turn.test.mjs",
+        "sha256": "868e70bd38b95af35026728f5f3124c143998e97d08eb20162f8d75995b3b826"
+      },
+      {
+        "path": "po06/test/slash-review.test.mjs",
+        "sha256": "ec61da815160ff955c0fa5d6f3867975961ae5a80ecac8a3b02fe8176bfc3825"
+      },
+      {
+        "path": "po06/test/temp-sweep.test.mjs",
+        "sha256": "31febc53dd774cc36e966b92574adf9e7710d3cada633401d8151489b0b909e6"
+      },
+      {
+        "path": "po06/test/tool-note.test.mjs",
+        "sha256": "b919c1fd0a3c5185a255941bc26e9fd545983f250e660f6bdcc6de52d52ad4c4"
+      },
+      {
+        "path": "po06/test/verifier-html.test.mjs",
+        "sha256": "79e6f675e1a345dac14be91f0ab37155d6f5a047ad89d64245b182688001ac38"
+      },
+      {
+        "path": "po06/test/verify-artifact.test.mjs",
+        "sha256": "f08bc3c75b616319329793e9a4ef1a73ab491612307a2e5245e41ebb04e51491"
+      },
+      {
+        "path": "po06/test/wire.test.mjs",
+        "sha256": "559a7987bc0cb2e8e6629745e5f3cb036d4f69bca637b3e5eb31bf93a420cb90"
+      },
+      {
+        "path": "po06/test/advisor-host-registration.test.mjs",
+        "sha256": "5db714704cf95238c88ca2ca5e82afe3dd13de327ebb405478aa9ea7769262c6"
+      },
+      {
+        "path": "po06/test/advisor-stage-card.test.mjs",
+        "sha256": "e3f1b3ad43b6839f1bb572a1e97047144c428abebfe3ed581c8511451ca2dfd5"
+      },
+      {
+        "path": "po06/test/advisor-workflow.test.mjs",
+        "sha256": "fcb684d7757b58b50cdf0170116be7cac22814dfc19452eb15dd6b7923534ac3"
+      },
+      {
+        "path": "po06/test/quality-contribution.test.mjs",
+        "sha256": "4433e9d65d099085842e69534b139086ddf9fd5d3d5a6aa70e9b3c8f96a9040a"
+      },
+      {
+        "path": "po06/test/turn305-parity.test.mjs",
+        "sha256": "8c76a9d92262324cbb890a7bf88fab9731c632457e2fa3abedd73c76067c50fd"
+      },
+      {
+        "path": "po06/HELP-0.6.md",
+        "sha256": "0e28fb26a39ed163c7fabcb1cff9b4ab05b31b5ffe55f50f7235f8064ae26782"
+      },
+      {
+        "path": "po06/HELP-0.6.en.md",
+        "sha256": "350aec1711750f89923a42f3587435f722f6475a0a803a86f8d5d2412aa4666d"
+      }
+    ],
+    "overwritten": 32,
+    "retired": [
+      "po06/lib/advisor-language.js",
+      "po06/lib/advisor-invocation.js",
+      "po06/lib/advisor-tool-language.js",
+      "po06/test/english-interpretation.test.mjs",
+      "po06/test/english-multiturn.test.mjs",
+      "po06/test/route-a-efficiency.test.mjs",
+      "po06/test/advisor-tool-language.test.mjs",
+      "po06/test/advisor-language.test.mjs",
+      "po06/test/fixtures/optimizer-core-advisor-english-1.zh.md",
+      "po06/test/fixtures/optimizer-core-advisor-english-1.en.md",
+      "po06/test/fixtures/optimizer-core-route-a-1.zh.md",
+      "po06/test/fixtures/optimizer-core-route-a-1.en.md",
+      "po06/test/advisor-invocation.test.mjs",
+      "po06/test/stable-quality.test.mjs",
+      "po06/test/fixtures/optimizer-core-contribution-selection-4.zh.md",
+      "po06/test/fixtures/optimizer-core-contribution-selection-4.en.md",
+      "po06/test/capability-recovery.test.mjs",
+      "po06/test/open-issues.test.mjs"
+    ],
+    "preservedUserSettings": true,
+    "fullCurrentFreeze": ".po06-tmp/pre-exact-turn305-current.json",
+    "exceptions": ".po06-tmp/turn305-deployment-manifest.json",
+    "lastVerifiedAt": "2026-10-14T15:13:55.294Z"
+  },
+  "files": [
+    {
+      "path": "po06/lib/advisor-context.js",
+      "sha256": "7f9e19bb9c759310a30aed38c55db1327967901deb233ba7a82a0fd22063f362",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/advisor-coverage.js",
+      "sha256": "d99837e8c6a516c143599c82bb015412d932df4e3ee5b1f33ecbe907b0420c15",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/advisor-outcome.js",
+      "sha256": "e94d6b7ed58fdfbf05259b27111bcfb8104f0829a02ece5aa1abfc119ceda26f",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/advisor-progress.js",
+      "sha256": "b24a342a1a56370fba763845a9fbdf759ea3aa000defc19166cfad16dd0f6c24",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/advisor-stage-tool.js",
+      "sha256": "e2d823ddfee741279a5766226ea4151e199753b8cd1fbc3f0794a3b2f9615cac",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/answer-audit.js",
+      "sha256": "326cb336bf00485bb9c76c28b9e6741eba9bd01aaf3193c169c7e03e90480989",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/assembly-gate.js",
+      "sha256": "dec0a2238f20599bdc9037d49dc17d5edcdff5553ec2595e40aadd435e9bf8d4",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/bash-diagnostics.mjs",
+      "sha256": "999ff986dc23428136efaf32d6b4c59e7543e5b5eba8be424763330371f461b3",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/bash-output.mjs",
+      "sha256": "c12381ce838c91962e20de88b627a24f127eda3e750f8db05077bfbf3cda1e34",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/index.js",
+      "sha256": "b2591445f78a391354440f25b5a086dc53cdaf1309d10047d4eb6690f2134f79",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/pg-jobport.mjs",
+      "sha256": "d065d78a6bf0cf2b1b29388368b90aa37dcf92021221ee9dd9df9953a61baeac",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/process-governance.mjs",
+      "sha256": "a7bfe7881558971df4d6f258400d07706844bf95369595624ce9e6bb4a6026ef",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/runtime-integrity.mjs",
+      "sha256": "6a3386e671c9010ba281d5371d254968a242e2cf22c8721cd20b4df9c2f5dddb",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/runtime-layout.mjs",
+      "sha256": "3cdc8f77fa5e05784fa14e7bc3f0a8a7718485812ea852787e82577f6c84e3f1",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/runtime-provision.mjs",
+      "sha256": "6dafde6355e9ef9dcc83e1717aeac395833e278b90fd9867ff325c0c4952dbd9",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/shell-capability.mjs",
+      "sha256": "abd4d42c2b062ea2fbb0706580dba1c2b8f8a8d19c0051019f7718fc2f7b40d0",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/bash/workspace-semantics.mjs",
+      "sha256": "ec9a7689e0c6e72333f0bc1f46d4da1501d6a84854d17d2aea1db27d7f19f60e",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/capability.js",
+      "sha256": "d853ab26eedb5f7c3e0eba08f57af0a93dbc23f14e19cd98d0ae4944701b7f9c",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/clarifier.js",
+      "sha256": "b18aa91213aa0c15b89aa2aa96ae3e1e2052a85d9ec0ce0c3149297ad80e22a7",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/compiler.js",
+      "sha256": "0859ac6a0faa1fea27333c30ba7293d93c770bd8a526be14522d5693aa782be2",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/control-api.js",
+      "sha256": "4274f47227e24a9a809586d2b331e63a5b38ddaa714384aa6ae240db1a3d4843",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/detect-old.js",
+      "sha256": "3091998a6f1ba8447e5a7ef4e861d85c6cb4dc5eafeceec993684bd0435f1e71",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/eval-e001.js",
+      "sha256": "010544bbb00cf897ebd36073b2ae3f2cc86c2d863051814f93da51a56a7b5656",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/eval-llm.js",
+      "sha256": "22478f4e8535af8785c019d420a27f02fb677e4641d27b698084738d4565ec94",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/eval-plan.js",
+      "sha256": "38adbf75782f0e79220ffd12cc4717f4473c5bb74b020961d6f09a8a40f6278a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/eval-run.js",
+      "sha256": "f3d7973a3fbcebb4d4f0ff3db0d2b559a14d5511cda48776338e5ab4d385d5eb",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/eval-smoke.js",
+      "sha256": "e3a95d796ef2960fb72d73e8fe66ec9e71d5830d573c32664f1f5aaffe75d6cc",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/feedback.js",
+      "sha256": "14b5dc8e4af35266e99bcc469b61d3084847320d46f75e4bcdaa27f3f6f82113",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/framing.js",
+      "sha256": "172c227750ab4cc64efd9dcbf0791bd84cb0f195139d84d7fef593a1ca23495a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/gate.js",
+      "sha256": "f458847afff2711eddcac165586a1a92b4722f28a27889099fa8f4545e7d3429",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/host-migrate.js",
+      "sha256": "ae59f9a8c4e0f9228f9457fb74f92506de224a66e4ae21a7c706c71d54cb1c8f",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/inference-boost.js",
+      "sha256": "28869e90901845007402dbe785b47bb5ee735366a77f221da84a65c7f8297415",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/inference-trace.js",
+      "sha256": "01d2c7e62239cfaa418da31483f258634f7d28ed4dd8ebf1bb7a8eecfc35e7f5",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/llm-lib.js",
+      "sha256": "31ee1eeffb312c38d0fa6e76e0e20aeb17e9616f6664f84b3e1335037d34bcf0",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/lossless-json.js",
+      "sha256": "f94940700a7a1a1b5644a7f20e0624466f011ee2021a5411e68d7d17a6d24567",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/migration.js",
+      "sha256": "e2e5bb467223397711da1d3c0498e53e97bd9ee086b480d22a2b55a088b4e10a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/playbook.js",
+      "sha256": "c2c6aaa617f6a90c2651f4a7832af77a545c7a698ff9ce205784be110203022a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/policy.js",
+      "sha256": "59653d67b7d0b2f2877ddff2352db709ccdf62ce0e3eb67b8d3d82bb1abb39a8",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/posix.js",
+      "sha256": "399bfa13bc6ba511a4c6f2645265fb6243a047f9e8cbbdaa250be909537b60a8",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/projection.js",
+      "sha256": "2190b5196548b7b411a726e40785560b77ab167506f647bfd69f8d0d9ec5f35e",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/reducer.js",
+      "sha256": "c45c5b5d8fb757a4bbe4f32e8072c6e0415924addf6cd2c8d0ac26c2a886d62a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/rollout.js",
+      "sha256": "a87085a09c561a15c7ae658c869a75029c0525e8502814e5f2f8514081ad866d",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/schema.js",
+      "sha256": "f8ad4119fd5118f84bbfa4606102516bbaf9539dcc24362dc1ea7b21cb9c021d",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/session-context.js",
+      "sha256": "cf5a0bd03e156d5583de73f66d396de0155c361b42b6adde077e5d6e616114d4",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/settings.js",
+      "sha256": "23cba71ca0823d710e1717dddaf19a31dfdaddb99ecfe5380ffb642546ac843b",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/store.js",
+      "sha256": "06921cd957236982737a265ae11ca06746c543dcf5154d3399efdd9d54a1322f",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/strategy.js",
+      "sha256": "d5f82b773d57e3726f7460709d385ae74df2a4bf8bcf22510a5f9d1cca50fea9",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/temp-sweep.js",
+      "sha256": "5595e5273fddcdf06dcb9e6b3891326335db07a27c90cd2c216905408fe19ac5",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/verifier-html.js",
+      "sha256": "ee448943042e6b19b543a4d5d86b6f5da638aeb729a93d976f3d2f6546e81414",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/verifier.js",
+      "sha256": "4ebcf648b4f302fce0afd6a983a4e3b54c6332c5c5566f9fe04ce6d5a5aa43f1",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/wire.js",
+      "sha256": "73f4c8c9dc488023996e02fdd94bfc5409977f7fbda8cd8f8f8b951bbb371f72",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/advisor-contribution.js",
+      "sha256": "d663843b81b23a373c02fadb838e3a2bf0ef3b252503e9fd910dc8c04fb96758",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/advisor-scopes.js",
+      "sha256": "04f835d09f8b064623dc9a4c86855ad0bf7fbd1900078c5e194060d9bb1d397a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/lib/read-tools.js",
+      "sha256": "9598f56b35f8b31d1a47256acba6fba065f2989c4580c32bb3951fd83439f485",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/client.js",
+      "sha256": "6e22a73d88dd1153095770bb136fc27e1cb10ca2c77155da1ed4ff4d2152af1f",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/advisor-workflow.js",
+      "sha256": "a2e8aa6e9e89c075d71f760583d665aa90257e2f6b61199422d7157b58ba48ea",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/english-prompts.js",
+      "sha256": "b5321cc45333cebe11af0d8d593ebafcaf291b6a8c498b0461cfba3d75826444",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/optimizer-protocol.js",
+      "sha256": "6a94f99761314fa7f4e970dd1339d2dc4de7961afdf8dfb1a7475ab291780d7c",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/english-mode.js",
+      "sha256": "f6aff489c0eae2e10d06ad3776e4dbfe51c9f87814a21fb437963f2628d64026",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/interpreter.js",
+      "sha256": "079cd148edb432a03c07789fba983a1cfdfc46fbb9a6c61f80c2dae1422f16c3",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/index.js",
+      "sha256": "8f0cf1c24bc5da55346af8d28c3262d50f8e6347130d5768bb5e3cd14901695e",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/pipeline.js",
+      "sha256": "63e595ede7a0a87cdb11983241682db8de913db23223ec3ae37c790e7fb9ceb0",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/advisor-materials.js",
+      "sha256": "2a5c59e4c17b8c8a779db7e263853da29acbfe9babac1caaa1db1119bcbc2325",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/advisor-read-materials.js",
+      "sha256": "35a16cc8a58313feb1139575a94e57b0022f614eeda8312db1a018c6b724e000",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/advisor.js",
+      "sha256": "afac558d05ce57dbaf530d4ded2870a0452b4c3e18f9ab81d47fbfc3945ed9f2",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/lib/advisor-stages.js",
+      "sha256": "98a3a3308e5dd4e74535ae39c47c816ee805e76caa1b73cc6a7ddc8dfd971153",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/test/adaptive-collaboration.test.mjs",
+      "sha256": "c4d40b43a2a727103d480ac49356c8cf8908fb8cbf2e722cfae44ae0917f0335",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-context.test.mjs",
+      "sha256": "c0c0cf986cb2ad8bbc30249d20752040104a60e0e685feebc76b65d9779fe349",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-coverage.test.mjs",
+      "sha256": "7f3915029b59a89eeac2b252d0d6b052cbb2fbf6db5192afdc1919f72a0c0638",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-feedback.test.mjs",
+      "sha256": "e6040ea4b55ddd000baf22af5997cb149915e28df9adb632b9f65c7c44486523",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-generality.test.mjs",
+      "sha256": "a885812ea4e435a2917df8e290092ca0b05c16ed1e083816de885cc935c8eb7a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-materials.test.mjs",
+      "sha256": "b8fc13577e55abe6b05cc25d231f54ec1f76242da0bb257416f9f5298467e311",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-progress-delta.test.mjs",
+      "sha256": "320ed6d83b50dc3140d457157cbe368738c0f46c69dca818ed9e6a289b3bf1ca",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-progress.test.mjs",
+      "sha256": "edf48e95c229879b7277b9c03f1dbcb6f8f28103709d06a9edc953ff01d64868",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-result-contract.test.mjs",
+      "sha256": "99b0c126d96cf7380c6f807ecb0f9b9e10381c648049a005d08bf0eef680d487",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-scopes.test.mjs",
+      "sha256": "7793234493c7c99f9f56c2deccad7b923bd6c3f1382f798b08d2237c6faaa2ad",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-stage-integration.test.mjs",
+      "sha256": "7bc265e0a75058b3b54b95928085aab2e262d1023867f098bb81597245d40852",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-stage-status.test.mjs",
+      "sha256": "a9edfbefac3a78fff1d77499bfbbdb5fba813b4eb8b9485f43dd59b3be1a17bf",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-stages.test.mjs",
+      "sha256": "328cae2f8bec59f47f06314decd6b87e7ab93f52962994d32aa4daecb4c990f1",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor.test.mjs",
+      "sha256": "faca33c7136e3c187cc00e5794d74e25b383f11653d450f2eed1ddc7611b5ee0",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/analyze-e001.test.mjs",
+      "sha256": "ea67a38794a3c4ba2e66a4a695304ab27ddda8fa6ba4ab73c4be6983d8919441",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/answer-audit.test.mjs",
+      "sha256": "ddeb6db276ff98fa9f765e205dfdbcf7b6f5f89a0ed570235dd1f95636eff942",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/assembly-gate.test.mjs",
+      "sha256": "48a54f610f2b3aa51594d34f00b27677e5b537eae6468a3d713d9f639cf32e4f",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/audit-clarify.test.mjs",
+      "sha256": "0e942294e95180afda1c14620e8cfeb0b32067d4940b8940daa2c5d7c0284cf3",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-diagnostics.test.mjs",
+      "sha256": "64ae7f52f58deedc1a07d8d69ca3b9a4fb2e31c47815f17306fb498927da0bab",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-execute.test.mjs",
+      "sha256": "e0882300008cc7622a46f4ef01b2446bc9ef52f68e16532c8536d30b76d21e50",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-governance-reliability.test.mjs",
+      "sha256": "ef451f12d9fc8e37c14698140327eb3d75763970585222d5264aeb73d63b2054",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-home.test.mjs",
+      "sha256": "8e0c2192a9e32883318bb697b1a45da64c5d7898ef3e383fd94bcf910dfc8cbd",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-inflight.test.mjs",
+      "sha256": "a95755dedeb4bdf2d6e66fc269da5a0228108d670c48db1011ffa4b775d30f91",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-output.test.mjs",
+      "sha256": "3ef20c6f3b740f8f674108564454d178f1720d9ef8f9cb75d0e06e4f5d1896fd",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-runtime-cache.test.mjs",
+      "sha256": "e19bb9a67081fa4b2c74acc6f850bfcde3fb02891f6d934ee6ec406fdc5fcd25",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-tmp-fallback.test.mjs",
+      "sha256": "d3547a933bdc57f31a2fc277536a04133a30e02ab4695696fdfc1cb9e2e574ed",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-toggle.test.mjs",
+      "sha256": "7680011029772a37c18d7ad84e1515de61f4bb324ae9abec009453cae569e409",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-usage.test.mjs",
+      "sha256": "fe8ca55edde6016e7782ce9cf3eb7ca5286e546368d269ab4f01338ae615f831",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/bash-yield.test.mjs",
+      "sha256": "67f65f5b1de29cf7b17bb550de0db99390ab189057eab9303bb477d236f2dcff",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/capability.test.mjs",
+      "sha256": "4b1079f54785367f2a1fbb94e0f727cf9872da4e3fae36cf1931b5b205556619",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/test/carryover.test.mjs",
+      "sha256": "2dd5cc6f048d99833c490fc7cb29d6512060501b181452d87044667d7291f930",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/check-docs.test.mjs",
+      "sha256": "74a2d2f4823bd2d180a85e32a637bb614dcc2f4ae212aa83d4a54117cd39c1c9",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/check-install.test.mjs",
+      "sha256": "debe87728dffcdf5bac76e90b0a3e00108c915a0eb1c71e95c1891bb46ca963c",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/clarifier.test.mjs",
+      "sha256": "d83b8e127a474bf2d2bf8bf60b452f2d1ea89ea2afe2550e807892447535ce65",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/client-advisor-stream.test.mjs",
+      "sha256": "f95b79fc2957192dc4b4b277b2e6da6e9534a49790b2058b1a57d0edce67cf9c",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/client-file.test.mjs",
+      "sha256": "3462acf8ccb23b3089ba4f25fccbf5f4552f0184c35a1e64a8d92b8b4307f4e3",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/client-hold-bridge.test.mjs",
+      "sha256": "9a9e3765a2291d1508ef463ee17e46d1a631ff0ed23d334d954096dfb82dea8a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/client-overlay-z.test.mjs",
+      "sha256": "fe91599aa960dbf90f50c5e3d25421c91e468c85edb3d0f898d353ce9110c920",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/coexist-config.test.mjs",
+      "sha256": "d2d64dea783e122a3bc9774c225b9129e043258bde11726c6da59bac3893d4c3",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/compiler.test.mjs",
+      "sha256": "41ea075a4342b73e873515c3e99d87b393a8c366be2cf68058abc2072bbbd398",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/control-api.test.mjs",
+      "sha256": "86ce8ab31be7db4f7f15debb69052edd65f5bd9a60cb2fd4ef1fb9c299883661",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/detect-old.test.mjs",
+      "sha256": "6417128fdcc99d8887852edf5c2db4f8f32f1ee78be9f9eab221ee7120e35d9a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/dump-wire.test.mjs",
+      "sha256": "1433ab058f4885db8ec256bde93f613bec529e5e61ca9fa6d7eba5621e06684e",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/english-mode.test.mjs",
+      "sha256": "a33f273302d69c36469bfa4efcd00f133030eafe8c51e70cb06fef95e1c6d42a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/eval-e001.test.mjs",
+      "sha256": "78ab1857fc66ca4f5115fb6877c8ed986b469f700e50dea6a45b384a74ecd3e0",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/eval-plan.test.mjs",
+      "sha256": "e5bb543a9802348c444d3932707f65f4a9afb886b980c1b98d3549babc371e09",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/eval-rehearsal.test.mjs",
+      "sha256": "c321fdbb92166a7064a5fcff79be8677e27e6d63aecaa9bd38e4d53220c49755",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/eval-run.test.mjs",
+      "sha256": "800e870ed9c1adb5f600502abbaee5edf10a4c9063cd985adea6278e94238453",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/feedback.test.mjs",
+      "sha256": "deb3d8ea2a88da31ce7898c6bc581a27392cce16eb9f4083a634db7bb62e04ce",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/fixtures/legacy-interpreter-default.md",
+      "sha256": "6d340804647f07fc79cd65bbb547c0757b014fbee54d1d04c76bcea3a5f26e7d",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/fixtures/llm-lib-017.mjs",
+      "sha256": "123c251fb9f2fb37504abe5d10e217e4271d1d52f05aabc76b952c0ade239e68",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/framing-note.test.mjs",
+      "sha256": "dc4845701dbe28dfc05ec250e634961b731ce091886cdd447a862047ca8d1d5a",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/framing-voice.test.mjs",
+      "sha256": "0173ff0f20afd977973fba489493798ee8471f3aacd396f1f47e55d3229bc454",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/framing.test.mjs",
+      "sha256": "f08d7513c062f3da529f5dd87d7e0713422f167c8fb65ff4cac6712db8494486",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/gate.test.mjs",
+      "sha256": "a00182a5b261b45e98aa964800df4b575a63de09e7a5be8d3bb43f01b01d9449",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/holdout-clarify.test.mjs",
+      "sha256": "f1b702a083afe7f9294db5190ca854a4b8faef9002c8d683f6913732dfd182ba",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/holdout-longtask.test.mjs",
+      "sha256": "368b6935ca0ce11032b0f36e23e4426e0ee0aa3bd55c7cce3f252d0ece3ba79b",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/host-migrate.test.mjs",
+      "sha256": "6bee9721d5409856985033bac73a5da5edaaa2f57f28492ed758b3057a69481f",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/identity.test.mjs",
+      "sha256": "cd63b82b492b4d0f1b034eba9d83bf8a2be1a51f9dafd3f746157c286d51a6a1",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/inference-boost.test.mjs",
+      "sha256": "f6a78a22e0e6ef0994914232adfae35abaa59a555877ed5655f89a67af6f1dd9",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/inference-ui.test.mjs",
+      "sha256": "e7d07f128e16878211b57a0e3449aa0e85f672338915eeb1d64ab8520ecdf6d0",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/intercept-output-stream.test.mjs",
+      "sha256": "53957c571cc1ef34d978f59af5b18b2577ff87e54655a5823a9b5e4df031c9f9",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/intercept-timing.test.mjs",
+      "sha256": "6440f4be1b3760a3f981a811c93a1ccb8c92d7e5230be9aaa3f64cb825b3bc5d",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/interpreter.test.mjs",
+      "sha256": "6524605f3b68915cdad74babde77d14cdc57d504b2540c01714ff03e7dc0f1f1",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/test/llm-lib.test.mjs",
+      "sha256": "5f5bd6cc16c40a51e51b23c57bfc14ec62a5e43ad5eb792bd3648131e9961a93",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/longtask.test.mjs",
+      "sha256": "0c0e9b91be92b593228d3a75582e0e55635782cac450715f8f2772ec389805a7",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/lossless-json.test.mjs",
+      "sha256": "a483b7cc645d37bc72aee8834ab765df03ee9be9496b3c0c54a17e729e8f720b",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/migration.test.mjs",
+      "sha256": "8a047b58a1a2df163566c18f02ecc1befad66d06cdb2bc247aa8f6f8a93a8fa6",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/mutate-check.cjs",
+      "sha256": "d3ea7e0a14a6a35480e676ae5ac8e1cec00ded2cbefb061842f17f417a67f8a7",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/no-inherit.test.mjs",
+      "sha256": "6718918fa22f25a3253fad7e38d3a85b2e7cc7a0fb1d5d260b03f2931338603f",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/optimizer-protocol.test.mjs",
+      "sha256": "a197b63c7cd844d37f2d92b96b0f45c221d84eb72fdbfa2b7b1b1b36eb648e77",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/packet-shape.test.mjs",
+      "sha256": "56021ad3b2b0d480376e5c14a5fba3a1270b5ec362452300e3d75d08b1af9d8f",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/pipeline.test.mjs",
+      "sha256": "4e352fa9ecddacf6d2f1037eb0149420fe7aa6db16a232d23f6f1281e6c01b40",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/policy.test.mjs",
+      "sha256": "9f83b5fdb13e54a68f89b180f80b1879857640b507eb86f3f712aadc4e4884aa",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/posix-tool-schema.test.mjs",
+      "sha256": "faaacc173182d0910ce88fea999ca60a1837c123ea6887745bf0f50f016b45bb",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/preflight-e001.test.mjs",
+      "sha256": "11140efccdcbf7b3af249f838d0c5fcc3f15bb4c26ceb571cdb0b57f69534b40",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/projection.test.mjs",
+      "sha256": "6f0ce87ea5e8a6c0a17be0345a3c087bcbab6767319e3adb63d7a46bfa074e3f",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/provenance-ref.test.mjs",
+      "sha256": "fbcc0523b610a38249cf11bbc3d625e99e88c74c830360f73af55bfef0a5f007",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/provenance.test.mjs",
+      "sha256": "459a7341e1b59498e1bf0688f540d903f15c6e5f57ff213e63d13c32a741f631",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/read-session.test.mjs",
+      "sha256": "00f40e2ba5ba7c6183b2a8a5c370d10b21ce75640d6a7016144f17113f76ceee",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/read-tools.test.mjs",
+      "sha256": "296fc6d3c55ad2d13db8b406504797da2597e580538377bfdbf8a52e36763e51",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/recap.test.mjs",
+      "sha256": "f64a6085012e3ff10833b4aa9ae2c3f272887bd212a876f0200d8046d4c7113e",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/reducer.test.mjs",
+      "sha256": "cca60faeec1f17ed30f328eb6008e58293f3834eafbc1d1153ff729e326bac99",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/rollout.test.mjs",
+      "sha256": "18fcb36a82bda6140119b0b4dc1297dd0bafe8da0706305399744eee3383d089",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/session-tier.test.mjs",
+      "sha256": "04b4069de301118d654bfc9937bebf96e2d3ee2b3b501db568eb494ac98f66e1",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/settings.test.mjs",
+      "sha256": "c6a63984de103f80fbd2c2a6b5190bbd17a3e5e553559e0eac42883e7acf3409",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/single-turn.test.mjs",
+      "sha256": "868e70bd38b95af35026728f5f3124c143998e97d08eb20162f8d75995b3b826",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/slash-review.test.mjs",
+      "sha256": "ec61da815160ff955c0fa5d6f3867975961ae5a80ecac8a3b02fe8176bfc3825",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/temp-sweep.test.mjs",
+      "sha256": "31febc53dd774cc36e966b92574adf9e7710d3cada633401d8151489b0b909e6",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/tool-note.test.mjs",
+      "sha256": "b919c1fd0a3c5185a255941bc26e9fd545983f250e660f6bdcc6de52d52ad4c4",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/verifier-html.test.mjs",
+      "sha256": "79e6f675e1a345dac14be91f0ab37155d6f5a047ad89d64245b182688001ac38",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/verify-artifact.test.mjs",
+      "sha256": "f08bc3c75b616319329793e9a4ef1a73ab491612307a2e5245e41ebb04e51491",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/wire.test.mjs",
+      "sha256": "559a7987bc0cb2e8e6629745e5f3cb036d4f69bca637b3e5eb31bf93a420cb90",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/test/advisor-host-registration.test.mjs",
+      "sha256": "5db714704cf95238c88ca2ca5e82afe3dd13de327ebb405478aa9ea7769262c6",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-stage-card.test.mjs",
+      "sha256": "e3f1b3ad43b6839f1bb572a1e97047144c428abebfe3ed581c8511451ca2dfd5",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/test/advisor-workflow.test.mjs",
+      "sha256": "fcb684d7757b58b50cdf0170116be7cac22814dfc19452eb15dd6b7923534ac3",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/test/quality-contribution.test.mjs",
+      "sha256": "4433e9d65d099085842e69534b139086ddf9fd5d3d5a6aa70e9b3c8f96a9040a",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/test/turn305-parity.test.mjs",
+      "sha256": "8c76a9d92262324cbb890a7bf88fab9731c632457e2fa3abedd73c76067c50fd",
+      "exactHistorical": false
+    },
+    {
+      "path": "po06/HELP-0.6.md",
+      "sha256": "0e28fb26a39ed163c7fabcb1cff9b4ab05b31b5ffe55f50f7235f8064ae26782",
+      "exactHistorical": true
+    },
+    {
+      "path": "po06/HELP-0.6.en.md",
+      "sha256": "350aec1711750f89923a42f3587435f722f6475a0a803a86f8d5d2412aa4666d",
+      "exactHistorical": true
+    }
+  ],
+  "explicitExceptions": {
+    "anchor": 305,
+    "baseline": "exact-turn305",
+    "revision": "round305-baseline-1",
+    "patches": [
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/read-tools.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/read-tools.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/client.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor-workflow.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/english-prompts.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/index.js",
+        "id": "deadline",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/optimizer-protocol.js",
+        "id": "migration-metadata",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/optimizer-protocol.js",
+        "id": "migration-metadata",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/english-mode.js",
+        "id": "english-output",
+        "type": "retained-compatibility-module"
+      },
+      {
+        "file": "po06/lib/interpreter.js",
+        "id": "english-output",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/index.js",
+        "id": "english-output",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/index.js",
+        "id": "english-output",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/index.js",
+        "id": "english-output",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/index.js",
+        "id": "english-output",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/index.js",
+        "id": "accounting",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/index.js",
+        "id": "accounting",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/pipeline.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/pipeline.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/pipeline.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor-materials.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor-read-materials.js",
+        "id": "failure-correctness",
+        "type": "retained-compatibility-module"
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/advisor.js",
+        "id": "failure-correctness",
+        "matches": 2
+      },
+      {
+        "file": "po06/lib/advisor-stages.js",
+        "id": "failure-correctness",
+        "matches": 1
+      },
+      {
+        "file": "po06/lib/index.js",
+        "id": "failure-correctness",
+        "purpose": "Keep historical mixed JSON/prose tool reply falling back and preserve BAD_JSON classification after balanced scanner recovery."
+      }
+    ],
+    "hashes": {
+      "po06/lib/advisor.js": {
+        "sha256": "afac558d05ce57dbaf530d4ded2870a0452b4c3e18f9ab81d47fbfc3945ed9f2",
+        "chars": 48355,
+        "exceptions": [
+          "deadline",
+          "failure-correctness"
+        ]
+      },
+      "po06/lib/read-tools.js": {
+        "sha256": "9598f56b35f8b31d1a47256acba6fba065f2989c4580c32bb3951fd83439f485",
+        "chars": 26441,
+        "exceptions": [
+          "deadline"
+        ]
+      },
+      "po06/lib/client.js": {
+        "sha256": "6e22a73d88dd1153095770bb136fc27e1cb10ca2c77155da1ed4ff4d2152af1f",
+        "chars": 238706,
+        "exceptions": [
+          "deadline"
+        ]
+      },
+      "po06/lib/advisor-workflow.js": {
+        "sha256": "a2e8aa6e9e89c075d71f760583d665aa90257e2f6b61199422d7157b58ba48ea",
+        "chars": 1552,
+        "exceptions": [
+          "deadline"
+        ]
+      },
+      "po06/lib/english-prompts.js": {
+        "sha256": "b5321cc45333cebe11af0d8d593ebafcaf291b6a8c498b0461cfba3d75826444",
+        "chars": 4209,
+        "exceptions": [
+          "deadline"
+        ]
+      },
+      "po06/lib/index.js": {
+        "sha256": "8f0cf1c24bc5da55346af8d28c3262d50f8e6347130d5768bb5e3cd14901695e",
+        "chars": 152688,
+        "exceptions": [
+          "deadline",
+          "english-output",
+          "accounting"
+        ]
+      },
+      "po06/lib/optimizer-protocol.js": {
+        "sha256": "6a94f99761314fa7f4e970dd1339d2dc4de7961afdf8dfb1a7475ab291780d7c",
+        "chars": 12178,
+        "exceptions": [
+          "migration-metadata"
+        ]
+      },
+      "po06/lib/english-mode.js": {
+        "sha256": "f6aff489c0eae2e10d06ad3776e4dbfe51c9f87814a21fb437963f2628d64026",
+        "chars": 20695,
+        "exceptions": [
+          "english-output"
+        ]
+      },
+      "po06/lib/interpreter.js": {
+        "sha256": "079cd148edb432a03c07789fba983a1cfdfc46fbb9a6c61f80c2dae1422f16c3",
+        "chars": 21576,
+        "exceptions": [
+          "english-output"
+        ]
+      },
+      "po06/lib/pipeline.js": {
+        "sha256": "63e595ede7a0a87cdb11983241682db8de913db23223ec3ae37c790e7fb9ceb0",
+        "chars": 21541,
+        "exceptions": [
+          "failure-correctness"
+        ]
+      },
+      "po06/lib/advisor-materials.js": {
+        "sha256": "2a5c59e4c17b8c8a779db7e263853da29acbfe9babac1caaa1db1119bcbc2325",
+        "chars": 10262,
+        "exceptions": [
+          "failure-correctness"
+        ]
+      },
+      "po06/lib/advisor-read-materials.js": {
+        "sha256": "35a16cc8a58313feb1139575a94e57b0022f614eeda8312db1a018c6b724e000",
+        "chars": 2382,
+        "exceptions": [
+          "failure-correctness"
+        ]
+      },
+      "po06/lib/advisor-stages.js": {
+        "sha256": "98a3a3308e5dd4e74535ae39c47c816ee805e76caa1b73cc6a7ddc8dfd971153",
+        "chars": 16944,
+        "exceptions": [
+          "failure-correctness"
+        ]
+      }
+    },
+    "policy": {
+      "anchorTurn": 305,
+      "archiveSource": "session-911f56f0-da85-45e3-9f9d-d03dd45d7d21",
+      "rootCommit": "832e330",
+      "replay": "59 confirmed literal file mutations, zero mismatch, original86 regressions reproduced",
+      "intent": "Restore historical active code chain, not just prompt constants.",
+      "exceptions": [
+        {
+          "id": "deadline",
+          "reason": "Direct user instruction: no default advisor total deadline. Preserve cancellation and evidence-round bound."
+        },
+        {
+          "id": "english-output",
+          "reason": "Known next-turn English failure should not be deliberately resurrected; preserve faithful translation/missing-task/Chinese-prose validation only. Normal built-in core/tier/format stay byte-identical."
+        },
+        {
+          "id": "failure-correctness",
+          "reason": "Availability citations, actual-version read aggregation, partial/error diagnostics and nonblocking recovery notice retain honest source/result boundaries. No new consultation policy or clipping."
+        },
+        {
+          "id": "accounting",
+          "reason": "Cancellation before fallback and aggregation of actually reported model usage, no new normal calls."
+        },
+        {
+          "id": "migration-metadata",
+          "reason": "Distinct observable deployment revision and recognized exact previous built-in hashes; customized text untouched."
+        }
+      ],
+      "notRetained": [
+        "Optional consult advice field and forced opportunity framing",
+        "PreviousResult comparison schema/receipt generation",
+        "Post305 task-derived blind spot templates or enlarged explicit new scopes",
+        "Reduced general contribution history budget and adaptive path weighting",
+        "New invocation framework/tool-language overrides and brief constant source",
+        "Post305 compact stage feedback and machine-intent relocation"
+      ],
+      "verification": "Exact file hashes for unchanged files; direct deep equality of historical optimizer core/tiers/format/options and normal packet output; capture actual old/new advisor input messages and history policy with offline streams; English fidelity/failure and cancellation tests separately; no quality guarantee or user config reset."
+    },
+    "patchSource": ".po06-tmp/build-turn305-deploy.mjs"
+  },
+  "verification": {
+    "historicalOriginal86": ".po06-tmp/turn305-historical-final.log",
+    "installed94": ".po06-tmp/turn305-installed-verification.log",
+    "wholePathParity": "po06/test/turn305-parity.test.mjs",
+    "extended": {
+      "files": 27,
+      "tests": 174,
+      "pass": 174,
+      "fail": 0,
+      "skipped": 0,
+      "log": ".po06-tmp/turn305-extended-final.log"
+    },
+    "strongerModelUsed": false,
+    "qualityGuarantee": false
+  },
+  "independentReview": {
+    "result": {
+      "mode": "review_result",
+      "ok": true,
+      "report": {
+        "verdict": "unverified",
+        "summary": "仅收到截断（16000/22489 字符、248 行未完整）的 F0 与执行者自述的 F1 日志；F0 只覆盖部分 index.js/advisor.js 与 parity 测试开头，无法核验被点名的异常守卫是否为显式且不改变正常路径。已见到正常路径与工具回落的分离注释与代码，但关键验收点仍缺可见证据，标为未验证而非通过。",
+        "findings": [
+          {
+            "text": "F0 为 truncated（sentChars 16000 < chars 22489，wholeFileComplete=false），仅看到部分 index.js/advisor.js 片段与 parity 测试前 42 行，不能据此宣称正常路径等价或守卫无害。",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "text": "可见的 index.js 代码明确将默认无工具路径保留裸 drain(\"逐字节等价\")、工具回落单独走 plainDrain 并换 sysNoTools，属显式兼容例外，但仅为片段，无法确认其它守卫未改动默认路径。",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "text": "F1 是调用方提供的测试日志文本，其 174 通过数与部分/超时、错误、不可用引用等异常文案均由执行者自述，非独立可复现证据。",
+            "evidenceRefs": [
+              "F1"
+            ]
+          },
+          {
+            "text": "用户要求不得重启 live app 作证据，但同用户指出运行中服务器仍是旧恢复版；该状态无法从所附材料核验，只记录为现象。",
+            "evidenceRefs": [
+              "F1"
+            ]
+          },
+          {
+            "text": "parity 测试仅部分可见，其 full normal-path 对比是否覆盖被点名的全部重构模块与 guard 分支无法确认。",
+            "evidenceRefs": [
+              "F0"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "checkId": "",
+            "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）",
+            "status": "unverified",
+            "evidenceRefs": [
+              "F0",
+              "F1"
+            ]
+          },
+          {
+            "checkId": "",
+            "criterion": "兼容例外为显式且有文档化的异常守卫",
+            "status": "unverified",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "checkId": "",
+            "criterion": "无因保留故障守卫导致的具体回归或不安全接受",
+            "status": "unverified",
+            "evidenceRefs": [
+              "F0",
+              "F1"
+            ]
+          },
+          {
+            "checkId": "",
+            "criterion": "正常路径无无意的行为改变",
+            "status": "unverified",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "checkId": "",
+            "criterion": "不声称自然输出质量提升",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F1"
+            ]
+          },
+          {
+            "checkId": "",
+            "criterion": "不要求证明普适质量、不要求重启 live app 作代码证据",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F1"
+            ]
+          },
+          {
+            "checkId": "",
+            "criterion": "存在差距时予以标注",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F1"
+            ]
+          }
+        ],
+        "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+        "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。"
+      },
+      "trace": [],
+      "sessionId": "turn305-limited-code-review",
+      "materials": [
+        {
+          "path": ".po06-tmp/turn305-review-source.txt",
+          "purpose": "Actual installed source and direct parity tests",
+          "evidenceType": "source",
+          "id": "F0",
+          "kind": "file",
+          "status": "truncated",
+          "sent": true,
+          "previewAvailable": true,
+          "selectionScope": "whole-file",
+          "selectionComplete": false,
+          "wholeFileComplete": false,
+          "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\turn305-review-source.txt",
+          "bytes": 24554,
+          "chars": 22489,
+          "sha256": "470109a2ee73e2dc3e01210bc43fd61fd7cf8fc03cf637d7128041d4e8b5ef0e",
+          "totalLines": 248,
+          "selectedStartLine": 1,
+          "selectedEndLine": 248,
+          "selectedChars": 22489,
+          "truncated": true,
+          "sentChars": 16000,
+          "excerpt": "po06/lib/index.js\n790|     //   这与本段的设计意图（工具路径是增强，绝不该有能力把整轮弄死）正好相反。\n791|     //   现在改用**与 pipeline 同一个抽取器**（interpreter.js 的 extractJson：容忍围栏与前后废话，\n792|     //   取首 { 到末 } 再 JSON.parse）：只有**真能 parse 成对象**才认，否则照旧回落重跑一次。\n793|     const toolJson = extractJson(loop.text)\n794|     const looksLikeJson = toolJson.ok === true && !toolJson.recovered && toolJson.value !== null && typeof toolJson.value === 'object'\n795|     if (loop.ok && !loop.empty && looksLikeJson) {\n796|       return { text: loop.text, ms: Date.now() - t0, via: 'tools', context: {\n797|         toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,\n798|         toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,\n799|         toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',\n800|       }, usage: loop.usageSum || loop.usage || null }\n801|     }\n802|     // 报错 / 产出为空 ⇒ **回落**：再跑一次无工具的。这次回落本身要留痕（0.5 的红旗 6：\n803|     // 工具循环降级在界面上毫无提示，用户只看到\"产出怪怪的\"）。\n804|     // **回落也要交代代价**：`toolCalls/toolMs` 保留真实数字——那几次调用是真花掉了。\n805|     const fell = {\n806|       toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,\n807|       toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,\n808|       toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',\n809|       toolLoopError: String(loop.error || (loop.empty ? 'empty-output' : (looksLikeJson ? 'unknown' : ((toolJson.recovered || toolJson.code === 'BAD_JSON') ? 'tools-answer-bad-json' : 'tools-answer-not-json')))),\n810|       toolFallback: 'no-tools-retry',\n811|     }\n812|     if(signal?.aborted){\n813|       const usage=loop.usageSum || loop.usage || null,known=!!(usage && Object.values(usage).some(Number.isFinite))\n814|       return {text:'',error:'cancelled',via:'tools-cancelled',usage,usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),\n815|         context:{...fell,toolFallback:'cancelled-no-retry',usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),usageKnownCalls:known?1:0,usageUnknownCalls:known?0:1}}\n816|     }\n817|     const r2 = await plainDrain(() => llm.stream(withSignal({\n818|       // ⚠ 回落这一次**必须换掉系统提示词**：开着工具时 `sys` 里带着\"你可以用 read/glob/grep 查证\"的整段说明，\n819|       // 而我们这次**不传工具** ⇒ 模型只会回答\"我打算去读哪些文件……\"这样的散文 ⇒ 解析不出那份 JSON ⇒\n820|       // 又变成 `noop`/`no-packet`。这正是用户实测\"开只读工具必定 no-packet\"的第二段机制。\n821|       provide",
+          "readRanges": [
+            {
+              "startLine": 1,
+              "endLine": 248,
+              "selectionComplete": false
+            }
+          ]
+        },
+        {
+          "path": ".po06-tmp/turn305-review-evidence.txt",
+          "purpose": "Actual reconstruction and successful installed execution records",
+          "evidenceType": "test-log",
+          "id": "F1",
+          "kind": "file",
+          "status": "ready",
+          "sent": true,
+          "previewAvailable": true,
+          "selectionScope": "whole-file",
+          "selectionComplete": true,
+          "wholeFileComplete": true,
+          "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\turn305-review-evidence.txt",
+          "bytes": 1937,
+          "chars": 1909,
+          "sha256": "e3dd7345a2b854de9562a19984e54fdb185b2f06664ba5faca45a6b3c00cca12",
+          "totalLines": 18,
+          "selectedStartLine": 1,
+          "selectedEndLine": 18,
+          "selectedChars": 1909,
+          "truncated": false,
+          "sentChars": 1909,
+          "excerpt": "Original turns300..305 reconstructed from clean HEAD832e330 and59 confirmed writes/edits; zero literal replay mismatch. Exact baseline original86test run passed; installed full normal-path parity8tests passed and27suites174tests pass. Normal optimizer full zh/en text, all tiers, user-message/render format and actual develop/improve system/messages equal reconstructed turn305. Whole capability/advisor-context/advisor-contribution/advisor-scopes files byte-equal. Default no advisor deadline, English missing-task recovery, unavailable citations/read version aggregation, partial diagnosis and actual-cost/cancellation guards are explicit exceptions. New active post305 invocation/language framework and R0/R1 extended contribution schema removed. Running existing server still previous recovery until restart; no outcome-quality guarantee, latest user Chinese/English dissatisfaction remains.\n\nActual validation output:\n✔ legacy fallback filters to current real human request and cannot expand historical corpus (1.1063ms)\n✔ local tests or changed/unavailable evidence do not close a review (71.9847ms)\n✔ full normal optimizer text matches actual turn305 for every tier and language (5.8545ms)\n✔ normal packet and source message are historical, without later consult-opportunity policy (1.4267ms)\n✔ whole material-selection, capability and feedback files equal the actual originals (6.705ms)\n✔ actual adviser system and supplied history match turn305 for both contribution modes (66.0125ms)\n✔ faithful English task and ready advice survive missing-task fallback (15.3053ms)\n✔ unavailable paths may be cited but never support result satisfaction or merged versions (5.2793ms)\n✔ the user can cancel after the former deadline without any default total timer (7.2861ms)\n✔ paid fallback accounting is isolated from normal successful output (53.1671ms)\nℹ tests 174\nℹ pass 174\nℹ fail 0\nℹ skipped 0\n[exit code: 0]\n",
+          "readRanges": [
+            {
+              "startLine": 1,
+              "endLine": 18,
+              "selectionComplete": true
+            }
+          ]
+        }
+      ],
+      "scope": "latest-human-request-only",
+      "omitted": 0,
+      "truncated": false,
+      "inspectedMaterials": [],
+      "model": "deepseek-official/deepseek-flash",
+      "reasoningEffort": "off",
+      "toolCalls": 0,
+      "usage": {
+        "inputTokens": 7174,
+        "outputTokens": 721,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7895
+      },
+      "ms": 6098,
+      "note": "顾问结论是建议，不是新增授权；未验证项不得当作通过。",
+      "uiRunId": null,
+      "reviewScope": "code",
+      "focus": "Historical normal-path parity and explicit compatibility exception guards",
+      "requestId": "human:1",
+      "revisionMarker": "write:none",
+      "coverage": null,
+      "invocationSucceeded": true,
+      "reviewPassed": false,
+      "openIssues": [
+        {
+          "id": "R0483ee79e6d3f9e6",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "code",
+          "focus": "Historical normal-path parity and explicit compatibility exception guards",
+          "materialReason": null,
+          "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+          "paths": [
+            ".po06-tmp/turn305-review-source.txt",
+            ".po06-tmp/turn305-review-evidence.txt"
+          ]
+        },
+        {
+          "id": "R96001aab65afc84d",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "code",
+          "focus": "Historical normal-path parity and explicit compatibility exception guards",
+          "materialReason": null,
+          "criterion": "兼容例外为显式且有文档化的异常守卫",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+          "paths": [
+            ".po06-tmp/turn305-review-source.txt",
+            ".po06-tmp/turn305-review-evidence.txt"
+          ]
+        },
+        {
+          "id": "R761de4fa41c1419d",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "code",
+          "focus": "Historical normal-path parity and explicit compatibility exception guards",
+          "materialReason": null,
+          "criterion": "无因保留故障守卫导致的具体回归或不安全接受",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+          "paths": [
+            ".po06-tmp/turn305-review-source.txt",
+            ".po06-tmp/turn305-review-evidence.txt"
+          ]
+        },
+        {
+          "id": "R6c54847317a2b6a5",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "code",
+          "focus": "Historical normal-path parity and explicit compatibility exception guards",
+          "materialReason": null,
+          "criterion": "正常路径无无意的行为改变",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+          "paths": [
+            ".po06-tmp/turn305-review-source.txt",
+            ".po06-tmp/turn305-review-evidence.txt"
+          ]
+        },
+        {
+          "id": "R6cbf532fa71f9c20",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "code",
+          "focus": "Historical normal-path parity and explicit compatibility exception guards",
+          "materialReason": null,
+          "criterion": "不声称自然输出质量提升",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+          "paths": [
+            ".po06-tmp/turn305-review-source.txt",
+            ".po06-tmp/turn305-review-evidence.txt"
+          ]
+        },
+        {
+          "id": "R29677cc268e61d37",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "code",
+          "focus": "Historical normal-path parity and explicit compatibility exception guards",
+          "materialReason": null,
+          "criterion": "不要求证明普适质量、不要求重启 live app 作代码证据",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+          "paths": [
+            ".po06-tmp/turn305-review-source.txt",
+            ".po06-tmp/turn305-review-evidence.txt"
+          ]
+        },
+        {
+          "id": "R3b7c04f370479afc",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "code",
+          "focus": "Historical normal-path parity and explicit compatibility exception guards",
+          "materialReason": null,
+          "criterion": "存在差距时予以标注",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+          "paths": [
+            ".po06-tmp/turn305-review-source.txt",
+            ".po06-tmp/turn305-review-evidence.txt"
+          ]
+        },
+        {
+          "id": "R5e62a7264ab1c7ab",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "code",
+          "focus": "Historical normal-path parity and explicit compatibility exception guards",
+          "materialReason": null,
+          "criterion": "review-evidence-incomplete",
+          "status": "unverified",
+          "action": "provide-evidence-or-review",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+          "paths": [
+            ".po06-tmp/turn305-review-source.txt",
+            ".po06-tmp/turn305-review-evidence.txt"
+          ]
+        }
+      ],
+      "evidenceGaps": [
+        {
+          "id": "F0",
+          "path": ".po06-tmp/turn305-review-source.txt",
+          "status": "truncated",
+          "reason": "partial-material",
+          "action": "provide-evidence"
+        }
+      ],
+      "disposition": "pending-verification",
+      "nextActions": [
+        {
+          "id": "R0483ee79e6d3f9e6",
+          "action": "review-current-version",
+          "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        },
+        {
+          "id": "R96001aab65afc84d",
+          "action": "review-current-version",
+          "criterion": "兼容例外为显式且有文档化的异常守卫",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        },
+        {
+          "id": "R761de4fa41c1419d",
+          "action": "review-current-version",
+          "criterion": "无因保留故障守卫导致的具体回归或不安全接受",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        },
+        {
+          "id": "R6c54847317a2b6a5",
+          "action": "review-current-version",
+          "criterion": "正常路径无无意的行为改变",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        },
+        {
+          "id": "R6cbf532fa71f9c20",
+          "action": "review-current-version",
+          "criterion": "不声称自然输出质量提升",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        },
+        {
+          "id": "R29677cc268e61d37",
+          "action": "review-current-version",
+          "criterion": "不要求证明普适质量、不要求重启 live app 作代码证据",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        },
+        {
+          "id": "R3b7c04f370479afc",
+          "action": "review-current-version",
+          "criterion": "存在差距时予以标注",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        },
+        {
+          "id": "R5e62a7264ab1c7ab",
+          "action": "provide-evidence-or-review",
+          "criterion": "review-evidence-incomplete",
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        },
+        {
+          "action": "provide-evidence-or-user-check",
+          "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）"
+        },
+        {
+          "action": "provide-evidence-or-user-check",
+          "criterion": "兼容例外为显式且有文档化的异常守卫"
+        },
+        {
+          "action": "provide-evidence-or-user-check",
+          "criterion": "无因保留故障守卫导致的具体回归或不安全接受"
+        },
+        {
+          "action": "provide-evidence-or-user-check",
+          "criterion": "正常路径无无意的行为改变"
+        },
+        {
+          "action": "provide-evidence",
+          "path": ".po06-tmp/turn305-review-source.txt"
+        },
+        {
+          "action": "advisor-next-step",
+          "text": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+        }
+      ],
+      "recording": {
+        "ok": true,
+        "saved": false,
+        "id": "C0"
+      },
+      "reviewState": {
+        "openIssues": [
+          {
+            "id": "R0483ee79e6d3f9e6",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R96001aab65afc84d",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "兼容例外为显式且有文档化的异常守卫",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R761de4fa41c1419d",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "无因保留故障守卫导致的具体回归或不安全接受",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R6c54847317a2b6a5",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "正常路径无无意的行为改变",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R6cbf532fa71f9c20",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "不声称自然输出质量提升",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R29677cc268e61d37",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "不要求证明普适质量、不要求重启 live app 作代码证据",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R3b7c04f370479afc",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "存在差距时予以标注",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R5e62a7264ab1c7ab",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "review-evidence-incomplete",
+            "status": "unverified",
+            "action": "provide-evidence-or-review",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          }
+        ],
+        "omittedIssues": 0,
+        "limitations": [],
+        "disposition": "pending-verification",
+        "taskCoverageEstablished": false
+      },
+      "allRecordedChecksClosed": false,
+      "completionClaimAllowed": false
+    },
+    "rawModelOutput": "{\"verdict\":\"unverified\",\"summary\":\"仅收到截断（16000/22489 字符、248 行未完整）的 F0 与执行者自述的 F1 日志；F0 只覆盖部分 index.js/advisor.js 与 parity 测试开头，无法核验被点名的异常守卫是否为显式且不改变正常路径。已见到正常路径与工具回落的分离注释与代码，但关键验收点仍缺可见证据，标为未验证而非通过。\",\"findings\":[{\"text\":\"F0 为 truncated（sentChars 16000 < chars 22489，wholeFileComplete=false），仅看到部分 index.js/advisor.js 片段与 parity 测试前 42 行，不能据此宣称正常路径等价或守卫无害。\",\"evidenceRefs\":[\"F0\"]},{\"text\":\"可见的 index.js 代码明确将默认无工具路径保留裸 drain(\\\"逐字节等价\\\")、工具回落单独走 plainDrain 并换 sysNoTools，属显式兼容例外，但仅为片段，无法确认其它守卫未改动默认路径。\",\"evidenceRefs\":[\"F0\"]},{\"text\":\"F1 是调用方提供的测试日志文本，其 174 通过数与部分/超时、错误、不可用引用等异常文案均由执行者自述，非独立可复现证据。\",\"evidenceRefs\":[\"F1\"]},{\"text\":\"用户要求不得重启 live app 作证据，但同用户指出运行中服务器仍是旧恢复版；该状态无法从所附材料核验，只记录为现象。\",\"evidenceRefs\":[\"F1\"]},{\"text\":\"parity 测试仅部分可见，其 full normal-path 对比是否覆盖被点名的全部重构模块与 guard 分支无法确认。\",\"evidenceRefs\":[\"F0\"]}],\"checks\":[{\"checkId\":\"\",\"criterion\":\"重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\",\"F1\"]},{\"checkId\":\"\",\"criterion\":\"兼容例外为显式且有文档化的异常守卫\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\"]},{\"checkId\":\"\",\"criterion\":\"无因保留故障守卫导致的具体回归或不安全接受\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\",\"F1\"]},{\"checkId\":\"\",\"criterion\":\"正常路径无无意的行为改变\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\"]},{\"checkId\":\"\",\"criterion\":\"不声称自然输出质量提升\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F1\"]},{\"checkId\":\"\",\"criterion\":\"不要求证明普适质量、不要求重启 live app 作代码证据\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F1\"]},{\"checkId\":\"\",\"criterion\":\"存在差距时予以标注\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F1\"]}],\"nextStep\":\"提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。\",\"stopCondition\":\"若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。\"}",
+    "calls": 1
+  },
+  "activation": {
+    "disk": "round305-baseline-1",
+    "running": "capability-recovery-1",
+    "requiresRestart": true,
+    "settingsChanged": false
+  },
+  "newUserTests": {
+    "Chinese": [
+      "session-8129ce47-4983-4875-9897-3ee93579c4b5",
+      "session-8ba035bf-219f-4c4b-86df-9a15efc8b0c0"
+    ],
+    "English": [
+      "session-75563779-f1d2-4fae-9440-1dfc0881fcdf"
+    ],
+    "version": "capability-recovery-1",
+    "userAssessment": "Chinese poor and English barely qualifies; not comparable to the breakthrough period.",
+    "observedChineseFaults": [
+      "Initialization fails while merging inconsistent geometry attributes",
+      "Repeated attempts/stalled progress in follow-ups",
+      "Undefined lengthSq TypeError reported in later follow-up"
+    ],
+    "interpretation": "Previous experiment success does not invalidate these actual results. Code restoration is verified; no claim yet that restarted new instances reproduce the earlier quality."
+  },
+  "scope": "Complete historical active code chain plus enumerated compatibility exceptions; not exact unmodified software/environment/model weights/result restoration.",
+  "notDone": [
+    "No new output sampling until restart confirmed",
+    "No edits to user tank artifacts",
+    "No publication/commit/release/CI",
+    "No reset of model/permissions/tier/current working files/session history"
+  ],
+  "independentReviews": [
+    {
+      "result": {
+        "mode": "review_result",
+        "ok": true,
+        "report": {
+          "verdict": "unverified",
+          "summary": "仅收到截断（16000/22489 字符、248 行未完整）的 F0 与执行者自述的 F1 日志；F0 只覆盖部分 index.js/advisor.js 与 parity 测试开头，无法核验被点名的异常守卫是否为显式且不改变正常路径。已见到正常路径与工具回落的分离注释与代码，但关键验收点仍缺可见证据，标为未验证而非通过。",
+          "findings": [
+            {
+              "text": "F0 为 truncated（sentChars 16000 < chars 22489，wholeFileComplete=false），仅看到部分 index.js/advisor.js 片段与 parity 测试前 42 行，不能据此宣称正常路径等价或守卫无害。",
+              "evidenceRefs": [
+                "F0"
+              ]
+            },
+            {
+              "text": "可见的 index.js 代码明确将默认无工具路径保留裸 drain(\"逐字节等价\")、工具回落单独走 plainDrain 并换 sysNoTools，属显式兼容例外，但仅为片段，无法确认其它守卫未改动默认路径。",
+              "evidenceRefs": [
+                "F0"
+              ]
+            },
+            {
+              "text": "F1 是调用方提供的测试日志文本，其 174 通过数与部分/超时、错误、不可用引用等异常文案均由执行者自述，非独立可复现证据。",
+              "evidenceRefs": [
+                "F1"
+              ]
+            },
+            {
+              "text": "用户要求不得重启 live app 作证据，但同用户指出运行中服务器仍是旧恢复版；该状态无法从所附材料核验，只记录为现象。",
+              "evidenceRefs": [
+                "F1"
+              ]
+            },
+            {
+              "text": "parity 测试仅部分可见，其 full normal-path 对比是否覆盖被点名的全部重构模块与 guard 分支无法确认。",
+              "evidenceRefs": [
+                "F0"
+              ]
+            }
+          ],
+          "checks": [
+            {
+              "checkId": "",
+              "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）",
+              "status": "unverified",
+              "evidenceRefs": [
+                "F0",
+                "F1"
+              ]
+            },
+            {
+              "checkId": "",
+              "criterion": "兼容例外为显式且有文档化的异常守卫",
+              "status": "unverified",
+              "evidenceRefs": [
+                "F0"
+              ]
+            },
+            {
+              "checkId": "",
+              "criterion": "无因保留故障守卫导致的具体回归或不安全接受",
+              "status": "unverified",
+              "evidenceRefs": [
+                "F0",
+                "F1"
+              ]
+            },
+            {
+              "checkId": "",
+              "criterion": "正常路径无无意的行为改变",
+              "status": "unverified",
+              "evidenceRefs": [
+                "F0"
+              ]
+            },
+            {
+              "checkId": "",
+              "criterion": "不声称自然输出质量提升",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F1"
+              ]
+            },
+            {
+              "checkId": "",
+              "criterion": "不要求证明普适质量、不要求重启 live app 作代码证据",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F1"
+              ]
+            },
+            {
+              "checkId": "",
+              "criterion": "存在差距时予以标注",
+              "status": "satisfied",
+              "evidenceRefs": [
+                "F1"
+              ]
+            }
+          ],
+          "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+          "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。"
+        },
+        "trace": [],
+        "sessionId": "turn305-limited-code-review",
+        "materials": [
+          {
+            "path": ".po06-tmp/turn305-review-source.txt",
+            "purpose": "Actual installed source and direct parity tests",
+            "evidenceType": "source",
+            "id": "F0",
+            "kind": "file",
+            "status": "truncated",
+            "sent": true,
+            "previewAvailable": true,
+            "selectionScope": "whole-file",
+            "selectionComplete": false,
+            "wholeFileComplete": false,
+            "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\turn305-review-source.txt",
+            "bytes": 24554,
+            "chars": 22489,
+            "sha256": "470109a2ee73e2dc3e01210bc43fd61fd7cf8fc03cf637d7128041d4e8b5ef0e",
+            "totalLines": 248,
+            "selectedStartLine": 1,
+            "selectedEndLine": 248,
+            "selectedChars": 22489,
+            "truncated": true,
+            "sentChars": 16000,
+            "excerpt": "po06/lib/index.js\n790|     //   这与本段的设计意图（工具路径是增强，绝不该有能力把整轮弄死）正好相反。\n791|     //   现在改用**与 pipeline 同一个抽取器**（interpreter.js 的 extractJson：容忍围栏与前后废话，\n792|     //   取首 { 到末 } 再 JSON.parse）：只有**真能 parse 成对象**才认，否则照旧回落重跑一次。\n793|     const toolJson = extractJson(loop.text)\n794|     const looksLikeJson = toolJson.ok === true && !toolJson.recovered && toolJson.value !== null && typeof toolJson.value === 'object'\n795|     if (loop.ok && !loop.empty && looksLikeJson) {\n796|       return { text: loop.text, ms: Date.now() - t0, via: 'tools', context: {\n797|         toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,\n798|         toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,\n799|         toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',\n800|       }, usage: loop.usageSum || loop.usage || null }\n801|     }\n802|     // 报错 / 产出为空 ⇒ **回落**：再跑一次无工具的。这次回落本身要留痕（0.5 的红旗 6：\n803|     // 工具循环降级在界面上毫无提示，用户只看到\"产出怪怪的\"）。\n804|     // **回落也要交代代价**：`toolCalls/toolMs` 保留真实数字——那几次调用是真花掉了。\n805|     const fell = {\n806|       toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,\n807|       toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,\n808|       toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',\n809|       toolLoopError: String(loop.error || (loop.empty ? 'empty-output' : (looksLikeJson ? 'unknown' : ((toolJson.recovered || toolJson.code === 'BAD_JSON') ? 'tools-answer-bad-json' : 'tools-answer-not-json')))),\n810|       toolFallback: 'no-tools-retry',\n811|     }\n812|     if(signal?.aborted){\n813|       const usage=loop.usageSum || loop.usage || null,known=!!(usage && Object.values(usage).some(Number.isFinite))\n814|       return {text:'',error:'cancelled',via:'tools-cancelled',usage,usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),\n815|         context:{...fell,toolFallback:'cancelled-no-retry',usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),usageKnownCalls:known?1:0,usageUnknownCalls:known?0:1}}\n816|     }\n817|     const r2 = await plainDrain(() => llm.stream(withSignal({\n818|       // ⚠ 回落这一次**必须换掉系统提示词**：开着工具时 `sys` 里带着\"你可以用 read/glob/grep 查证\"的整段说明，\n819|       // 而我们这次**不传工具** ⇒ 模型只会回答\"我打算去读哪些文件……\"这样的散文 ⇒ 解析不出那份 JSON ⇒\n820|       // 又变成 `noop`/`no-packet`。这正是用户实测\"开只读工具必定 no-packet\"的第二段机制。\n821|       provide",
+            "readRanges": [
+              {
+                "startLine": 1,
+                "endLine": 248,
+                "selectionComplete": false
+              }
+            ]
+          },
+          {
+            "path": ".po06-tmp/turn305-review-evidence.txt",
+            "purpose": "Actual reconstruction and successful installed execution records",
+            "evidenceType": "test-log",
+            "id": "F1",
+            "kind": "file",
+            "status": "ready",
+            "sent": true,
+            "previewAvailable": true,
+            "selectionScope": "whole-file",
+            "selectionComplete": true,
+            "wholeFileComplete": true,
+            "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\turn305-review-evidence.txt",
+            "bytes": 1937,
+            "chars": 1909,
+            "sha256": "e3dd7345a2b854de9562a19984e54fdb185b2f06664ba5faca45a6b3c00cca12",
+            "totalLines": 18,
+            "selectedStartLine": 1,
+            "selectedEndLine": 18,
+            "selectedChars": 1909,
+            "truncated": false,
+            "sentChars": 1909,
+            "excerpt": "Original turns300..305 reconstructed from clean HEAD832e330 and59 confirmed writes/edits; zero literal replay mismatch. Exact baseline original86test run passed; installed full normal-path parity8tests passed and27suites174tests pass. Normal optimizer full zh/en text, all tiers, user-message/render format and actual develop/improve system/messages equal reconstructed turn305. Whole capability/advisor-context/advisor-contribution/advisor-scopes files byte-equal. Default no advisor deadline, English missing-task recovery, unavailable citations/read version aggregation, partial diagnosis and actual-cost/cancellation guards are explicit exceptions. New active post305 invocation/language framework and R0/R1 extended contribution schema removed. Running existing server still previous recovery until restart; no outcome-quality guarantee, latest user Chinese/English dissatisfaction remains.\n\nActual validation output:\n✔ legacy fallback filters to current real human request and cannot expand historical corpus (1.1063ms)\n✔ local tests or changed/unavailable evidence do not close a review (71.9847ms)\n✔ full normal optimizer text matches actual turn305 for every tier and language (5.8545ms)\n✔ normal packet and source message are historical, without later consult-opportunity policy (1.4267ms)\n✔ whole material-selection, capability and feedback files equal the actual originals (6.705ms)\n✔ actual adviser system and supplied history match turn305 for both contribution modes (66.0125ms)\n✔ faithful English task and ready advice survive missing-task fallback (15.3053ms)\n✔ unavailable paths may be cited but never support result satisfaction or merged versions (5.2793ms)\n✔ the user can cancel after the former deadline without any default total timer (7.2861ms)\n✔ paid fallback accounting is isolated from normal successful output (53.1671ms)\nℹ tests 174\nℹ pass 174\nℹ fail 0\nℹ skipped 0\n[exit code: 0]\n",
+            "readRanges": [
+              {
+                "startLine": 1,
+                "endLine": 18,
+                "selectionComplete": true
+              }
+            ]
+          }
+        ],
+        "scope": "latest-human-request-only",
+        "omitted": 0,
+        "truncated": false,
+        "inspectedMaterials": [],
+        "model": "deepseek-official/deepseek-flash",
+        "reasoningEffort": "off",
+        "toolCalls": 0,
+        "usage": {
+          "inputTokens": 7174,
+          "outputTokens": 721,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 7895
+        },
+        "ms": 6098,
+        "note": "顾问结论是建议，不是新增授权；未验证项不得当作通过。",
+        "uiRunId": null,
+        "reviewScope": "code",
+        "focus": "Historical normal-path parity and explicit compatibility exception guards",
+        "requestId": "human:1",
+        "revisionMarker": "write:none",
+        "coverage": null,
+        "invocationSucceeded": true,
+        "reviewPassed": false,
+        "openIssues": [
+          {
+            "id": "R0483ee79e6d3f9e6",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R96001aab65afc84d",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "兼容例外为显式且有文档化的异常守卫",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R761de4fa41c1419d",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "无因保留故障守卫导致的具体回归或不安全接受",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R6c54847317a2b6a5",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "正常路径无无意的行为改变",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R6cbf532fa71f9c20",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "不声称自然输出质量提升",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R29677cc268e61d37",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "不要求证明普适质量、不要求重启 live app 作代码证据",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R3b7c04f370479afc",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "存在差距时予以标注",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          },
+          {
+            "id": "R5e62a7264ab1c7ab",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "review-evidence-incomplete",
+            "status": "unverified",
+            "action": "provide-evidence-or-review",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+            "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+            "paths": [
+              ".po06-tmp/turn305-review-source.txt",
+              ".po06-tmp/turn305-review-evidence.txt"
+            ]
+          }
+        ],
+        "evidenceGaps": [
+          {
+            "id": "F0",
+            "path": ".po06-tmp/turn305-review-source.txt",
+            "status": "truncated",
+            "reason": "partial-material",
+            "action": "provide-evidence"
+          }
+        ],
+        "disposition": "pending-verification",
+        "nextActions": [
+          {
+            "id": "R0483ee79e6d3f9e6",
+            "action": "review-current-version",
+            "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          },
+          {
+            "id": "R96001aab65afc84d",
+            "action": "review-current-version",
+            "criterion": "兼容例外为显式且有文档化的异常守卫",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          },
+          {
+            "id": "R761de4fa41c1419d",
+            "action": "review-current-version",
+            "criterion": "无因保留故障守卫导致的具体回归或不安全接受",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          },
+          {
+            "id": "R6c54847317a2b6a5",
+            "action": "review-current-version",
+            "criterion": "正常路径无无意的行为改变",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          },
+          {
+            "id": "R6cbf532fa71f9c20",
+            "action": "review-current-version",
+            "criterion": "不声称自然输出质量提升",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          },
+          {
+            "id": "R29677cc268e61d37",
+            "action": "review-current-version",
+            "criterion": "不要求证明普适质量、不要求重启 live app 作代码证据",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          },
+          {
+            "id": "R3b7c04f370479afc",
+            "action": "review-current-version",
+            "criterion": "存在差距时予以标注",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          },
+          {
+            "id": "R5e62a7264ab1c7ab",
+            "action": "provide-evidence-or-review",
+            "criterion": "review-evidence-incomplete",
+            "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          },
+          {
+            "action": "provide-evidence-or-user-check",
+            "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）"
+          },
+          {
+            "action": "provide-evidence-or-user-check",
+            "criterion": "兼容例外为显式且有文档化的异常守卫"
+          },
+          {
+            "action": "provide-evidence-or-user-check",
+            "criterion": "无因保留故障守卫导致的具体回归或不安全接受"
+          },
+          {
+            "action": "provide-evidence-or-user-check",
+            "criterion": "正常路径无无意的行为改变"
+          },
+          {
+            "action": "provide-evidence",
+            "path": ".po06-tmp/turn305-review-source.txt"
+          },
+          {
+            "action": "advisor-next-step",
+            "text": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。"
+          }
+        ],
+        "recording": {
+          "ok": true,
+          "saved": false,
+          "id": "C0"
+        },
+        "reviewState": {
+          "openIssues": [
+            {
+              "id": "R0483ee79e6d3f9e6",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）",
+              "status": "unverified",
+              "action": "review-current-version",
+              "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+              "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+              "paths": [
+                ".po06-tmp/turn305-review-source.txt",
+                ".po06-tmp/turn305-review-evidence.txt"
+              ]
+            },
+            {
+              "id": "R96001aab65afc84d",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "兼容例外为显式且有文档化的异常守卫",
+              "status": "unverified",
+              "action": "review-current-version",
+              "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+              "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+              "paths": [
+                ".po06-tmp/turn305-review-source.txt",
+                ".po06-tmp/turn305-review-evidence.txt"
+              ]
+            },
+            {
+              "id": "R761de4fa41c1419d",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "无因保留故障守卫导致的具体回归或不安全接受",
+              "status": "unverified",
+              "action": "review-current-version",
+              "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+              "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+              "paths": [
+                ".po06-tmp/turn305-review-source.txt",
+                ".po06-tmp/turn305-review-evidence.txt"
+              ]
+            },
+            {
+              "id": "R6c54847317a2b6a5",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "正常路径无无意的行为改变",
+              "status": "unverified",
+              "action": "review-current-version",
+              "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+              "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+              "paths": [
+                ".po06-tmp/turn305-review-source.txt",
+                ".po06-tmp/turn305-review-evidence.txt"
+              ]
+            },
+            {
+              "id": "R6cbf532fa71f9c20",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "不声称自然输出质量提升",
+              "status": "unverified",
+              "action": "review-current-version",
+              "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+              "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+              "paths": [
+                ".po06-tmp/turn305-review-source.txt",
+                ".po06-tmp/turn305-review-evidence.txt"
+              ]
+            },
+            {
+              "id": "R29677cc268e61d37",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "不要求证明普适质量、不要求重启 live app 作代码证据",
+              "status": "unverified",
+              "action": "review-current-version",
+              "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+              "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+              "paths": [
+                ".po06-tmp/turn305-review-source.txt",
+                ".po06-tmp/turn305-review-evidence.txt"
+              ]
+            },
+            {
+              "id": "R3b7c04f370479afc",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "存在差距时予以标注",
+              "status": "unverified",
+              "action": "review-current-version",
+              "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+              "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+              "paths": [
+                ".po06-tmp/turn305-review-source.txt",
+                ".po06-tmp/turn305-review-evidence.txt"
+              ]
+            },
+            {
+              "id": "R5e62a7264ab1c7ab",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "review-evidence-incomplete",
+              "status": "unverified",
+              "action": "provide-evidence-or-review",
+              "nextStep": "提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。",
+              "stopCondition": "若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。",
+              "paths": [
+                ".po06-tmp/turn305-review-source.txt",
+                ".po06-tmp/turn305-review-evidence.txt"
+              ]
+            }
+          ],
+          "omittedIssues": 0,
+          "limitations": [],
+          "disposition": "pending-verification",
+          "taskCoverageEstablished": false
+        },
+        "allRecordedChecksClosed": false,
+        "completionClaimAllowed": false
+      },
+      "rawModelOutput": "{\"verdict\":\"unverified\",\"summary\":\"仅收到截断（16000/22489 字符、248 行未完整）的 F0 与执行者自述的 F1 日志；F0 只覆盖部分 index.js/advisor.js 与 parity 测试开头，无法核验被点名的异常守卫是否为显式且不改变正常路径。已见到正常路径与工具回落的分离注释与代码，但关键验收点仍缺可见证据，标为未验证而非通过。\",\"findings\":[{\"text\":\"F0 为 truncated（sentChars 16000 < chars 22489，wholeFileComplete=false），仅看到部分 index.js/advisor.js 片段与 parity 测试前 42 行，不能据此宣称正常路径等价或守卫无害。\",\"evidenceRefs\":[\"F0\"]},{\"text\":\"可见的 index.js 代码明确将默认无工具路径保留裸 drain(\\\"逐字节等价\\\")、工具回落单独走 plainDrain 并换 sysNoTools，属显式兼容例外，但仅为片段，无法确认其它守卫未改动默认路径。\",\"evidenceRefs\":[\"F0\"]},{\"text\":\"F1 是调用方提供的测试日志文本，其 174 通过数与部分/超时、错误、不可用引用等异常文案均由执行者自述，非独立可复现证据。\",\"evidenceRefs\":[\"F1\"]},{\"text\":\"用户要求不得重启 live app 作证据，但同用户指出运行中服务器仍是旧恢复版；该状态无法从所附材料核验，只记录为现象。\",\"evidenceRefs\":[\"F1\"]},{\"text\":\"parity 测试仅部分可见，其 full normal-path 对比是否覆盖被点名的全部重构模块与 guard 分支无法确认。\",\"evidenceRefs\":[\"F0\"]}],\"checks\":[{\"checkId\":\"\",\"criterion\":\"重构部署仅限 turn305 正常路径等价，实际对比重构原模块（非仅核心文本）\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\",\"F1\"]},{\"checkId\":\"\",\"criterion\":\"兼容例外为显式且有文档化的异常守卫\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\"]},{\"checkId\":\"\",\"criterion\":\"无因保留故障守卫导致的具体回归或不安全接受\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\",\"F1\"]},{\"checkId\":\"\",\"criterion\":\"正常路径无无意的行为改变\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\"]},{\"checkId\":\"\",\"criterion\":\"不声称自然输出质量提升\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F1\"]},{\"checkId\":\"\",\"criterion\":\"不要求证明普适质量、不要求重启 live app 作代码证据\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F1\"]},{\"checkId\":\"\",\"criterion\":\"存在差距时予以标注\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F1\"]}],\"nextStep\":\"提供 F0 的完整未截断版本（尤其 index.js 工具/无工具路径与 turn305-parity.test.mjs 全部断言），或直接给出被点名 guard 的最小 diff 片段，以判断例外是否显式且不改默认路径。\",\"stopCondition\":\"若无法取得完整 F0 或 guard diff，则维持 unverified，不再重复索取同一截断材料。\"}",
+      "calls": 1
+    },
+    {
+      "result": {
+        "mode": "review_result",
+        "ok": false,
+        "reason": "advisor-invalid-citation",
+        "detail": {
+          "text": "F1 中「whole material-selection... equal the actual originals」（第48-49行）用 readFileSync 全文比对，但其比对目标仍在未附入的 ref 目录内，故不能作为本次可见证据。",
+          "refs": [
+            "F1",
+            "read:.po06-tmp/exact-turn305"
+          ]
+        },
+        "known": [
+          "F0",
+          "F1",
+          "F2"
+        ],
+        "trace": [],
+        "sessionId": "turn305-limited-code-review",
+        "materials": [
+          {
+            "path": ".po06-tmp/turn305-review-guards.txt",
+            "purpose": "Complete bounded installed compatibility guard excerpts, no claimed full-file coverage",
+            "evidenceType": "source",
+            "id": "F0",
+            "kind": "file",
+            "status": "ready",
+            "sent": true,
+            "previewAvailable": true,
+            "selectionScope": "whole-file",
+            "selectionComplete": true,
+            "wholeFileComplete": true,
+            "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\turn305-review-guards.txt",
+            "bytes": 12148,
+            "chars": 10293,
+            "sha256": "fb150988df82de69034e5a25a3a9a9f1b9451033f2d812ce2fabc838ccaacb97",
+            "totalLines": 122,
+            "selectedStartLine": 1,
+            "selectedEndLine": 122,
+            "selectedChars": 10293,
+            "truncated": false,
+            "sentChars": 10293,
+            "excerpt": "po06/lib/index.js\n790|     //   这与本段的设计意图（工具路径是增强，绝不该有能力把整轮弄死）正好相反。\n791|     //   现在改用**与 pipeline 同一个抽取器**（interpreter.js 的 extractJson：容忍围栏与前后废话，\n792|     //   取首 { 到末 } 再 JSON.parse）：只有**真能 parse 成对象**才认，否则照旧回落重跑一次。\n793|     const toolJson = extractJson(loop.text)\n794|     const looksLikeJson = toolJson.ok === true && !toolJson.recovered && toolJson.value !== null && typeof toolJson.value === 'object'\n795|     if (loop.ok && !loop.empty && looksLikeJson) {\n796|       return { text: loop.text, ms: Date.now() - t0, via: 'tools', context: {\n797|         toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,\n798|         toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,\n799|         toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',\n800|       }, usage: loop.usageSum || loop.usage || null }\n801|     }\n802|     // 报错 / 产出为空 ⇒ **回落**：再跑一次无工具的。这次回落本身要留痕（0.5 的红旗 6：\n803|     // 工具循环降级在界面上毫无提示，用户只看到\"产出怪怪的\"）。\n804|     // **回落也要交代代价**：`toolCalls/toolMs` 保留真实数字——那几次调用是真花掉了。\n805|     const fell = {\n806|       toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,\n807|       toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,\n808|       toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',\n809|       toolLoopError: String(loop.error || (loop.empty ? 'empty-output' : (looksLikeJson ? 'unknown' : ((toolJson.recovered || toolJson.code === 'BAD_JSON') ? 'tools-answer-bad-json' : 'tools-answer-not-json')))),\n810|       toolFallback: 'no-tools-retry',\n811|     }\n812|     if(signal?.aborted){\n813|       const usage=loop.usageSum || loop.usage || null,known=!!(usage && Object.values(usage).some(Number.isFinite))\n814|       return {text:'',error:'cancelled',via:'tools-cancelled',usage,usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),\n815|         context:{...fell,toolFallback:'cancelled-no-retry',usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),usageKnownCalls:known?1:0,usageUnknownCalls:known?0:1}}\n816|     }\n817|     const r2 = await plainDrain(() => llm.stream(withSignal({\n818|       // ⚠ 回落这一次**必须换掉系统提示词**：开着工具时 `sys` 里带着\"你可以用 read/glob/grep 查证\"的整段说明，\n819|       // 而我们这次**不传工具** ⇒ 模型只会回答\"我打算去读哪些文件……\"这样的散文 ⇒ 解析不出那份 JSON ⇒\n820|       // 又变成 `noop`/`no-packet`。这正是用户实测\"开只读工具必定 no-packet\"的第二段机制。\n821|       provide",
+            "readRanges": [
+              {
+                "startLine": 1,
+                "endLine": 122,
+                "selectionComplete": true
+              }
+            ]
+          },
+          {
+            "path": ".po06-tmp/turn305-review-parity.txt",
+            "purpose": "Complete actual parity test source, every assertion supplied without truncation",
+            "evidenceType": "source",
+            "id": "F1",
+            "kind": "file",
+            "status": "ready",
+            "sent": true,
+            "previewAvailable": true,
+            "selectionScope": "whole-file",
+            "selectionComplete": true,
+            "wholeFileComplete": true,
+            "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\turn305-review-parity.txt",
+            "bytes": 10434,
+            "chars": 10388,
+            "sha256": "66487ebbd7e3a77085de58a409f2b99f76c3c23c5fda20278005407ee043176b",
+            "totalLines": 102,
+            "selectedStartLine": 1,
+            "selectedEndLine": 102,
+            "selectedChars": 10388,
+            "truncated": false,
+            "sentChars": 10388,
+            "excerpt": "1| import test from 'node:test'\n2| import assert from 'node:assert/strict'\n3| import {readFileSync,existsSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs'\n4| import {dirname,resolve,join} from 'node:path'\n5| import {tmpdir} from 'node:os'\n6| import {fileURLToPath,pathToFileURL} from 'node:url'\n7| import * as actual from '../lib/optimizer-protocol.js'\n8| import {createAdvisor,ADVISOR_PARAMETERS} from '../lib/advisor.js'\n9| import {createAdvisorProgress} from '../lib/advisor-progress.js'\n10| import {interpretViaLlm} from '../lib/index.js'\n11| import {prepareEnglishInterpretation,protectEnglishLiterals,createEnglishMode,finishEnglishInput} from '../lib/english-mode.js'\n12| import {prepareAdvisorMaterials} from '../lib/advisor-materials.js'\n13| import {mergeReadMaterialVersions} from '../lib/advisor-read-materials.js'\n14| const here=dirname(fileURLToPath(import.meta.url))\n15| const ref=[resolve(here,'../../.po06-tmp/exact-turn305'),resolve(here,'../../../exact-turn305')].find(p=>existsSync(join(p,'po06/lib/optimizer-protocol.js')))\n16| if(!ref)throw Error('Expected independently reconstructed original checkpoint.')\n17| const original=await import(pathToFileURL(join(ref,'po06/lib/optimizer-protocol.js')))\n18| const historicalAdvisor=await import(pathToFileURL(join(ref,'po06/lib/advisor.js')))\n19| const historicalScopes=await import(pathToFileURL(join(ref,'po06/lib/advisor-scopes.js')))\n20| const scopes=await import('../lib/advisor-scopes.js')\n21| const originalContribution=await import(pathToFileURL(join(ref,'po06/lib/advisor-contribution.js')))\n22| const contribution=await import('../lib/advisor-contribution.js')\n23| const human={type:'user/message',seq:1,data:{id:'m1',source:{kind:'user'},content:[{type:'text',text:'Make the original requested artifact.'}]}}\n24| const events=[human,{type:'tool/call',seq:2,data:{callId:'c1',name:'read',arguments:{file_path:'artifact.txt'}}},{type:'tool/result',seq:3,data:{message:{toolCallId:'c1',content:[{type:'text',text:'ACTUAL observed content'}]}}}]\n25| const exec={agent:{session:{id:'exact-parity',snapshotEvents:()=>events}}}\n26| const report={verdict:'suggestion',summary:'Concrete gain',contribution:'Adoptable method, without inventing requirements.',assumptions:[],findings:[],checks:[],nextStep:'Use if useful.',stopCondition:'Check facts before use.'}\n27| const stream=(text,usage={inputTokens:1,outputTokens:2,totalTo",
+            "readRanges": [
+              {
+                "startLine": 1,
+                "endLine": 102,
+                "selectionComplete": true
+              }
+            ]
+          },
+          {
+            "path": ".po06-tmp/turn305-review-raw-log.txt",
+            "purpose": "Original node test stdout lines, no prefixed execution summary",
+            "evidenceType": "test-log",
+            "id": "F2",
+            "kind": "file",
+            "status": "ready",
+            "sent": true,
+            "previewAvailable": true,
+            "selectionScope": "whole-file",
+            "selectionComplete": true,
+            "wholeFileComplete": true,
+            "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\turn305-review-raw-log.txt",
+            "bytes": 893,
+            "chars": 861,
+            "sha256": "895e2f0542506aee96acd731d0f89452798f262c5197c5c7545b7d06b0dd6dd7",
+            "totalLines": 17,
+            "selectedStartLine": 1,
+            "selectedEndLine": 17,
+            "selectedChars": 861,
+            "truncated": false,
+            "sentChars": 861,
+            "excerpt": "✔ full normal optimizer text matches actual turn305 for every tier and language (5.8545ms)\n✔ normal packet and source message are historical, without later consult-opportunity policy (1.4267ms)\n✔ whole material-selection, capability and feedback files equal the actual originals (6.705ms)\n✔ actual adviser system and supplied history match turn305 for both contribution modes (66.0125ms)\n✔ faithful English task and ready advice survive missing-task fallback (15.3053ms)\n✔ unavailable paths may be cited but never support result satisfaction or merged versions (5.2793ms)\n✔ the user can cancel after the former deadline without any default total timer (7.2861ms)\n✔ paid fallback accounting is isolated from normal successful output (53.1671ms)\nℹ tests 174\nℹ suites 0\nℹ pass 174\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 5498.7841\n[exit code: 0]\n",
+            "readRanges": [
+              {
+                "startLine": 1,
+                "endLine": 17,
+                "selectionComplete": true
+              }
+            ]
+          }
+        ],
+        "raw": "{\"verdict\":\"need_user\",\"summary\":\"F0只含三段被截取的行区片段（index.js 790-840、987-1012、advisor.js 404-442），不是完整文件；F1的「historical」对象引用的是自建的 .po06-tmp/exact-turn305 目录，其内容未附入本次材料，无法核实该基线是否真为turn305原模块。因此正常路径「与历史一致」与「未引入回归」两点在本次证据下不可判定。\",\"findings\":[{\"text\":\"F0 是三段行段片段（含断行的 840 行、1012 行、442 行处中断），只能看局部，不能作为完整兼容守卫源的证据。\",\"evidenceRefs\":[\"F0\"]},{\"text\":\"F1 的基线来自 pathToFileURL(join(ref,'po06/lib/...'))，ref 为 ../../.po06-tmp/exact-turn305 或 ../../../exact-turn305，该目录的模块内容未附入本次材料，无法验证基线与turn305一致。\",\"evidenceRefs\":[\"F1\"]},{\"text\":\"F2 是 node test 原始 stdout（8 条用例 + 174 pass/0 fail），仅证明这些用例在该环境下通过，不构成对未附入的基线模块或未截取代码的独立核验。\",\"evidenceRefs\":[\"F2\"]},{\"text\":\"F1 中「whole material-selection... equal the actual originals」（第48-49行）用 readFileSync 全文比对，但其比对目标仍在未附入的 ref 目录内，故不能作为本次可见证据。\",\"evidenceRefs\":[\"F1\",\"read:.po06-tmp/exact-turn305\"]},{\"text\":\"F0 可见段落中，工具回落路径在 signal 未中止时无条件改为无工具重跑（817-836行），且在 993 行对正常无工具路径是否改变无法从片段确认。\",\"evidenceRefs\":[\"F0\"]},{\"text\":\"F1 覆盖的是 optimizer-protocol、advisor、scopes、contribution、english-mode、materials、read-materials 等模块，未覆盖 F0 中 index.js/advisor.js 的工具回落与超时保留逻辑分支。\",\"evidenceRefs\":[\"F1\",\"F0\"]}],\"checks\":[{\"checkId\":null,\"criterion\":\"正常路径与重建的turn305原模块在具体模块上一致（而非仅核心文本）\",\"status\":\"unverified\",\"evidenceRefs\":[\"F1\",\"F2\"]},{\"checkId\":null,\"criterion\":\"不存在由保留的故障守卫导致的正常路径非预期改变\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\"]},{\"checkId\":null,\"criterion\":\"不存在具体回归或不安全接受\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\",\"F1\",\"F2\"]},{\"checkId\":null,\"criterion\":\"显式兼容性异常守卫被正确实现\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\"]}],\"nextStep\":\"请用户补充两份证据之一：(a) 作为比对基线的 exact-turn305 目录内相关模块实际内容（至少 optimizer-protocol.js、advisor.js、advisor-scopes.js、advisor-contribution.js、capability.js、advisor-context.js、advisor-stage-tool.js），或 (b) F0 中 index.js 与 advisor.js 的完整未截断文本（含 790 行之前与 442 行之后）。\",\"stopCondition\":\"在拿到完整基线模块或完整守卫源之前，不重复提交同一批截断片段；若用户确认只需局部结论，则明确接受上列为未验证。\"}",
+        "scope": "latest-human-request-only",
+        "omitted": 0,
+        "truncated": false,
+        "inspectedMaterials": [],
+        "model": "deepseek-official/deepseek-flash",
+        "reasoningEffort": "off",
+        "toolCalls": 0,
+        "usage": {
+          "inputTokens": 7858,
+          "outputTokens": 788,
+          "cacheReadTokens": 768,
+          "cacheWriteTokens": 0,
+          "totalTokens": 9414
+        },
+        "ms": 5651,
+        "note": "顾问结论是建议，不是新增授权；未验证项不得当作通过。",
+        "uiRunId": null,
+        "reviewScope": "code",
+        "focus": "Historical normal-path parity and explicit compatibility exception guards",
+        "requestId": "human:1",
+        "revisionMarker": "write:none",
+        "coverage": null,
+        "invocationSucceeded": false,
+        "reviewPassed": false,
+        "openIssues": [
+          {
+            "id": "R5e62a7264ab1c7ab",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "code",
+            "focus": "Historical normal-path parity and explicit compatibility exception guards",
+            "materialReason": null,
+            "criterion": "review-evidence-incomplete",
+            "status": "unverified",
+            "action": "provide-evidence-or-review",
+            "nextStep": "",
+            "stopCondition": "",
+            "paths": [
+              ".po06-tmp/turn305-review-guards.txt",
+              ".po06-tmp/turn305-review-parity.txt",
+              ".po06-tmp/turn305-review-raw-log.txt"
+            ]
+          }
+        ],
+        "evidenceGaps": [],
+        "disposition": "pending-verification",
+        "nextActions": [
+          {
+            "id": "R5e62a7264ab1c7ab",
+            "action": "provide-evidence-or-review",
+            "criterion": "review-evidence-incomplete",
+            "nextStep": ""
+          },
+          {
+            "action": "retry-or-report-review-unavailable"
+          }
+        ],
+        "recording": {
+          "ok": true,
+          "saved": false,
+          "id": "C0"
+        },
+        "reviewState": {
+          "openIssues": [
+            {
+              "id": "R5e62a7264ab1c7ab",
+              "reviewId": "C0",
+              "requestId": "human:1",
+              "scope": "code",
+              "focus": "Historical normal-path parity and explicit compatibility exception guards",
+              "materialReason": null,
+              "criterion": "review-evidence-incomplete",
+              "status": "unverified",
+              "action": "provide-evidence-or-review",
+              "nextStep": "",
+              "stopCondition": "",
+              "paths": [
+                ".po06-tmp/turn305-review-guards.txt",
+                ".po06-tmp/turn305-review-parity.txt",
+                ".po06-tmp/turn305-review-raw-log.txt"
+              ]
+            }
+          ],
+          "omittedIssues": 0,
+          "limitations": [],
+          "disposition": "pending-verification",
+          "taskCoverageEstablished": false
+        },
+        "allRecordedChecksClosed": false,
+        "completionClaimAllowed": false
+      },
+      "rawModelOutput": "{\"verdict\":\"need_user\",\"summary\":\"F0只含三段被截取的行区片段（index.js 790-840、987-1012、advisor.js 404-442），不是完整文件；F1的「historical」对象引用的是自建的 .po06-tmp/exact-turn305 目录，其内容未附入本次材料，无法核实该基线是否真为turn305原模块。因此正常路径「与历史一致」与「未引入回归」两点在本次证据下不可判定。\",\"findings\":[{\"text\":\"F0 是三段行段片段（含断行的 840 行、1012 行、442 行处中断），只能看局部，不能作为完整兼容守卫源的证据。\",\"evidenceRefs\":[\"F0\"]},{\"text\":\"F1 的基线来自 pathToFileURL(join(ref,'po06/lib/...'))，ref 为 ../../.po06-tmp/exact-turn305 或 ../../../exact-turn305，该目录的模块内容未附入本次材料，无法验证基线与turn305一致。\",\"evidenceRefs\":[\"F1\"]},{\"text\":\"F2 是 node test 原始 stdout（8 条用例 + 174 pass/0 fail），仅证明这些用例在该环境下通过，不构成对未附入的基线模块或未截取代码的独立核验。\",\"evidenceRefs\":[\"F2\"]},{\"text\":\"F1 中「whole material-selection... equal the actual originals」（第48-49行）用 readFileSync 全文比对，但其比对目标仍在未附入的 ref 目录内，故不能作为本次可见证据。\",\"evidenceRefs\":[\"F1\",\"read:.po06-tmp/exact-turn305\"]},{\"text\":\"F0 可见段落中，工具回落路径在 signal 未中止时无条件改为无工具重跑（817-836行），且在 993 行对正常无工具路径是否改变无法从片段确认。\",\"evidenceRefs\":[\"F0\"]},{\"text\":\"F1 覆盖的是 optimizer-protocol、advisor、scopes、contribution、english-mode、materials、read-materials 等模块，未覆盖 F0 中 index.js/advisor.js 的工具回落与超时保留逻辑分支。\",\"evidenceRefs\":[\"F1\",\"F0\"]}],\"checks\":[{\"checkId\":null,\"criterion\":\"正常路径与重建的turn305原模块在具体模块上一致（而非仅核心文本）\",\"status\":\"unverified\",\"evidenceRefs\":[\"F1\",\"F2\"]},{\"checkId\":null,\"criterion\":\"不存在由保留的故障守卫导致的正常路径非预期改变\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\"]},{\"checkId\":null,\"criterion\":\"不存在具体回归或不安全接受\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\",\"F1\",\"F2\"]},{\"checkId\":null,\"criterion\":\"显式兼容性异常守卫被正确实现\",\"status\":\"unverified\",\"evidenceRefs\":[\"F0\"]}],\"nextStep\":\"请用户补充两份证据之一：(a) 作为比对基线的 exact-turn305 目录内相关模块实际内容（至少 optimizer-protocol.js、advisor.js、advisor-scopes.js、advisor-contribution.js、capability.js、advisor-context.js、advisor-stage-tool.js），或 (b) F0 中 index.js 与 advisor.js 的完整未截断文本（含 790 行之前与 442 行之后）。\",\"stopCondition\":\"在拿到完整基线模块或完整守卫源之前，不重复提交同一批截断片段；若用户确认只需局部结论，则明确接受上列为未验证。\"}",
+      "calls": 1
+    }
+  ],
+  "independentReviewConclusion": "No formal independent acceptance: first review had clipped source and remained unverified; complete split evidence reached second call but its model citation IDs were invalid. Results retained, no repeated voting or additional calls. Direct historical reconstruction and full normal-path equality are the objective local evidence, not model outcome proof.",
+  "independentModelCalls": 2,
+  "independentReportedTokens": 17309
+}

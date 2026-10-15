@@ -32,7 +32,7 @@ import { recordUserInput } from './reducer.js'
 import { createCapability, CAPABILITY_VERSION } from './capability.js'
 import { createState } from './schema.js'
 import { handleUserInput } from './pipeline.js'
-import { buildUserMessage, extractJson } from './interpreter.js'
+import { buildUserMessage, extractJson, readEnglishInterpretation } from './interpreter.js'
 import { composeOptimizerSystem, OPTIMIZER_PROTOCOL_VERSION } from './optimizer-protocol.js'
 import { drain } from './eval-llm.js'
 import { createStateStore, inheritStateForFork } from './store.js'
@@ -46,14 +46,17 @@ import { loadLlmLib } from './llm-lib.js'
 // （在此之前它们只是字段，没有任何代码读——界面上摆着却是装饰品）。
 import { createSessionHistory, renderObserverBlock } from './session-context.js'
 import { runReadOnlyToolLoop } from './read-tools.js'
-import { createAdvisor, registerAdvisorTool, resolveAdvisorTimeoutMs } from './advisor.js'
+import { createAdvisor, registerAdvisorTool, resolveAdvisorTimeoutMs, resolveAdvisorStallMs } from './advisor.js'
 import { createAdvisorProgress } from './advisor-progress.js'
 import { createInferenceTrace } from './inference-trace.js'
 import { createInferenceBoost } from './inference-boost.js'
-import { createEnglishMode,protectEnglishLiterals,prepareEnglishInterpretation,finishEnglishInput } from './english-mode.js'
+import { createEnglishMode,protectEnglishLiterals,prepareEnglishInterpretation,finishEnglishInput,resolveEnglishInterpretation } from './english-mode.js'
 import { withAdvisorWorkflow } from './advisor-workflow.js'
 import { createAdvisorFeedback } from './advisor-context.js'
 import { createAdvisorCoverage } from './advisor-coverage.js'
+import {createAdvisorDeliveryReader} from './advisor-delivery.js'
+import {revisionMarker} from './advisor-scopes.js'
+import {createContributionMemory,renderContributionFeedback} from './advisor-contribution-memory.js'
 import { createAdvisorStages } from './advisor-stages.js'
 import { registerAdvisorStageTool } from './advisor-stage-tool.js'
 import { strategyInstructions } from './strategy.js'
@@ -791,7 +794,7 @@ export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTo
     //   现在改用**与 pipeline 同一个抽取器**（interpreter.js 的 extractJson：容忍围栏与前后废话，
     //   取首 { 到末 } 再 JSON.parse）：只有**真能 parse 成对象**才认，否则照旧回落重跑一次。
     const toolJson = extractJson(loop.text)
-    const looksLikeJson = toolJson.ok === true && toolJson.value !== null && typeof toolJson.value === 'object'
+    const looksLikeJson = toolJson.ok === true && !toolJson.recovered && toolJson.value !== null && typeof toolJson.value === 'object'
     if (loop.ok && !loop.empty && looksLikeJson) {
       return { text: loop.text, ms: Date.now() - t0, via: 'tools', context: {
         toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,
@@ -806,8 +809,13 @@ export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTo
       toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,
       toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,
       toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',
-      toolLoopError: String(loop.error || (loop.empty ? 'empty-output' : (looksLikeJson ? 'unknown' : (toolJson.code === 'BAD_JSON' ? 'tools-answer-bad-json' : 'tools-answer-not-json')))),
+      toolLoopError: String(loop.error || (loop.empty ? 'empty-output' : (looksLikeJson ? 'unknown' : ((toolJson.recovered || toolJson.code === 'BAD_JSON') ? 'tools-answer-bad-json' : 'tools-answer-not-json')))),
       toolFallback: 'no-tools-retry',
+    }
+    if(signal?.aborted){
+      const usage=loop.usageSum || loop.usage || null,known=!!(usage && Object.values(usage).some(Number.isFinite))
+      return {text:'',error:'cancelled',via:'tools-cancelled',usage,usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),
+        context:{...fell,toolFallback:'cancelled-no-retry',usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),usageKnownCalls:known?1:0,usageUnknownCalls:known?0:1}}
     }
     const r2 = await plainDrain(() => llm.stream(withSignal({
       // ⚠ 回落这一次**必须换掉系统提示词**：开着工具时 `sys` 里带着"你可以用 read/glob/grep 查证"的整段说明，
@@ -821,7 +829,14 @@ export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTo
     // 连回落都没跑通（同一层服务坏了）⇒ 如实记，**不把异常往上抛**：
     // 抛出去会被 `runProductionInput` 的 catch 变成一行 `threw:`，工具那截代价与原因就丢了。
     if (r2.error) fell.toolLoopError = String(fell.toolLoopError) + ' ｜ 回落也失败：' + r2.error
-    return { ...r2, via: 'tools-fallback', context: fell }
+    const reports=[loop.usageSum || loop.usage || null,r2.usage || null],usage={}
+    for(const report of reports)if(report && typeof report==='object')for(const [key,value] of Object.entries(report)){
+      if(typeof value==='number' && Number.isFinite(value))usage[key]=(usage[key] || 0)+value
+    }
+    fell.usageComplete=reports.every(report=>report && Number.isFinite(report.totalTokens))
+    fell.usageKnownCalls=reports.filter(report=>report && Object.values(report).some(Number.isFinite)).length
+    fell.usageUnknownCalls=reports.length-fell.usageKnownCalls
+    return { ...r2, usage:Object.keys(usage).length?usage:null,usageComplete:fell.usageComplete,via: 'tools-fallback', context: fell }
   }
 
   // ── 无工具路径（**默认**；形状与改动前完全相同）──────────────────
@@ -947,6 +962,9 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
     // Framing is also invocation-scoped; it does not become a cross-session default.
     // P11：这一轮**真正喂进解释层的上下文**要能被解析阶段读到（短消息的引文可以来自上下文）。
     let renderedCtx = '',englishTranslation=null
+    // 英文后处理**降级**时要留下凭据：以前只在有翻译时消费 prepared.warnings，
+    // 于是 'english-postprocess-skipped'（「这一步降级了」的唯一记号）既进不了台账也回不到调用方。
+    let englishWarnings=null
     const preparedTranslation=pol.englishMode?protectEnglishLiterals(text):null
     const out = await adapter.handleInput(session, {
       messageId,
@@ -981,7 +999,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const combinedContext = [rendered.text, workState].filter(Boolean).join('\n\n')
         renderedCtx = combinedContext
         const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,translationInput:preparedTranslation?.masked })
-        const requestRecord = { protocolVersion: protocol.version, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
+        const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
         const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null,englishMode:pol.englishMode })
@@ -1032,9 +1050,15 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
           ...(r.context || {}),
         })
         if(pol.englishMode){
-          const ex=extractJson(r.text);if(!ex.ok)throw new Error('english-interpretation-invalid-json')
-          const prepared=prepareEnglishInterpretation(ex.value,text,preparedTranslation)
-          englishTranslation={...prepared.translation,source:'interpreter',ms:r.ms,usage:r.usage||null,warnings:prepared.warnings}
+          const ex=readEnglishInterpretation(r.text)
+          if(!ex.ok)return '{}'
+          const prepared=await resolveEnglishInterpretation({value:ex.value,originalText:text,prepared:preparedTranslation,service:adapter.english,llm,cfg,signal:message.signal || null})
+          if(prepared.translation)englishTranslation={...prepared.translation,source:'interpreter',ms:r.ms,usage:r.usage||null,warnings:prepared.warnings}
+          else {
+            const degraded=Array.isArray(prepared.warnings)?prepared.warnings.filter(w=>w&&w.reason):null
+            if(degraded&&degraded.length){ englishWarnings=degraded
+              appendWireLog({sessionId:String(sessionId),trigger,ok:false,reason:'english-postprocess-skipped',warnings:degraded,ms:r.ms}) }
+          }
           return JSON.stringify(prepared.value)
         }
         return r.text
@@ -1090,7 +1114,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         })
         : null,
     })
-    return {...out,englishTranslation}
+    return {...out,englishTranslation,...(englishWarnings?{englishWarnings}:{})}
   } catch (e) {
     appendWireLog({ ...base, trigger, ok: false, reason: 'threw:' + String((e && e.message) || e) })
   }
@@ -1306,8 +1330,11 @@ async function runInterceptInput(ctx, payload) {
   } catch (e) {
     interceptedText.delete(sid)
     progressSet(sid, { stage: 'failed', startedAt: t0, reason: String((e && e.message) || e) })
-    appendWireLog({ sessionId: sid, trigger: 'intercept', ok: false, reason: 'threw:' + String((e && e.message) || e) })
-    return { ok: false, reason: 'intercept-threw:' + String((e && e.message) || e) }
+    // GitHub #33B：翻译失败要看得出「试了几次、每轮以什么收尾」。english-mode 的**每条**失败路径
+    // 都会把 attempts 挂在 error 上；这里必须原样入台账，否则排查只能靠猜。
+    const thrownAttempts = Array.isArray(e && e.attempts) ? e.attempts : null
+    appendWireLog({ sessionId: sid, trigger: 'intercept', ok: false, reason: 'threw:' + String((e && e.message) || e), ...(thrownAttempts ? { englishAttempts: thrownAttempts } : {}) })
+    return { ok: false, reason: 'intercept-threw:' + String((e && e.message) || e), ...(thrownAttempts ? { englishAttempts: thrownAttempts } : {}) }
   }
   // 用户按了「跳过并发送」/「取消」⇒ **这一轮到此为止**：不读包、不认这条原话、进度面标成已中止。
   // （pipeline 里还有一道"提交前检查 aborted"的闸门，两层都拦：模型就算跑完也写不进上下文。）
@@ -1341,9 +1368,14 @@ async function runInterceptInput(ctx, payload) {
         if(!cfg.ok)throw new Error('english-model-route-unavailable')
         return adapter.english.translate(text,{llm:ctx.get('llm'),cfg,signal,kind:'user-task'})
       }})
-    if(!result.ok){interceptedText.delete(sid);return {ok:false,reason:result.reason,assistanceReason:result.assistanceReason||null}}
+    if(!result.ok){
+      interceptedText.delete(sid)
+      const tries=Array.isArray(result.attempts)?result.attempts:null
+      appendWireLog({sessionId:sid,trigger:'intercept',ok:false,reason:'english:'+String(result.reason||'failed'),...(tries?{englishAttempts:tries}:{})})
+      return {ok:false,reason:result.reason,assistanceReason:result.assistanceReason||null,...(tries?{englishAttempts:tries}:{})}
+    }
     translation=result.translation
-    if(result.fallback){adapter.intentBySession.delete(sid);adapter.reviewedPackets.delete(sid);adapter.capability.clear(sid)}
+    if(result.fallback && result.assistanceAvailable!==true){adapter.intentBySession.delete(sid);adapter.reviewedPackets.delete(sid);adapter.capability.clear(sid)}
     adapter.english.record(englishToken,translation.text,translation)
     adapter.capability.bindTranslation(sid,translation.text)
     interceptedText.set(sid,{text:translation.text,originalText:text,at:Date.now()})
@@ -1938,7 +1970,13 @@ export function apply(ctx, config) {
   })
   const advisorCoverage = createAdvisorCoverage({ home: DSH_HOME })
   const advisorStages = createAdvisorStages({ home: DSH_HOME })
-  adapter.reviewFeedback = createAdvisorFeedback({stages:advisorStages,coverage:advisorCoverage})
+  const contributionMemory=createContributionMemory({home:DSH_HOME})
+  const reviewFeedback=createAdvisorFeedback({stages:advisorStages,coverage:advisorCoverage})
+  adapter.reviewFeedback=(agent,policy,context={})=>{
+    const session=agent?.session||agent?.getSession?.(),events=session?.snapshotEvents?.()||[],human=events.filter(isRealUserInput).at(-1)
+    const note=session&&human?contributionMemory.feedback({sessionId:String(session.id),requestId:'human:'+String(human.seq),root:session.header?.cwd||context.root,enabled:policy?.injectPacket===true&&policy?.readTools===true,englishMode:policy?.englishMode===true,revisionMarker:revisionMarker(events)}):null
+    return [reviewFeedback(agent,policy,context),renderContributionFeedback(note,policy?.englishMode===true)].filter(Boolean).join('\n\n')
+  }
   ctx.effect(() => () => { adapter.reviewFeedback = null })
   ctx.effect(() => () => advisorProgress.dispose(), 'dsh-po06: advisor progress')
   // 斜杠命令表：只有拿到它，才能确认名单里的命令**当前真的存在**（见 control-api 的 slashReview）。
@@ -1962,10 +2000,12 @@ export function apply(ctx, config) {
   // Independent advisor: fresh invocation, existing optimizer route, read-only capabilities.
   ctx.inject(['tools', 'llm'], (scope) => {
     const execute = createAdvisor({
-      log: appendWireLog, progress: advisorProgress, coverage: advisorCoverage, stages: advisorStages,
+      log: appendWireLog, progress: advisorProgress, coverage: advisorCoverage, stages: advisorStages, contributionMemory,
       taskContext: session => adapter.capability.taskContext(session),
-      // 限时走同一个解析口：默认 5 分钟，环境变量可调（钳制在 60s~15min）。
+      // 默认不设顾问总截止；显式环境变量才设置截止。
       timeoutMs: resolveAdvisorTimeoutMs(process.env),
+      // 空闲判死默认 90s（DSH_PO06_ADVISOR_STALL_MS 可调，0 关闭）；折算规则保证它永远早于总熔断。
+      stallMs: resolveAdvisorStallMs(process.env, resolveAdvisorTimeoutMs(process.env)),
       resolveRuntime: async (session, signal) => {
         const sid = String(session.id)
         const pol = readPolicy({ home: DSH_HOME, sessionId: sid })
@@ -2121,6 +2161,7 @@ export function apply(ctx, config) {
           // P11：拦截进度面（"优化中"那几十秒要看得见它在想什么）
           progress: (sid) => progressGet(sid),
           advisorProgress: (sid, identity) => advisorProgress.get(sid, identity),
+          advisorDelivery:createAdvisorDeliveryReader({getAgent:sid=>adapter.agentFor(sid),inspect:sid=>adapter.services.sessionController?.inspect?.(sid),policy:sid=>readPolicy({home:DSH_HOME,sessionId:sid}),rootFor:sid=>sessionHistory.getCwd(sid)}),
            inferenceStatus:()=>({...(inferenceEngine?.status() || {protocolVersion:'1',ready:false}),ready:inferenceReady,reason:inferenceProblem,...inferenceTrace.status(),
              client:(()=>{try{const cm=ctx.get('clientModules'),name='@dsh-external/dsh-arbiter-wf';return {registered:!!cm?.clientPath?.(name),revision:cm?.graph?.().entries.find(e=>e.id===name)?.rev || null}}catch{return null}})()}),
            englishStatus:sid=>({ready:true,...adapter.english.status(sid)}),
@@ -2130,8 +2171,11 @@ export function apply(ctx, config) {
            inferenceCancel:(sid,run)=>inferenceEngine?.cancel(sid,run) || {ok:false,reason:'not-ready'},
           advisorStageStatus: sid => {
             const pol=sid ? readPolicy({home:DSH_HOME,sessionId:sid}) : null
-            const stage=sid ? advisorStages.status({sessionId:String(sid),readEnabled:false}) : null
-            return {ok:true,protocolVersion:2,enabled:pol?.injectPacket===true,stage,verification:'diagnostic-only-no-file-reread'}
+            // GitHub #32：原先写死 readEnabled:false ⇒ 面板永远显示「顾问只读未开」，与真实设置无关，
+            // 排查时据此判断会得到错误结论。现在按本会话真实策略取值；verification 如实标出是否重读了文件。
+            const readEnabled=pol?.readTools===true
+            const stage=sid ? advisorStages.status({sessionId:String(sid),readEnabled}) : null
+            return {ok:true,protocolVersion:2,enabled:pol?.injectPacket===true,readEnabled,stage,verification:readEnabled?'file-reread-enabled':'diagnostic-only-no-file-reread'}
           },
           // P11：读回"这一轮注入的包"（回退后把新正文读回界面）
           getPacket: (p) => adapter.getIntentText(p && p.sessionId),

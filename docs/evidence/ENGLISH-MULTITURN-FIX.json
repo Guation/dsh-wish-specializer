@@ -1,0 +1,133 @@
+{
+  "revision": "english-multiturn-1",
+  "bug": "English task fallback retained unvalidated Chinese optimizer prose in continued tasks",
+  "realReproduction": {
+    "sessionId": "session-b1c4699e-b98e-41c4-b69f-54191558a079",
+    "loggedAt": [
+      "2026-10-13T07:08:24.176Z",
+      "2026-10-13T07:13:18.131Z",
+      "2026-10-13T07:42:04.228Z"
+    ],
+    "originalTask": "继续工作",
+    "outgoingTaskBeforeFix": "Continue working",
+    "oldPacketChars": 2591,
+    "oldHeaderEnglish": true,
+    "oldProseLanguage": "Chinese"
+  },
+  "offline": {
+    "files": 20,
+    "tests": 179,
+    "passed": 179,
+    "failed": 0,
+    "newMultiTurnTests": 12,
+    "log": ".po06-tmp/english-multiturn-regression.log"
+  },
+  "realRepair": {
+    "ok": true,
+    "route": {
+      "provider": "deepseek-official",
+      "model": "deepseek-flash",
+      "reasoningEffort": "off"
+    },
+    "calls": 1,
+    "ms": 10332,
+    "usage": {
+      "inputTokens": 2036,
+      "outputTokens": 2101,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "totalTokens": 4137
+    },
+    "repairedFields": [
+      "englishTask",
+      "intent.text",
+      "add[0]",
+      "add[1]",
+      "add[2]",
+      "add[3]",
+      "add[4]",
+      "add[5]"
+    ],
+    "englishTask": "Continue working",
+    "originalAdditions": 6,
+    "repairedAdditions": 6,
+    "englishProseValidated": true,
+    "criticalCodeToken": {
+      "token": "requestAnimationFrame(frame)",
+      "before": 3,
+      "after": 3
+    },
+    "sampleIntent": "Continue working on the same single-file minecraft-webgl.html: first fix the missing rAF in the startup path in real browsers so the render loop actually runs (this is currently the only blocking cause of the all-black screen), then, on the premise that the loop is reliable, wire in and tune the cinematic lighting and Tyndall effect section by section as required, with each section independently toggleable and able to degrade adaptively."
+  },
+  "independentCodeReview": {
+    "route": "deepseek-official/deepseek-flash",
+    "ok": true,
+    "verdict": "unverified",
+    "reviewPassed": false,
+    "checks": [
+      {
+        "criterion": "缺失或错误 englishTask 时仍独立校验辅助（不因任务翻译失败而放过中文辅助）",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F0",
+          "F1",
+          "F3"
+        ]
+      },
+      {
+        "criterion": "中文辅助只在需要时合并为一次保真修复，不重复调用、不部分提交",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F0",
+          "F1",
+          "F3"
+        ]
+      },
+      {
+        "criterion": "修复失败时只保留已验证英文，不返回原始输出、不把原文当英文兜底",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F0",
+          "F1",
+          "F2",
+          "F3"
+        ]
+      },
+      {
+        "criterion": "原文、代码/路径/标签等字面量、取消与 superseded 隔离保持",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F0",
+          "F1",
+          "F3"
+        ]
+      }
+    ],
+    "ms": 149632,
+    "usage": {
+      "inputTokens": 45433,
+      "outputTokens": 22794,
+      "cacheReadTokens": 39808,
+      "cacheWriteTokens": 0,
+      "totalTokens": 108035
+    },
+    "note": "Provided code scope checked; formal pass not obtained because evidence was supplied as line selections. No repeated review requested."
+  },
+  "costBoundary": {
+    "normalValidOutputAdditionalCalls": 0,
+    "invalidOutput": "One batched task/advice repair; if it fails, existing faithful-task fallback may still run.",
+    "reportedTokens": 112172
+  },
+  "activation": {
+    "disk": "english-multiturn-1",
+    "lastRunningObserved": "stable-quality-1",
+    "requires": "restart DSH and refresh existing GUI; verify actual request promptRevision"
+  },
+  "limitations": [
+    "Machine prose is validated; original source quotes, exact labels, code and paths can still legitimately contain Chinese.",
+    "One real replay of a captured failing packet, not a full manual multi-turn GUI test after restart.",
+    "Translation failure keeps only validated English parts; it may omit untranslatable advice rather than injecting Chinese.",
+    "No response-language preference is imposed on the working assistant.",
+    "A pre-existing assistance-off translation handoff inconsistency noted by the reviewer was outside this assistance-packet bug."
+  ]
+}

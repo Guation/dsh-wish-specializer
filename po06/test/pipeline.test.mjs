@@ -197,17 +197,21 @@ ta('失败的一轮要把上一轮的包撤下来（不留旧包）', async () =
   const r1 = await handleUserInput(a, s, { messageId: 'm-1', text: TANK, interpret: goodInterpreter() })
   eq(r1.outcome, 'committed', '第一轮提交')
   ok(a.getIntentText(SID).length > 0, '第一轮写了包')
-  // 第二轮：解释层交回**不是 JSON** 的东西 ⇒ parse-rejected（真机里这一类的常见来源见 ledger）
-  // 第二轮：解释层交回**坏 JSON**（有 JSON 形状但解析不了）⇒ parse-rejected
-  // ⚠ 注意别用"完全没有 JSON"（那是 `NO_JSON` ⇒ 空产出 ⇒ 会被重试+兜底，见 pipeline 的 3b）。
-  //   这里要钉的是"真·解析失败"仍然把上一轮的包撤下来。
+  // 第二轮：解释层交回**坏 JSON**（有 JSON 形状但解析不了）。
+  // ⚠ 契约变更（GitHub #31，真机一周 12 次 no-packet）：解析被拒原先**跳过**两级兜底
+  //   （台账形态完全一致：`parse:fail(…) ` 之后直接 `setContext`，retryEmpty/fallbackEmpty 一次都没出现），
+  //   于是"这一轮必有包"在"吐坏了"这条路上不成立 —— 而"没吐"（NO_JSON）反而有兜底。
+  //   现在 NO_JSON / BAD_JSON / BAD_OPTIMIZER_SHAPE 一律先重试一次、仍坏则由宿主兜底收尾。
+  //   本条要钉的**不变量一个字都没改**：上一轮的包必须被撤下来，兜底里不许出现旧目标。
   const r2 = await handleUserInput(a, s, {
     messageId: 'm-2', text: '继续', interpret: async () => '{"ops":[{"op":}]}',
   })
-  eq(r2.outcome, 'parse-rejected', '第二轮解析失败')
-  eq(a.getIntentText(SID), '', '失败的一轮必须把上一轮的包撤下来（否则旧包继续被注入）')
-  const st = r2.trace.find((x) => x.step === 'setContext')
-  ok(st && st.chars === 0, '收尾要记一步 setContext: 0：' + JSON.stringify(st))
+  eq(r2.outcome, 'committed', '解析被拒也要有包（不再直接 no-packet）')
+  const steps = r2.trace.map((x) => x.step)
+  ok(steps.includes('retryEmpty'), '先记一步重试：' + JSON.stringify(steps))
+  ok(steps.includes('fallbackEmpty'), '仍坏则记一步兜底：' + JSON.stringify(steps))
+  ok(!a.getIntentText(SID).includes('坦克'), '失败的一轮必须把上一轮的包撤下来（否则旧包继续被注入）')
+  ok(a.getIntentText(SID).includes('没有从中提取到'), '这一轮留下的是"没提取到"的如实说明，不是旧目标')
 })
 
 ta('用户取消（abort）⇒ 记 aborted 而不是 parse-rejected；不产生"模型写坏了"的假象', async () => {

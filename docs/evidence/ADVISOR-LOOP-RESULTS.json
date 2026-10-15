@@ -1,0 +1,704 @@
+{
+  "revision": "advisor-loop-1",
+  "baseline": "round305-baseline-1",
+  "at": "2026-10-15T04:14:48.365Z",
+  "plan": "docs/PLAN-ADVISOR-LOOP.md",
+  "report": "docs/ADVISOR-LOOP-RESULTS.md",
+  "baselineSnapshot": ".po06-tmp/advisor-loop-baseline.json",
+  "changes": [
+    {
+      "path": "po06/lib/advisor-scopes.js",
+      "newFile": false,
+      "chars": 6772,
+      "sha256": "7524d773469e66a50d4c1c63e5a306c9cfa468bee1da72fa4490a5a4af54044d"
+    },
+    {
+      "path": "po06/lib/control-api.js",
+      "newFile": false,
+      "chars": 39470,
+      "sha256": "32bbdb1a945d045e2af88da5c44c82390bcccd5ef1f13cc4c4978e5478e0b4aa"
+    },
+    {
+      "path": "po06/lib/advisor-materials.js",
+      "newFile": false,
+      "chars": 11603,
+      "sha256": "aed8616c121c7f9ec810df4b0482b3a0267d38f37c0a6d9e6db8ee980e0b7708"
+    },
+    {
+      "path": "po06/lib/client.js",
+      "newFile": false,
+      "chars": 247806,
+      "sha256": "dbc8a44949a6ab3b235ad14beb551fe54d360770108b5a707df0604b9302b7cf"
+    },
+    {
+      "path": "po06/lib/advisor-outcome.js",
+      "newFile": false,
+      "chars": 3431,
+      "sha256": "bf6c271d567e1d0c0fe702f2d84c06ea0cd0dcadeff6bedeec3e65ddf584d122"
+    },
+    {
+      "path": "po06/lib/advisor-context.js",
+      "newFile": false,
+      "chars": 3515,
+      "sha256": "229c4d4ac8407838939305b5db5684364a49dd9ebef9a95b78a3d2200c1196ec"
+    },
+    {
+      "path": "po06/lib/optimizer-protocol.js",
+      "newFile": false,
+      "chars": 12242,
+      "sha256": "76137d1be5e7fb3c6eab9104b09a5c2f47e2ed25bbcf5bbbc8dd12f6f22b5a70"
+    },
+    {
+      "path": "po06/lib/advisor-subjects.js",
+      "newFile": true,
+      "chars": 1228,
+      "sha256": "3698ed0a294ff228de23b1522bae442107ebe93a4a1f639cc38e9f0176bfc1cf"
+    },
+    {
+      "path": "po06/lib/advisor-stages.js",
+      "newFile": false,
+      "chars": 20902,
+      "sha256": "bcd374c6ff2f4d8c5a5c08579d558397d3ba8f1dc18af9d0e246a7a979600362"
+    },
+    {
+      "path": "po06/lib/read-tools.js",
+      "newFile": false,
+      "chars": 27554,
+      "sha256": "86ea6c9a18782347135e569f414ad3e6ad5f5c5a80a817dd0d0a393ddff1501e"
+    },
+    {
+      "path": "po06/lib/advisor-evidence.js",
+      "newFile": true,
+      "chars": 15852,
+      "sha256": "d0541145e0521c7cfb206ca3395d6ef25f9986f2455b174a838d0f3cfdc17eaf"
+    },
+    {
+      "path": "po06/lib/advisor-contribution-memory.js",
+      "newFile": true,
+      "chars": 8981,
+      "sha256": "613954c8df6ddc574ee7a23b290cf6ce751613e4104deee30cf32679cda34921"
+    },
+    {
+      "path": "po06/lib/advisor-visual.js",
+      "newFile": true,
+      "chars": 2979,
+      "sha256": "0b646bbf9fab8b04fe8c71cb6004e788a560f71b7656fd73ac6d1883fa8f5dc5"
+    },
+    {
+      "path": "po06/lib/advisor-stream.js",
+      "newFile": true,
+      "chars": 1847,
+      "sha256": "12034181a1a45a360ca22d29d9e01b1462030a477e31e98d427ea4f12d6e305f"
+    },
+    {
+      "path": "po06/lib/advisor.js",
+      "newFile": false,
+      "chars": 57937,
+      "sha256": "09729ab35c2edd00c5059d0a410ed9c6294a5fcc0591c4e02755ddbedd124b84"
+    },
+    {
+      "path": "po06/lib/advisor-coverage.js",
+      "newFile": false,
+      "chars": 21159,
+      "sha256": "e4ea6e639b5cf0dc559c6dd9c3a3c8ec2a7c9942c6a23a89f712fbf104939223"
+    },
+    {
+      "path": "po06/lib/advisor-delivery.js",
+      "newFile": true,
+      "chars": 9786,
+      "sha256": "8fc5608c3d14a312272444262e4339fcb8142140b0ddb363258581d14641a62a"
+    },
+    {
+      "path": "po06/lib/index.js",
+      "newFile": false,
+      "chars": 153889,
+      "sha256": "365a57c01ef90e57592fb99e7267120b0a798554393a6e1d8fba90309478206f"
+    }
+  ],
+  "normalOptimizerContract": "Original core, three tiers and normal message/output contract remain identical; only observable revision changed. test/turn305-parity.test.mjs distinguishes intended evidence/API changes.",
+  "implementation": {
+    "evidence": "Host citation-local completeness and per-check versions, explicit actual subject hashes; reference-only images/source-only runtime claims not certified; no model-authored waiver.",
+    "contribution": "Only actually observed/sent prior excerpts and immutable image refs cached by exact session/request/root/object/focus; optional concrete method in current context, changed content marks comparison pending, not adopted/beneficial.",
+    "delivery": "Trusted exact-session+event-seq turn projection + additive turnTail; cold inspect no Agent resume; old task/future records do not repaint a reply; exact target/fresh evidence needed to close failure; no interception or automatic steering.",
+    "reliability": "Current SDK native content blocks/replayState preserved across real read calls. Advisor-only explicit stream finish failure guard. Known/unknown costs retained; narrow no-value-change advisory syntax recovery only, never acceptance."
+  },
+  "verification": {
+    "broad": {
+      "files": 36,
+      "tests": 272,
+      "pass": 272,
+      "fail": 0,
+      "skipped": 0,
+      "log": ".po06-tmp/advisor-loop-regression-final.log"
+    },
+    "realPreviousSessionReplay": {
+      "note": "Actual two recorded sessions, original final seq and public tool records; state recomputed by new module, not a new model run or live UI claim.",
+      "results": [
+        {
+          "id": "session-59fb9fb9-b92d-44f3-8b49-38193150d8bb",
+          "closingSeq": 478,
+          "state": {
+            "ok": true,
+            "sessionId": "session-59fb9fb9-b92d-44f3-8b49-38193150d8bb",
+            "seq": 478,
+            "requestId": "human:8",
+            "status": "verification-pending",
+            "checks": [
+              {
+                "criterion": "以米为单位：车体长约 8.2、全宽约 3.56、炮塔顶约 2.54、含炮管全长约 10.0",
+                "status": "unverified",
+                "scope": "geometry",
+                "focus": "单文件 three.js 主战坦克（豹2A7 风格）：整体比例、车体/炮塔楔形装甲轮廓、7 对负重轮行走机构、闭合履带路径等弧长重采样与实例化——检查点是「看起来像一辆现代主战坦克，而不是二战坦克或玩具」",
+                "checkId": "S1.K1"
+              },
+              {
+                "criterion": "履带环 = 底直线 + 前弧 + 顶直线 + 后弧，按等弧长重采样成等节距链板，无拐角疏密",
+                "status": "unverified",
+                "scope": "geometry",
+                "focus": "单文件 three.js 主战坦克（豹2A7 风格）：整体比例、车体/炮塔楔形装甲轮廓、7 对负重轮行走机构、闭合履带路径等弧长重采样与实例化——检查点是「看起来像一辆现代主战坦克，而不是二战坦克或玩具」",
+                "checkId": "S1.K2"
+              },
+              {
+                "criterion": "负重轮 7 对 + 主动轮 + 诱导轮 + 托带轮，轮顶不穿出车体底面",
+                "status": "unverified",
+                "scope": "geometry",
+                "focus": "单文件 three.js 主战坦克（豹2A7 风格）：整体比例、车体/炮塔楔形装甲轮廓、7 对负重轮行走机构、闭合履带路径等弧长重采样与实例化——检查点是「看起来像一辆现代主战坦克，而不是二战坦克或玩具」",
+                "checkId": "S1.K3"
+              },
+              {
+                "criterion": "炮塔俯视呈楔形（前窄后宽），向上收窄，炮耳轴位于炮塔前部中线",
+                "status": "unverified",
+                "scope": "geometry",
+                "focus": "单文件 three.js 主战坦克（豹2A7 风格）：整体比例、车体/炮塔楔形装甲轮廓、7 对负重轮行走机构、闭合履带路径等弧长重采样与实例化——检查点是「看起来像一辆现代主战坦克，而不是二战坦克或玩具」",
+                "checkId": "S1.K4"
+              },
+              {
+                "criterion": "首上装甲相对水平倾角约 30~40°，不乱成二战式垂直首上",
+                "status": "stale",
+                "scope": "geometry",
+                "focus": "单文件 three.js 主战坦克（豹2A7 风格）：整体比例、车体/炮塔楔形装甲轮廓、7 对负重轮行走机构、闭合履带路径等弧长重采样与实例化——检查点是「看起来像一辆现代主战坦克，而不是二战坦克或玩具」",
+                "checkId": "S1.K5"
+              }
+            ],
+            "counts": {
+              "failed": 0,
+              "unverified": 4,
+              "stale": 1,
+              "satisfied": 0
+            },
+            "limitations": [],
+            "completionClaimAllowed": false,
+            "scopeOnly": true
+          }
+        },
+        {
+          "id": "session-288e64ea-6719-4a07-b3d1-727aed1b88a9",
+          "closingSeq": 604,
+          "state": {
+            "ok": true,
+            "sessionId": "session-288e64ea-6719-4a07-b3d1-727aed1b88a9",
+            "seq": 604,
+            "requestId": "human:8",
+            "status": "verification-pending",
+            "checks": [
+              {
+                "criterion": "Boot sequence runs to completion without throwing (renderer creation, materials/geometry/env build, running=true, boot overlay dismissed)",
+                "status": "unverified",
+                "scope": "code",
+                "focus": "the browser-only runtime paths that were never executed: boot sequence, addon/post chain (EffectComposer/GTAO/UnrealBloom/Bokeh/OutputPass/ShaderPass/SMAAPass/O"
+              },
+              {
+                "criterion": "Addon imports and the effect chain (EffectComposer/GTAO/UnrealBloom/Bokeh/OutputPass/ShaderPass/SMAAPass) construct and render without throwing",
+                "status": "unverified",
+                "scope": "code",
+                "focus": "the browser-only runtime paths that were never executed: boot sequence, addon/post chain (EffectComposer/GTAO/UnrealBloom/Bokeh/OutputPass/ShaderPass/SMAAPass/O"
+              },
+              {
+                "criterion": "Render loop runs stably after boot (no throw in frame/update paths)",
+                "status": "unverified",
+                "scope": "code",
+                "focus": "the browser-only runtime paths that were never executed: boot sequence, addon/post chain (EffectComposer/GTAO/UnrealBloom/Bokeh/OutputPass/ShaderPass/SMAAPass/O"
+              },
+              {
+                "criterion": "Input binding and camera modes (orbit/drive/gunner/photo incl. OrbitControls) are usable without throwing",
+                "status": "unverified",
+                "scope": "code",
+                "focus": "the browser-only runtime paths that were never executed: boot sequence, addon/post chain (EffectComposer/GTAO/UnrealBloom/Bokeh/OutputPass/ShaderPass/SMAAPass/O"
+              },
+              {
+                "criterion": "First frame is correct: visible, correctly framed/lit, nothing visibly broken (black screen, stuck overlay, blown exposure, broken post chain)",
+                "status": "unverified",
+                "scope": "code",
+                "focus": "the browser-only runtime paths that were never executed: boot sequence, addon/post chain (EffectComposer/GTAO/UnrealBloom/Bokeh/OutputPass/ShaderPass/SMAAPass/O"
+              },
+              {
+                "criterion": "If an addon/post step fails, the program degrades rather than failing to first render",
+                "status": "unverified",
+                "scope": "code",
+                "focus": "the browser-only runtime paths that were never executed: boot sequence, addon/post chain (EffectComposer/GTAO/UnrealBloom/Bokeh/OutputPass/ShaderPass/SMAAPass/O"
+              }
+            ],
+            "counts": {
+              "failed": 0,
+              "unverified": 6,
+              "stale": 0,
+              "satisfied": 0
+            },
+            "limitations": [],
+            "completionClaimAllowed": false,
+            "scopeOnly": true,
+            "contribution": {
+              "status": "result-changed",
+              "summary": "The post-processing chain is architecturally right (HalfFloat MSAA RT -> bloom -> OutputPass -> SMAA), but three concrete, code-visible defects hurt the very first frame: onRetize/savePNG hand-size bloom/GTAO in CSS pixels (half-res glow + AO on every dpr=2 display, and the \"high-res\" PNG is a blow-up), the Bokeh aperture was pushed to 0.03 (CoC saturates within ~1 m, so photo mode is mostly max-blur), and the model's rear is +Z (sprocket/idler + deck slope + exhaust emitter) while the boot came",
+              "benefitVerified": false,
+              "acceptance": false
+            }
+          }
+        }
+      ]
+    },
+    "nativeSdkSerialization": {
+      "networkCalls": 0,
+      "localFetchCalls": 1,
+      "expectedLocalStop": "Intentional local serialization stop",
+      "nativeBlockTypes": [
+        "thinking",
+        "text",
+        "tool_use"
+      ],
+      "signaturePreserved": true,
+      "reasoningPreserved": true,
+      "toolId": "read1",
+      "thinkingPolicy": {
+        "type": "enabled"
+      }
+    },
+    "realTransport": {
+      "purpose": "One small configured-Flash transport diagnostic after new native-replay evidence. NOT quality sampling or artifact generation.",
+      "route": {
+        "provider": "deepseek-official",
+        "model": "deepseek-flash",
+        "reasoningEffort": "max"
+      },
+      "maxStreams": 2,
+      "requests": [
+        {
+          "at": "2026-10-15T02:45:07.411Z",
+          "assistantBlockTypes": [],
+          "nativeReplayPresent": false,
+          "usage": {
+            "inputTokens": 673,
+            "outputTokens": 104,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0,
+            "totalTokens": 777
+          },
+          "finish": {
+            "kind": "tool-calls"
+          },
+          "ms": 3195
+        },
+        {
+          "at": "2026-10-15T02:45:10.609Z",
+          "assistantBlockTypes": [
+            [
+              "reasoning",
+              "tool-call"
+            ]
+          ],
+          "nativeReplayPresent": true,
+          "usage": {
+            "inputTokens": 223,
+            "outputTokens": 41,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0,
+            "totalTokens": 264
+          },
+          "finish": {
+            "kind": "stop"
+          },
+          "ms": 2608
+        }
+      ],
+      "result": {
+        "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\advisor-loop-transport-case",
+        "maxRounds": 1,
+        "budgetMs": null,
+        "ok": true,
+        "error": null,
+        "text": "{\"value\":17}",
+        "rounds": 2,
+        "toolCalls": 1,
+        "usageSum": {
+          "inputTokens": 896,
+          "outputTokens": 145,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 1041
+        },
+        "usageComplete": true,
+        "usageKnownCalls": 2,
+        "usageUnknownCalls": 0,
+        "names": [
+          "read"
+        ],
+        "trace": [
+          {
+            "round": 1,
+            "tool": "read",
+            "args": {
+              "path": "marker.txt",
+              "startLine": 1,
+              "endLine": 50
+            },
+            "ok": true,
+            "rejected": false,
+            "ms": 1,
+            "resultLines": 3,
+            "resultAvailable": true,
+            "evidence": {
+              "ref": "read:marker.txt",
+              "path": "marker.txt",
+              "sha256": "cba55d96cec67e1f651d9d4aa0c60782ce9eb8f1553e2cc7e243ee0822813f9a",
+              "kind": "file",
+              "status": "ready",
+              "selectionComplete": true,
+              "wholeFileComplete": true,
+              "startLine": 1,
+              "endLine": 2
+            }
+          }
+        ],
+        "capped": true,
+        "ms": 5807,
+        "empty": false
+      }
+    },
+    "ui": "Complete loader VM/hook lifecycle tests, real installed SDK contract inspected. Existing authenticated GUI not rendered with candidate.",
+    "knownLimits": [
+      "Completeness/version provenance is not semantic entailment or full original-goal coverage.",
+      "Same-pixel recaptures after changed explicit subjects may conservatively reject; image hash cannot certify capture timing.",
+      "Contribution comparisons require same actual human request/object/focus; not a cross-task hidden memory.",
+      "Turn status is snapshot plus manual refresh, not continuous tracking of every historical file or veto over assistant text."
+    ]
+  },
+  "natural": {
+    "preregister": {
+      "registeredAt": "2026-10-15T01:15:30.523Z",
+      "task": "制作一个完全离线、单 HTML 的交互体验《相位花园》。让读者不是看一排卡片，而是在一个连贯、有气氛的可触摸场景中理解两列波相遇、相长相消与拍频。读者能调整频率、振幅和相位，看到输入、局部状态与合成结果真实联动；能暂停后查看某一时刻、继续播放和恢复初始状态。知识解释要准确，不用视觉漂亮掩盖错误概念。画面应精致、动效有节奏，初次打开就知道如何探索；桌面、手机和键盘均可操作。所有绘制、样式、逻辑内联，不依赖网络或其他文件。",
+      "route": {
+        "provider": "deepseek-official",
+        "model": "deepseek-flash",
+        "reasoningEffort": "max"
+      },
+      "comparison": "One shared freshly generated artifact. Frozen round305-baseline-1 vs advisor-loop candidate each gets the same original task, actual artifact and available captures; one improve_result and one revision per arm, keep is valid. No manual artifact repairs and no failure resampling. Offline wiring tests remain separate.",
+      "generationPhasesMaximum": 5,
+      "toolEvidenceRoundsPerConsultation": 3,
+      "outputBudget": "Omit artificial maxTokens; use SDK production default. Failed or interrupted outputs/cost remain in evidence.",
+      "criteria": [
+        "Actual combined wave corresponds to chosen inputs and time; no contradictory visual/knowledge claims.",
+        "Pause/scrub/resume/reset and parameter changes work through actual user-facing controls, with no stale state or runtime error.",
+        "The scene/content/controls form a coherent explanatory experience with useful detail and polished motion, not merely a feature list.",
+        "390px/mobile and keyboard critical paths remain usable without clipping.",
+        "Compare actual baseline and candidate revisions with original shared draft; adoption or shorter output is not quality gain. Record all reported usage and time; unknown usage is not zero."
+      ],
+      "noStrongerModels": true,
+      "noArtifactPromptTuning": true,
+      "evaluationClarification": {
+        "at": "2026-10-15T01:46:59.392Z",
+        "reason": "Original task asks pause/inspect-a-moment/resume/reset, not a mandatory time-slider architecture. Scrub in concise criteria means inspection with actual available controls, not an additional required component. Original task/arms unchanged; recorded before advisory outputs.",
+        "addedArtifactRequirement": false
+      },
+      "transportRecovery": {
+        "at": "2026-10-15T02:00:27.720Z",
+        "condition": "Both arms first completed only tool-calls (final text length0), then failed HTTP503 before any valid advice. No quality outcome exists to select.",
+        "policy": "Exactly one symmetric transport-only retry per arm, sequentially; original task/materials/system criteria unchanged. All failed attempts and known/unknown usage retained. No retry after a completed advice/revision quality result.",
+        "logicalGenerationPhasesMaximum": 5,
+        "topLevelAttemptsMaximum": 7,
+        "streamIdleBudget": "SDK production default (the earlier route-check override is removed equally; no timeout caused the observed failures)."
+      },
+      "protocolCompatibilityRecovery": {
+        "at": "2026-10-15T02:47:01.655Z",
+        "evidence": "SDK finish carries replayState aligned with native reasoning/text/tool blocks; former loop discarded them. Local real-SDK serialization proves preservation; one configured Flash/max two-stream diagnostic now completes with value17 (1041 reported tokens). Not proof every earlier503 had same cause.",
+        "policy": "One symmetric additional attempt with exact same original artifact/task/images/questions/evaluation. Apply only native-response reconstruction compatibility repair to frozen baseline too; no candidate quality mechanism folded into baseline. No prior completed advice existed. Stop on valid advice (no sampling by quality) or final error.",
+        "paths": {
+          "baseline": ".po06-tmp/advisor-loop-frozen-protocol",
+          "candidate": "po06/lib"
+        },
+        "topLevelAttemptsMaximum": 9
+      },
+      "postHocSyntaxReplay": {
+        "at": "2026-10-15T03:06:07.292Z",
+        "originalCandidateResult": "advisor-invalid-json, retained as failed",
+        "cause": "Exactly one standalone quote outside a closed assumptions array; entire original response validates after removing only that character, all value strings/citations/statuses unchanged.",
+        "rule": "Advisory modes only, bounded single-quote removal outside strings; strict full schema and citation validation; no review_result repair. Zero new advice calls.",
+        "evaluation": "The originally preregistered candidate consultation failed. A separate exploratory revision may use the mechanically replayed SAME opinion once; label post-hoc, not a clean primary win. No other advice result or prompt retuning."
+      }
+    },
+    "sharedInitial": ".po06-tmp/advisor-loop-natural-initial.html",
+    "baselineRevision": ".po06-tmp/advisor-loop-natural-baseline.html",
+    "candidateExploratoryRevision": ".po06-tmp/advisor-loop-natural-candidate.html",
+    "manualCodeRepairs": 0,
+    "primaryCandidateResult": "advisor-invalid-json; kept as an explicit failed trial, not replaced by another advice sample.",
+    "postHocRecovery": {
+      "purpose": "Post-hoc deterministic replay of the SAME failed candidate response; original trial failure retained. No new model sample, one non-value quote removal, no semantic edit.",
+      "originalAttempt": "advisor-loop-advice-candidate-protocol-fixed.json",
+      "formatRecovery": {
+        "kind": "single-extraneous-quote",
+        "removedCharacters": 1,
+        "valuesChanged": false
+      },
+      "parsed": {
+        "ok": true,
+        "report": {
+          "verdict": "suggestion",
+          "summary": "当前初稿把物理模型（k=ω/C）和画面层级做对了，真正的天花板是缺一台「中间仪器」：相长、相消、拍在画面上是三次彼此无关的观感，读者看不到把它们串起来的唯一变量——探针处相位差 Δθ。把 Δθ 做成可见的相位尺指针，并配上解析包络与自适应时间窗，三种现象立刻变成同一台仪器的三种读数（同频→指针静止=稳定干涉；微错频→指针匀速转=拍频=|f₁−f₂|），同时顺带修掉两个可复现的可读性缺陷：默认态波 A 被波 B 完全盖住、滑杆步进 0.01 时拍周期 100 s 而时间窗固定 6 s。",
+          "contribution": "核心判断：不要靠加文案或调风格来提「解释力」，要用一个共享变量把所有现象收束起来。这个变量就是 Δθ(t) = (k₂−k₁)x_p + (φ₂−φ₁) − 2π(f₂−f₁)t，它一次性给出全部结论：\n• f₁=f₂ ⇒ Δθ 不随时间变 ⇒ 合振幅恒定（稳定干涉）；Δθ=0 ⇒ a₁+a₂，Δθ=180° ⇒ |a₁−a₂|（只有 a₁=a₂ 才真正归零，这是最常见的错误概念，必须让用户能自己调振幅验证）。\n• f₂≠f₁ ⇒ Δθ 以每秒 |Δf| 圈的匀速旋转 ⇒ 合振幅在 a₁+a₂ 与 |a₁−a₂| 间周期涨落 ⇒ 这就是拍，拍频 = |f₁−f₂|（不是 1.5 也不是 1.68）。\n• 瞬时包络 E(t)=|a₁e^{iθ_A}+a₂e^{iθ_B}|=√(a₁²+a₂²+2a₁a₂cosΔθ)，它就是探针时间轨迹的外缘，描出来「拍」立刻变成肉眼可读的边界。\n• 由 Δθ 只依赖 (Δk·x−Δω·t) 可得：空间包络以波速 c 平移（Δω/Δk=c），在固定点上才表现为时间上的拍；把探针右移，拍的形状不变但整体推迟 x/c。\n\n【改动 1｜相位差尺 + 读数条（最高优先，也是其余改动的载体）】\n位置：场景底部、控制面板之上横贯全宽的窄条（约 36px）；它必须并入 render() 里那套「全部由 H 推导」的几何（F0:348-352），否则会挤掉波形。把 F0:348-352 替换为：\n  const rulerH  = Math.max(30, Math.min(40, H * 0.062));\n  const timeH   = Math.min(Math.max(H * 0.28, 104), 190);   // 由 0.32 收到 0.28，给尺腾位\n  const timeTop = H - rulerH - timeH;\n  const rulerTop= H - rulerH;\n  const spaceH  = timeTop;                                  // cy/yS/x0/x1/span 原样不动\n尺面：0°/360° 两端写「相长」，180° 写「相消」，底纹是从两端亮到中间暗的薄荷渐变；中间那段亮度按「最小合成幅度」Emax=Emin 时最亮（0.02+0.11·(1−Emin/Emax)），这样 a₁≠a₂ 时读者会看到「相消区永远不够深」，视觉与公式一致。指针是 Δθ 的位置，两端绕回时画两根（不跳变）。代码：\nfunction drawPhaseRuler(x0, x1, top, h){\n  const span = x1 - x0, yM = top + h * 0.62;\n  ctx.fillStyle = 'rgba(8,20,28,0.55)'; ctx.fillRect(0, top, CW, h);\n  ctx.beginPath(); ctx.moveTo(0, top + 0.5); ctx.lineTo(CW, top + 0.5);\n  ctx.strokeStyle = 'rgba(120,200,230,0.12)'; ctx.lineWidth = 1; ctx.stroke();\n  const tA = k1 * S.probe - w1 * S.t + ph1;        // 探针处两波相位\n  const tB = k2 * S.probe - w2 * S.t + ph2;\n  let d = ((tB - tA) / TWO_PI * 360) % 360; if (d < 0) d += 360;\n  const gap  = Math.min(d, 360 - d) * DEG;         // 最短夹角才是决定合振幅的角\n  const E    = Math.sqrt(S.a1*S.a1 + S.a2*S.a2 + 2*S.a1*S.a2*Math.cos(gap));\n  const Emax = S.a1 + S.a2, Emin = Math.abs(S.a1 - S.a2);\n  const midA = 0.02 + 0.11 * (Emax > 1e-6 ? (1 - Emin / Emax) : 0);\n  const g = ctx.createLinearGradient(x0, 0, x1, 0);\n  g.addColorStop(0, 'rgba(120,255,218,0.15)');\n  g.addColorStop(0.5, 'rgba(120,255,218,' + midA.toFixed(3) + ')');\n  g.addColorStop(1, 'rgba(120,255,218,0.15)');\n  ctx.fillStyle = g; ctx.fillRect(x0, top + h*0.42, span, h*0.36);\n  ctx.textBaseline = 'middle';\n  for (let deg = 0; deg <= 360; deg += 45){\n    const x = x0 + deg/360*span, major = deg % 90 === 0;\n    ctx.beginPath(); ctx.moveTo(x, yM - (major?7:4)); ctx.lineTo(x, yM + (major?7:4));\n    ctx.strokeStyle = major ? 'rgba(150,205,230,0.30)' : 'rgba(120,200,230,0.15)'; ctx.stroke();\n  }\n  ctx.font = '500 9.5px system-ui,-apple-system,\"PingFang SC\",sans-serif';\n  ctx.textAlign='left';   ctx.fillStyle='rgba(150,235,205,0.72)'; ctx.fillText('相长', x0+3, top+10);\n  ctx.textAlign='center'; ctx.fillStyle='rgba(150,190,205,0.62)'; ctx.fillText('相消', x0+span*0.5, top+10);\n  ctx.textAlign='right';  ctx.fillStyle='rgba(150,235,205,0.72)'; ctx.fillText('相长', x1-3, top+10);\n  const needle = x => { ctx.save(); ctx.shadowColor='rgba(182,255,228,0.9)'; ctx.shadowBlur=12;\n    ctx.strokeStyle='rgba(225,255,244,0.95)'; ctx.lineWidth=1.6;\n    ctx.beginPath(); ctx.moveTo(x, yM-9); ctx.lineTo(x, yM+9); ctx.stroke(); ctx.restore(); };\n  const xn = x0 + d/360*span;\n  needle(xn); if (xn - x0 < 10) needle(xn + span); if (x1 - xn < 10) needle(xn - span);\n  return { d, E, Emax, Emin };\n}\n读数条放到控制面板（不要挤在尺上），数字用 tabular-nums：\n  <div class='readline'><span>探针处相位差 <b id='rdTheta'>0°</b></span>\n   <span>合成幅度 <b id='rdE'>1.00</b> ／ 最大 <b id='rdEmax'>1.00</b> · 最小 <b id='rdEmin'>0.00</b></span>\n   <span id='rdState' aria-live='polite'>相长</span></div>\n更新节流到 10 Hz，并且只在换词时动 aria-live（避免每帧改 DOM 触发布局、避免读屏刷屏）：\nfunction updateReadout(r){\n  const now = performance.now(); if (now - rdLast < 100) return; rdLast = now;\n  const df = Math.abs(S.f2 - S.f1);\n  rdTheta.textContent = Math.round(r.d) + '°';\n  rdE.textContent = r.E.toFixed(2); rdEmax.textContent = r.Emax.toFixed(2); rdEmin.textContent = r.Emin.toFixed(2);\n  const st = (r.Emax - r.Emin < 1e-6) ? '两列都关掉了'\n           : df < 0.015 ? (r.E - r.Emin < (r.Emax - r.Emin) * 0.15 ? '相消' : '相长')\n           : '拍频 ' + df.toFixed(2) + ' Hz · 每 ' + (1/df).toFixed(1) + ' s 一次强弱';\n  if (st !== rdState.textContent) rdState.textContent = st;\n}\n收益：① 三种现象共用一个指标，术语不再各自空降；② 「暂停后查看某一时刻」变成可操作的教学动作——暂停后拖相位滑杆，指针转、rdE 跳、上方白点与时间轨迹右端同时变，三处同步；③ 同频时指针静止 vs 微错频时指针匀速转，是最直观的「干涉稳定 / 拍」对照。\n\n【改动 2｜解析包络 + 自适应时间窗：让「拍」在整个滑杆量程里看得见】\n现状（F0:233 TW=6.0 固定；F1:316-346 实测用 f₂=1.65、Δf=0.15 Hz、T≈6.7 s）说明拍的可见性被死死绑在 6 s 窗口上：滑杆步进 0.01，Δf=0.01 ⇒ 拍周期 100 s ≈ 17 个窗口，用户按脚注「错开一点点」调一格，什么都不会发生，还容易得出「拍需要差很多」的错误印象。两处改动：\n(a) 时间轨迹上叠加 ±E(t) 虚线（与上面同一个公式，符号按 F0 的 y=A sin(kx−ωt+φ)）：\n  ctx.save(); ctx.setLineDash([3,5]); ctx.strokeStyle='rgba(182,255,228,0.30)'; ctx.lineWidth=1;\n  for (const sg of [1,-1]){\n    ctx.beginPath();\n    for (let i=0;i<=M;i++){\n      const u=i/M, ttx=S.t-tw+u*tw;\n      const A1=k1*S.probe-w1*ttx+ph1, A2=k2*S.probe-w2*ttx+ph2;\n      const re=S.a1*Math.cos(A1)+S.a2*Math.cos(A2), im=S.a1*Math.sin(A1)+S.a2*Math.sin(A2);\n      const E=Math.sqrt(re*re+im*im), px=x0+u*span, py=tcy-sg*E*yT;\n      i?ctx.lineTo(px,py):ctx.moveTo(px,py);\n    }\n    ctx.stroke();\n  }\n  ctx.restore();\n(b) 窗宽自适应（S.tw 从常数升为状态，reset() 一并归 6）：\n  function updateTimeWindow(dt){\n    const df=Math.abs(S.f2-S.f1), fBar=0.5*(S.f1+S.f2);\n    const spanPx=Math.max(120, CW-2*Math.max(16,Math.min(30,CW*0.03)));\n    const maxTw=Math.min(30, spanPx/(18*fBar));           // 载波每周期至少 18px，别糊成一片\n    const want = df<0.015 ? 6 : 2.2/df;                   // 目标：看得见约 2 个拍周期\n    const target=Math.min(Math.max(6,want), Math.max(6,maxTw));\n    if (!S.playing){ S.tw = target; return; }             // 暂停时直接落位\n    S.tw += (target - S.tw) * (1 - Math.exp(-dt*2.5));    // 平滑，拖滑杆不跳变\n  }\n配套必须改：把原来每秒一条的网格换成 nice step（[1,2,5,10,20,30].find(s => tw/s <= 8)），右上角标签由写死的「← 过去 6 秒 现在 →」改成动态窗宽，并顺带承载拍读数：`拍 5.6 s ｜ 窗 6 s` / 同频时 `同频 ｜ 稳定干涉`。缺点要正视：Δf 极小时（≤0.02 Hz）没有任何窗口能同时放下载波和整拍，此时不要硬撑，让读数说清「拍周期 100 s」即可；`!S.playing` 时锁定窗宽是为了不破坏 F1 已观测到的 pausedCanvasStable=true（暂停画面必须真的静止）。\n\n【改动 3｜分波可见性：默认态波 A 完全被波 B 盖住】\n证据：I0 桌面首屏只看到薄荷合成与琥珀两条曲线，青色波 A 不可见；原因是 F0:386-388 中 A、B 同为 0.5 透明度、1.6px 宽，B 后画完全覆盖 A。改成「宽鞘+窄芯」并把合成光晕放到分波之下、合成核心压在最上：\n  ctx.globalCompositeOperation='lighter';\n  strokePath(B.s,N,x0,span,cy,yS,'rgba(80,255,205,0.055)',11);\n  strokePath(B.s,N,x0,span,cy,yS,'rgba(120,255,218,0.13)',5);\n  ctx.globalCompositeOperation='source-over';\n  strokePath(B.a,N,x0,span,cy,yS,'rgba(70,217,255,0.18)',6);    // A 的外晕\n  strokePath(B.b,N,x0,span,cy,yS,'rgba(255,180,84,0.62)',3.0);  // B 鞘\n  strokePath(B.a,N,x0,span,cy,yS,'rgba(120,230,255,0.95)',1.4); // A 芯（画在鞘上）\n  strokePath(B.s,N,x0,span,cy,yS,'rgba(216,255,244,0.92)',1.8); // 合成核心\n效果：默认（两波完全重合）时呈现「青色芯 + 琥珀鞘」，读者一眼明白是两条波叠在一起才得到双倍振幅；一旦分离，两条仍各自清楚。这比换配色有用，因为它修的是「图例说三条、画面只有两条」这个解释力漏洞。\n\n【改动 4｜三个状态预设 + 首启引导：把探索路径写成可点的叙事】\n在标题栏加三个 chip：同相·相长 / 反相·相消 / 微错频·拍频，按下后用 0.9 s 缓动把六个参数滑过去（过程中画面自己演示「从相长走到相消」）。相位必须走短边，否则从任意相位出发会绕远路，叠加过程顺序会反直觉：\n  const PRESETS = { add:{f1:1.5,a1:0.5,p1:0,f2:1.5,a2:0.5,p2:0},\n                    kill:{f1:1.5,a1:0.5,p1:0,f2:1.5,a2:0.5,p2:180},\n                    beat:{f1:1.5,a1:0.5,p1:0,f2:1.68,a2:0.5,p2:0} };\n  const KEYS=['f1','a1','p1','f2','a2','p2'];\n  const shortD=(a,b)=>(((b-a)%360)+540)%360-180;   // 相位走短边\n  function goPreset(n){ const from={}; KEYS.forEach(k=>from[k]=S[k]);\n    const to={...PRESETS[n]};\n    to.p1=from.p1+shortD(from.p1,to.p1); to.p2=from.p2+shortD(from.p2,to.p2);\n    anim={from,to,t0:performance.now(),dur:900}; }\n  function ease(u){ return u<0.5 ? 4*u*u*u : 1-Math.pow(-2*u+2,3)/2; }\n  // loop() 内：\n  if (anim){ const u=Math.min(1,(now-anim.t0)/anim.dur), e=ease(u);\n    KEYS.forEach(k=>S[k]=anim.from[k]+(anim.to[k]-anim.from[k])*e);\n    syncInputs(); if (u>=1) anim=null; }\n每个 range 的 input 处理器里加 `anim=null;`（用户一动手就接管）。三个预设的数值都贴着尺子上的读数：相长 E=1.00，相消 E=0.00，拍 Δf=0.18 Hz→5.6 s（正好落在当前 6 s 窗能看整拍的位置，配改动 2 后更小的 Δf 也能看）。另加：首启提示条（position:absolute、pointer-events:none、首次 pointerdown/input 或 4 s 后 opacity→0），探针顶端画一个小抓手（roundRect + '↔'），canvas 光标由 crosshair 改 grab/grabbing——直接回应「初次打开就知道如何探索」和「可触摸场景」。\n\n【改动 5｜把术语落在正确的位置（准确性）】\n折叠一个 <details>「原理」，四句话 + 一行公式即可，避免正文堆字：\n1) 同一介质里两列波速相同（c），所以 λ=c/f：频率高的那条在画面上更密。\n2) 探针处的相位差 Δθ 决定叠加：Δθ=0° 相长，幅度 a₁+a₂；Δθ=180° 相消，幅度 |a₁−a₂|——只有两个振幅相等时才完全抵消（调振幅滑杆可以亲眼验证）。\n3) 频率差 Δf 会让 Δθ 每秒匀速转过 Δf 圈，于是合振幅在 a₁+a₂ 与 |a₁−a₂| 间涨落，这就是拍，拍频 = |f₁−f₂|，不是任何一个波的频率。\n4) 上方波形里同一瞬间也能看到松紧相间的包络，它以同样的波速向右平移；盯着一个固定点（探针），它才变成时间上的拍——把探针右移，拍的形状不变、整体推迟 x/c。\n\n落地顺序：1（尺+读数）→ 2（包络+窗）→ 3（图层）→ 4（预设+引导）→ 5（文案）。全部内联、无依赖，代码增量约 150~200 行。风险与代价：竖屏预算（I1 390×844 下画布约 505px，按上面的 rulerH=30、timeH 0.28 计算，波形区 334px vs 现在 343px，仅 −9px）；读数条 10 Hz 节流；包络采样让轨迹循环的样本量翻倍（M≤760，可忽略）。",
+          "assumptions": [
+            "Δθ 与包络公式按 F0 现有约定 y=A·sin(kx−ωt+φ) 推导；若改用 cos 基准，只需把 sin/cos 同步互换，读数与结论不变。",
+            "未附「相消」帧截图（F1 记录 p₂=180、a₁=a₂、f₁=f₂，附给我的图像只有 I0/I1/I2），因此「相消时合成是一条零线、且此前会显得像故障」是从代码推断，需在复测帧确认后再决定是否加「相消」文字标注。",
+            "时间窗上限 30 s、载波每周期 ≥18px、目标 2.2 个拍周期均为观感起点值，可按 1200×800 与 390×844 两种截图微调。",
+            "移动端画布高度 ≈505px 是按 I1 首屏与 F1 mobile 控件矩形（滑杆自 y=575 起）估算，用于校验新增 36px 条带的竖直预算，非实测 DOM 值。",
+            "执行者会继续在 artifact.html 内联实现，不引入外部文件或网络资源。"
+          ],
+          "findings": [
+            {
+              "text": "I0 桌面首屏只呈现薄荷合成与琥珀两条曲线，青色波 A 完全不可见，与图例宣告的三条不符；根因是 F0 中 A、B 同为 0.5 透明度、1.6px 宽，B 后画覆盖 A。",
+              "evidenceRefs": [
+                "I0",
+                "F0",
+                "read:artifact.html"
+              ]
+            },
+            {
+              "text": "时间窗写死 TW=6.0 秒（F0:233），而拍周期=|1/Δf|：滑杆步进 0.01 时 Δf=0.01 对应 100 s（≈17 个窗口），脚注「把频率错开一点点，看拍频」在多数取值下什么都不会发生。",
+              "evidenceRefs": [
+                "F0",
+                "read:artifact.html"
+              ]
+            },
+            {
+              "text": "F1 的拍场景是把 f₂ 手动拨到 1.65（Δf=0.15 Hz，T≈6.7 s）才在 6 s 窗口里勉强看到约一个拍，说明「拍的可读性」被窗口与 Δf 的耦合卡住，而不是靠画面风格能解决。",
+              "evidenceRefs": [
+                "F1",
+                "I2",
+                "read:runtime.json"
+              ]
+            },
+            {
+              "text": "render() 的几何常量全部由 H 推导（timeH/timeTop/spaceH/yS，F0:348-352），任何新增条带必须并入这套推导；I1 显示 390×844 下画布与时间轨迹都很紧，新增条带需同时下调 timeH 比例，否则波形区被压。",
+              "evidenceRefs": [
+                "F0",
+                "I1",
+                "read:artifact.html"
+              ]
+            },
+            {
+              "text": "波形参数用 k=ω/C（F0:359-363），即两波频率不同则空间波长不同，但界面没有一句说明；读者看到上方曲线忽疏忽密时无法归因，而这一条恰恰是「同种介质、波速相同」的关键概念。",
+              "evidenceRefs": [
+                "F0",
+                "read:artifact.html"
+              ]
+            },
+            {
+              "text": "F1 记录 pausedCanvasStable=true，说明「暂停即冻结」是已具备的优点；任何新增仪表（指针、自动窗宽、预设缓动）都必须继续冻结，否则会破坏这个已被观测到的行为。",
+              "evidenceRefs": [
+                "F1",
+                "read:runtime.json",
+                "F0"
+              ]
+            }
+          ],
+          "checks": [],
+          "nextStep": "按顺序把改动落到 artifact.html：先加相位尺+读数条（改动 1）并单独截图核对「Δθ=0° 时 rdE=a₁+a₂、180° 时 rdE=|a₁−a₂|、指针位置与探针白点/时间轨迹右端一致」；再加包络与自适应窗（改动 2），补测 Δf=0.05 与 Δf=0.01 两个原先看不见拍的点；然后替换图层描边（改动 3）与预设/引导（改动 4），最后加折叠原理（改动 5）。用同一套 Edge 观测在 1200×800 与 390×844 复测默认、p₂=180、f₂=1.65 三个场景，并补一位于 0.01 步进的极窄 Δf 场景，逐张对照新旧截图：A 是否可见、指针读数是否与画面自洽、暂停后改相位是否只随相位变化（画面其余部分不动）。",
+          "stopCondition": "若相位尺读数与探针白点高度/时间轨迹外缘出现不一致（Δθ 取模或符号写错），或新增条带在 390px 宽下端把波形压到不可读，则回退该条并保留其余改动；当同一参数下「指针—数字—曲线」三处自洽且两种视口都能读出相长/相消/拍之前，不做进一步功能扩展。"
+        },
+        "formatRecovery": {
+          "kind": "single-extraneous-quote",
+          "removedCharacters": 1,
+          "valuesChanged": false
+        }
+      },
+      "originalFailure": "advisor-invalid-json"
+    },
+    "comparisonBoundary": "One final actual opinion per arm after protocol-only repair applied to both. Candidate uses mechanically replayed same opinion in a labeled exploratory revision; cannot claim a clean preregistered quality win or general efficacy.",
+    "browserLogs": [
+      ".po06-tmp/advisor-loop-browser-initial.json",
+      ".po06-tmp/advisor-loop-browser-baseline.json",
+      ".po06-tmp/advisor-loop-browser-candidate.json"
+    ],
+    "observedPhaseCheck": {
+      "phaseDeg": 294,
+      "uiAmplitude": 0.84,
+      "expectedAmplitudeForEqualHalfWaves": 0.8386705679454242,
+      "absoluteError": 0.0013294320545758076,
+      "tolerance": 0.02,
+      "source": "Actual captured UI at fA1.50/fB1.65/aA=aB=.50; expected vector sum relation, no code change",
+      "pass": true
+    },
+    "observedBenefit": "Compared with shared initial wave-only draft, both revised artifacts add explanatory coupling. Candidate exploratory artifact visibly links delta phase, resultant envelope and beat-period readouts; original controls pause/reset and390px width verified without page runtime errors. No proof of stable advantage over baseline, universal quality or isolated long-term memory gain."
+  },
+  "costs": {
+    "knownReportedTokens": 602141,
+    "unknownCalls": 6,
+    "monetaryPriceEstimated": false,
+    "costs": [
+      {
+        "file": ".po06-tmp/advisor-loop-natural-initial.json",
+        "reportedTokens": 38817,
+        "unknownCalls": 0,
+        "modelStreams": 1,
+        "ok": true,
+        "error": null,
+        "ms": 161265
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-baseline.json",
+        "reportedTokens": 28466,
+        "unknownCalls": 1,
+        "modelStreams": 2,
+        "ok": false,
+        "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 44a33033-6f19-40a9-a0d4-5e2e73a6a61a)",
+        "ms": 62266
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-candidate.json",
+        "reportedTokens": 20932,
+        "unknownCalls": 1,
+        "modelStreams": 2,
+        "ok": false,
+        "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 6e7a11c8-d0bb-4ce1-83b4-2fda1f591d0e)",
+        "ms": 24971
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-baseline-transport-retry.json",
+        "reportedTokens": 37869,
+        "unknownCalls": 1,
+        "modelStreams": 2,
+        "ok": false,
+        "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 208da1c7-bdf5-4dc1-ba37-612977802bd8)",
+        "ms": 102473
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-candidate-transport-retry.json",
+        "reportedTokens": 0,
+        "unknownCalls": 1,
+        "modelStreams": 1,
+        "ok": false,
+        "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 3f354e07-e9cf-4743-aad7-cc4462d6dece)",
+        "ms": 550
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-baseline-protocol-fixed.json",
+        "reportedTokens": 177660,
+        "unknownCalls": 0,
+        "modelStreams": 3,
+        "ok": true,
+        "error": null,
+        "ms": 281964
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-candidate-protocol-fixed.json",
+        "reportedTokens": 122454,
+        "unknownCalls": 0,
+        "modelStreams": 3,
+        "ok": false,
+        "error": "advisor-invalid-json",
+        "ms": 236914
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-revision-baseline.json",
+        "reportedTokens": 78336,
+        "unknownCalls": 0,
+        "modelStreams": 1,
+        "ok": true,
+        "error": null,
+        "ms": 258973
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-revision-candidate.json",
+        "reportedTokens": 82192,
+        "unknownCalls": 0,
+        "modelStreams": 1,
+        "ok": true,
+        "error": null,
+        "ms": 261510
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-transport-diagnostic.json",
+        "reportedTokens": 1041,
+        "unknownCalls": 0,
+        "modelStreams": 2,
+        "ok": true,
+        "error": null,
+        "ms": 5807
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-code-review.json",
+        "reportedTokens": 0,
+        "unknownCalls": 1,
+        "modelStreams": 1,
+        "ok": false,
+        "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 527623f8-4faa-4bb7-ba4e-1d2d607975af)",
+        "ms": 490
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-code-review-current.json",
+        "reportedTokens": 14374,
+        "unknownCalls": 0,
+        "modelStreams": 1,
+        "ok": true,
+        "error": null,
+        "ms": 10260
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-code-review-corrections.json",
+        "reportedTokens": 0,
+        "unknownCalls": 1,
+        "modelStreams": 1,
+        "ok": false,
+        "error": "DeepSeek Messages SSE event type mismatch",
+        "ms": 903677
+      }
+    ],
+    "childUiEngineering": {
+      "knownReportedTokens": 75417,
+      "reportedProviderBusyNoUsage": true,
+      "separateFromNaturalComparison": true
+    }
+  },
+  "independent": {
+    "providerSourceReview": ".po06-tmp/advisor-loop-code-review-current.json",
+    "providerCorrectionReview": ".po06-tmp/advisor-loop-code-review-corrections.json",
+    "formalAcceptance": false,
+    "reasons": [
+      "Initial review returned gaps; concrete supported bugs were fixed.",
+      "Directed provider re-review failed with SSE event type mismatch, not passed.",
+      "UI engineering provider review had evidence truncation then503, not passed."
+    ],
+    "readOnlyPostFixVerification": {
+      "agentId": "ad929847-17be-497b-abc2-01525c80577a",
+      "scope": "Four original deterministic counterexamples only, independently executed against actual updated workspace modules.",
+      "closed": [
+        "Disjoint targets sharing a dependency cannot close earlier confirmed failure.",
+        "Nonempty invalid source support retains first failed image observation/open issue and both paid costs.",
+        "Valid report followed by explicit provider error cannot be scoped acceptance.",
+        "First image missing usage remains unknown in the combined two-phase accounting."
+      ],
+      "wholeTaskAcceptance": false,
+      "modelEfficacyClaim": false
+    }
+  },
+  "activation": {
+    "disk": "advisor-loop-1",
+    "liveAtLastRead": "round305-baseline-1",
+    "runtimeRestarted": false,
+    "existingGuiAuthenticatedCandidateCheck": false,
+    "replacementServerStarted": false,
+    "devWebWatcherObserved": false,
+    "modelPermissionOrTierReset": false,
+    "published": false,
+    "checkedAt": "2026-10-15T04:16:09.225Z",
+    "existingClientRevision": "1402e9aa3cfa"
+  }
+}

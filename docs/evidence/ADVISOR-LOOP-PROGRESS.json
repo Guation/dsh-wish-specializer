@@ -1,0 +1,274 @@
+{
+  "revision": "advisor-loop-1",
+  "baseline": "round305-baseline-1",
+  "changed": [
+    {
+      "path": "po06/lib/advisor-scopes.js",
+      "newFile": false,
+      "sha256": "7524d773469e66a50d4c1c63e5a306c9cfa468bee1da72fa4490a5a4af54044d"
+    },
+    {
+      "path": "po06/lib/control-api.js",
+      "newFile": false,
+      "sha256": "32bbdb1a945d045e2af88da5c44c82390bcccd5ef1f13cc4c4978e5478e0b4aa"
+    },
+    {
+      "path": "po06/lib/advisor-visual.js",
+      "newFile": true,
+      "sha256": "b7d1a26032efbba848f3384e4c0ec836f7ef48f28342b377e781d8992e8056bd"
+    },
+    {
+      "path": "po06/lib/advisor-materials.js",
+      "newFile": false,
+      "sha256": "aed8616c121c7f9ec810df4b0482b3a0267d38f37c0a6d9e6db8ee980e0b7708"
+    },
+    {
+      "path": "po06/lib/client.js",
+      "newFile": false,
+      "sha256": "dbc8a44949a6ab3b235ad14beb551fe54d360770108b5a707df0604b9302b7cf"
+    },
+    {
+      "path": "po06/lib/advisor-evidence.js",
+      "newFile": true,
+      "sha256": "6fa79a89d250133a023c5ddf4a22908fcdc04605ceeca6e8509847537d4428e5"
+    },
+    {
+      "path": "po06/lib/advisor-outcome.js",
+      "newFile": false,
+      "sha256": "bf6c271d567e1d0c0fe702f2d84c06ea0cd0dcadeff6bedeec3e65ddf584d122"
+    },
+    {
+      "path": "po06/lib/advisor-context.js",
+      "newFile": false,
+      "sha256": "229c4d4ac8407838939305b5db5684364a49dd9ebef9a95b78a3d2200c1196ec"
+    },
+    {
+      "path": "po06/lib/optimizer-protocol.js",
+      "newFile": false,
+      "sha256": "76137d1be5e7fb3c6eab9104b09a5c2f47e2ed25bbcf5bbbc8dd12f6f22b5a70"
+    },
+    {
+      "path": "po06/lib/advisor-subjects.js",
+      "newFile": true,
+      "sha256": "3698ed0a294ff228de23b1522bae442107ebe93a4a1f639cc38e9f0176bfc1cf"
+    },
+    {
+      "path": "po06/lib/advisor-stages.js",
+      "newFile": false,
+      "sha256": "bcd374c6ff2f4d8c5a5c08579d558397d3ba8f1dc18af9d0e246a7a979600362"
+    },
+    {
+      "path": "po06/lib/advisor-coverage.js",
+      "newFile": false,
+      "sha256": "65f5cb1221a7637c96e03e87bc05d7c5988e382941739e1e4ea7ace7942dfcf6"
+    },
+    {
+      "path": "po06/lib/advisor-contribution-memory.js",
+      "newFile": true,
+      "sha256": "a7a7d3dfc8b5ec24c2a80e8a689fc08afad1a58a6fb736dd97c0a220997d51ce"
+    },
+    {
+      "path": "po06/lib/index.js",
+      "newFile": false,
+      "sha256": "392dffa7719e8823b8858e5957a908f8b171c87c7187d475a7c65f4871ee8f36"
+    },
+    {
+      "path": "po06/lib/read-tools.js",
+      "newFile": false,
+      "sha256": "1ad96d22b9fc4c7f353a5485610b982be286cd1f85b3c5c89d1f8525cd33b520"
+    },
+    {
+      "path": "po06/lib/advisor.js",
+      "newFile": false,
+      "sha256": "c2995ced752aa4c86af3808b74bd5fdc145970d853da28402eccddffe9fad894"
+    },
+    {
+      "path": "po06/lib/advisor-delivery.js",
+      "newFile": true,
+      "sha256": "71f82537b81e1342e592cdcce216ae8c8d16d09da04347a57fee6cecf85c23ba"
+    }
+  ],
+  "plan": "docs/PLAN-ADVISOR-LOOP.md",
+  "implemented": {
+    "claimEvidence": "Host-only cited complete selections, source/image separation, per-check freshness and explicit targets; general whole-request remains conservative.",
+    "contribution": "Observed actual prior snippets/immutable image refs automatically cached only within same session/request/root/object; new version comparison not certified benefit.",
+    "delivery": "Supported additive conversation.chat.turnTail + trusted session/seq API projection; status not a natural-language veto; no automatic steering."
+  },
+  "verification": {
+    "regressionInitial": {
+      "files": 34,
+      "tests": 242,
+      "pass": 242,
+      "fail": 0,
+      "log": ".po06-tmp/advisor-loop-regression-initial.log"
+    },
+    "additionalSinceInitial": "Provider failure/canonical usageSum, metadata reload/language and delivery record-validation regressions added; final broad rerun pending.",
+    "sharedArtifact": {
+      "file": ".po06-tmp/advisor-loop-natural-initial.html",
+      "browser": ".po06-tmp/advisor-loop-browser-initial.json",
+      "actualRender": true,
+      "noRuntimeErrors": true,
+      "offline": true,
+      "pausedCanvasStable": true,
+      "mobileWidth390": true
+    },
+    "independentCodeReview": "Not accepted: official Flash HTTP503; child UI C6 gaps material truncation and C7 HTTP503, not pass."
+  },
+  "naturalComparison": {
+    "registered": ".po06-tmp/advisor-loop-natural-preregister.json",
+    "attempts": [
+      {
+        "file": ".po06-tmp/advisor-loop-natural-initial.json",
+        "ok": true,
+        "reason": null,
+        "usage": {
+          "inputTokens": 198,
+          "outputTokens": 38619,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 38817
+        },
+        "requests": []
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-baseline.json",
+        "ok": false,
+        "reason": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 44a33033-6f19-40a9-a0d4-5e2e73a6a61a)",
+        "usage": null,
+        "requests": [
+          {
+            "number": 1,
+            "usage": {
+              "inputTokens": 17101,
+              "outputTokens": 10853,
+              "cacheReadTokens": 512,
+              "cacheWriteTokens": 0,
+              "totalTokens": 28466
+            },
+            "ms": 61802,
+            "error": null,
+            "finish": {
+              "kind": "tool-calls"
+            }
+          },
+          {
+            "number": 2,
+            "usage": null,
+            "ms": 464,
+            "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 44a33033-6f19-40a9-a0d4-5e2e73a6a61a)",
+            "finish": null
+          }
+        ]
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-candidate.json",
+        "ok": false,
+        "reason": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 6e7a11c8-d0bb-4ce1-83b4-2fda1f591d0e)",
+        "usage": null,
+        "requests": [
+          {
+            "number": 1,
+            "usage": {
+              "inputTokens": 16675,
+              "outputTokens": 3745,
+              "cacheReadTokens": 512,
+              "cacheWriteTokens": 0,
+              "totalTokens": 20932
+            },
+            "ms": 24541,
+            "error": null,
+            "finish": {
+              "kind": "tool-calls"
+            }
+          },
+          {
+            "number": 2,
+            "usage": null,
+            "ms": 430,
+            "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 6e7a11c8-d0bb-4ce1-83b4-2fda1f591d0e)",
+            "finish": null
+          }
+        ]
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-baseline-transport-retry.json",
+        "ok": false,
+        "reason": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 208da1c7-bdf5-4dc1-ba37-612977802bd8)",
+        "usage": null,
+        "requests": [
+          {
+            "number": 1,
+            "usage": {
+              "inputTokens": 205,
+              "outputTokens": 20256,
+              "cacheReadTokens": 17408,
+              "cacheWriteTokens": 0,
+              "totalTokens": 37869
+            },
+            "ms": 102044,
+            "error": null,
+            "finish": {
+              "kind": "tool-calls"
+            }
+          },
+          {
+            "number": 2,
+            "usage": null,
+            "ms": 429,
+            "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 208da1c7-bdf5-4dc1-ba37-612977802bd8)",
+            "finish": null
+          }
+        ]
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-advice-candidate-transport-retry.json",
+        "ok": false,
+        "reason": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 3f354e07-e9cf-4743-aad7-cc4462d6dece)",
+        "usage": null,
+        "requests": [
+          {
+            "number": 1,
+            "usage": null,
+            "ms": 546,
+            "error": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 3f354e07-e9cf-4743-aad7-cc4462d6dece)",
+            "finish": null
+          }
+        ]
+      },
+      {
+        "file": ".po06-tmp/advisor-loop-code-review.json",
+        "ok": false,
+        "reason": "Service is too busy. We advise users to temporarily switch to alternative LLM API service providers. (request_id: 527623f8-4faa-4bb7-ba4e-1d2d607975af)",
+        "usage": null,
+        "requests": []
+      }
+    ],
+    "noCompletedAdviceBothArms": true,
+    "noRevisedArtifactGenerated": true,
+    "noOutcomeQualitySelection": true,
+    "knownReportedTokens": 126084,
+    "missingUsageNotZero": true,
+    "qualityGainEstablished": false,
+    "notes": "Only one symmetric transport recovery, all failures retained. No further artifact resampling without a newly justified condition."
+  },
+  "engineeringReviewCost": {
+    "childUiKnownReportedTokens": 75417,
+    "otherChildProvider503ReportsUnknown": true,
+    "notIncludedInNaturalTokens": true
+  },
+  "activation": {
+    "disk": "advisor-loop-1",
+    "live": "round305-baseline-1",
+    "serverRestarted": false,
+    "newServerStarted": false,
+    "liveUiNotVerified": true
+  },
+  "remaining": [
+    "Final broad regression and entry/memory adversarial review",
+    "Formal independent acceptance not obtained",
+    "Natural actual artifact revisions/benefit comparison blocked by repeated official Flash HTTP503",
+    "Existing runtime and GUI not switched until candidate verification decision"
+  ],
+  "supersededBy": "docs/evidence/ADVISOR-LOOP-RESULTS.json",
+  "note": "Interim snapshot retained, not final counts, results or acceptance. Final report preserves original failures and labels exploratory recovery separately."
+}

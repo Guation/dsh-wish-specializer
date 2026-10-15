@@ -24,9 +24,9 @@ const opts = () => ({ userText: TANK, sessionId: SID, baseRevision: 0, baseInput
 // ── 1. 契约文本 ─────────────────────────────────────────────────────
 t('系统提示词包含关键约束条款', () => {
   ok(SYSTEM_PROMPT.includes('不扭曲用户原意'), 'original intent remains authoritative')
-  ok(SYSTEM_PROMPT.includes('否定') && SYSTEM_PROMPT.includes('已明确决定'), 'preserve restrictions and decisions')
-  ok(SYSTEM_PROMPT.includes('不能冒充用户要求'), 'interpretations cannot claim user authority')
-  ok(SYSTEM_PROMPT.includes('补充与发挥') && SYSTEM_PROMPT.includes('取舍'), 'allow useful expansion with visible tradeoffs')
+  ok(SYSTEM_PROMPT.includes('否定') && SYSTEM_PROMPT.includes('明确决定'), 'preserve restrictions and decisions')
+  ok(SYSTEM_PROMPT.includes('解释与建议不是用户要求'), 'interpretations cannot claim user authority')
+  ok(SYSTEM_PROMPT.includes('构造、推导') && SYSTEM_PROMPT.includes('反例与前提'), 'allow useful expansion with visible tradeoffs')
   ok(!SYSTEM_PROMPT.includes('sourceRefs'), 'host mechanics stay outside the model prompt')
   ok(INTERPRETER_VERSION.length > 0, 'versioned')
 })

@@ -1,4 +1,4 @@
-# dsh-arbiter-wf **v0.8.3-stable** · Independent Arbiter Layer (DSH Web plugin)
+# dsh-arbiter-wf **v0.8.4-stable** · Independent Arbiter Layer (DSH Web plugin)
 
 **English** ｜ [中文](README.md)
 
@@ -27,10 +27,10 @@ showpiece-quality.
 >
 > Looking for versions 0.1–0.6? See [`old/`](old/README.md) (per-generation notes and download methods).
 > Want to publish a release yourself? See [`docs/RELEASING.md`](docs/RELEASING.md) (9-step procedure + checklist).
-> ### Install 0.8.3-stable in 30 seconds
+> ### Install 0.8.4-stable in 30 seconds
 >
 > ```powershell
-> $v = '0.8.3-stable'; $d = "$env:USERPROFILE\Downloads"
+> $v = '0.8.4-stable'; $d = "$env:USERPROFILE\Downloads"
 > Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$d\dsh-external-dsh-arbiter-wf-$v.tgz"
 > Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
 > Get-Content "$d\SHA256SUMS-$v.txt"     # compare the sha256 with the tgz you just downloaded (same file as on the Release page)
@@ -136,7 +136,7 @@ theme** as well, switching live.
 
 ## Honest status (please set your expectations here)
 
-- ✅ **Internally self-consistent, with evidence**: **93 suites / 1,003 tests green** (including package self-sufficiency and
+- ✅ **Internally self-consistent, with evidence**: **104 suites / 1141 tests green** (including package self-sufficiency and
   documentation-drift gates; plus 234 mutation guards on the release-gate line).
 - 📊 **The author's hands-on observation (not a benchmark)**: testing has mostly been done in a
   **DeepSeek-V4.1-Flash + PTC + PowerShell** environment. **No professional benchmark has been run**; however, across the
@@ -145,37 +145,29 @@ theme** as well, switching live.
   consumption and save cost**.
 - ⚠️ **The capability is still experimental** — treat it as something you can install, try, and switch off at any time,
   **not as an upgrade**.
-- 📌 What `0.8.3-stable` changes:
-  ⓪ **Optimizer protocol v3 (the main change)** — the pre-send optimization protocol was rewritten as a short one: the model
-  receives only a **shared core + the selected tier + a thin output format**, and answers with `intent / clarify / add / ask`.
-  Item ids, provenance and state updates are **owned by the plugin** — the model no longer fills in engineering fields.
-  The Chinese plain combination is now **596 / 599 / 639 characters** (light / standard / heavy) instead of several thousand.
-  ① **The three tiers now differ by purpose**, not by item counts or question quotas — light clarifies the original meaning and
-  surfaces genuine ambiguity; standard adds the gaps that matter most to the result; heavy develops broad positive additions,
-  ideas and methods around the goal you already expressed, and states consequential tradeoffs.
-  ② **Adding nothing is allowed** — "understood, nothing worth adding" is a valid outcome, and the old 12-item / 300-character /
-  question quotas are gone, so long suggestions and several questions survive intact into the context and the review panel.
-  ③ **Machine advice cannot claim your authority** — clarifications and suggestions are always labelled machine output; only what
-  you explicitly said counts as a requirement, and your message is preserved and sent unchanged.
-  ④ **Verifiable in the UI** — Details shows both a full preview for the current settings and the **last protocol actually sent**
-  for this session, with its character count and reasoning effort.
-  ⑤ **CI portability fixes** — a named zstd import broke the whole module on older Node (measured on CI Node 20); it is now a
-  capability probe with an explicit skip. The install check's `dsh` command is injectable, so its tests no longer depend on the
-  machine having DSH installed.
-  ⑥ Everything else (English mode, experimental reasoning boost, the advisor `consult_task`, built-in Bash, the slash-command
-  allowlist, streaming intercept output) has been there since 0.8.1 / 0.8.2.
-  **No professional benchmark was run**: a shorter protocol does not by itself make the model faster — judge the value yourself
-  by comparing the three tiers on the same task. Details: [`CHANGELOG.md`](CHANGELOG.md).
-
-- Changelog: [`CHANGELOG.md`](CHANGELOG.md) ｜ manual acceptance: [`po06/HUMAN-TEST.md`](po06/HUMAN-TEST.md) ｜
-  release log (including every install drill actually run): [`po06/RELEASE-CHECKLIST.md`](po06/RELEASE-CHECKLIST.md)
-- Install and self-check: [`po06/README.md`](po06/README.md) ｜ current Release: **[v0.8.3-stable](https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/tag/v0.8.3-stable)**
-- Compatibility: `dsh-0.1.6-alpha.1` (`0.1.5-rc.1` also runs) ｜ author: 啃轮胎的西狐
-- **Previous generation (the 0.5 line — still usable, no longer updated)**: a **different package**,
-  `@dsh-external/dsh-prompt-optimizer`, last published `v0.5.0-beta.1`; design and usage in [`SPEC.md`](docs/SPEC.md),
-  historical documentation (including the 0.5 measurements) in **[`README-0.5.en.md`](old/0.5/README.en.md)** —
-  those numbers belong to **0.5 only** and are not evidence for 0.6.
-
+- 📌 What `0.8.4-stable` changes:
+  ⓪ **The advisor loop (headline)** — a review now checks **the evidence each claim actually cites**: clipped or missing
+     *unrelated* material no longer vetoes the whole report, while clipped material you *did* cite still has to be read in full;
+     source, screenshots and runtime records never vouch for each other. Real failures, missing evidence and version changes stay visible.
+  ① **"I cannot read this file" no longer voids the consultation** (#32) — unreadable material can be cited normally and the gap is
+     recorded in the result; `/po06/api/status` reports the session's real read setting instead of a hard-coded "off".
+  ② **A rejected parse no longer means "no packet"** (#31) — "emitted nothing" and "emitted garbage" are now treated alike: retry once,
+     and if it is still broken the host adds an **honest note** (it never invents a requirement). The balanced scan takes only the first
+     **complete** object; it never guesses JSON.
+  ③ **Reading one file in several segments no longer throws the review away** (#30) — materials merge by **file version**
+     (5 segments of one file = 1 row; changed versions are not swallowed; more than 8 real versions is still refused).
+     Failed / interrupted cards now really show the produced thinking tail and evidence calls.
+  ④ **Two guaranteed-failure paths are fixed** (#33) — `requiredScopes` / `requiredReviews` are a no-op outside `delivery`,
+     so they no longer reject the whole call (one real session: 21 failures, 0 successes); English translation retries a bounded
+     number of times on upstream jitter and records every attempt in the ledger.
+  ⑤ **A silent advisor is stopped early** (#34) — only when it produces **nothing at all** (90 s default); any incremental output resets
+     it. It is not a total deadline: `DSH_PO06_ADVISOR_STALL_MS=0` turns it off entirely.
+  ⑥ **Install troubleshooting table** (#29) — this plugin deliberately ships no npm package; see above for what to do when an installer
+     falls back to a git install and hits TLS failures or an `allowBuilds` hint.
+  ⑦ Everything else (English mode, experimental reasoning boost, `consult_task`, built-in Bash, slash-command allowlist, streaming
+     intercept overlay) continues from 0.8.3.
+  **No professional benchmark**: this release is about correctness and usability, not about a faster model or automatically better artifacts.
+  See [`CHANGELOG.md`](CHANGELOG.md).
 ## License
 
 [BSD-3-Clause](LICENSE) · fully open source; anyone may use and modify it in any way, and suggestions are welcome.

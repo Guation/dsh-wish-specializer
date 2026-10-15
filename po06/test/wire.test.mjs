@@ -4,7 +4,7 @@
 // 所以这里不只是测纯函数——最后一组测试**走真实的 apply() 路径**：
 // 造一个假 ctx、触发一条真实形状的 user/message 事件，看意图包有没有真的被写进上下文。
 // 谁把生产订阅删掉，这组测试就会红。
-import { readFileSync, mkdtempSync, existsSync, writeFileSync, mkdirSync, rmSync, readdirSync } from 'node:fs'
+import { readFileSync, mkdtempSync, existsSync, writeFileSync, mkdirSync, rmSync, readdirSync, utimesSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -624,11 +624,12 @@ t('存储读到坏数据必须拒绝（不把垃圾当状态）', () => {
 t('存储有上限：超出后淘汰最旧的，且永不误删刚写的那份', () => {
   const home = tempHome('po06-prune-')
   const st = createStateStore({ home, keep: 3 })
-  // 顺序写入 5 个会话（mtime 递增，靠 await 保证时间戳可分）
+  // Explicit historical mtimes make the eviction contract deterministic on coarse Windows clocks.
   const ids = ['s1', 's2', 's3', 's4', 's5']
-  for (const id of ids) {
+  for (const [index,id] of ids.entries()) {
     st.save(id, { revision: 1, items: [] })
-    const t = Date.now(); while (Date.now() - t < 6) { /* 让 mtime 拉开，避免同毫秒并列 */ }
+    const stamp=new Date(Date.UTC(2000,0,1)+index*1000)
+    utimesSync(statePath(home,id),stamp,stamp)
   }
   eq(st.count(), 3, '最多只保留 keep 份')
   eq(st.load('s5'), { revision: 1, items: [] }, '**最新写的那份必须还在**（淘汰不得误删自己）')
@@ -866,9 +867,9 @@ await ta('EV-0102：context 提供者抛错要留痕；正常放行要返回包�
   mod.adapter.setIntentText(sid, '【包】测试文本')
   const rendered = provider({ agent: { id: sid } })
   ok(rendered.includes('【包】测试文本'), '放行时保留该会话的包')
-  ok(rendered.includes('顾问调用协议'), '放行时同时给出工作模型顾问流程')
+  ok(rendered.includes('解题贡献与独立复核'), '放行时同时给出工作模型顾问流程')
   mod.adapter.setIntentText(sid, '')
-  ok(provider({ agent: { id: sid } }).includes('顾问调用协议'), '解释层没有新包也不能丢掉顾问调用流程')
+  ok(provider({ agent: { id: sid } }).includes('解题贡献与独立复核'), '解释层没有新包也不能丢掉顾问调用流程')
 
   // ③ 让闸门判定**抛错** ⇒ 必须返回空，且台账里留下一条 context-provider-threw
   const origEnsure = mod.adapter.enableGate.ensure

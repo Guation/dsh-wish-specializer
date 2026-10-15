@@ -1,16 +1,23 @@
 {
-  "at": "2026-10-11T09:09:21.415Z",
+  "at": "2026-10-15T10:07:14.402Z",
   "summary": {
-    "suites": 93,
-    "passed": 93,
+    "suites": 104,
+    "passed": 104,
     "failed": 0,
-    "passTotal": 1003,
+    "passTotal": 1138,
     "failing": []
   },
   "results": [
     {
       "file": "adaptive-collaboration.test.mjs",
       "pass": 9,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-claim-evidence.test.mjs",
+      "pass": 26,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -23,8 +30,22 @@
       "ok": true
     },
     {
+      "file": "advisor-contribution-memory.test.mjs",
+      "pass": 7,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "advisor-coverage.test.mjs",
       "pass": 9,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-delivery.test.mjs",
+      "pass": 11,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -51,8 +72,22 @@
       "ok": true
     },
     {
+      "file": "advisor-loop-integration.test.mjs",
+      "pass": 15,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "advisor-materials.test.mjs",
       "pass": 13,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-open-issue-30.test.mjs",
+      "pass": 8,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -72,6 +107,13 @@
       "ok": true
     },
     {
+      "file": "advisor-report-recovery.test.mjs",
+      "pass": 4,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "advisor-result-contract.test.mjs",
       "pass": 11,
       "fail": 0,
@@ -80,14 +122,14 @@
     },
     {
       "file": "advisor-scopes.test.mjs",
-      "pass": 5,
+      "pass": 9,
       "fail": 0,
       "exit": 0,
       "ok": true
     },
     {
       "file": "advisor-stage-card.test.mjs",
-      "pass": 9,
+      "pass": 11,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -109,6 +151,13 @@
     {
       "file": "advisor-stages.test.mjs",
       "pass": 14,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-stall.test.mjs",
+      "pass": 7,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -268,6 +317,13 @@
       "ok": true
     },
     {
+      "file": "client-advisor-delivery.test.mjs",
+      "pass": 21,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "client-advisor-stream.test.mjs",
       "pass": 9,
       "fail": 0,
@@ -332,7 +388,7 @@
     },
     {
       "file": "english-mode.test.mjs",
-      "pass": 15,
+      "pass": 24,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -499,6 +555,13 @@
       "ok": true
     },
     {
+      "file": "open-issues-31-32.test.mjs",
+      "pass": 4,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "optimizer-protocol.test.mjs",
       "pass": 14,
       "fail": 0,
@@ -557,6 +620,13 @@
     {
       "file": "provenance.test.mjs",
       "pass": 4,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "quality-contribution.test.mjs",
+      "pass": 9,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -634,6 +704,13 @@
     {
       "file": "tool-note.test.mjs",
       "pass": 3,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "turn305-parity.test.mjs",
+      "pass": 8,
       "fail": 0,
       "exit": 0,
       "ok": true

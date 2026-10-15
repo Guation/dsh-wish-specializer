@@ -307,9 +307,9 @@ window.__ModuleLoader__.load({
     // ── 与宿主 API 的薄封装 ───────────────────────────────────────────
     // 两条都不许把 raw 异常抛到调用方：网络层失败也要变成**可读原因**
     // （`SyntaxError: Unexpected end of JSON input` 这种原样冒到界面上，用户只会以为插件坏了）。
-    async function apiGet(path) {
+    async function apiGet(path, opts) {
       let r
-      try { r = await fetch(API + path, { headers: { accept: 'application/json' } }) }
+      try { r = await fetch(API + path, { headers: { accept: 'application/json' }, signal: opts && opts.signal, cache: opts && opts.cache }) }
       catch (e) { throw new Error('unreachable') }
       const j = await r.json().catch(() => null)
       if (!r.ok || !j || j.ok !== true) throw new Error((j && j.reason) || ('http-' + r.status))
@@ -2913,7 +2913,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       try { return JSON.parse(raw || partial || '{}') } catch { return {} }
     }
     const advisorVerdict = (code) => ({
-      suggestion: L('解题建议已形成', 'Solution advice ready'), pass: L('通过', 'Passed'), gaps: L('有缺口', 'Gaps found'), unverified: L('未完整验证', 'Unverified'),
+      suggestion: L('改进建议已形成', 'Contribution ready'), keep: L('保留当前版本', 'Keep current result'), pass: L('通过', 'Passed'), gaps: L('有缺口', 'Gaps found'), unverified: L('未完整验证', 'Unverified'),
       need_user: L('需要你决定', 'Needs your decision'), continue: L('继续当前路线', 'Continue'),
       narrow: L('缩小实验', 'Narrow the experiment'), change: L('建议换路线', 'Change approach'),
     }[code] || L('未给出结论', 'No conclusion'))
@@ -2932,6 +2932,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       'advisor-invalid-report': L('顾问报告格式不完整', 'The advisor report is incomplete'),
       'advisor-pass-without-evidence': L('缺少通过验收的证据', 'Not enough evidence to pass'),
       'advisor-timeout': L('咨询已到时限', 'Consultation reached its time limit'),
+      'advisor-stall-timeout': L('顾问长时间没有任何产出，已提前结束（可换模型或缩小问题后重试）', 'The advisor produced nothing for a long while, so it stopped early — try another model or a narrower question'),
       'advisor-cancelled': L('咨询已取消', 'Consultation was cancelled'),
       'host-restarted': L('宿主重启，中断了这次咨询', 'Host restart interrupted this consultation'),
       'plugin-unloaded': L('插件卸载，中断了这次咨询', 'Plugin unload interrupted this consultation'),
@@ -3066,8 +3067,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     // 两份各写一个常量必然漂移（真发生过：限时放宽后进度条仍按旧值画满）。
     const ADVISOR_MAX_MS = 300000
     // 进度换算：**纯函数**（可单测）。没在跑、或还没有耗时 ⇒ 不画进度条。
-    const advisorProgressPct = (elapsedSec, running, maxMs) => (running && elapsedSec != null && Number.isFinite(elapsedSec))
-      ? Math.min(0.97, Math.max(0, elapsedSec / ((Number(maxMs) > 0 ? Number(maxMs) : ADVISOR_MAX_MS) / 1000))) : null
+    const advisorProgressPct = (elapsedSec, running, maxMs) => (running && elapsedSec != null && Number.isFinite(elapsedSec) && Number(maxMs)>0)
+      ? Math.min(0.97, Math.max(0, elapsedSec / (Number(maxMs) / 1000))) : null
     function advisorDraftReply(draft) {
       const match = /"summary"\s*:\s*"((?:\\.|[^"\\])*)/.exec(String(draft || ''))
       if (!match) return ''
@@ -3158,16 +3159,26 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (processOpen && body && followThink.current) body.scrollTop = body.scrollHeight
       }, [reasoning, processOpen])
       const mode = args.mode || (value && value.mode) || (run && run.mode)
-      const title = mode === 'develop_approach' ? L('顾问 · 独立解题', 'Advisor · Independent solution') : mode === 'review_result' ? L('顾问 · 独立验收', 'Advisor · Independent review') : L('顾问 · 失败诊断', 'Advisor · Failure diagnosis')
+      const isContribution = mode === 'develop_approach' || mode === 'improve_result'
+      const title = mode === 'improve_result' ? L('顾问 · 产物拔高', 'Advisor · Result improvement') : mode === 'develop_approach' ? L('顾问 · 独立解题', 'Advisor · Independent solution') : mode === 'review_result' ? L('顾问 · 独立验收', 'Advisor · Independent review') : L('顾问 · 失败诊断', 'Advisor · Failure diagnosis')
       const isPartial = !!(value && (value.partial || (value.presentationMeta && value.presentationMeta.partial)))
+      const meta = (value && value.presentationMeta) || null
+      // ⚠ 两个概念必须分开（GitHub #30(b)）：
+      //   isPartial  是**安全闸**（部分结果不许放行阶段），保持只看标志位；
+      //   retained   是**有没有真东西**，只用来决定标题怎么写。
+      //   原先标题只看标志位，于是"只剩一句固定提示语"也会显示「保留部分内容」——那是假象。
+      const retainedReasoning = (value && value.partialReasoning) || (meta && meta.partialReasoning) || null
+      const retainedActivities = (value && Array.isArray(value.activities) && value.activities.length ? value.activities : (meta && Array.isArray(meta.activities) ? meta.activities : [])) || []
+      const retainedRaw = (value && value.raw) || (meta && meta.raw) || null
+      const hasRetained = !!(retainedReasoning || retainedActivities.length || retainedRaw)
       const stageState = value && ((value.presentationMeta && value.presentationMeta.stageState) || value.stageState)
       const staged = !!(stageState || args.taskId || args.stageId || (value && (value.taskId || value.stageId)))
       const declaredStage = stageState && stageState.stage && stageState.stage.id ? stageState.stage : null
       const recordingFailed = !!(value && ((value.stageRecording && value.stageRecording.ok === false) || (value.presentationMeta && value.presentationMeta.stageRecording && value.presentationMeta.stageRecording.ok === false)))
       const stagePassed = !!(declaredStage && stageState && stageState.advanceAllowed === true && stageState.ok === true && !isPartial && !(stageState.dependencyStages && stageState.dependencyStages.length) && !recordingFailed)
-      const status = staged && !running ? (stagePassed ? L('当前阶段可放行', 'Current stage may advance') : L('当前阶段未放行', 'Current stage cannot advance')) : running ? advisorStage(stage) : isPartial ? L('保留部分内容', 'Partial output')
+      const status = staged && !running ? (stagePassed ? L('当前阶段可放行', 'Current stage may advance') : L('当前阶段未放行', 'Current stage cannot advance')) : running ? advisorStage(stage) : isPartial ? (hasRetained ? L('保留部分内容', 'Partial output') : L('未形成结论', 'No usable output'))
         : report ? advisorVerdict(report.verdict) : advisorStage(stage)
-      const tone = (staged ? stagePassed : report && !isPartial && report.verdict === 'pass') ? T('ok') : (running || mode==='develop_approach' && report?.verdict==='suggestion' && !isPartial) ? T('acc') : T('warn')
+      const tone = (staged ? stagePassed : report && !isPartial && report.verdict === 'pass') ? T('ok') : (running || isContribution && ['suggestion','keep'].includes(report?.verdict) && !isPartial) ? T('acc') : T('warn')
       const elapsed = run ? Math.max(0, ((run.finishedAt || state.clock) - run.startedAt) / 1000)
         : value && typeof value.ms === 'number' ? value.ms / 1000 : null
       // 用一个静止的进度条把"还在跑、跑了多久"画出来，比只有一个秒数直观；上限对齐 advisor.js 的 150s，
@@ -3225,7 +3236,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           h('div', { style: { width: Math.round(progress * 100) + '%', height: '100%', background: tone, transition: 'width .45s ease' } })) : null,
         h('div', { 'data-po06-advisor-scope': true, style: { marginTop: '10px', fontSize: '12px', color: T('fg2'), overflowWrap: 'anywhere' } },
           h('strong', { style: { color: T('acc') } }, scopeLabels[reviewScope] || reviewScope), focus ? ' · ' + focus : ''),
-        mode !== 'develop_approach' && reviewScope !== 'general' && reviewScope !== 'delivery' ? h('div', { style: { color: T('fg3'), fontSize: '11px', marginTop: '4px' } }, L('结论仅限本次对象，不代表整体通过', 'This conclusion covers only the reviewed focus')) : null,
+        !isContribution && reviewScope !== 'general' && reviewScope !== 'delivery' ? h('div', { style: { color: T('fg3'), fontSize: '11px', marginTop: '4px' } }, L('结论仅限本次对象，不代表整体通过', 'This conclusion covers only the reviewed focus')) : null,
         coverage ? h('details', { 'data-po06-advisor-coverage': true, style: { marginTop: '12px', fontSize: '12px' } },
           h('summary', { style: { cursor: 'pointer', color: T('acc') } }, L('本轮专项覆盖', 'Coverage for this request') + ' · ' + (coverage.rows || []).length),
           (coverage.missingScopes || []).length ? h('p', { style: { color: T('warn') } }, L('未覆盖：', 'Missing: ') + coverage.missingScopes.map(s=>scopeLabels[s]||s).join(' · ')) : null,
@@ -3240,7 +3251,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           sectionHead('IconSearchOutlineRegular', L('原 AI 询问内容', 'Original AI question')),
           h('p', { style: { ...textStyle, color: T('fg2'), maxHeight: '160px', overflowY: 'auto' } }, question || L('正在接收询问…', 'Receiving question…'))),
         staged ? h(AdvisorStageCard, { stageState, stagePassed }) : null,
-        mode !== 'develop_approach' && !staged && value && value.reviewPassed !== undefined ? h('div', {'data-po06-advisor-outcome':true,style:{marginTop:'10px',fontSize:'12px',color:T('fg2')}},
+        !isContribution && !staged && value && value.reviewPassed !== undefined ? h('div', {'data-po06-advisor-outcome':true,style:{marginTop:'10px',fontSize:'12px',color:T('fg2')}},
           L('咨询调用：','Invocation: ') + (value.invocationSucceeded ? L('成功','Succeeded') : L('未成功','Unavailable')) + ' · ' +
           (value.reviewPassed ? L('当前专项通过（非整体完成）','Reviewed scope passed (not task completion)') : L('验收待补','Verification pending')),
           ((value.reviewState && value.reviewState.openIssues) || value.openIssues || []).map((row,i)=>h('p',{key:row.id||i,style:{margin:'5px 0',color:T('warn'),overflowWrap:'anywhere'}},
@@ -3273,14 +3284,14 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             : advisorReason((value && (value.reason || value.cut)) || (run && run.reason) || ''))),
           report && typeof report.contribution==='string' && report.contribution ? h('pre', { 'data-po06-advisor-contribution': true, style: { ...textStyle, marginTop:'12px', color:T('fg2') } }, report.contribution) : null,
           report && Array.isArray(report.assumptions) && report.assumptions.length ? h('div', { 'data-po06-advisor-assumptions':true, style:{marginTop:'10px',color:T('fg3')} }, L('待核对的前提', 'Assumptions to check'), h('ul',{style:{paddingLeft:'18px'}},report.assumptions.map((x,i)=>h('li',{key:i},String(x))))) : null,
-          mode==='develop_approach' ? h('p',{style:{marginTop:'10px',fontSize:'11px',color:T('fg3')}},L('这是独立解题建议，可采纳、修改或反驳；不是验收结果。','Independent solution advice; evaluate, adapt or challenge it. This is not an acceptance verdict.')) : null,
+          isContribution ? h('p',{style:{marginTop:'10px',fontSize:'11px',color:T('fg3')}},mode === 'improve_result' ? L('这是产物拔高建议；落实后比较新旧成果，无实质增益则保留当前。不是验收结果。','Result improvement advice: compare actual old/new results and keep current without a real gain. Not acceptance.') : L('这是独立解题建议，可采纳、修改或反驳；不是验收结果。','Independent solution advice; evaluate, adapt or challenge it. This is not an acceptance verdict.')) : null,
           draftReply ? h('span', { style: { fontSize: '11px', color: T('fg3') } }, L('答复生成中，尚未完成校验', 'Reply streaming; validation pending')) : null,
           report && report.findings.length ? h('ul', { style: { paddingLeft: '18px', margin: '12px 0' } }, report.findings.map((finding, i) => h('li', { key: i, style: { margin: '7px 0', color: T('fg2') } }, finding.text, refs(finding.evidenceRefs)))) : null,
           report ? h('div', { style: { marginTop: '12px', color: T('fg2') } },
             h('div', null, h('span', { style: { color: T('fg3'), marginRight: '8px', fontSize: '12px' } }, L('下一步', 'Next step')), report.nextStep),
             h('div', { style: { marginTop: '6px' } }, h('span', { style: { color: T('fg3'), marginRight: '8px', fontSize: '12px' } }, L('停止条件', 'Stop condition')), report.stopCondition)) : null,
           isPartial ? h('p', { style: { ...textStyle, color: T('warn'), marginTop: '10px', fontSize: '12px' } }, L('仅保留已生成内容，不作为完整验收通过。', 'Retained output only; not a completed acceptance review.')) : null),
-        mode==='develop_approach' ? null : h('details', { 'data-po06-advisor-checks': true, open: checksOpen, onToggle: e => setChecksOpen(e.currentTarget.open),
+        isContribution ? null : h('details', { 'data-po06-advisor-checks': true, open: checksOpen, onToggle: e => setChecksOpen(e.currentTarget.open),
           style: { marginTop: '16px', borderTop: '1px solid ' + T('line2') } },
           h('summary', { style: disclosureStyle },
             h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '6px' } },
@@ -3296,13 +3307,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 h('span', { style: { color: T('fg3'), fontSize: '11px', marginRight: '8px' } }, checkLabels[check.status] || check.status),
                 check.criterion, refs(check.evidenceRefs)))) : h('p', { style: { ...textStyle, color: T('fg3') } }, running ? L('等待顾问完成核验。', 'Waiting for the advisor review.') : L('本次未形成可采纳的验收项。', 'No accepted checks were produced.')),
             !report && value && value.detail ? h('p', { style: textStyle }, L('未通过的验收项：', 'Rejected check: ') + String(value.detail.criterion || ''), refs(value.detail.refs)) : null,
-            // 到点但有进展：把思考尾部摆出来，而不是只给一句「超时」（复杂项目不能空手而归）。
-            !report && value && value.partialReasoning ? h('details', { style: { marginTop: '10px' }, 'data-po06-advisor-partial': true },
-              h('summary', { style: { cursor: 'pointer', color: T('warn'), fontSize: '11px' } }, L('到点前的思考尾部（未形成报告）', 'Thinking tail before the deadline (no report)')),
-              h('pre', { style: { ...textStyle, maxHeight: '200px', overflowY: 'auto', marginTop: '8px', color: T('fg2'), fontFamily: 'inherit', fontSize: '12px' } }, value.partialReasoning)) : null,
-            (!report && ((value && value.raw) || (run && run.draft))) ? h('details', { style: { marginTop: '10px' } },
-              h('summary', { style: { cursor: 'pointer', color: T('fg3'), fontSize: '11px' } }, L('未采纳的原始输出', 'Unaccepted raw output')),
-              h('pre', { style: { ...textStyle, maxHeight: '180px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '12px', marginTop: '8px' } }, (value && value.raw) || run.draft)) : null) : null),
+            null) : null),
+        // 到点但有进展：把已经产出的东西**摆在卡面上**，而不是塞进默认收起的验收面板里
+        // （GitHub #30(b)：塞进去等于没显示——用户看到的仍然只有标题）。
+        !report && hasRetained ? h('div', { 'data-po06-advisor-partial': true, style: { marginTop: '12px', borderTop: '1px solid ' + T('line2'), paddingTop: '10px' } },
+          h('div', { style: { color: T('warn'), fontSize: '11px', marginBottom: '6px' } }, L('这次咨询没有完成；以下是已经产出、但未经验证的内容：', 'This consultation did not finish; below is what it did produce, unverified:')),
+          retainedReasoning ? h('pre', { style: { ...textStyle, maxHeight: '200px', overflowY: 'auto', color: T('fg2'), fontFamily: 'inherit', fontSize: '12px' } }, retainedReasoning) : null,
+          retainedActivities.length ? h('div', { style: { ...textStyle, fontSize: '12px', color: T('fg2') } },
+            retainedActivities.map((a, i) => h('div', { key: i }, (a.ok === true ? '✓ ' : '✗ ') + String(a.tool || '') + ' ' + String(a.target || '')))) : null,
+          retainedRaw ? h('details', { style: { marginTop: '8px' } },
+            h('summary', { style: { cursor: 'pointer', color: T('fg3'), fontSize: '11px' } }, L('未采纳的原始输出', 'Unaccepted raw output')),
+            h('pre', { style: { ...textStyle, maxHeight: '180px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '12px', marginTop: '8px' } }, retainedRaw)) : null) : null,
         // 页脚：一行克制的元信息（模型 / 思考档 / 查证次数 / token 用量）。
         h('div', { 'data-po06-advisor-meta': true, style: { display: 'flex', flexWrap: 'wrap', gap: '10px', color: T('fg3'), fontSize: '11px', marginTop: '10px' } },
           model ? h('span', { style: { overflowWrap: 'anywhere' } }, model) : null,
@@ -3313,6 +3328,118 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             usageText(usage, true)) : null,
           value && (value.truncated || value.omitted) ? h('span', { style: { color: T('warn') } }, L('材料不完整', 'Incomplete evidence')) : null),
         state.error ? h('p', { style: { color: T('warn'), fontSize: '11px', margin: '6px 0 0' } }, L('实时进度暂不可用：', 'Live progress unavailable: ') + state.error) : null)
+    }
+
+    // ── 交付状态旁注：只认当前尾节点，不解释或拦截模型的完成措辞 ──────
+    const ADVISOR_DELIVERY_STATUSES = new Set(['known-defects', 'verification-pending', 'reviewed-scope', 'not-reviewed', 'unavailable'])
+    const ADVISOR_DELIVERY_TIMEOUT_MS = 8000
+    const advisorDeliveryKey = (sessionId, seq) => typeof sessionId === 'string' && sessionId && Number.isSafeInteger(seq) && seq >= 0
+      ? JSON.stringify([sessionId, seq]) : null
+    // Slot owner props are flattened into the standard Session props by the host.
+    // TurnLocation.turn is display metadata only; seq can be the tail event without a closing assistant.
+    function advisorDeliveryBinding(props) {
+      if (!props || typeof props !== 'object' || Array.isArray(props)) return null
+      const turn = props.turn
+      if (!turn || typeof turn !== 'object' || Array.isArray(turn) || !Number.isSafeInteger(turn.turn) || turn.turn < 0
+        || !advisorDeliveryKey(props.sessionId, props.seq)) return null
+      return { sessionId: props.sessionId, seq: props.seq, turnNumber: turn.turn }
+    }
+    const deliveryText = (v) => typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, 360) : ''
+    function advisorDeliveryValue(value, sessionId, seq) {
+      // 不接收会话最新态／旧回复的响应，也不把未知协议当作完成。
+      if (!advisorDeliveryKey(sessionId, seq) || !value || value.ok !== true || value.sessionId !== sessionId || value.seq !== seq
+        || value.completionClaimAllowed !== false || value.scopeOnly !== true || !ADVISOR_DELIVERY_STATUSES.has(value.status)) return null
+      const checkStates = new Set(['failed', 'unverified', 'stale', 'satisfied'])
+      const checks = (Array.isArray(value.checks) ? value.checks : []).filter(c => c && typeof c.criterion === 'string').slice(0, 8)
+        .map(c => ({ criterion: deliveryText(c.criterion), status: checkStates.has(c.status) ? c.status : 'unverified', action: deliveryText(c.action) }))
+      const counts = {}
+      for (const key of ['failed', 'unverified', 'stale', 'satisfied']) counts[key] = Number.isSafeInteger(value.counts && value.counts[key]) && value.counts[key] >= 0 ? value.counts[key] : 0
+      // The endpoint owns the current-file/staleness verdict. Counts and retained checks
+      // are facts, not a second client-side status source or permission to claim completion.
+      const status = value.status
+      const contribution = value.contribution && ['available', 'result-changed', 'comparison-pending', 'keep'].includes(value.contribution.status)
+        ? { status: value.contribution.status, summary: deliveryText(value.contribution.summary) } : null
+      return { status, requestId: deliveryText(value.requestId), checks, counts, contribution,
+        limitations: (Array.isArray(value.limitations) ? value.limitations : []).map(deliveryText).filter(Boolean).slice(0, 4) }
+    }
+    function useAdvisorDelivery(sessionId, seq) {
+      const key = advisorDeliveryKey(sessionId, seq)
+      const [revision, setRevision] = React.useState(0)
+      const [state, setState] = React.useState({ key: null, revision: -1, data: null, loading: false, error: null })
+      React.useEffect(() => {
+        if (!key) return undefined
+        let alive = true, timedOut = false
+        // No abort support means no request: keep this annotation neutral, never fail the turn.
+        if (typeof AbortController !== 'function') {
+          setState({ key, revision, data: null, loading: false, error: 'unavailable' })
+          return undefined
+        }
+        const controller = new AbortController()
+        const publish = (data, error) => { if (alive) setState({ key, revision, data, loading: false, error }) }
+        setState({ key, revision, data: null, loading: true, error: null })
+        const guard = window.setTimeout(() => {
+          timedOut = true
+          controller.abort()
+          publish(null, 'timeout')
+        }, ADVISOR_DELIVERY_TIMEOUT_MS)
+        void (async () => {
+          try {
+            const raw = await apiGet('/advisor-delivery?session=' + encodeURIComponent(sessionId) + '&seq=' + seq,
+              { signal: controller.signal, cache: 'no-store' })
+            if (!alive || timedOut) return
+            const data = advisorDeliveryValue(raw, sessionId, seq)
+            publish(data, data ? null : 'unsupported-response')
+          } catch (e) {
+            if (alive && !timedOut) publish(null, 'unavailable')
+          } finally { window.clearTimeout(guard) }
+        })()
+        return () => { alive = false; window.clearTimeout(guard); controller.abort() }
+      }, [key, revision])
+      // 在 effect cleanup/setup 之前也不能闪现上一个 sid/seq／刷新前的状态。
+      const current = state.key === key && state.revision === revision ? state : { data: null, loading: !!key, error: null }
+      return { ...current, refresh: () => setRevision(n => n + 1) }
+    }
+    function advisorDeliveryLabel(status) {
+      return ({
+        'known-defects': L('存在已知缺陷', 'Known defects'),
+        'verification-pending': L('验证待补', 'Verification pending'),
+        'reviewed-scope': L('已复核（仅限所列范围）', 'Reviewed scope only'),
+        'not-reviewed': L('尚未复核', 'Not reviewed'),
+        unavailable: L('复核状态暂不可用', 'Review status unavailable'),
+      })[status] || L('复核状态暂不可用', 'Review status unavailable')
+    }
+    function AdvisorDeliveryTail(props) {
+      useLocaleLive(); useThemeLive()
+      const binding = advisorDeliveryBinding(props)
+      const sessionId = binding && binding.sessionId, seq = binding && binding.seq
+      const state = useAdvisorDelivery(sessionId, seq)
+      if (!binding) return null
+      const data = state.data, status = data ? data.status : 'unavailable'
+      const tone = status === 'known-defects' ? T('err') : status === 'verification-pending' ? T('warn') : T('fg3')
+      const contributionLabels = {
+        available: L('已有解题贡献；效果尚未核对', 'Contribution available; effect not verified'),
+        'result-changed': L('产物已变化；新旧对照待核对', 'Result changed; baseline comparison pending'),
+        'comparison-pending': L('新旧产物对照待核对', 'Baseline comparison pending'),
+        keep: L('建议保留当前版本；不代表验收通过', 'Keep current version suggested; not acceptance'),
+      }
+      const checkLabels = { failed: L('失败', 'Failed'), unverified: L('未验证', 'Unverified'), stale: L('证据已过期', 'Stale evidence'), satisfied: L('本项已有证据', 'Evidence for this check') }
+      return h('section', { ...themeAttrs(), 'data-po06': 'advisor-delivery', 'data-po06-delivery-status': state.loading ? 'loading' : status,
+        'data-po06-delivery-session': sessionId, 'data-po06-delivery-seq': seq, 'data-po06-delivery-request': data && data.requestId || undefined,
+        style: { borderLeft: '2px solid ' + tone, padding: '3px 0 3px 10px', color: T('fg2'), fontSize: '12px', lineHeight: 1.6, overflowWrap: 'anywhere', minWidth: 0 } },
+        h('div', { style: { display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px' } },
+          h('strong', { role: 'status', style: { color: tone, fontWeight: 500 } }, state.loading ? L('交付复核状态读取中…', 'Reading delivery review status…') : advisorDeliveryLabel(status)),
+          h('span', { style: { color: T('fg3'), fontSize: '11px' } }, L('第 ' + binding.turnNumber + ' 轮', 'Turn ' + binding.turnNumber)),
+          h('button', { type: 'button', disabled: state.loading, onClick: state.refresh, style: { ...S.small, fontSize: '11px' },
+            title: L('重新核对已记录证据与当前文件；不调用模型', 'Recheck recorded evidence against current files; no model call') }, L('刷新', 'Refresh'))),
+        h('div', { style: { color: T('fg3'), fontSize: '11px' } }, L('这是本条回复的复核旁注，不代表任务完成；正文与文件分享不受拦截。', 'Review annotation for this reply, not task completion; reply text and file sharing are not intercepted.')),
+        data && data.checks.length ? h('ul', { style: { paddingLeft: '18px', margin: '4px 0' } }, data.checks.map((c, i) => h('li', { key: i, 'data-po06-delivery-check': c.status },
+          checkLabels[c.status] + ' · ' + c.criterion, c.action ? h('span', null, ' — ' + c.action) : null))) : null,
+        data && data.contribution ? h('div', { 'data-po06-delivery-contribution': data.contribution.status, style: { marginTop: '4px' } },
+          contributionLabels[data.contribution.status], data.contribution.summary ? ' · ' + data.contribution.summary : null) : null,
+        data && data.limitations.length ? h('div', { style: { color: T('fg3'), fontSize: '11px', marginTop: '4px' } }, data.limitations.join(' · ')) : null,
+        !state.loading ? h('div', { style: { color: T('fg3'), fontSize: '11px' } }, state.error
+          ? L('宿主接口尚不可用或响应不匹配；不能确认复核状态。', 'Host endpoint unavailable or response mismatch; review status cannot be established.')
+          : L('状态仅反映本次读取；文件变化后请刷新。', 'Status reflects this read only; refresh after file changes.')) : null)
     }
 
     // ── 注册（含单例闸门与自愈重挂）──────────────────────────────────
@@ -3600,6 +3727,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       mount('conversation.input.left', 'prompt-optimizer', 20, ControlBar)
       mount('shell.overlay', NS + '-panel', 40, () => null)   // 面板本体在控件栏里渲染；这一条保证浮层槽可用
       mount('settings.plugins.tab', NS, 40, SettingsTab)
+      // 独立 list 项：不覆盖宿主文件卡片，也不接管 assistant 文本或停止边界。
+      mount('conversation.chat.turnTail', NS + '-advisor-delivery', 10, AdvisorDeliveryTail)
       // ④ 虚拟 POSIX 工具在对话流里的**专属卡片**（用户 2026-09-24 要求：要能一眼看出用的是虚拟工具，
       //    而不是和 pwsh 一样的"运行命令"）。keyed 座位按 wire 工具名分发，我们只占 `posix`。
       // ── 内置 Bash 的专属卡片（0.7.3）──────────────────────────────────────
@@ -3772,6 +3901,7 @@ const react = require("react")
         ADVISOR_POLL_MS, ADVISOR_POLL_ERROR_MS, ADVISOR_POLL_IDLE_MS, ADVISOR_POLL_FULL_MS, ADVISOR_REQUEST_TIMEOUT_MS,
         advisorMergeProgress, advisorProgressKey, advisorNextDelayMs, advisorDeltaMiss,
         holdBridgeRead, holdBridgeWrite, holdBridgeOn,
+        advisorDeliveryKey, advisorDeliveryBinding, advisorDeliveryValue, advisorDeliveryLabel, useAdvisorDelivery, AdvisorDeliveryTail, ADVISOR_DELIVERY_TIMEOUT_MS,
         themeTokens: THEME_TOKENS,
         tokenVars: TOKEN_VARS,
         themeIsDark,

@@ -151,7 +151,7 @@ export async function handleUserInput(adapter, session, input) {
     }
     if (emptyResultReason(prepared.parsed)) {
       step('fallbackEmpty', { reason: emptyReason, chars: text.length })
-      prepared = prepare(JSON.stringify({ ops: [buildEmptyFallback({ sessionId, messageId: String(input.messageId), userText: text })] }))
+      prepared = prepare(JSON.stringify({ ops: [buildEmptyFallback({ sessionId, messageId: String(input.messageId), userText: text,englishMode:input.policy?.englishMode===true })] }))
       step('parse3', { ok: prepared.parsed.ok, code: prepared.parsed.code || null, fallback: true, dropped: prepared.parsed.dropped || [] })
     }
   }
@@ -437,7 +437,7 @@ function dropUnknownTargetOps(parsed, adapter, session) {
  */
 function emptyResultReason(parsed) {
   if (!parsed) return 'no-result'
-  if (!parsed.ok) return parsed.code === 'NO_JSON' ? 'empty-completion' : null
+  if (!parsed.ok) return ['NO_JSON','BAD_JSON','BAD_OPTIMIZER_SHAPE','BAD_SHAPE'].includes(parsed.code) ? 'parse-rejected:'+parsed.code : null
   if (!parsed.patch) return parsed.understanding ? null : 'zero-ops'
   if (!Array.isArray(parsed.patch.ops) || parsed.patch.ops.length === 0) return 'all-ops-dropped'
   return null
@@ -449,24 +449,26 @@ function emptyResultReason(parsed) {
  * 为什么宿主写这一条不算"发明内容"（与"不得新增产品目标"不冲突）：
  *   · 它陈述的只有两件可机械核对的事：**原话的逐字内容**（截断展示）与**"这一轮没被展开"**；
  *   · 它落在 `unknown`（待确认）节，界面会显示成"需要确认"，**不会**被当成"你说过的"；
- *   · 它带 `blocksAction: true`，工作 AI 会知道"这一轮的意图还没定"，而不是拿着空包硬做；
+ *   · 它带 `blocksAction: false`（`schema.js` 只允许 unknown 带这个字段）：**不拦下游** ——
+ *     "谢谢"这种本轮本来就不该额外做什么，把它变成拦路石是另一种失真；
  *   · 重试后模型只要交出任何东西，这条兜底就**不会被用到**（它是最后一道，不是常规路径）。
+ *
+ * ⚠ 2026-10-16 复位：这一段曾被改成 `kind: 'proposal'` + 另一套文案，两处都偏了 ——
+ *   ① 宿主写的"没提取到"不是模型提的**建议**，标成 proposal 等于把事实说成提案；
+ *   ② 标成 proposal 后 `blocksAction` 因 schema 限制被丢弃，且文案里少了"没有从中提取到"这条
+ *      可机械核对的事实，界面/工作 AI 都看不出这一轮到底发生了什么。
+ *   现在回到 `unknown` + 保留后来加的"本状态不表示用户缺少要求"防发明措辞，两边都要。
  */
-function buildEmptyFallback({ sessionId, messageId, userText }) {
-  const t = String(userText == null ? '' : userText)
-  const shown = t.length > 40 ? t.slice(0, 40) + '…' : t
+function buildEmptyFallback({ sessionId, messageId, userText, englishMode=false }) {
   return {
     op: 'add_item',
     item: {
       id: 'unk-unevaluated-input',
       kind: 'unknown',
-      unknownClass: 'user_preference',
-      // ⚠ `blocksAction: false`：这一条**不拦下游**。原话太短可能是"寒暄/确认/致谢"，
-      //   那种情况下正确行为就是"本轮没有新要求"，不该把工作 AI 拦下来问一句。
       blocksAction: false,
-      text: '这一轮的原话是「' + shown + '」（' + t.length + ' 字）：解释层没有从中提取到新的要求或质量目标。'
-        + '如果用户这一轮确实没有新要求（寒暄、确认、致谢），本轮就不该额外改变什么；'
-        + '如果他有新要求，需要他说明具体要做什么——**不要按猜测执行**。',
+      text: englishMode
+        ? 'This round did not yield any extractable instruction; the original wording is still fully available in this round. Continue from the complete original user request and confirmed facts. This state does not mean the user is missing a requirement and does not ask you to restate it; clarify only if the original task itself has a consequential ambiguity that cannot be reasonably resolved.'
+        : '这一轮没有从中提取到可执行内容（原话仍完整在本轮上下文里）。请依据完整用户原话与已确认事实继续判断。本状态不表示用户缺少要求，也不要求再次解释原话；仅当原任务本身存在影响执行且无法合理解决的歧义时才澄清。',
       sourceRefs: [{ kind: 'model', sessionId }],
     },
   }

@@ -81,10 +81,15 @@ function scanScope(src) {
     const from = marks[i].at
     const to = i + 1 < marks.length ? marks[i + 1].at : code.length
     const body = code.slice(from, to)
+    // ⚠ 判"使用"之前先去掉**属性访问**与**对象字面量的键**：`props.sessionId` 与 `{ sessionId: props.sessionId }`
+    //   都不是自由引用。把它们算成"用到"会把「只经 props 读会话 id」的组件判成未定义——
+    //   实测误报：advisorDeliveryBinding（交付状态旁注）因为返回对象里有个同名键而被咬。
+    //   定义侧的四种形态仍用未裁剪的 body，守卫强度不变。
+    const refs = body.replace(/\.\s*[A-Za-z_$][\w$]*/g, '').replace(/([{,]\s*)[A-Za-z_$][\w$]*\s*:/g, '$1')
     const first = body.replace(/^\n/, '').split('\n')[0]
     const sig = first.replace(/^\s*function\s+\w+/, '')
     for (const id of GUARDED) {
-      if (!new RegExp('\\b' + id + '\\b').test(body)) continue
+      if (!new RegExp('\\b' + id + '\\b').test(refs)) continue
       const defined = new RegExp('\\b' + id + '\\b').test(sig)
         || new RegExp('(const|let|var)\\s+' + id + '\\s*=').test(body)
         || new RegExp('(const|let|var)\\s*\\{[^}]*\\b' + id + '\\b[^}]*\\}').test(body)

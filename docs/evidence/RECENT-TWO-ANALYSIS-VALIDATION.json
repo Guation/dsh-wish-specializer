@@ -1,0 +1,910 @@
+{
+  "scope": "Analysis only; no production changes or model-generated new artifacts.",
+  "facts": "docs/evidence/RECENT-TWO-ADVISOR-CHAIN.json",
+  "analysis": "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+  "actualLiveRevision": "round305-baseline-1",
+  "productionFilesCompared": 66,
+  "changedProductionFiles": [],
+  "mechanicalProbe": {
+    "networkModelCalls": 0,
+    "calls": [
+      {
+        "input": "whole file with sufficient first line",
+        "ok": true,
+        "verdict": "unverified",
+        "reviewPassed": false,
+        "completionClaimAllowed": false,
+        "material": [
+          {
+            "status": "truncated",
+            "selectionComplete": false,
+            "wholeFileComplete": false
+          }
+        ],
+        "checks": [
+          {
+            "criterion": "The first line declares KNOWN_VALUE as 42.",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0"
+            ]
+          }
+        ]
+      },
+      {
+        "input": "explicit line1",
+        "ok": true,
+        "verdict": "pass",
+        "reviewPassed": true,
+        "completionClaimAllowed": false,
+        "material": [
+          {
+            "status": "ready",
+            "selectionComplete": true,
+            "wholeFileComplete": false
+          }
+        ],
+        "checks": [
+          {
+            "criterion": "The first line declares KNOWN_VALUE as 42.",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "independentApproach": {
+    "result": {
+      "ok": true,
+      "report": {
+        "verdict": "suggestion",
+        "summary": "两日志真正卡住的不是顾问结论被压成 unverified，而是交付关口只被“主模型自觉”——reviewPassed/completionClaimAllowed 只挂在 reviewOutcome 与 advisor_stage 分支上，未登记阶段的连续上下文只回注前 3 条 open check 的文本提示，缺少一个与阶段无关、由“最后一条未闭环 review 相对最新成果版本”驱动的机器可判交付门。",
+        "contribution": "一、把闭环对象从“检查项状态”换成“未闭环覆盖相对于成果版本”\n\nF1 advisor.js:443-446 只在 stageSpec 分支把 reviewPassed 绑定 stageRecording/stageState 并强制 completionClaimAllowed=false；F1 advisor.js:450-460 的非阶段路径靠 coverage.feedback 计算 allRecordedChecksClosed 与 completionClaimAllowed，但 F1 advisor-context.js:35-36 注入到主模型上下文时把 checks 截成前 3 条，且无任何 completionClaimAllowed 维度。这解释了 F0 共同事实里“状态字段已存在、提醒已存在仍被绕过”：状态只保证被陈述，不承载放行语义。\n\n建议：给每次 review 记录一个 opaque 的 revisionMarker（当前 reviewRevision 可作为输入，但需明确其取值来源——这是最小查证点：确认 reviewRevision 是否随成果文件/材料哈希变化，还是仅随会话递增）。同时记录 latestResultMarker（最新写入的成果版本标识，如成品文件哈希或 seq）。定义 unresolvedCoverage = 最后一次 review 中 status!=satisfied 的 check 集合中，其 revisionMarker 早于 latestResultMarker 的那些。交付门 = unresolvedCoverage 为空。这样“复制新图后删除 .tankbuild 原证据”（F0 A 节 seq460/467）会自然让覆盖变成 stale 而不被算作已闭环，无需新增警告。\n\n二、让“未验证”不等于“通过”，但不采用全盘阻截\n\nF0 B 节 6 检查全 unverified 且明确 not one pixel，然 F0 结论是姿态弱化核心缺口；F0 A 节 gaps 1 satisfied/4 unverified，reviewPassed=false 仍以“做好了”开头（seq478）。若把 unverified 一律视为不通过会触发用户明确排除的全或全阻断。更小的高杠杆做法是按证据类型分级：\n- 对“证据类型内在无法由源码判定”的检查（boot/首帧/输入/后处理、性能），标 blocked-by-source，其闭环唯一合法途径是像素或运行探针；在无该类型证据时不允许 status 迁到 satisfied（这与 F1 advisor-scopes.js:50-52 已有的“源码不能证明运行、截图不能证明交互/性能”语义一致，但要求机制强制，而非仅提示）。\n- 对可由新增材料闭合的检查，标 closable-by-evidence，附最小补证点。\n- 交付允许“实现完成、blocked 项如实列出”，但 blocked 项的非空集合禁止 completionClaimAllowed；即交付不是全禁，而是必须携带 blocked 清单且禁止声明整体通过。\n\n三、把顾问建议变成“可判定的改动请求”，而非报告文本\n\nF0 B 节 30 余处实际操作（composer.pixelRatio、aperture、材质、镜头）说明采纳存在，F0 明确指出“不能将采纳数当收益”，因为没有像素前后对照。因此建议采纳率不是合适度量。改为在 improve_result 输出上要求每条建议带 criterion（可测量）、evidenceRef（现有材料 id）与 predictedCheck（关闭哪个既有 check）。主模型的每个采纳动作记录为目标 check id，复核时只问“该 check 是否从 unverified 变为 satisfied”，避免把编辑数量当收益。这一改动不改动推理预算，也不要求更强模型。\n\n四、低价值核查负担（F0 B 节 2042.. 并怀疑 2041 CTRL guard，最终被主模型 grep 证实存在）不是靠“多读邻行”修补，而是靠主张最小化：顾问若不能给出“该假设与某条 criterion 的因果关系”与“可在有限读内验证的判定点”，应以 hypothesis 输出并标注需主模型核实的行范围，而不是发射一个 grep 负担。判定点存在时，最好给出可直接执行的核实行命令/查询，而非叙述推断。\n\n五、可测量的测试（不依赖运行环境，仅基于日志与录制数据）\n- T1 释放语义：取两个 F0 会话的覆盖记录，重放“复制新图后删除原证据”与“最终 6 项全 unverified”两幕，断言 completionClaimAllowed=false 且 unresolvedCoverage 非空，且该结论不依赖主模型输出文字。\n- T2 提示非截断风险：断言 advisor-context.js 注入的 check 数量不因截断为 3 条而丢失 blocked 项，即 blocked/closable 分级项优先展示。\n- T3 建议闭环：对 F0 B 节 30 余处编辑，断言每条采纳动作都映射到一个目标 check id，且该 check 的最终状态与是否真正 satisfied 一致；不满足则计为 unlinked-adoption，观测其比率。\n- T4 证据类型约束：构造一条仅凭源码的 boot/首帧检查，断言无法迁到 satisfied，且不被误判为 closable-by-evidence。\n\n失败用例（必须覆盖反例）\n- 若 reviewRevision 实际覆盖了成果哈希，则 unresolvedCoverage 的 stale 判定变得过强，会误报已闭环为未闭环；此时必须回到覆盖“仅比较覆盖记录生成时刻的成果版本”并保留覆盖层独立的 revision 概念。\n- 若主模型在 review 未通过前仍可写入成品并重跑，则 unresolvedCoverage 可能被后续 review 覆盖为闭环；应保留“同一 revisionMarker 下最后 review”的约束，禁止用新 review 洗掉旧未闭环项。\n- 若交付被解读为必须阻塞所有输出，则违反用户约束；本方案的交付门只控制 completionClaimAllowed，不控制交付动作本身。\n- 若顾问机制已被更上层任务强制 reviewPassed，则本贡献只改变状态语义；需确认该强制路径是否存在（是否已有未读的 reviewOutcome 实现）——这是最小查证点之二：reviewOutcome 的实际定义与它对 reviewPassed/completionClaimAllowed 的写入路径。",
+        "assumptions": [
+          "F1 的 reviewRevision 可作为覆盖标记输入，但其实现语义未在已读材料中展示，需核实。",
+          "F0 中“复制新图后删除 .tankbuild 原证据”的删除行为是否可被覆盖层观测，未在 F1 已读片段中显示，需核实。",
+          "reviewOutcome 的具体实现未读，因此交付门的所有权判定是待核的。",
+          "F0 的两份日志摘要为原始多帧日志的可追溯字段来源，未读原始日志时仅按其陈述使用。"
+        ],
+        "findings": [],
+        "checks": [],
+        "nextStep": "建议先做两项最小查证：(1) 读 reviewOutcome 的实现，确认 reviewPassed/completionClaimAllowed 的写入位置与条件，判断本贡献的交付门应当扩展还是新建；(2) 核实 reviewRevision 的取值来源（是否随成果哈希变化），据此确定 unresolvedCoverage 的 stale 判定边界，再据 T1 用两份日志做重放断言。若两点均与上述假设相反，则只采纳“blocked-by-source 不得 satisfied”与“建议需带 criterion/evidenceRef/predictedCheck”两条最小行为变更。",
+        "stopCondition": "若核实发现 reviewRevision 已逐成果版本变化且 unresolvedCoverage 已等价存在，则 stale 判定部分作废；若 reviewOutcome 已强制 completionClaimAllowed 依赖非空覆盖，则 T1 作废；若顾问机制已被更强层锁定，用户目标侧仅剩建议闭环与分级语义。"
+      },
+      "trace": [],
+      "sessionId": "recent-two-adviser-loop-analysis",
+      "mode": "develop_approach",
+      "materials": [
+        {
+          "path": ".po06-tmp/recent-two-advisor-facts.md",
+          "purpose": "Actual recent two session trace facts including concrete adoption and negative evidence",
+          "evidenceType": "other",
+          "id": "F0",
+          "kind": "file",
+          "status": "ready",
+          "sent": true,
+          "previewAvailable": true,
+          "selectionScope": "whole-file",
+          "selectionComplete": true,
+          "wholeFileComplete": true,
+          "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-two-advisor-facts.md",
+          "bytes": 4132,
+          "chars": 2118,
+          "sha256": "84f1cfe49b04df9ed0855925f90061fb66e31b0154c1bd70b4fb733799bb364f",
+          "totalLines": 26,
+          "selectedStartLine": 1,
+          "selectedEndLine": 26,
+          "selectedChars": 2118,
+          "truncated": false,
+          "sentChars": 2118,
+          "excerpt": "# 最近两个会话：顾问链路事实\n\n来源：两份原始多帧日志，逐帧解码零解析错误；本文件仅含公开消息/工具结果摘要，不引述内部推理。完整可追溯字段见 docs/evidence/RECENT-TWO-ADVISOR-CHAIN.json。\n\n## A 中文请求，59fb9fb9\n- 原始要求：不预览文件夹其他文件；three.js单HTML，极其精细现代主战坦克，可预览操控、真实帅气写真。主模型deepseek-account/deepseek-flash/max，顾问deepseek-official/deepseek-flash/max。\n- seq51自建阶段：8.2m/3.56m/2.54m/约10m、等弧长链板、轮组、楔形炮塔、30~40°倾角。原用户未指定这些数字/算法/车型。\n- 无develop_approach、无improve_result；只有seq406->408 review_result，临近交付。文件+4张真实截图均主动提供，geometry策略把源码排除，不允许读工具；精确尺寸/重采样/轴线却在检查范围。\n- 返回gaps，1 satisfied/4 unverified/0 failed；reviewPassed:false,completionClaimAllowed:false,advanceAllowed:false，横幅“顾问验收未通过·不得宣称完成”。findings写侧裙骨架、炮管竹节、外伸横板等可见缺陷，但不对应failed检查。\n- seq417->419具体几何补丁12处成功（炮管、侧裙、外伸板、炮塔收窄），真浏览器重拍无异常；对约11m的猜测核算为9.62m而拒绝，这种有证据不采纳合理。\n- 无同对象复核、无advance或delivery。seq460复制新图后删除.tankbuild原证据；seq467持续上下文4 unverified+1 stale且evidence-missing-or-unreadable/evidence-changed。seq478开头“做好了”，未说明顾问仍未通过。\n- 这不是完全没参考，而是“修了部分建议—自验—绕过未闭合复核直接交付”。顾问24917报告token，114768ms。\n\n## B 英文模式，288e64ea\n- 同目标保真译文，主模型同Flash/max。无develop_approach、无advisor_stage；seq424->425 improve_result，seq564->565 review_result。\n- 提供约126KB/2489行单HTML，F0最初只送前16000字符（大量CSS/UI）；顾问6次grep/read补读。贡献提出composer尺寸所有权、DOF计算、材质、灯影和主镜头等具体改法，112089报告token/282223ms。\n- seq433..504有30余处实际edit，包含composer.pixelRatio、aperture0.03->0.0012、材质和镜头；不是没有采纳。没有实际像素前后对照，不能将采纳数当收益。\n- 浏览器探测：最初在工作区外写探针被拒，随后以shell写同一路径；pwsh启动无截图、超时，有次result.sandbox.denied:false。没有证据能把所有情况等同“浏览器被沙箱彻底禁止”；本会话确实没有拿到实际像素。相同环境中文通过工作区profile+CDP成功，路径/配置/执行方式混杂，不能以此证明英文较差。\n- 最终review问源码能否证明boot/首帧/输入/后处理运行；6检查全unverified，reviewPassed:false,completionClaimAllowed:false，94452报告token/68562ms。源码只能支持局部静态结论，没像素的未验证正确。\n- 顾问读2042..却怀疑2041的CTRL guard，主模型grep2041证实存在；应核实必要邻行后才报告的假设变成低价值核查负担。\n- seq569持续上下文也提示unverified但只展示6项的前3项。seq604“Done”开头，但明确“not one pixel… boot/first frame unverified”，并未声称review通过。交付姿态仍弱化核心缺口，不能说与A一样完全隐瞒。\n\n## 共同事实\n- 两会话顾问均在绝大部分实现完成后才被调用；没有早期独立办法贡献。三次均无reviewPassed:true；提醒、状态字段和上下文已经存在，不是简单缺警告。\n- 中文初始优化建议把不能完全离线单HTML写成必须第二文件，属不成立的全称；英文优化建议明确允许vendoring/inlining。中国建议给粗糙度/金属度和角度，另主模型自定不同数值，缺独立早期审视。不能泛化成语言单因果。\n- 活动代码原历史就有强scope材料隔离、整文件truncated->limited->pass降级、最终只注入反馈未控制完成声明；回退历史也会带回这些既有局限。\n",
+          "readRanges": [
+            {
+              "startLine": 1,
+              "endLine": 26,
+              "selectionComplete": true
+            }
+          ]
+        },
+        {
+          "path": ".po06-tmp/recent-two-advisor-mechanisms.txt",
+          "purpose": "Actual current filtering/limited/feedback/claim source excerpts, not full-file coverage",
+          "evidenceType": "source",
+          "id": "F1",
+          "kind": "file",
+          "status": "ready",
+          "sent": true,
+          "previewAvailable": true,
+          "selectionScope": "whole-file",
+          "selectionComplete": true,
+          "wholeFileComplete": true,
+          "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-two-advisor-mechanisms.txt",
+          "bytes": 12736,
+          "chars": 11189,
+          "sha256": "cd906a796b01e347e835d397ac79d1a7b5eb9583b783731e46e8040c914c100a",
+          "totalLines": 114,
+          "selectedStartLine": 1,
+          "selectedEndLine": 114,
+          "selectedChars": 11189,
+          "truncated": false,
+          "sentChars": 11189,
+          "excerpt": "advisor-scopes.js\n16| export function scopePolicy(args) {\n17|   const scope = args.scope || 'general'\n18|   const visual = VISUAL_SCOPES.has(scope)\n19|   const contribution = isContributionMode(args.mode)\n20|   return { scope, focus: args.focus || '', visual, contribution, label:SCOPE_LABELS[scope],\n21|     allowTools: (contribution || !visual) && scope !== 'delivery', historyChars: scope === 'general' ? 48000 : scope === 'delivery' ? 8000 : 14000,\n22|     imagesOnly: visual && !contribution, omitImages: !contribution && ['code','interaction','performance','delivery'].includes(scope) }\n23| }\n24| export function scopedMaterials(args, policy) {\n25|   const excluded = []\n26|   const dropped = (items,kind) => items.forEach((row,i)=>excluded.push({ id:'excluded-'+kind+i,kind,path:typeof row==='string'?row:row.path,\n27|     purpose:typeof row==='string'?'兼容成果材料':row.purpose,status:'excluded',sent:false,previewAvailable:false,reason:'scope-material-excluded' }))\n28|   const prepared = {...args}\n29|   if (policy.imagesOnly) { dropped(args.artifacts||[],'file');dropped(args.files||[],'file');prepared.artifacts=[];prepared.files=[] }\n30|   if (policy.omitImages) { dropped(args.images||[],'image');prepared.images=[] }\n31|   return { prepared, excluded }\n32| }\n33| export function scopedSnapshot(snapshot, args, policy) {\n34|   if (!snapshot.ok || policy.scope === 'general') return snapshot\n35|   let records = []\n36|   // Explicit ids or paths select relevant evidence. Do not inject unrelated recent successes.\n37|   if ((policy.contribution || !policy.visual) && policy.scope !== 'delivery') {\n38|     const refs = new Set(args.evidenceRefs || [])\n39|     const paths = [...(args.artifacts || []), ...(args.files || []).map(x=>x.path), ...(policy.contribution ? (args.images || []).map(x=>x.path) : [])].map(x=>String(x).replaceAll(String.fromCharCode(92),'/').toLowerCase())\n40|     records = snapshot.records.filter(row => refs.has(row.id) || paths.some(path => row.text.replaceAll(String.fromCharCode(92),'/').toLowerCase().includes(path)))\n41|   }\n42|   let used = 0, omitted = 0\n43|   const selected = []\n44|   for (const row of records.slice().reverse()) { if (used + row.text.length > policy.historyChars) { omitted++;continue }; selected.unshift(row);used+=row.text.length }\n45|   return {...snapshot,records:selected,omitted,truncated:snapshot.userText.includes('[截断：') || select",
+          "readRanges": [
+            {
+              "startLine": 1,
+              "endLine": 114,
+              "selectionComplete": true
+            }
+          ]
+        }
+      ],
+      "scope": "latest-human-request-only",
+      "omitted": 0,
+      "truncated": false,
+      "inspectedMaterials": [],
+      "model": "deepseek-official/deepseek-flash",
+      "reasoningEffort": "off",
+      "toolCalls": 0,
+      "usage": {
+        "inputTokens": 5978,
+        "outputTokens": 1788,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "totalTokens": 7766
+      },
+      "ms": 16522,
+      "note": "顾问结论是建议，不是新增授权；未验证项不得当作通过。",
+      "contributionRevision": "route-a-1",
+      "uiRunId": null,
+      "reviewScope": "code",
+      "focus": "通用顾问贡献采用、证据判读与最终交付闭环",
+      "requestId": "human:1",
+      "revisionMarker": "write:none",
+      "coverage": null,
+      "invocationSucceeded": true,
+      "reviewPassed": false,
+      "completionClaimAllowed": false,
+      "disposition": "solution-advice",
+      "solutionAvailable": true,
+      "improvementAvailable": false,
+      "retainCurrent": false
+    },
+    "rawModelOutput": "{\"verdict\":\"suggestion\",\"summary\":\"两日志真正卡住的不是顾问结论被压成 unverified，而是交付关口只被“主模型自觉”——reviewPassed/completionClaimAllowed 只挂在 reviewOutcome 与 advisor_stage 分支上，未登记阶段的连续上下文只回注前 3 条 open check 的文本提示，缺少一个与阶段无关、由“最后一条未闭环 review 相对最新成果版本”驱动的机器可判交付门。\",\"contribution\":\"一、把闭环对象从“检查项状态”换成“未闭环覆盖相对于成果版本”\\n\\nF1 advisor.js:443-446 只在 stageSpec 分支把 reviewPassed 绑定 stageRecording/stageState 并强制 completionClaimAllowed=false；F1 advisor.js:450-460 的非阶段路径靠 coverage.feedback 计算 allRecordedChecksClosed 与 completionClaimAllowed，但 F1 advisor-context.js:35-36 注入到主模型上下文时把 checks 截成前 3 条，且无任何 completionClaimAllowed 维度。这解释了 F0 共同事实里“状态字段已存在、提醒已存在仍被绕过”：状态只保证被陈述，不承载放行语义。\\n\\n建议：给每次 review 记录一个 opaque 的 revisionMarker（当前 reviewRevision 可作为输入，但需明确其取值来源——这是最小查证点：确认 reviewRevision 是否随成果文件/材料哈希变化，还是仅随会话递增）。同时记录 latestResultMarker（最新写入的成果版本标识，如成品文件哈希或 seq）。定义 unresolvedCoverage = 最后一次 review 中 status!=satisfied 的 check 集合中，其 revisionMarker 早于 latestResultMarker 的那些。交付门 = unresolvedCoverage 为空。这样“复制新图后删除 .tankbuild 原证据”（F0 A 节 seq460/467）会自然让覆盖变成 stale 而不被算作已闭环，无需新增警告。\\n\\n二、让“未验证”不等于“通过”，但不采用全盘阻截\\n\\nF0 B 节 6 检查全 unverified 且明确 not one pixel，然 F0 结论是姿态弱化核心缺口；F0 A 节 gaps 1 satisfied/4 unverified，reviewPassed=false 仍以“做好了”开头（seq478）。若把 unverified 一律视为不通过会触发用户明确排除的全或全阻断。更小的高杠杆做法是按证据类型分级：\\n- 对“证据类型内在无法由源码判定”的检查（boot/首帧/输入/后处理、性能），标 blocked-by-source，其闭环唯一合法途径是像素或运行探针；在无该类型证据时不允许 status 迁到 satisfied（这与 F1 advisor-scopes.js:50-52 已有的“源码不能证明运行、截图不能证明交互/性能”语义一致，但要求机制强制，而非仅提示）。\\n- 对可由新增材料闭合的检查，标 closable-by-evidence，附最小补证点。\\n- 交付允许“实现完成、blocked 项如实列出”，但 blocked 项的非空集合禁止 completionClaimAllowed；即交付不是全禁，而是必须携带 blocked 清单且禁止声明整体通过。\\n\\n三、把顾问建议变成“可判定的改动请求”，而非报告文本\\n\\nF0 B 节 30 余处实际操作（composer.pixelRatio、aperture、材质、镜头）说明采纳存在，F0 明确指出“不能将采纳数当收益”，因为没有像素前后对照。因此建议采纳率不是合适度量。改为在 improve_result 输出上要求每条建议带 criterion（可测量）、evidenceRef（现有材料 id）与 predictedCheck（关闭哪个既有 check）。主模型的每个采纳动作记录为目标 check id，复核时只问“该 check 是否从 unverified 变为 satisfied”，避免把编辑数量当收益。这一改动不改动推理预算，也不要求更强模型。\\n\\n四、低价值核查负担（F0 B 节 2042.. 并怀疑 2041 CTRL guard，最终被主模型 grep 证实存在）不是靠“多读邻行”修补，而是靠主张最小化：顾问若不能给出“该假设与某条 criterion 的因果关系”与“可在有限读内验证的判定点”，应以 hypothesis 输出并标注需主模型核实的行范围，而不是发射一个 grep 负担。判定点存在时，最好给出可直接执行的核实行命令/查询，而非叙述推断。\\n\\n五、可测量的测试（不依赖运行环境，仅基于日志与录制数据）\\n- T1 释放语义：取两个 F0 会话的覆盖记录，重放“复制新图后删除原证据”与“最终 6 项全 unverified”两幕，断言 completionClaimAllowed=false 且 unresolvedCoverage 非空，且该结论不依赖主模型输出文字。\\n- T2 提示非截断风险：断言 advisor-context.js 注入的 check 数量不因截断为 3 条而丢失 blocked 项，即 blocked/closable 分级项优先展示。\\n- T3 建议闭环：对 F0 B 节 30 余处编辑，断言每条采纳动作都映射到一个目标 check id，且该 check 的最终状态与是否真正 satisfied 一致；不满足则计为 unlinked-adoption，观测其比率。\\n- T4 证据类型约束：构造一条仅凭源码的 boot/首帧检查，断言无法迁到 satisfied，且不被误判为 closable-by-evidence。\\n\\n失败用例（必须覆盖反例）\\n- 若 reviewRevision 实际覆盖了成果哈希，则 unresolvedCoverage 的 stale 判定变得过强，会误报已闭环为未闭环；此时必须回到覆盖“仅比较覆盖记录生成时刻的成果版本”并保留覆盖层独立的 revision 概念。\\n- 若主模型在 review 未通过前仍可写入成品并重跑，则 unresolvedCoverage 可能被后续 review 覆盖为闭环；应保留“同一 revisionMarker 下最后 review”的约束，禁止用新 review 洗掉旧未闭环项。\\n- 若交付被解读为必须阻塞所有输出，则违反用户约束；本方案的交付门只控制 completionClaimAllowed，不控制交付动作本身。\\n- 若顾问机制已被更上层任务强制 reviewPassed，则本贡献只改变状态语义；需确认该强制路径是否存在（是否已有未读的 reviewOutcome 实现）——这是最小查证点之二：reviewOutcome 的实际定义与它对 reviewPassed/completionClaimAllowed 的写入路径。\",\"assumptions\":[\"F1 的 reviewRevision 可作为覆盖标记输入，但其实现语义未在已读材料中展示，需核实。\",\"F0 中“复制新图后删除 .tankbuild 原证据”的删除行为是否可被覆盖层观测，未在 F1 已读片段中显示，需核实。\",\"reviewOutcome 的具体实现未读，因此交付门的所有权判定是待核的。\",\"F0 的两份日志摘要为原始多帧日志的可追溯字段来源，未读原始日志时仅按其陈述使用。\"],\"findings\":[],\"checks\":[],\"nextStep\":\"建议先做两项最小查证：(1) 读 reviewOutcome 的实现，确认 reviewPassed/completionClaimAllowed 的写入位置与条件，判断本贡献的交付门应当扩展还是新建；(2) 核实 reviewRevision 的取值来源（是否随成果哈希变化），据此确定 unresolvedCoverage 的 stale 判定边界，再据 T1 用两份日志做重放断言。若两点均与上述假设相反，则只采纳“blocked-by-source 不得 satisfied”与“建议需带 criterion/evidenceRef/predictedCheck”两条最小行为变更。\",\"stopCondition\":\"若核实发现 reviewRevision 已逐成果版本变化且 unresolvedCoverage 已等价存在，则 stale 判定部分作废；若 reviewOutcome 已强制 completionClaimAllowed 依赖非空覆盖，则 T1 作废；若顾问机制已被更强层锁定，用户目标侧仅剩建议闭环与分级语义。\"}",
+    "calls": 1
+  },
+  "independentReview": {
+    "result": {
+      "mode": "review_result",
+      "ok": true,
+      "report": {
+        "verdict": "gaps",
+        "summary": "F0整体证据分级和因果边界基本准确，多数专项检查点有直接证据支撑；但两处表述偏差需修正：英文末轮被说成“工具或最终文字未把unverified变成pass”同时又称交付姿态被成功盖过，与实际删除行为一致但措辞偏软；贡献模式“可试内容”约束在F3的贡献指令里被写成义务性“形成具体方法或改进”，与F0“可选/不强制采纳”的边界存在张力。",
+        "findings": [
+          {
+            "text": "F2为truncated（sentChars 16000 < chars 20059，totalLines 274未全读），seq604之后内容不可见；F0中关于英文末轮“交付姿态被数值成功盖过”的结论只能覆盖已见片段。",
+            "evidenceRefs": [
+              "F2"
+            ]
+          },
+          {
+            "text": "F0称“顾问同时被问精确米制尺寸、等弧长算法、轴线和轮组”而材料只有源码+4图；F1显示images-only策略确实排除了源码（excluded-file0 reason=scope-material-excluded），与F3 advisor-scopes.js L22 imagesOnly=visual&&!contribution一致，该因果归因成立。",
+            "evidenceRefs": [
+              "F1",
+              "F3"
+            ]
+          },
+          {
+            "text": "F0对英文6 unverified“正确、不应强迫通过”的表述与F2 seq565 report.verdict=unverified、六项checks全部unverified一致，未把source当运行证据。",
+            "evidenceRefs": [
+              "F2"
+            ]
+          },
+          {
+            "text": "F0“模型名相同不据此保证两provider后端完全相同”与英F2 args中只写同provider名一致，未把同名当匹配provider。",
+            "evidenceRefs": [
+              "F2"
+            ]
+          },
+          {
+            "text": "F3 scopeInstructions贡献分支写“形成具体方法或改进(combine…to form concrete methods or improvements)”，字面是义务句式；F0要求“贡献可试、不强制采纳”，二者措辞张力未被F0点明，易被读成强制产物。",
+            "evidenceRefs": [
+              "F3",
+              "F0"
+            ]
+          },
+          {
+            "text": "F0“工具或最终文字未将unverified变成pass”与F2 seq604明确保留not one pixel…unverified一致；但F0又称交付姿态被数值测试盖过，两者描述同一现象的不同侧面，未构成矛盾但表述易误读为F0否认了证据分级正确性。",
+            "evidenceRefs": [
+              "F2",
+              "F0"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "checkId": "facts-vs-hypotheses",
+            "criterion": "因果声明区分事实与假设",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0",
+              "F1",
+              "F2"
+            ]
+          },
+          {
+            "checkId": "credit-concrete-adoption",
+            "criterion": "承认具体采纳",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F1",
+              "F2"
+            ]
+          },
+          {
+            "checkId": "cn-vs-en-closure",
+            "criterion": "区分中文未闭合与英文明确未验证",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F1",
+              "F2"
+            ]
+          },
+          {
+            "checkId": "source-vs-runtime",
+            "criterion": "不把source当runtime证据",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F2",
+              "F0"
+            ]
+          },
+          {
+            "checkId": "provider-match",
+            "criterion": "不把同名模型当匹配provider",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0",
+              "F2"
+            ]
+          },
+          {
+            "checkId": "general-fix-not-domain-template",
+            "criterion": "通用修复不变成领域模板",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "checkId": "general-fix-not-forced-adoption",
+            "criterion": "通用修复不强制全采纳、不新增需求",
+            "status": "failed",
+            "evidenceRefs": [
+              "F3",
+              "F0"
+            ]
+          },
+          {
+            "checkId": "quality-vs-checkpoint",
+            "criterion": "不混淆拔高质量与验收checkpoint",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0"
+            ]
+          }
+        ],
+        "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+        "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。"
+      },
+      "trace": [],
+      "sessionId": "recent-two-analysis-evidence-review",
+      "materials": [
+        {
+          "path": "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+          "purpose": "Analysis to verify, expressly no implemented policy or universal outcome claim",
+          "evidenceType": "other",
+          "id": "F0",
+          "kind": "file",
+          "status": "ready",
+          "sent": true,
+          "previewAvailable": true,
+          "selectionScope": "whole-file",
+          "selectionComplete": true,
+          "wholeFileComplete": true,
+          "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\docs\\RECENT-TWO-ADVISOR-ANALYSIS.md",
+          "bytes": 14050,
+          "chars": 5776,
+          "sha256": "6d6e110a56fae2ce9db684a4be64181d21c3fe7f13bd4590ca45ffb6458155b5",
+          "totalLines": 125,
+          "selectedStartLine": 1,
+          "selectedEndLine": 125,
+          "selectedChars": 5776,
+          "truncated": false,
+          "sentChars": 5776,
+          "excerpt": "# 最近两个真实会话：顾问为何未形成稳定质量增益\n\n## 结论与边界\n\n当前服务端已返回 **round305-baseline-1**。最近两任务的持续上下文也包含恢复后的完整中/英文协作指引，顾问贡献修订为route-a-1。没有证据支持继续把问题归咎于“还是旧实例”。但这只说明代码/指引基底回到所核对的历史，不等于模型权重、所有配置和实际产物水平复刻了当时。\n\n用户感觉顾问作用不足有真实依据，但这两会话不能概括为“几乎没采纳，且都把待验证明确判通过”。准确分解是：**调用晚、目标与证据错配、贡献落地但增益未证、未闭合复核对最终交付约束薄弱**。中文直接完成姿态尤其明显；英文虽以Done开头，却明确保留了核心未验证，不能混为完全隐瞒。\n\n本轮只分析、保存证据和跑零网络的机械探针；未改生产源码、策略、模型、权限，也未修两个作品。以下是拟议路线，不是已经生效的机制。\n\n## 一、两会话事实\n\n按原始日志实际完成时间，最近两个HTML任务是59fb9fb9与288e64ea，均为单轮长任务。来源是原始多帧日志，不是只看最终答复；两份解码均零解析错误。公开工具/交付证据见 [证据链](evidence/RECENT-TWO-ADVISOR-CHAIN.json)。\n\n| | 中文请求 59fb9fb9 | 英文模式 288e64ea |\n|---|---|---|\n| 任务 | 极其精细、真实帅气的单HTML坦克，预览/操控；不预览其他文件 | 同目标的英文任务 |\n| 主模型 | deepseek-account / Flash / max | 同左 |\n| 顾问 | deepseek-official / Flash / max | 同左；模型名相同，不据此保证两个provider的实际后端完全相同 |\n| develop_approach | 0 | 0 |\n| improve_result | 0 | 1，seq424→425 |\n| review_result | 1，seq406→408 | 1，seq564→565 |\n| 验收 | 1满足、4未验证；reviewPassed:false | 6未验证；reviewPassed:false |\n| 之后发生 | 改12处几何、自己渲染、没重审、删旧证据、直接说做好了 | 多处具体采纳与数值自验；没像素；反驳一个错误疑点；明确写首帧/启动未验证 |\n\n### 中文：不是没改，是修复与验收脱节\n\n- seq51自建阶段把米制数值、等弧长算法、轮组和楔形炮塔定成检查点；这些具体值与实现选择不是用户原话。开放目标“极其精细、真实、写真”的主要效果要求未完整转化成可观察结果，检查表反而围绕主模型自己的方案。\n- seq406提交源码和4张真实运行截图，geometry验收却把源码排除，禁用读工具；顾问同时被问精确米制尺寸、等弧长算法、轴线和轮组。这一材料组合本来就无法证明部分问题。\n- 顾问并非只说待验证：findings指明侧裙骨架、炮管竹节、外伸板、轮廓等问题，给了可执行改法；报告1满足/4未验证，0 failed，说明可见问题未进入相应的失败检查点，信息与状态分裂。\n- seq417、419确实落地12处几何修改并重拍，无异常。主模型也以实际尺寸9.62m反驳顾问“约11m”的透视推断；有证据不采纳合理，不能要求照单全收。\n- 但没有同对象复核，seq460把旧截图复制到交付名后删除原.tankbuild。seq467的持续上下文仍4 unverified、1 stale，明确证据缺失/版本变化。seq478却“做好了”，只说采纳了哪些，不披露未闭合验收。\n\n### 英文：贡献有效但没证明视觉收益；未验证有正当部分\n\n- seq424的improve_result读源码后贡献composer像素比、景深计算、材质与镜头等具体内容。seq433～504的实际编辑表明这些不是口头采纳。**采纳数不能等于质量增益**，因为没有浏览器像素前后对照。\n- seq564要求由源码验boot/首帧/控件/后处理的真实运行；没有相应执行，6项未验证正确。不能为让顾问更“有用”强迫它通过。\n- 浏览器探测失败原因没有被正确分层：最初在工作区外写文件被拒；后续启动无截图/超时，有工具结果sandbox.denied:false。主模型把这些合并为“沙箱不允许浏览器”。中文在同环境通过工作区profile与CDP拿到了图，这说明至少不能把英文失败直接当作机器绝无渲染能力，也不能归因为语言本身。不能绕过真实拒绝，正确做法是区分边界拒绝、启动参数、进程等待、运行错误。\n- 顾问怀疑CTRL未guard，但所读范围不含真正的setMode定义；主模型读到2041的if(CTRL)排除了该疑点。这类没追到判定点的警报会消耗注意力，使真正缺口更容易被当作“又是保守意见”。\n- seq604有Done开头与大量功能介绍，但明确“not one pixel… addon/boot/first frame unverified”。不能说工具或最终文字将unverified变成了pass；问题是核心目标仍未证实，交付姿态和关注点被数值测试的成功盖过。\n\n## 二、全局根因\n\n### 1. 独立贡献来得太晚，且优化器并非可靠事实源\n\n两会话都有早期优化补充，但都没有真正围绕重大未决策略调用develop_approach。中文唯一咨询是在大部分工作做完后；英文也在成品基本完成后才改材质/后处理。它们比较擅长找局部补丁，无法证明已经提升了整体构造与表现上限。\n\n这不意味着所有任务都必须早咨询。这里的关键是复杂、高审美目标、许多不确定实现选择，存在值得独立探索的节点；这个节点没有转化成实际独立贡献。再",
+          "readRanges": [
+            {
+              "startLine": 1,
+              "endLine": 125,
+              "selectionComplete": true
+            }
+          ]
+        },
+        {
+          "path": ".po06-tmp/recent-two-review-59fb9fb9.json",
+          "purpose": "Raw public Chinese session review, responses and changes",
+          "evidenceType": "other",
+          "id": "F1",
+          "kind": "file",
+          "status": "ready",
+          "sent": true,
+          "previewAvailable": true,
+          "selectionScope": "whole-file",
+          "selectionComplete": true,
+          "wholeFileComplete": true,
+          "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-two-review-59fb9fb9.json",
+          "bytes": 11714,
+          "chars": 8384,
+          "sha256": "f40a3486e0d2c00e4adc05ac6ea39ecfa19e03c04c665ab34ff85f9e2dfe07a3",
+          "totalLines": 215,
+          "selectedStartLine": 1,
+          "selectedEndLine": 215,
+          "selectedChars": 8384,
+          "truncated": false,
+          "sentChars": 8384,
+          "excerpt": "{\n  \"session\": \"session-59fb9fb9-b92d-44f3-8b49-38193150d8bb\",\n  \"user\": [\n    {\n      \"seq\": 8,\n      \"turn\": 1,\n      \"at\": \"2026-10-14T17:03:15.742Z\",\n      \"text\": \"不要预览文件夹内的其他文件 ,使用three.js,制作一个单html程序,要求是极其精细的现代主战坦克模型,可以预览,操控,真实,帅气,炫技写真.\"\n    }\n  ],\n  \"consultations\": [\n    {\n      \"callSeq\": 406,\n      \"resultSeq\": 408,\n      \"mode\": \"review_result\",\n      \"args\": {\n        \"scope\": \"geometry\",\n        \"focus\": \"three.js 单文件豹2A7风格主战坦克的整体比例与轮廓、车体/楔形炮塔造型、7对负重轮行走机构与闭合履带路径重采样——是否读作一辆现代主战坦克而非二战坦克或玩具\",\n        \"files\": [\n          {\n            \"path\": \"mbt-leopard-ultra.html\",\n            \"purpose\": \"单文件源码：尺寸常量 D、车体轮廓 hullProfile、炮塔 outline/wedge、履带路径 buildTrack、行走机构 buildRunning 与细节层\",\n            \"evidenceType\": \"source\"\n          }\n        ],\n        \"images\": [\n          {\n            \"path\": \".tankbuild/f-hero.png\",\n            \"purpose\": \"右前 3/4 英雄视角：整体比例、车体/炮塔轮廓、侧裙与行走机构\",\n            \"evidenceType\": \"runtime-capture\"\n          },\n          {\n            \"path\": \".tankbuild/f-side.png\",\n            \"purpose\": \"正侧视：7 对负重轮与履带环、炮塔侧面轮廓、烟幕发射器、炮管分段\",\n            \"evidenceType\": \"runtime-capture\"\n          },\n          {\n            \"path\": \".tankbuild/f-top.png\",\n            \"purpose\": \"俯视：炮塔是否呈前窄后宽楔形、车体宽度与履带间距比例\",\n            \"evidenceType\": \"runtime-capture\"\n          },\n          {\n            \"path\": \".tankbuild/f-low.png\",\n            \"purpose\": \"低角度右前：首上装甲倾角、炮口、负重轮与履带接触关系\",\n            \"evidenceType\": \"runtime-capture\"\n          }\n        ]\n      },\n      \"actualResult\": {\n        \"ok\": true,\n        \"report\": {\n          \"verdict\": \"gaps\",\n          \"summary\": \"四张运行截图里整体轮廓已像现代主战坦克，但只有首上倾角（K5）能从画面确认；K1~K4 因缺标尺、正交视图与可辨的炮塔俯视轮廓而无法证实。侧裙骨架化、炮管竹节感、车体底前缘外伸平板是最明显的玩具感部位。\",\n          \"findings\": [\n            {\n              \"text\": \"侧裙缺失：I0/I1 中负重轮上方只有细横杆加竖向支撑的骨架，整个行走机构裸露，是最强的玩具感来源\",\n              \"evidenceRefs\": [\n                \"I0\",\n                \"I1\"\n              ]\n            },\n            {\n              \"text\": \"炮管由多节同心圆柱叠成、节间有明显台阶，像竹节/伸缩管；I0、I3 中炮口端是异常粗大的空心管口\",\n              \"evidenceRefs\": [\n                \"I0\",\n                \"I1\",\n                \"I3\"\n              ]\n            },\n            {\n              \"text\": \"I1 侧视中炮口到车体前缘约占车体长 0.37，反推含炮管全长≈11m，与契约 10.0 对不上（也可能是透视夸大），需核对程序内实际米制值\",\n              \"evidenceRefs\": [\n                \"I1\"\n              ]\n            },\n            {\n              \"text\": \"I0、I3 中车体底前缘有一块水平外伸平板，像托板/底板，与首上装",
+          "readRanges": [
+            {
+              "startLine": 1,
+              "endLine": 215,
+              "selectionComplete": true
+            }
+          ]
+        },
+        {
+          "path": ".po06-tmp/recent-two-review-288e64ea.json",
+          "purpose": "Raw public English session contribution/review, actual edits and final boundary",
+          "evidenceType": "other",
+          "id": "F2",
+          "kind": "file",
+          "status": "truncated",
+          "sent": true,
+          "previewAvailable": true,
+          "selectionScope": "whole-file",
+          "selectionComplete": false,
+          "wholeFileComplete": false,
+          "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-two-review-288e64ea.json",
+          "bytes": 20114,
+          "chars": 20059,
+          "sha256": "b2ef7c2f57fbc8b966e6c403e6455318890d80772d9960cdeb49b2a13a6c9a9c",
+          "totalLines": 274,
+          "selectedStartLine": 1,
+          "selectedEndLine": 274,
+          "selectedChars": 20059,
+          "truncated": true,
+          "sentChars": 16000,
+          "excerpt": "{\n  \"session\": \"session-288e64ea-6719-4a07-b3d1-727aed1b88a9\",\n  \"user\": [\n    {\n      \"seq\": 8,\n      \"turn\": 1,\n      \"at\": \"2026-10-14T17:05:24.954Z\",\n      \"text\": \"Do not preview the other files in the folder. Use three.js to make a single-HTML program; the requirement is an extremely finely detailed modern main battle tank model that can be previewed and controlled, realistic, cool, and a showy, photo-real showcase.\"\n    }\n  ],\n  \"consultations\": [\n    {\n      \"callSeq\": 424,\n      \"resultSeq\": 425,\n      \"mode\": \"improve_result\",\n      \"args\": {\n        \"scope\": \"appearance\",\n        \"focus\": \"M1A2 Abrams single-file three.js showcase: which concrete material/lighting/post-processing parameter or model-detail changes would most raise photo-realism at first render, and which defects are most likely to be visible on the very first frame?\",\n        \"files\": [\n          {\n            \"path\": \"abrams-m1a2-showcase.html\",\n            \"purpose\": \"the complete single-file deliverable (HTML+CSS+HUD+all JS: procedural textures, hull/turret/gun geometry, environment, physics, post-processing, boot)\"\n          }\n        ]\n      },\n      \"actualResult\": {\n        \"ok\": true,\n        \"report\": {\n          \"verdict\": \"suggestion\",\n          \"summary\": \"The post-processing chain is architecturally right (HalfFloat MSAA RT -> bloom -> OutputPass -> SMAA), but three concrete, code-visible defects hurt the very first frame: onRetize/savePNG hand-size bloom/GTAO in CSS pixels (half-res glow + AO on every dpr=2 display, and the \\\"high-res\\\" PNG is a blow-up), the Bokeh aperture was pushed to 0.03 (CoC saturates within ~1 m, so photo mode is mostly max-blur), and the model's rear is +Z (sprocket/idler + deck slope + exhaust emitter) while the boot camera sits at +Z — so the hero frame likely shows the engine deck. Fix these plus the metalness of barrel/running gear/periscope glass, then verify three numbers headlessly instead of pixels.\",\n          \"findings\": [\n            {\n              \"text\": \"Post passes are re-sized in CSS pixels after the composer already sized them in drawing-buffer pixels: onResize (2366-2375) calls composer.setSize(w,h) then bloom.setSize(w,h) and ao.setSize(w,h); savePNG (2351-2364) raises the pixel ratio to as much as 3 without updating the composer's cached ratio. Consequence on any dpr=2 display: bloom mips and GTAO depth/normal targets run ",
+          "readRanges": [
+            {
+              "startLine": 1,
+              "endLine": 274,
+              "selectionComplete": false
+            }
+          ]
+        },
+        {
+          "path": ".po06-tmp/recent-two-advisor-mechanisms.txt",
+          "purpose": "Actual material exclusion, limited handling, state and completion-boundary source excerpts",
+          "evidenceType": "source",
+          "id": "F3",
+          "kind": "file",
+          "status": "ready",
+          "sent": true,
+          "previewAvailable": true,
+          "selectionScope": "whole-file",
+          "selectionComplete": true,
+          "wholeFileComplete": true,
+          "previewPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-two-advisor-mechanisms.txt",
+          "bytes": 12736,
+          "chars": 11189,
+          "sha256": "cd906a796b01e347e835d397ac79d1a7b5eb9583b783731e46e8040c914c100a",
+          "totalLines": 114,
+          "selectedStartLine": 1,
+          "selectedEndLine": 114,
+          "selectedChars": 11189,
+          "truncated": false,
+          "sentChars": 11189,
+          "excerpt": "advisor-scopes.js\n16| export function scopePolicy(args) {\n17|   const scope = args.scope || 'general'\n18|   const visual = VISUAL_SCOPES.has(scope)\n19|   const contribution = isContributionMode(args.mode)\n20|   return { scope, focus: args.focus || '', visual, contribution, label:SCOPE_LABELS[scope],\n21|     allowTools: (contribution || !visual) && scope !== 'delivery', historyChars: scope === 'general' ? 48000 : scope === 'delivery' ? 8000 : 14000,\n22|     imagesOnly: visual && !contribution, omitImages: !contribution && ['code','interaction','performance','delivery'].includes(scope) }\n23| }\n24| export function scopedMaterials(args, policy) {\n25|   const excluded = []\n26|   const dropped = (items,kind) => items.forEach((row,i)=>excluded.push({ id:'excluded-'+kind+i,kind,path:typeof row==='string'?row:row.path,\n27|     purpose:typeof row==='string'?'兼容成果材料':row.purpose,status:'excluded',sent:false,previewAvailable:false,reason:'scope-material-excluded' }))\n28|   const prepared = {...args}\n29|   if (policy.imagesOnly) { dropped(args.artifacts||[],'file');dropped(args.files||[],'file');prepared.artifacts=[];prepared.files=[] }\n30|   if (policy.omitImages) { dropped(args.images||[],'image');prepared.images=[] }\n31|   return { prepared, excluded }\n32| }\n33| export function scopedSnapshot(snapshot, args, policy) {\n34|   if (!snapshot.ok || policy.scope === 'general') return snapshot\n35|   let records = []\n36|   // Explicit ids or paths select relevant evidence. Do not inject unrelated recent successes.\n37|   if ((policy.contribution || !policy.visual) && policy.scope !== 'delivery') {\n38|     const refs = new Set(args.evidenceRefs || [])\n39|     const paths = [...(args.artifacts || []), ...(args.files || []).map(x=>x.path), ...(policy.contribution ? (args.images || []).map(x=>x.path) : [])].map(x=>String(x).replaceAll(String.fromCharCode(92),'/').toLowerCase())\n40|     records = snapshot.records.filter(row => refs.has(row.id) || paths.some(path => row.text.replaceAll(String.fromCharCode(92),'/').toLowerCase().includes(path)))\n41|   }\n42|   let used = 0, omitted = 0\n43|   const selected = []\n44|   for (const row of records.slice().reverse()) { if (used + row.text.length > policy.historyChars) { omitted++;continue }; selected.unshift(row);used+=row.text.length }\n45|   return {...snapshot,records:selected,omitted,truncated:snapshot.userText.includes('[截断：') || select",
+          "readRanges": [
+            {
+              "startLine": 1,
+              "endLine": 114,
+              "selectionComplete": true
+            }
+          ]
+        }
+      ],
+      "scope": "latest-human-request-only",
+      "omitted": 0,
+      "truncated": false,
+      "inspectedMaterials": [],
+      "model": "deepseek-official/deepseek-flash",
+      "reasoningEffort": "off",
+      "toolCalls": 0,
+      "usage": {
+        "inputTokens": 16764,
+        "outputTokens": 976,
+        "cacheReadTokens": 512,
+        "cacheWriteTokens": 0,
+        "totalTokens": 18252
+      },
+      "ms": 7783,
+      "note": "顾问结论是建议，不是新增授权；未验证项不得当作通过。",
+      "uiRunId": null,
+      "reviewScope": "custom",
+      "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+      "requestId": "human:1",
+      "revisionMarker": "write:none",
+      "coverage": null,
+      "invocationSucceeded": true,
+      "reviewPassed": false,
+      "openIssues": [
+        {
+          "id": "R602852f0c3409124",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "因果声明区分事实与假设",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        },
+        {
+          "id": "Rb07b2fbcaef00a1c",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "承认具体采纳",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        },
+        {
+          "id": "R5ad06f7b4d3d8268",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "区分中文未闭合与英文明确未验证",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        },
+        {
+          "id": "R29a4b72d4cdca847",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "不把source当runtime证据",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        },
+        {
+          "id": "Rea2fb2d04c2b54a1",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "不把同名模型当匹配provider",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        },
+        {
+          "id": "R751133f5d6b351b9",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "通用修复不变成领域模板",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        },
+        {
+          "id": "R2041441e2116c9a0",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "通用修复不强制全采纳、不新增需求",
+          "status": "failed",
+          "action": "repair-and-review",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        },
+        {
+          "id": "R7f2e559e000ba4eb",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "不混淆拔高质量与验收checkpoint",
+          "status": "unverified",
+          "action": "review-current-version",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        },
+        {
+          "id": "R504a0312d75265b9",
+          "reviewId": "C0",
+          "requestId": "human:1",
+          "scope": "custom",
+          "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+          "materialReason": null,
+          "criterion": "review-evidence-incomplete",
+          "status": "unverified",
+          "action": "provide-evidence-or-review",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+          "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+          "paths": [
+            "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+            ".po06-tmp/recent-two-review-59fb9fb9.json",
+            ".po06-tmp/recent-two-review-288e64ea.json",
+            ".po06-tmp/recent-two-advisor-mechanisms.txt"
+          ]
+        }
+      ],
+      "evidenceGaps": [
+        {
+          "id": "F2",
+          "path": ".po06-tmp/recent-two-review-288e64ea.json",
+          "status": "truncated",
+          "reason": "partial-material",
+          "action": "provide-evidence"
+        }
+      ],
+      "disposition": "pending-verification",
+      "nextActions": [
+        {
+          "id": "R602852f0c3409124",
+          "action": "review-current-version",
+          "criterion": "因果声明区分事实与假设",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "id": "Rb07b2fbcaef00a1c",
+          "action": "review-current-version",
+          "criterion": "承认具体采纳",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "id": "R5ad06f7b4d3d8268",
+          "action": "review-current-version",
+          "criterion": "区分中文未闭合与英文明确未验证",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "id": "R29a4b72d4cdca847",
+          "action": "review-current-version",
+          "criterion": "不把source当runtime证据",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "id": "Rea2fb2d04c2b54a1",
+          "action": "review-current-version",
+          "criterion": "不把同名模型当匹配provider",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "id": "R751133f5d6b351b9",
+          "action": "review-current-version",
+          "criterion": "通用修复不变成领域模板",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "id": "R2041441e2116c9a0",
+          "action": "repair-and-review",
+          "criterion": "通用修复不强制全采纳、不新增需求",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "id": "R7f2e559e000ba4eb",
+          "action": "review-current-version",
+          "criterion": "不混淆拔高质量与验收checkpoint",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "id": "R504a0312d75265b9",
+          "action": "provide-evidence-or-review",
+          "criterion": "review-evidence-incomplete",
+          "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        },
+        {
+          "action": "repair-and-review",
+          "criterion": "通用修复不强制全采纳、不新增需求"
+        },
+        {
+          "action": "provide-evidence",
+          "path": ".po06-tmp/recent-two-review-288e64ea.json"
+        },
+        {
+          "action": "advisor-next-step",
+          "text": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。"
+        }
+      ],
+      "recording": {
+        "ok": true,
+        "saved": false,
+        "id": "C0"
+      },
+      "reviewState": {
+        "openIssues": [
+          {
+            "id": "R602852f0c3409124",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "因果声明区分事实与假设",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          },
+          {
+            "id": "Rb07b2fbcaef00a1c",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "承认具体采纳",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          },
+          {
+            "id": "R5ad06f7b4d3d8268",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "区分中文未闭合与英文明确未验证",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          },
+          {
+            "id": "R29a4b72d4cdca847",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "不把source当runtime证据",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          },
+          {
+            "id": "Rea2fb2d04c2b54a1",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "不把同名模型当匹配provider",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          },
+          {
+            "id": "R751133f5d6b351b9",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "通用修复不变成领域模板",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          },
+          {
+            "id": "R2041441e2116c9a0",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "通用修复不强制全采纳、不新增需求",
+            "status": "failed",
+            "action": "repair-and-review",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          },
+          {
+            "id": "R7f2e559e000ba4eb",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "不混淆拔高质量与验收checkpoint",
+            "status": "unverified",
+            "action": "review-current-version",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          },
+          {
+            "id": "R504a0312d75265b9",
+            "reviewId": "C0",
+            "requestId": "human:1",
+            "scope": "custom",
+            "focus": "最近两会话分析的证据准确性、全局因果边界与解法风险",
+            "materialReason": null,
+            "criterion": "review-evidence-incomplete",
+            "status": "unverified",
+            "action": "provide-evidence-or-review",
+            "nextStep": "修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。",
+            "stopCondition": "若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。",
+            "paths": [
+              "docs/RECENT-TWO-ADVISOR-ANALYSIS.md",
+              ".po06-tmp/recent-two-review-59fb9fb9.json",
+              ".po06-tmp/recent-two-review-288e64ea.json",
+              ".po06-tmp/recent-two-advisor-mechanisms.txt"
+            ]
+          }
+        ],
+        "omittedIssues": 0,
+        "limitations": [],
+        "disposition": "pending-verification",
+        "taskCoverageEstablished": false
+      },
+      "allRecordedChecksClosed": false,
+      "completionClaimAllowed": false
+    },
+    "rawModelOutput": "{\"verdict\":\"gaps\",\"summary\":\"F0整体证据分级和因果边界基本准确，多数专项检查点有直接证据支撑；但两处表述偏差需修正：英文末轮被说成“工具或最终文字未把unverified变成pass”同时又称交付姿态被成功盖过，与实际删除行为一致但措辞偏软；贡献模式“可试内容”约束在F3的贡献指令里被写成义务性“形成具体方法或改进”，与F0“可选/不强制采纳”的边界存在张力。\",\n\"findings\":[{\"text\":\"F2为truncated（sentChars 16000 < chars 20059，totalLines 274未全读），seq604之后内容不可见；F0中关于英文末轮“交付姿态被数值成功盖过”的结论只能覆盖已见片段。\",\"evidenceRefs\":[\"F2\"]},{\"text\":\"F0称“顾问同时被问精确米制尺寸、等弧长算法、轴线和轮组”而材料只有源码+4图；F1显示images-only策略确实排除了源码（excluded-file0 reason=scope-material-excluded），与F3 advisor-scopes.js L22 imagesOnly=visual&&!contribution一致，该因果归因成立。\",\"evidenceRefs\":[\"F1\",\"F3\"]},{\"text\":\"F0对英文6 unverified“正确、不应强迫通过”的表述与F2 seq565 report.verdict=unverified、六项checks全部unverified一致，未把source当运行证据。\",\"evidenceRefs\":[\"F2\"]},{\"text\":\"F0“模型名相同不据此保证两provider后端完全相同”与英F2 args中只写同provider名一致，未把同名当匹配provider。\",\"evidenceRefs\":[\"F2\"]},{\"text\":\"F3 scopeInstructions贡献分支写“形成具体方法或改进(combine…to form concrete methods or improvements)”，字面是义务句式；F0要求“贡献可试、不强制采纳”，二者措辞张力未被F0点明，易被读成强制产物。\",\"evidenceRefs\":[\"F3\",\"F0\"]},{\"text\":\"F0“工具或最终文字未将unverified变成pass”与F2 seq604明确保留not one pixel…unverified一致；但F0又称交付姿态被数值测试盖过，两者描述同一现象的不同侧面，未构成矛盾但表述易误读为F0否认了证据分级正确性。\",\"evidenceRefs\":[\"F2\",\"F0\"]}],\n\"checks\":[{\"checkId\":\"facts-vs-hypotheses\",\"criterion\":\"因果声明区分事实与假设\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F0\",\"F1\",\"F2\"]},{\"checkId\":\"credit-concrete-adoption\",\"criterion\":\"承认具体采纳\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F1\",\"F2\"]},{\"checkId\":\"cn-vs-en-closure\",\"criterion\":\"区分中文未闭合与英文明确未验证\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F1\",\"F2\"]},{\"checkId\":\"source-vs-runtime\",\"criterion\":\"不把source当runtime证据\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F2\",\"F0\"]},{\"checkId\":\"provider-match\",\"criterion\":\"不把同名模型当匹配provider\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F0\",\"F2\"]},{\"checkId\":\"general-fix-not-domain-template\",\"criterion\":\"通用修复不变成领域模板\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F0\"]},{\"checkId\":\"general-fix-not-forced-adoption\",\"criterion\":\"通用修复不强制全采纳、不新增需求\",\"status\":\"failed\",\"evidenceRefs\":[\"F3\",\"F0\"]},{\"checkId\":\"quality-vs-checkpoint\",\"criterion\":\"不混淆拔高质量与验收checkpoint\",\"status\":\"satisfied\",\"evidenceRefs\":[\"F0\"]}],\n\"nextStep\":\"修正F0两处措辞：(a)在二.5明确“贡献模式指令的‘形成具体方法’是可选尝试而非必须产出”；(b)将“工具/文字未把unverified变成pass”改为更精确的“报告状态未被伪造，但交付姿态仍由数值成功覆盖”，并标注F2为truncated、seq604后未读。\",\n\"stopCondition\":\"若用户只要求方向性判读、不再需要逐字修订，可在给出上述两点修正后停止；不必重跑会话或扩展阅读F2未附部分。\"}",
+    "calls": 1
+  },
+  "reviewDisposition": "Not formally accepted; truncation and an adoption/role-duty interpretation disagreement remain recorded. Final text narrows English delivery rhetoric and explicitly preserves keep/no forced adoption. No further model voting.",
+  "proposalsNotAdopted": [
+    {
+      "proposal": "Treat only unresolved checks with earlier revision markers as blocking.",
+      "reason": "Same-version unverified would be missed; opaque markers cannot be ordered as numeric revisions."
+    },
+    {
+      "proposal": "Map every quality suggestion to closing an acceptance checkpoint.",
+      "reason": "Improvement can validly benefit already accepted work; conflates optional quality with required acceptance and adds manual reporting."
+    }
+  ],
+  "modelCallsThisAnalysis": 2,
+  "reportedModelTokens": 26018,
+  "qualityImprovementProved": false,
+  "implementedPolicies": false
+}

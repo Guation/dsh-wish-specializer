@@ -71,8 +71,52 @@ export function extractJson(raw) {
   try {
     return { ok: true, value: JSON.parse(candidate.slice(start, end + 1)) }
   } catch (e) {
+    const balanced = extractBalancedObject(candidate)
+    if (balanced.ok) return { ok: true, value: balanced.value, recovered: 'balanced-scan' }
     return { ok: false, code: 'BAD_JSON', reason: String((e && e.message) || e) }
   }
+}
+
+/**
+ * 文本里**第一段配平**的 JSON 对象（字符串内部的 `{}` 不计数）。
+ *
+ * 为什么需要它（2026-10-12 真机）：`extractJson` 原本取「首个 `{` 到最后一个 `}`」，
+ * 模型多写一段 JSON、或末尾多写一句带花括号的话，整段就解析不动。英文模式当时**直接抛错**，
+ * 于是一次 9691 字符的响应让整轮辅助消失（只剩保真译文兜底）。
+ * 配平扫描只认第一段完整对象，对「多段 JSON」「前后夹带散文」都成立。
+ */
+export function extractBalancedObject(raw) {
+  const s = String(raw == null ? '' : raw)
+  let depth = 0, start = -1, inStr = false, esc = false
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue }
+    if (c === '"') { inStr = true; continue }
+    if (c === '{') { if (depth === 0) start = i; depth += 1; continue }
+    if (c === '}') {
+      if (depth === 0) continue
+      depth -= 1
+      if (depth === 0 && start >= 0) {
+        try { return { ok: true, value: JSON.parse(s.slice(start, i + 1)) } } catch { start = -1 }
+      }
+    }
+  }
+  return { ok: false, code: 'BAD_JSON', reason: 'no balanced JSON object found' }
+}
+
+/**
+ * 英文模式读取解释层响应：**只做判定，绝不抛**。
+ *
+ * 真机教训（2026-10-12）：英文分支原在提取失败时 `throw new Error('english-interpretation-invalid-json')`，
+ * 而抛出点在 `input.interpret` 回调内部 ⇒ 管线记 `interpret-threw` 并**立刻返回**，
+ * 把「空产出有界重试」「宿主兜底」「台账归因」三层保护全部绕过：用户只看到
+ * 「辅助未生成，本次只发送保真译文」，日志里也没有可修的线索。
+ * 现在把判定交回调用方：可以重试一次，也可以降级返回原文让管线按既有规则继续处理。
+ */
+export function readEnglishInterpretation(raw) {
+  const ex = extractJson(raw)
+  if (!ex.ok) return { ok: false, code: ex.code, reason: String(ex.reason || '').slice(0, 200), textChars: String(raw == null ? '' : raw).length }
+  return { ok: true, value: ex.value, ...(ex.recovered ? { recovered: ex.recovered } : {}) }
 }
 
 /**

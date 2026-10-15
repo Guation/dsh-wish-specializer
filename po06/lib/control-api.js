@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -613,6 +613,11 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         if(!sid||!run)return send(400,{ok:false,reason:'session-and-run-required'})
         const value=typeof inferenceCancel==='function'?inferenceCancel(sid,run):{ok:false,reason:'not-ready'}
         return send(value.ok?200:400,value)
+      }
+      if(method==='GET'&&path===API_PREFIX+'/advisor-delivery'){
+        const sid=String(query.get('session')||'').trim(),rawSeq=query.get('seq'),seq=Number(rawSeq)
+        if(!/^[A-Za-z0-9._:@-]{1,240}$/.test(sid)||rawSeq===null||rawSeq.trim()===''||!Number.isSafeInteger(seq)||seq<0)return send(400,{ok:false,reason:'session-and-event-seq-required'})
+        return send(200,typeof advisorDelivery==='function'?await advisorDelivery(sid,seq):{ok:true,sessionId:sid,seq,status:'unavailable',checks:[],counts:{},limitations:['delivery-status-unavailable'],completionClaimAllowed:false,scopeOnly:true})
       }
       if (method === 'GET' && path === API_PREFIX + '/advisor-progress') {
         const sid = String(query.get('session') || '').trim()

@@ -1,0 +1,479 @@
+{
+  "revision": "contribution-selection-2",
+  "baseline": "advisor-english-1",
+  "modelOnly": "deepseek-official/deepseek-flash",
+  "implementation": {
+    "core": "Select by consequential judgment, difficult construction and final-result benefit; preserve executor integration choices and validated useful fragments.",
+    "genericCheckRestored": "Check key invariants/counterexamples, with no graph/delimiter-specific wording.",
+    "workflowChars": {
+      "zh": {
+        "old": 1264,
+        "new": 270
+      },
+      "en": {
+        "old": 2474,
+        "new": 907
+      }
+    },
+    "optimizerHeavyChars": {
+      "zh": 796,
+      "en": 2283
+    },
+    "runtimeCallIncrease": 0,
+    "formatVersion": "3",
+    "fixedContentQuotas": false,
+    "domainRecipesAdded": false,
+    "oldStableFixes": "retained"
+  },
+  "offline": {
+    "files": 27,
+    "pass": 249,
+    "fail": 0,
+    "skipped": 0,
+    "log": ".po06-tmp/contribution-selection-regression.log"
+  },
+  "comparisons": [
+    {
+      "id": "graph-plan",
+      "reasoning": "off",
+      "old": {
+        "calls": 2,
+        "reportedTokens": 4979,
+        "ms": 12428
+      },
+      "newInitial": {
+        "calls": 2,
+        "reportedTokens": 6135,
+        "ms": 16792
+      },
+      "newFinal": {
+        "calls": 2,
+        "reportedTokens": 4974,
+        "ms": 12305
+      },
+      "oldArtifact": {
+        "artifact": "function plan(nodes, edges){ const idx=new Map(); for(let i=0;i<nodes.length;i++) idx.set(nodes[i],i); const adj=new Map(); const indeg=new Map(); for(let i=0;i<nodes.length;i++){ adj.set(nodes[i], new Set()); indeg.set(nodes[i], 0); } const list=edges||[]; for(let i=0;i<list.length;i++){ const e=list[i]; if(!e) continue; const b=e[0], a=e[1]; if(!idx.has(b) || !idx.has(a)) continue; const s=adj.get(b); if(!s.has(a)){ s.add(a); indeg.set(a, indeg.get(a)+1); } } const heap=[]; const less=function(x,y){ return idx.get(x) < idx.get(y); }; for(let i=0;i<nodes.length;i++){ if(indeg.get(nodes[i])===0) heap.push(nodes[i]); } for(let i=(heap.length>>1)-1;i>=0;i--){ let j=i; for(;;){ const l=2*j+1, r=l+1; let m=j; if(l<heap.length && less(heap[l],heap[m])) m=l; if(r<heap.length && less(heap[r],heap[m])) m=r; if(m===j) break; const t=heap[j]; heap[j]=heap[m]; heap[m]=t; j=m; } } const order=[]; while(heap.length>0){ const top=heap[0]; const last=heap.pop(); if(heap.length>0){ heap[0]=last; let i=0; for(;;){ const l=2*i+1, r=l+1; let m=i; if(l<heap.length && less(heap[l],heap[m])) m=l; if(r<heap.length && less(heap[r],heap[m])) m=r; if(m===i) break; const t=heap[i]; heap[i]=heap[m]; heap[m]=t; i=m; } } order.push(top); const succ=adj.get(top); succ.forEach(function(a){ const d=indeg.get(a)-1; indeg.set(a,d); if(d===0){ heap.push(a); let k=heap.length-1; while(k>0){ const p=(k-1)>>1; if(!less(heap[k],heap[p])) break; const t=heap[k]; heap[k]=heap[p]; heap[p]=t; k=p; } } }); } if(order.length===nodes.length) return {order:order, cycle:[]}; const color=new Map(); const pos=new Map(); const path=[]; function dfs(v){ color.set(v,1); pos.set(v,path.length); path.push(v); const succ=adj.get(v); let found=null; succ.forEach(function(a){ if(found) return; if(indeg.get(a)!==0) return; if(color.get(a)===1){ found=path.slice(pos.get(a)).concat(a); } else if(color.get(a)!==2){ found=dfs(a); } }); if(found) return found; path.pop(); pos.delete(v); color.set(v,2); return null; } let cyc=null; for(let i=0;i<nodes.length && !cyc;i++){ const v=nodes[i]; if(indeg.get(v)>0 && color.get(v)!==2){ cyc=dfs(v); } } return {order:[], cycle:cyc?cyc:[]}; }"
+      },
+      "newInitialArtifact": {
+        "artifact": "function plan(nodes, edges){\n  const index = new Map();\n  for(let i = 0; i < nodes.length; i++){\n    if(!index.has(nodes[i])) index.set(nodes[i], i);\n  }\n  const adj = new Map();\n  const indeg = new Map();\n  for(const n of nodes){\n    adj.set(n, []);\n    indeg.set(n, 0);\n  }\n\n  // Deduplicate edges; ignore malformed or unknown-endpoint edges. Do not mutate inputs.\n  const seen = new Set();\n  for(const e of edges){\n    if(!Array.isArray(e) || e.length < 2) continue;\n    const from = e[0], to = e[1];\n    if(!adj.has(from) || !adj.has(to)) continue;\n    const k = from + '\\u0000' + to;\n    if(seen.has(k)) continue;\n    seen.add(k);\n    adj.get(from).push(to);\n    indeg.set(to, indeg.get(to) + 1);\n  }\n\n  // Iterative DFS with colors and parent map to build an actual closed directed path.\n  const color = new Map();\n  const parent = new Map();\n  let cycle = null;\n\n  for(const start of nodes){\n    if(color.get(start)) continue;\n    color.set(start, 1);\n    const stack = [[start, 0]];\n    let found = false;\n    while(stack.length){\n      const top = stack[stack.length - 1];\n      const u = top[0];\n      const list = adj.get(u);\n      if(top[1] < list.length){\n        const v = list[top[1]++];\n        if(color.get(v) === 1){\n          // Back edge u -> v; build path v -> ... -> u -> v.\n          const chain = [u];\n          let cur = u;\n          while(cur !== v){\n            cur = parent.get(cur);\n            chain.push(cur);\n          }\n          chain.reverse(); // now [v, ..., u]\n          chain.push(v);   // close the cycle\n          cycle = chain;\n          found = true;\n          break;\n        }\n        if(!color.get(v)){\n          parent.set(v, u);\n          color.set(v, 1);\n          stack.push([v, 0]);\n        }\n      } else {\n        color.set(u, 2);\n        stack.pop();\n      }\n    }\n    if(found) break;\n  }\n\n  if(cycle) return {order: [], cycle: cycle};\n\n  // Kahn's algorithm choosing the ready node with the smallest original index.\n  const ready = [];\n  for(const n of nodes){\n    if(indeg.get(n) === 0) ready.push(n);\n  }\n  const order = [];\n  while(ready.length){\n    let best = 0;\n    for(let i = 1; i < ready.length; i++){\n      if(index.get(ready[i]) < index.get(ready[best])) best = i;\n    }\n    const u = ready.splice(best, 1)[0];\n    order.push(u);\n    for(const v of adj.get(u)){\n      const d = indeg.get(v) - 1;\n      indeg.set(v, d);\n      if(d === 0) ready.push(v);\n    }\n  }\n\n  return {order: order, cycle: []};\n}"
+      },
+      "newFinalArtifact": {
+        "artifact": "function plan(nodes, edges){var a=nodes||[],e=edges||[],i;var idx=new Map();for(i=0;i<a.length;i++)idx.set(a[i],i);var adj=new Map(),ind=new Map();for(i=0;i<a.length;i++){adj.set(a[i],[]);ind.set(a[i],0);}var seen=new Set();for(i=0;i<e.length;i++){var ed=e[i];if(!ed||!idx.has(ed[0])||!idx.has(ed[1]))continue;var key=ed[0]+'\\u0000'+ed[1];if(seen.has(key))continue;seen.add(key);adj.get(ed[0]).push(ed[1]);ind.set(ed[1],ind.get(ed[1])+1);}var ready=[],done=new Set();for(i=0;i<a.length;i++)if(ind.get(a[i])===0)ready.push(a[i]);var order=[];while(ready.length){var best=0;for(i=1;i<ready.length;i++)if(idx.get(ready[i])<idx.get(ready[best]))best=i;var v=ready.splice(best,1)[0];done.add(v);order.push(v);var outs=adj.get(v);for(i=0;i<outs.length;i++){var w=outs[i];ind.set(w,ind.get(w)-1);if(ind.get(w)===0)ready.push(w);}}if(order.length===a.length)return{order:order,cycle:[]};var left=[];for(i=0;i<a.length;i++)if(!done.has(a[i]))left.push(a[i]);var ls=new Set(left);var color=new Map(),stack=[],cyc=null;function dfs(start){var st=[{node:start,it:0}];color.set(start,1);stack.push(start);while(st.length){var top=st[st.length-1];var outs=adj.get(top.node);if(top.it<outs.length){var w=outs[top.it++];if(!ls.has(w))continue;var c=color.get(w)||0;if(c===1){var pos=stack.lastIndexOf(w);cyc=stack.slice(pos).concat([w]);return;}if(c===0){color.set(w,1);stack.push(w);st.push({node:w,it:0});}}else{color.set(top.node,2);stack.pop();st.pop();}}}for(i=0;i<left.length;i++){if((color.get(left[i])||0)===0){dfs(left[i]);if(cyc)break;}}return{order:[],cycle:cyc||[]};}"
+      },
+      "originalChecks": {
+        "old": 15,
+        "newInitial": 18,
+        "newFinal": 18,
+        "total": 18
+      },
+      "extraConstraint": {
+        "type": "additional independent constraint check after the preregistered results",
+        "notInOriginalScore": true,
+        "reason": "nodes are unique strings without restrictions on delimiter characters; concatenation must not collapse distinct edges",
+        "nodes": [
+          "c",
+          "a",
+          "a\u0000b",
+          "b\u0000c"
+        ],
+        "edges": [
+          [
+            "a",
+            "b\u0000c"
+          ],
+          [
+            "a\u0000b",
+            "c"
+          ]
+        ],
+        "expected": {
+          "order": [
+            "a",
+            "a\u0000b",
+            "c",
+            "b\u0000c"
+          ],
+          "cycle": []
+        },
+        "results": [
+          {
+            "arm": "old",
+            "result": {
+              "order": [
+                "a",
+                "a\u0000b",
+                "c",
+                "b\u0000c"
+              ],
+              "cycle": []
+            },
+            "correct": true
+          },
+          {
+            "arm": "new",
+            "result": {
+              "order": [
+                "c",
+                "a",
+                "a\u0000b",
+                "b\u0000c"
+              ],
+              "cycle": []
+            },
+            "correct": false
+          }
+        ],
+        "conclusion": "The new sample fixes tested cycles but has a delimiter-collision flaw. Do not claim full correctness from 18/18."
+      },
+      "finalExtra": {
+        "additionalCheck": true,
+        "notInOriginalScore": true,
+        "sameConstraintAsPriorExtraCheck": {
+          "nodes": [
+            "c",
+            "a",
+            "a\u0000b",
+            "b\u0000c"
+          ],
+          "edges": [
+            [
+              "a",
+              "b\u0000c"
+            ],
+            [
+              "a\u0000b",
+              "c"
+            ]
+          ]
+        },
+        "correct": false,
+        "result": {
+          "order": [
+            "c",
+            "a",
+            "a\u0000b",
+            "b\u0000c"
+          ],
+          "cycle": []
+        },
+        "warning": "One final sample after generic counterexample guidance, not proof the wording caused the fix."
+      }
+    },
+    {
+      "id": "rollout-analysis",
+      "reasoning": "off",
+      "old": {
+        "calls": 2,
+        "reportedTokens": 3008,
+        "ms": 7009
+      },
+      "new": {
+        "calls": 2,
+        "reportedTokens": 2223,
+        "ms": 5633
+      },
+      "oldArtifact": {
+        "artifact": "按下季度预计40%新用户、60%老用户构成，A版本标准化成功率约84.0%，高于B版本约78.7%，建议下季度优先发布A。现状合并成功率A约82.7%、B约83.8%，B略高，但该口径受两版本用户结构差异影响，不宜直接作为下季度预期。两版本并非随机分配，新老用户构成差异明显，现有数据只能作描述性比较，不能认定A或B对成功率存在因果效果。如需因果结论，应通过随机对照或分层均衡采集验证。",
+        "metrics": {
+          "pooledA": 0.8272727272727273,
+          "pooledB": 0.8376811594202899,
+          "standardizedA": 0.84,
+          "standardizedB": 0.7866666666666667
+        },
+        "causalEstablished": false
+      },
+      "newArtifact": {
+        "artifact": "本版仅依据现有两版本数据做描述性比较。总体成功率：A为81/90与192/240合计273/330≈82.7%；B为234/270与55/75合计289/345≈83.8%。但两版本的新老用户构成不同，直接比总体会受构成影响。按下一季度新用户40%、老用户60%标准化：A约0.4×90%+0.6×80%=84.0%；B约0.4×86.7%+0.6×73.3%=78.7%。据此描述，A在新季度构成下更高。因版本非随机分配，差异可能受用户构成或其他未观测因素混杂，现有数据不能认定版本的因果效果，也不应承诺发布后实际提升。建议小范围随机试验验证后再决定发布。",
+        "metrics": {
+          "pooledA": 0.8272727272727273,
+          "pooledB": 0.8376811594202898,
+          "standardizedA": 0.84,
+          "standardizedB": 0.7866666666666667
+        },
+        "causalEstablished": false
+      },
+      "originalChecks": {
+        "old": 7,
+        "new": 7,
+        "total": 7
+      },
+      "scope": "Current factual/numeric consistency only; final generic counterexample revision was not resampled on this task."
+    },
+    {
+      "id": "customer-update",
+      "reasoning": "low",
+      "old": {
+        "calls": 2,
+        "reportedTokens": 6146,
+        "ms": 27000
+      },
+      "new": {
+        "calls": 2,
+        "reportedTokens": 3596,
+        "ms": 12323
+      },
+      "oldArtifact": {
+        "artifact": "Incident update: Since 09:10 UTC, some uploads over 100 MB have been stalling. Downloads and smaller uploads are working. Engineers are investigating. We do not have a confirmed root cause or a restoration ETA. Retrying the same stalled upload has not been shown to help. If your upload is urgent, please send the affected upload ID through the support link on our status page. We will provide the next update at 10:30 UTC, even if unresolved."
+      },
+      "newArtifact": {
+        "artifact": "Since 09:10 UTC, some uploads larger than 100 MB have been stalling. Downloads and smaller uploads are working. Our engineers are investigating. We have not confirmed a root cause and cannot provide a restoration ETA. Retrying the same stalled upload has not been shown to help. If you have an urgent upload, please send the affected upload ID through the support link on our status page. We will post the next update at 10:30 UTC, even if the issue is unresolved."
+      },
+      "originalChecks": {
+        "old": 6,
+        "new": 6,
+        "total": 6
+      },
+      "scope": "Surface constraints plus direct copy comparison; final generic counterexample revision was not resampled here."
+    }
+  ],
+  "pilotValidity": {
+    "initialFailures": [
+      {
+        "task": "graph-plan",
+        "arm": "old",
+        "error": "optimizer-BAD_SHAPE"
+      },
+      {
+        "task": "graph-plan",
+        "arm": "new",
+        "error": "incomplete-max-tokens"
+      },
+      {
+        "task": "rollout-analysis",
+        "arm": "old",
+        "error": "optimizer-BAD_SHAPE"
+      }
+    ],
+    "followup": "Only two invalid task pairs rerun with the same source-format boundary and off reasoning in both arms; no changed task/scoring criteria.",
+    "finalCandidate": "After generic invariant/counterexample restoration, only the new graph sample was regenerated; this is not a new independent full A/B pair.",
+    "noArtifactManualFixes": true
+  },
+  "positiveEvidence": [
+    "New graph samples returned valid cycles in self-loop, full-cycle and disconnected-cycle original cases that the old sample failed.",
+    "Both arms met recorded data and writing constraints; new data/writing used fewer reported tokens in these paired runs.",
+    "Persistent workflow is smaller with complete tool contracts still available, no fixed extra model call."
+  ],
+  "negativeEvidence": [
+    "New graph samples failed the additional legitimate delimiter-collision constraint twice; old sample passed it. Do not claim complete correctness.",
+    "The new graph contribution was longer than the old; first candidate consumed more tokens. Length reductions do not define quality.",
+    "Three tasks, one sample per arm, no visual/long-project test. No reliable general improvement or cost reduction estimate.",
+    "New data brief is more cautious than old; this is a tradeoff, not automatically a quality win.",
+    "Final revision was not resampled on data/writing."
+  ],
+  "independentOpinions": {
+    "initialApproach": {
+      "ok": false,
+      "reason": "advisor-invalid-citation",
+      "reportAccepted": false,
+      "reportedUsage": {
+        "inputTokens": 20332,
+        "outputTokens": 17183,
+        "cacheReadTokens": 16768,
+        "cacheWriteTokens": 0,
+        "totalTokens": 54283
+      },
+      "note": "Raw draft contained obsolete historical-tier claims and invalid citations; only generic selection/migration considerations were examined, not treated as facts or acceptance."
+    },
+    "improvement": {
+      "ok": true,
+      "report": {
+        "verdict": "suggestion",
+        "summary": "R0's core prompt strengthened contribution-quality criteria (evidence/conditions for numeric values, unevaluated-performance-not-a-promise, dependency cost weighing) but dropped two operative mechanisms R1 had: 'check counterexamples before returning useful conclusions' and explicit return-format/priority ('make the contribution ready to use instead of leaving a pile of disconnected suggestions', 'explain priorities and when to switch'). The counterexample check is the most consequential omission because it is the mechanism that catches untested edge cases like the lingering string-key collision; R0 mentions counterexamples nowhere in the core text.",
+        "contribution": "Two local re-insertions from R1 into the R0 coreAndTier, preserving R0's gains. [1] After '... common knowledge or a complete project recipe is not a substitute for selection.' insert: 'Before returning useful conclusions, check counterexamples and adversarial cases; a passing example does not establish a general result.' Integration point: the core general prompt. Grounds for gain: restores the operative check R1 had; the only pilot evidence of an escaped defect (string-key collision in the generated sample) is exactly the class of edge case this sentence targets, and R0 currently has no equivalent instruction. [2] In Heavy, after '...supply their needed derivations or constructions.' insert: 'Return the contribution in a form the executor can apply directly, with priorities and when to switch, rather than a disconnected suggestion pile.' Grounds for gain: R0's Heavy text lists what to examine but not the output's integration shape; R1's Heavy carried this and the drop is a regression in usefulness, not a shortening gain. Both insertions are generic (no data/writing/string-key recipe), respect three tiers and tool contracts, and add no authorization.",
+        "assumptions": [
+          "Pilot 'mixed results' attribution to the escaped collision is not verifiable from R0/R1 text alone; treated as a tentative mapping to the counterexample-check mechanism.",
+          "The string-key collision occurred in generated sample code, not in the prompt-engineering output itself; R0/R1 are prompt texts, so this is the executor's downstream artifact."
+        ],
+        "findings": [
+          {
+            "text": "Observed: R0 coreAndTier contains no instruction to check counterexamples or edge cases before returning conclusions; R1 coreAndTier contained 'Check counterexamples before returning useful conclusions, not private reasoning.' R0 replaced it with 'Explore deeply, then deliver conclusions worth adopting.' Impact: the pilot's one untested defect (string-key collision) is the class this check addresses; R0 may ship the same class undetected.",
+            "evidenceRefs": [
+              "R0",
+              "R1"
+            ]
+          },
+          {
+            "text": "Observed: R0 Heavy says 'supply their needed derivations or constructions' but omits R1's integration directive ('make the contribution ready to use instead of leaving a pile of disconnected suggestions', 'explain priorities and when to switch'). Impact: R0 retains the coverage verbs but loses the packaging instruction, a net usability regression in the Heavy tier.",
+            "evidenceRefs": [
+              "R0",
+              "R1"
+            ]
+          },
+          {
+            "text": "Observed: R0 gains genuinely new quality criteria absent in R1 — 'Explain evidence and conditions for numeric values or recipes; examples are not facts and unmeasured performance is not a promise.' This is a real improvement and should be retained if either insertion is applied.",
+            "evidenceRefs": [
+              "R0",
+              "R1"
+            ]
+          },
+          {
+            "text": "Tentative: R0's 'Empty additions are valid' plus the omit-consult default reduces consult frequency; without runtime data this cannot be scored, but it is a plausible trade the executor may be testing. No change proposed on this alone.",
+            "evidenceRefs": [
+              "R0"
+            ]
+          }
+        ],
+        "checks": [],
+        "nextStep": "Apply insertions [1] and [2] to R0 coreAndTier and Heavy respectively; keep R0's evidence/conditions and unmeasured-performance sentences unchanged. Re-run the same pilot scope to see whether the untested string-key class is now caught; compare against the existing pilot results before adopting or reverting.",
+        "stopCondition": "Stop once the two insertions are either shown to reduce escaped edge-case defects on a fresh pilot or shown to add no divergent behavior; revert an insertion if it produces no measurable counterexample detection and the executor prefers R0's shorter form. Do not iterate beyond the next pilot comparison absent new material."
+      },
+      "usage": {
+        "inputTokens": 3272,
+        "outputTokens": 920,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "totalTokens": 4192
+      },
+      "adopted": "Restored generic counterexample check; did not append a second full project integration routine."
+    },
+    "codeReview": {
+      "ok": true,
+      "reviewPassed": false,
+      "report": {
+        "verdict": "gaps",
+        "summary": "Code/wiring evidence is consistent with the stated change: contribution selection is defined generically in OPTIMIZER_CORE (consequential judgment, difficult construction, result quality) with no domain templates and no fixed length quotas; three tiers remain and depth/light-heavy mapping is preserved; workflow is compact, keeps the useful modes by reference while full tool contracts (ADVISOR_INVOCATION) and host guards (policy.injectPacket, authorization language) remain; migration replaces only files whose canonical hash matches LEGACY_DEFAULT_HASHES and leaves customized text as 'file'. However, every supporting check rests on whole-file sources and one aggregated regression log excerpt (F0/F1/F2); no full test logs, no fixtures for the legacy hashes, and no runtime evidence of the migration path beyond the excerpted assertions, so acceptance of the change cannot be certified from supplied material alone.",
+        "findings": [
+          {
+            "text": "OPTIMIZER_CORE (zh/en) defines selection generically as changing a consequential judgment, solving a difficult construction, or raising result quality, with routine implementation expanded only when it affects a key decision; no domain templates or fixed length quotas appear in the core text.",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "text": "OPTIMIZER_TIERS still contains light/standard/heavy in both languages, and optimizerTier maps depth brief→light, deep→heavy, else standard; tier content is selection/judgment language rather than scope or length targets.",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "text": "Workflow is compact and by reference: ADVISOR_WORKFLOW equals ADVISOR_BRIEF.zh, EN_WORKFLOW equals ADVISOR_BRIEF.en, withAdvisorWorkflow gates injection on policy.injectPacket and appends feedback only when no dynamic text is present; tool modes, scope, stage and material details are explicitly deferred to the tool descriptions.",
+            "evidenceRefs": [
+              "F1",
+              "F2"
+            ]
+          },
+          {
+            "text": "Full tool contract and host guards are unchanged in the supplied sources: ADVISOR_INVOCATION keeps the four modes (approach/improve/review/economy) with their conditions, and the empty-addition / no-authorization / existing-authorization language is retained in format, options and workflow text.",
+            "evidenceRefs": [
+              "F0",
+              "F1"
+            ]
+          },
+          {
+            "text": "Migration is hash-scoped: isLegacyDefaultPrompt canonicalizes BOM, CRLF and surrounding whitespace and checks membership in the twelve frozen hashes; resolvePrompt replaces only matched text with the built-in and otherwise returns source 'file' for any differing custom text, with an explicit legacy-default-replaced-by-v3 migration record.",
+            "evidenceRefs": [
+              "F0",
+              "F2"
+            ]
+          },
+          {
+            "text": "All verification of the change rests on the single aggregated regression log excerpt and its inline test source; no full test output, no legacy-hash fixture files, and no runtime trace of resolvePrompt/isLegacyDefaultPrompt execution were supplied, so the excerpted pass lines are raw evidence of the run, not independent proof of the whole migration and API-boundary behavior.",
+            "evidenceRefs": [
+              "F2"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "checkId": "generic-contribution-selection",
+            "criterion": "Selection of contributions by consequential judgment / difficult construction / result value, without domain templates or fixed length quotas",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0",
+              "F1"
+            ]
+          },
+          {
+            "checkId": "three-tiers-preserved",
+            "criterion": "Light/standard/heavy tiers preserved with tier selection and depth mapping intact",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0"
+            ]
+          },
+          {
+            "checkId": "concise-persistent-workflow",
+            "criterion": "Concise persistent workflow keeps useful modes while deferring detail to tool contracts",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F1",
+              "F2"
+            ]
+          },
+          {
+            "checkId": "tool-contracts-unchanged",
+            "criterion": "Full tool contracts (mode list, conditions, scope/stage/material detail) remain unchanged",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F1"
+            ]
+          },
+          {
+            "checkId": "host-guards-unchanged",
+            "criterion": "Host guards (injectPacket gate, existing authorization, no new requirements) remain unchanged",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0",
+              "F1",
+              "F2"
+            ]
+          },
+          {
+            "checkId": "api-surface-unchanged",
+            "criterion": "Exported API/wiring boundaries untouched by the change",
+            "status": "unverified",
+            "evidenceRefs": [
+              "F0",
+              "F1"
+            ]
+          },
+          {
+            "checkId": "legacy-hash-migration",
+            "criterion": "Old built-in hashes migrate to the current default",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0",
+              "F2"
+            ]
+          },
+          {
+            "checkId": "custom-prompt-retention",
+            "criterion": "Custom prompts stay intact and are not overwritten",
+            "status": "satisfied",
+            "evidenceRefs": [
+              "F0",
+              "F2"
+            ]
+          }
+        ],
+        "nextStep": "If stronger acceptance is desired, obtain the isolated run output (or targeted test execution) for isLegacyDefaultPrompt/resolvePrompt against the twelve frozen hashes plus non-matching custom variants, and a diff or listing of exported names in optimizer-protocol.js and its importers; otherwise record the code/wiring scope as satisfied per the supplied sources.",
+        "stopCondition": "Stop once the migration-path and API-surface checks are either backed by isolated run evidence or formally scoped as code-inspection-only acceptance; do not expand into unrelated project verification."
+      },
+      "usage": {
+        "inputTokens": 9672,
+        "outputTokens": 1144,
+        "cacheReadTokens": 640,
+        "cacheWriteTokens": 0,
+        "totalTokens": 11456
+      }
+    }
+  },
+  "costRecord": {
+    "artifactGenerationCalls": 19,
+    "generationReportedTokens": 61731,
+    "boundedImprovementAndCodeReviewCalls": 3,
+    "reportedTotalTokens": 137921,
+    "includes": "All invalid samples, initial rejected adviser invocation, setup followups and code-review evidence followup; not just selected successful examples."
+  },
+  "activation": {
+    "disk": "contribution-selection-2",
+    "running": "advisor-english-1",
+    "model": {
+      "provider": "deepseek-official",
+      "model": "deepseek-flash"
+    },
+    "problems": [],
+    "requires": "Restart DSH and refresh original GUI; verify actual request revision. No settings changed."
+  },
+  "adoption": "Keep as the current local candidate for the next natural-task comparison. Engineering and local gains established; general result-quality win and production cost reduction remain unproven."
+}
