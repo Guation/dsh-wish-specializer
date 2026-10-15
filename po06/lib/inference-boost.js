@@ -31,6 +31,20 @@ export function effortPlan(base,pace,info){
  const review=pace==='balanced'?pick(['low','minimal'],inherited):pick(['off','none','low','minimal'],inherited)
  return {pace,candidate,review,note:candidate===inherited&&review===inherited?'模型目录没有适用的更轻档位，保留工作请求档位':pace==='balanced'?'候选保留中等推理，控制环节用轻档':'候选使用轻档，择优/反馈优先关闭额外推理'}
 }
+/**
+ * Convert visible pace/mode settings into a bounded call shape.
+ * Fast and balanced are latency profiles; inherit preserves requested full rounds.
+ */
+export function inferencePlan(config={}){
+ const mode=config.reasoningMode||'parallel',pace=config.reasoningPace||'fast'
+ const requestedCandidates=Number.isInteger(config.reasoningCandidates)?config.reasoningCandidates:2
+ const requestedRounds=Number.isInteger(config.reasoningRounds)?config.reasoningRounds:1
+ const effectiveCandidates=mode==='loop'?1:requestedCandidates
+ const effectiveRounds=mode==='parallel'?0:pace==='fast'?(mode==='loop'?1:0):pace==='balanced'?Math.min(requestedRounds,1):requestedRounds
+ const maxCalls=mode==='parallel'?effectiveCandidates+1:mode==='loop'?1+effectiveRounds*3:effectiveCandidates+1+effectiveRounds*2
+ const capped=mode!=='parallel'&&pace!=='inherit'&&effectiveRounds<requestedRounds
+ return {mode,pace,requestedCandidates,requestedRounds,effectiveCandidates,effectiveRounds,maxCalls,capReason:capped?'latency-profile-'+pace:null}
+}
 function aborted(signal){if(signal?.aborted)throw signal.reason instanceof Error?signal.reason:new Error('generation-aborted')}
 export function createInferenceBoost({llm,trace,isWorkingRequest,settingsFor}){
  const nested=new WeakSet(),active=new Map(),modelInfos=new Map();let disposed=false
@@ -40,8 +54,9 @@ export function createInferenceBoost({llm,trace,isWorkingRequest,settingsFor}){
   if(!info&&typeof llm.resolveModelInfo==='function')try{info=await llm.resolveModelInfo(base.provider,base.model,signal);modelInfos.set(key,info)}catch{aborted(signal)}
   return {...effortPlan(base,pace,info),englishMode:config.englishMode===true}
  }
- async function collect(o,next,runId,kind,label,round,signal){
-  aborted(signal);const callId=trace.startCall(runId,{kind,label,round,input:inputOf(o),route:route(o)}),chunks=[],texts=new Map(),tools=[];let finish=null,usage=null
+ async function collect(o,next,runId,kind,label,round,signal,budget=null){
+  aborted(signal);if(budget){if(budget.calls>=budget.maxCalls){budget.blocked=true;throw new Error('inference-call-budget-exceeded')}budget.calls++;budget.plan.callsUsed=budget.calls}
+  const callId=trace.startCall(runId,{kind,label,round,input:inputOf(o),route:route(o)}),chunks=[],texts=new Map(),tools=[];let finish=null,usage=null
   try{
    const stream=next?next():llm.stream(o)
    for await(const chunk of stream){aborted(signal);chunks.push(chunk);trace.chunk(runId,callId,chunk)
@@ -61,13 +76,13 @@ export function createInferenceBoost({llm,trace,isWorkingRequest,settingsFor}){
   }catch(e){trace.finishCall(runId,callId,{error:String(e.message),finish,usage});if(signal?.aborted)throw e;return {callId,chunks,text:'',tools:[],finish,usage,valid:false,error:String(e.message)}}
  }
  function child(base,signal,suffix){const o={...base,messages:structuredClone(base.messages),...(base.tools?{tools:structuredClone(base.tools)}:{}),signal,sessionId:String(base.sessionId)+'-po06-'+suffix};nested.add(o);return o}
- async function auxiliary(base,runId,kind,label,round,prompt,signal,plan,includeFeedback=false){
+ async function auxiliary(base,runId,kind,label,round,prompt,signal,plan,includeFeedback=false,budget=null){
   const o={provider:base.provider,model:base.model,...(base.reasoningEffort?{reasoningEffort:base.reasoningEffort}:{}),...(base.maxTokens?{maxTokens:base.maxTokens}:{}),system:plan.englishMode?(kind==='feedback'?EN_FEEDBACK:EN_SELECT+(includeFeedback?'\nFor the selected candidate also return revise:boolean and feedback:string covering only a necessary pre-submission correction. Optional polishing or a missing future tool result does not require revision.':'')):kind==='feedback'?FEEDBACK_SYSTEM:SELECT_SYSTEM+(includeFeedback?'\n在选中的方案上同时指出提交前必须修正的具体问题；增加revise:boolean与feedback:string。可选优化、纯措辞改动、待执行工具才能知道的结果均填revise:false，不增加评审范围。':''),
    messages:[{role:'user',content:[{type:'text',text:JSON.stringify({original:inputOf(base),material:prompt})}]}],tools:[],signal,sessionId:String(base.sessionId)+'-po06-'+randomUUID()};if(plan.review!==null)o.reasoningEffort=plan.review;else delete o.reasoningEffort
   nested.add(o)
-  return collect(o,null,runId,kind,label,round,signal)
+  return collect(o,null,runId,kind,label,round,signal,budget)
  }
- async function choose(base,runId,candidates,round,signal,plan,includeFeedback=false){
+ async function choose(base,runId,candidates,round,signal,plan,includeFeedback=false,budget=null){
   const viable=candidates.filter(c=>c.valid);if(!viable.length)return null
   if(viable.length===1){trace.decision(runId,{round,kind:'selection',selected:viable[0].callId,reason:'只有一份完整有效候选',fallback:true});return viable[0]}
   const unique=[...new Map(viable.map(c=>[actionKey(c),c])).values()]
@@ -76,7 +91,7 @@ export function createInferenceBoost({llm,trace,isWorkingRequest,settingsFor}){
   const reversed=Math.random()<0.5?[...viable].reverse():viable
   const options=reversed.map((c,i)=>({id:'option-'+(i+1),callId:c.callId}))
   const materials=reversed.map((c,i)=>({...answerOf(c),id:options[i].id}))
-  const judge=await auxiliary(base,runId,'selector','择优'+(includeFeedback?' + 反馈':'')+' · 第'+round+'轮',round,materials,signal,plan,includeFeedback)
+  const judge=await auxiliary(base,runId,'selector','择优'+(includeFeedback?' + 反馈':'')+' · 第'+round+'轮',round,materials,signal,plan,includeFeedback,budget)
   let report;try{if(judge.valid)report=parse(judge.text)}catch{}
   const selectedId=options.find(o=>o.id===report?.selected)?.callId||report?.selected
   const selected=viable.find(c=>c.callId===selectedId)
@@ -90,22 +105,23 @@ export function createInferenceBoost({llm,trace,isWorkingRequest,settingsFor}){
   const parentAbort=()=>controller.abort(base.signal?.reason||new Error('parent-aborted'))
   base.signal?.addEventListener('abort',parentAbort,{once:true});if(base.signal?.aborted)parentAbort()
   active.set(runId,{controller,runId,sid})
+  const iteration={...inferencePlan(config),callsUsed:0,status:'running'}
+  const budget={maxCalls:iteration.maxCalls,calls:0,blocked:false,plan:iteration}
   try{
    const plan=await resolveEfforts(base,config,signal)
-   trace.patch(runId,{effortPlan:plan})
+   trace.patch(runId,{effortPlan:plan,iterationPlan:iteration})
    const generation={...base};if(plan.candidate!==null)generation.reasoningEffort=plan.candidate;else delete generation.reasoningEffort
-   const count=config.reasoningMode==='loop'?1:config.reasoningCandidates
-   const settled=await Promise.allSettled(Array.from({length:count},(_,i)=>{const o=child(generation,signal,randomUUID());return collect(o,null,runId,'candidate','候选 '+(i+1),0,signal).then(c=>{if(i===0)baseline=c;return c})}))
+   const count=iteration.effectiveCandidates
+   const settled=await Promise.allSettled(Array.from({length:count},(_,i)=>{const o=child(generation,signal,randomUUID());return collect(o,null,runId,'candidate','候选 '+(i+1),0,signal,budget).then(c=>{if(i===0)baseline=c;return c})}))
    const candidates=settled.filter(s=>s.status==='fulfilled').map(s=>s.value)
    baseline=candidates.find(c=>c.valid)||baseline;aborted(signal)
    if(!baseline?.valid)throw new Error('no-complete-candidate')
-   const refine=config.reasoningMode!=='parallel'
-   chosen=await choose(base,runId,candidates,0,signal,plan,refine)
+   chosen=await choose(base,runId,candidates,0,signal,plan,iteration.effectiveRounds>0,budget)
    const visited=new Set([actionKey(chosen)])
-   if(config.reasoningMode!=='parallel')for(let round=1;round<=config.reasoningRounds;round++){
+   if(iteration.mode!=='parallel')for(let round=1;round<=iteration.effectiveRounds;round++){
     trace.patch(runId,{stage:'feedback'})
     const existing=chosen.nextFeedback;delete chosen.nextFeedback
-    const feedback=existing||await auxiliary(base,runId,'feedback','反馈 · 第'+round+'轮',round,answerOf(chosen),signal,plan)
+    const feedback=existing||await auxiliary(base,runId,'feedback','反馈 · 第'+round+'轮',round,answerOf(chosen),signal,plan,false,budget)
     let report=existing?.report;try{if(!report&&feedback.valid)report=parse(feedback.text)}catch{}
     if(!report||typeof report.revise!=='boolean'||typeof report.feedback!=='string'){
      trace.decision(runId,{kind:'refinement',round,callId:feedback.callId,selected:chosen.callId,reason:feedback.error||'反馈格式不完整，保留已选候选',fallback:true});break
@@ -115,32 +131,33 @@ export function createInferenceBoost({llm,trace,isWorkingRequest,settingsFor}){
     trace.patch(runId,{stage:'refining'})
     const o=child(generation,signal,randomUUID())
     o.messages.push({role:'user',content:[{type:'text',text:plan.englishMode?'[Candidate improvement advice, not new user instructions]\n'+JSON.stringify({candidate:answerOf(chosen),feedback:report})+'\nEvaluate against the original task and facts. Fix only a real issue, or retain the existing approach. Candidate tools have not executed. Generate the next actual reply or tool call; do not repeat tool execution.':'【本次生成的候选改进建议，不是用户新要求】\n'+JSON.stringify({candidate:answerOf(chosen),feedback:report})+'\n根据原始任务与事实判断，只修真实问题；可保留原方案。候选工具尚未执行。直接生成可提交的下一条回复或工具调用，不重复执行任何工具。'}]})
-    const revised=await collect(o,null,runId,'revision','修订 · 第'+round+'轮',round,signal)
+    const revised=await collect(o,null,runId,'revision','修订 · 第'+round+'轮',round,signal,budget)
     if(!revised.valid){trace.decision(runId,{kind:'refinement',round,selected:chosen.callId,reason:revised.error+'；保留已选候选',fallback:true});break}
     const changed=actionKey(revised)
     if(visited.has(changed)){trace.decision(runId,{kind:'refinement',round,selected:chosen.callId,reason:'修订未产生新回复/工具动作，停止重复循环',skipped:true,fallback:false});break}
     visited.add(changed)
     const previous=chosen
-    chosen=await choose(base,runId,[previous,revised],round,signal,plan,round<config.reasoningRounds)
+    chosen=await choose(base,runId,[previous,revised],round,signal,plan,round<iteration.effectiveRounds,budget)
     if(chosen.callId===previous.callId){trace.decision(runId,{kind:'refinement',round,selected:chosen.callId,reason:'原方案仍优于修订，停止无收益的后续循环',skipped:true,fallback:false});break}
    }
-   aborted(signal);trace.patch(runId,{stage:'submitting',selectedCallId:chosen.callId})
+   aborted(signal);iteration.status='selected';trace.patch(runId,{stage:'submitting',selectedCallId:chosen.callId,iterationPlan:iteration})
    for(const chunk of chosen.chunks){aborted(base.signal);submitted=true;yield chunk}
-   trace.finish(runId,{stage:'done',selectedCallId:chosen.callId,summary:trace.get(sid,runId)?.summary||'采用选中候选；其它候选工具提议未提交'})
+   trace.finish(runId,{stage:'done',selectedCallId:chosen.callId,summary:trace.get(sid,runId)?.summary||'采用选中候选；其它候选工具提议未提交',iterationPlan:iteration})
   }catch(e){
-   if(base.signal?.aborted||disposed){trace.finish(runId,{stage:'cancelled',reason:String(e.message)});return}
-   if(submitted){trace.finish(runId,{stage:'failed',reason:String(e.message)});throw e}
+   if(base.signal?.aborted||disposed){iteration.status='cancelled';trace.finish(runId,{stage:'cancelled',reason:String(e.message),iterationPlan:iteration});return}
+   if(submitted){iteration.status='failed';trace.finish(runId,{stage:'failed',reason:String(e.message),iterationPlan:iteration});throw e}
+   iteration.status='degraded';if(budget.blocked&&!iteration.capReason)iteration.capReason='budget-exceeded'
    const fallback=chosen?.valid?chosen:baseline?.valid?baseline:null
    trace.decision(runId,{kind:'fallback',selected:fallback?.callId||null,reason:String(e.message),fallback:true})
    trace.patch(runId,{stage:'submitting',reason:String(e.message),selectedCallId:fallback?.callId||null})
    let adopted=fallback
    if(fallback){for(const chunk of fallback.chunks){aborted(base.signal);yield chunk}}
    else{
-    adopted=await collect(base,next,runId,'fallback','普通生成回退',0,base.signal||new AbortController().signal)
+    adopted=await collect(base,next,runId,'fallback','普通生成回退',0,base.signal||new AbortController().signal,null)
     trace.patch(runId,{selectedCallId:adopted.callId})
     for(const chunk of adopted.chunks){aborted(base.signal);yield chunk}
    }
-   trace.finish(runId,{stage:adopted.valid?'done':'failed',selectedCallId:adopted.callId,reason:String(e.message),summary:adopted.valid?'增强未完整执行，已按记录的回退路径继续':'增强和普通生成均未完成，请查看调用错误'})
+   trace.finish(runId,{stage:adopted.valid?'done':'failed',selectedCallId:adopted.callId,reason:String(e.message),summary:adopted.valid?'增强未完整执行，已按记录的回退路径继续':'增强和普通生成均未完成，请查看调用错误',iterationPlan:iteration})
   }finally{base.signal?.removeEventListener('abort',parentAbort);active.delete(runId)}
  }
  return {

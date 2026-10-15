@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {createInferenceBoost,effortPlan} from '../lib/inference-boost.js'
+import {createInferenceBoost,effortPlan,inferencePlan} from '../lib/inference-boost.js'
 import {createInferenceTrace} from '../lib/inference-trace.js'
 import {normalizeSettings,mergeSettings} from '../lib/settings.js'
 import {effectiveSettings} from '../lib/policy.js'
@@ -119,7 +119,7 @@ test('hybrid selection reuses its feedback rather than launching a second review
  const h=make(o=>{
   if(o.system)return text(JSON.stringify({selected:JSON.parse(o.messages[0].content[0].text).material[0].id,reason:'valid action',summary:'no change',revise:false,feedback:'no material error'}))
   return tool('action'+(++n))
- },{reasoningBoost:true,reasoningMode:'hybrid',reasoningCandidates:2,reasoningRounds:3})
+ },{reasoningBoost:true,reasoningMode:'hybrid',reasoningCandidates:2,reasoningRounds:3,reasoningPace:'inherit'})
  await collect(h.boost.intercept(request(),()=>text('ordinary')))
  const row=h.trace.list('sessionA')[0]
  assert.deepEqual(row.calls.map(c=>c.kind),['candidate','candidate','selector'])
@@ -146,3 +146,43 @@ test('rejected revision ends the cycle and preserves the original result',async(
 })
 
 
+
+
+test('latency profiles bound serial rounds and expose the requested/effective plan',()=>{
+ assert.deepEqual(inferencePlan({reasoningMode:'parallel',reasoningCandidates:3,reasoningRounds:3,reasoningPace:'fast'}),{mode:'parallel',pace:'fast',requestedCandidates:3,requestedRounds:3,effectiveCandidates:3,effectiveRounds:0,maxCalls:4,capReason:null})
+ assert.equal(inferencePlan({reasoningMode:'hybrid',reasoningCandidates:2,reasoningRounds:3,reasoningPace:'fast'}).effectiveRounds,0)
+ assert.equal(inferencePlan({reasoningMode:'hybrid',reasoningCandidates:2,reasoningRounds:3,reasoningPace:'fast'}).maxCalls,3)
+ assert.equal(inferencePlan({reasoningMode:'loop',reasoningCandidates:2,reasoningRounds:3,reasoningPace:'fast'}).maxCalls,4)
+ assert.equal(inferencePlan({reasoningMode:'hybrid',reasoningCandidates:3,reasoningRounds:3,reasoningPace:'balanced'}).maxCalls,6)
+ assert.equal(inferencePlan({reasoningMode:'loop',reasoningCandidates:2,reasoningRounds:3,reasoningPace:'inherit'}).effectiveRounds,3)
+ assert.equal(inferencePlan({reasoningMode:'loop',reasoningCandidates:2,reasoningRounds:3,reasoningPace:'fast'}).capReason,'latency-profile-fast')
+})
+
+test('fast hybrid performs one candidate/select pass even when rounds setting is high',async()=>{
+ let n=0
+ const h=make(o=>o.system?text(JSON.stringify({selected:'option-1',reason:'direct comparison',summary:'single pass'})):tool('fast-'+(++n)),{reasoningBoost:true,reasoningMode:'hybrid',reasoningCandidates:2,reasoningRounds:3,reasoningPace:'fast'})
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ assert.equal(h.requests.length,3,'two candidates plus one selector; no serial refinement tail')
+ const row=h.trace.list('sessionA')[0]
+ assert.deepEqual(row.calls.map(c=>c.kind),['candidate','candidate','selector'])
+ assert.equal(row.iterationPlan.effectiveRounds,0)
+ assert.equal(row.iterationPlan.maxCalls,3)
+ assert.equal(row.iterationPlan.capReason,'latency-profile-fast')
+ assert.equal(row.iterationPlan.callsUsed,row.calls.length)
+ assert.equal(row.iterationPlan.status,'selected')
+})
+
+test('balanced hybrid allows one revision round but never follows a requested three-round tail',async()=>{
+ let n=0
+ const h=make(o=>{
+  if(o.system)return text(JSON.stringify({selected:'option-1',reason:'compare',summary:'one bounded pass',revise:true,feedback:'fix one concrete issue'}))
+  return n++===0?tool('base'):text('revision')
+ },{reasoningBoost:true,reasoningMode:'hybrid',reasoningCandidates:2,reasoningRounds:3,reasoningPace:'balanced'})
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ const row=h.trace.list('sessionA')[0]
+ assert.equal(row.iterationPlan.effectiveRounds,1)
+ assert.equal(row.iterationPlan.maxCalls,5)
+ assert.ok(h.requests.length<=5,'bounded plan must cap actual calls')
+ assert.equal(row.iterationPlan.callsUsed,row.calls.length)
+ assert.equal(row.iterationPlan.status,'selected')
+})
