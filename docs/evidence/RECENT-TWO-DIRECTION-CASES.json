@@ -1,0 +1,419 @@
+{
+  "at": "2026-10-16T03:55:54.631Z",
+  "task": "Read-only analysis of the two completed cases explicitly named by the user; no product or plugin edits.",
+  "cases": [
+    {
+      "label": "latest",
+      "id": "session-9cce2069-05d4-4eba-a814-6c3d215b6244",
+      "retainedRuns": 82,
+      "initialRun": "2026-10-16T02:13:26.398Z",
+      "lastRun": "2026-10-16T03:18:35.569Z",
+      "settings": {
+        "{\"reasoningBoost\":true,\"reasoningMode\":\"hybrid\",\"reasoningCandidates\":3,\"reasoningRounds\":3,\"reasoningPace\":\"inherit\",\"englishMode\":true}": 82
+      },
+      "workflow": {
+        "directions-to-worker": 82
+      },
+      "route": {
+        "{\"provider\":\"deepseek-account\",\"model\":\"deepseek-flash\",\"reasoningEffort\":\"max\",\"maxTokens\":256000}": 82
+      },
+      "calls": 402,
+      "roles": {
+        "direction": 246,
+        "direction-refinement": 74,
+        "working": 82
+      },
+      "stages": {
+        "done": 82
+      },
+      "directionFinish": {
+        "stop": 131,
+        "max-tokens": 189
+      },
+      "directionErrors": {
+        "null": 131,
+        "generation-not-complete": 189
+      },
+      "directionNonempty": 168,
+      "directionNoText": 152,
+      "acceptedPerRun": {
+        "0": 34,
+        "1": 12,
+        "2": 15,
+        "3": 9,
+        "4": 3,
+        "5": 5,
+        "6": 4
+      },
+      "iterationStatus": {
+        "executed": 48,
+        "degraded": 34
+      },
+      "actualRounds": {
+        "0": 34,
+        "1": 33,
+        "2": 4,
+        "3": 11
+      },
+      "directionMs": {
+        "count": 320,
+        "total": 2313755,
+        "min": 2253,
+        "median": 7776,
+        "p90": 9463,
+        "max": 11070
+      },
+      "workingMs": {
+        "count": 82,
+        "total": 1559967,
+        "min": 3923,
+        "median": 11833,
+        "p90": 35547,
+        "max": 96738
+      },
+      "runMs": {
+        "count": 82,
+        "total": 2731500,
+        "min": 14431,
+        "median": 29090,
+        "p90": 45760,
+        "max": 111184
+      },
+      "reportedTokens": 64344044,
+      "reportedOutputTokens": 561794,
+      "directionOutputTokens": 274906,
+      "workingOutputTokens": 286888,
+      "settingsModelEfforts": {
+        "max": 320
+      },
+      "decisionReasons": {
+        "direction-unavailable: generation-not-complete": 189,
+        "direction-handoff: The working model may choose, combine or disregard these directions in its normal generation.": 82,
+        "direction-unavailable: direction-not-a-brief-sketch": 1
+      },
+      "sampleRunIds": [
+        "ffe1743c-4c3e-4984-b70c-d3e17c9c8ae7",
+        "e82072ff-5947-4160-a89f-f27d63784ce2",
+        "f93e98e8-f47d-45b4-bf10-304e898f5dc5"
+      ],
+      "extraPreparationMs": 1170209,
+      "allWorkingMs": 1559967,
+      "acceptedDirectionProtocolMarkup": 44,
+      "runsWithProtocolMarkup": 15,
+      "acceptedDirections": 130,
+      "shortDirectionExplicitCode": 48,
+      "finalAnswerLike": 0,
+      "inferenceSpanMs": 3946327,
+      "operationFailures": 19,
+      "artifact": {
+        "path": "D:/0中转站/html/mbt-kestrel.html",
+        "sha256": "f5e1f79b34c0ea81daa42b39c56883be979b4d8ed74c628c67f450b0d94afc7a",
+        "bytes": 1457333
+      },
+      "publicSource": "C:/Users/33875/.dsh/plugins/dsh-prompt-optimizer/.po06-tmp/recent-direction-cases/latest-public-events.json",
+      "finalText": "C:/Users/33875/.dsh/plugins/dsh-prompt-optimizer/.po06-tmp/recent-direction-cases/latest-final.md"
+    },
+    {
+      "label": "older",
+      "id": "session-d8fde1ff-f6bd-4a42-b47d-619fdc39bf6f",
+      "retainedRuns": 56,
+      "initialRun": "2026-10-16T01:03:13.871Z",
+      "lastRun": "2026-10-16T01:53:42.954Z",
+      "settings": {
+        "{\"reasoningBoost\":true,\"reasoningMode\":\"hybrid\",\"reasoningCandidates\":3,\"reasoningRounds\":3,\"reasoningPace\":\"fast\",\"englishMode\":false}": 56
+      },
+      "workflow": {
+        "directions-to-worker": 56
+      },
+      "route": {
+        "{\"provider\":\"deepseek-account\",\"model\":\"deepseek-flash\",\"reasoningEffort\":\"max\",\"maxTokens\":256000}": 56
+      },
+      "calls": 224,
+      "roles": {
+        "direction": 168,
+        "working": 56
+      },
+      "stages": {
+        "done": 56
+      },
+      "directionFinish": {
+        "stop": 148,
+        "max-tokens": 20
+      },
+      "directionErrors": {
+        "null": 148,
+        "generation-not-complete": 20
+      },
+      "directionNonempty": 168,
+      "directionNoText": 0,
+      "acceptedPerRun": {
+        "0": 1,
+        "1": 5,
+        "2": 14,
+        "3": 36
+      },
+      "iterationStatus": {
+        "executed": 55,
+        "degraded": 1
+      },
+      "actualRounds": {
+        "0": 56
+      },
+      "directionMs": {
+        "count": 168,
+        "total": 815056,
+        "min": 1809,
+        "median": 4709,
+        "p90": 7305,
+        "max": 10004
+      },
+      "workingMs": {
+        "count": 56,
+        "total": 1509534,
+        "min": 2209,
+        "median": 18328,
+        "p90": 53653,
+        "max": 257965
+      },
+      "runMs": {
+        "count": 56,
+        "total": 1846499,
+        "min": 5118,
+        "median": 25280,
+        "p90": 59629,
+        "max": 261829
+      },
+      "reportedTokens": 33777059,
+      "reportedOutputTokens": 373645,
+      "directionOutputTokens": 79746,
+      "workingOutputTokens": 293899,
+      "settingsModelEfforts": {
+        "off": 168
+      },
+      "decisionReasons": {
+        "direction-handoff: 原工作模型在正常生成中自行选用、组合或忽略方向。": 56,
+        "direction-unavailable: generation-not-complete": 20,
+        "direction-unavailable: direction-not-a-brief-sketch": 7
+      },
+      "sampleRunIds": [
+        "1a7991d8-78e5-4b88-a70f-66d60980899b"
+      ],
+      "extraPreparationMs": 336232,
+      "allWorkingMs": 1509534,
+      "acceptedDirectionProtocolMarkup": 41,
+      "runsWithProtocolMarkup": 21,
+      "acceptedDirections": 141,
+      "shortDirectionExplicitCode": 43,
+      "finalAnswerLike": 1,
+      "inferenceSpanMs": 3048443,
+      "operationFailures": 13,
+      "artifact": {
+        "path": "D:/0中转站/html/leopard2a7.html",
+        "sha256": "3b092ba7c3223f3f4573a14b020815a8c1a38f7101fedde84e65a815893c74c1",
+        "bytes": 154820
+      },
+      "publicSource": "C:/Users/33875/.dsh/plugins/dsh-prompt-optimizer/.po06-tmp/recent-direction-cases/older-public-events.json",
+      "finalText": "C:/Users/33875/.dsh/plugins/dsh-prompt-optimizer/.po06-tmp/recent-direction-cases/older-final.md"
+    }
+  ],
+  "sourceVersion": "Both case trace rows have workflow directions-to-worker and roles direction/direction-refinement/working, confirming the recent 8dd4eae direction handoff workflow rather than the old complete-candidate judge. The exact live commit ID is not persisted per run, so this is behavioral-version identification.",
+  "reproductions": {
+    "artifacts": {
+      "latest": {
+        "path": "D:/0中转站/html/mbt-kestrel.html",
+        "sha256": "f5e1f79b34c0ea81daa42b39c56883be979b4d8ed74c628c67f450b0d94afc7a",
+        "bytes": 1457333
+      },
+      "older": {
+        "path": "D:/0中转站/html/leopard2a7.html",
+        "sha256": "3b092ba7c3223f3f4573a14b020815a8c1a38f7101fedde84e65a815893c74c1",
+        "bytes": 154820
+      }
+    },
+    "method": "Exact functions from final delivered HTML, no modifications; only mathematical constants and minimal state supplied. Exhaustive finite scan over 1800 phases and all adjacent pairs, not a whole-app GPU run.",
+    "track": {
+      "circleOrder": [
+        -3.3,
+        2.05,
+        1.33,
+        0.61,
+        -0.11,
+        -0.83,
+        -1.55,
+        -2.27,
+        3.28
+      ],
+      "length": 24.468314265723336,
+      "close": 0,
+      "N": 137,
+      "pitch": 0.17860083405637472,
+      "sampledPairs": 246600,
+      "minimum": {
+        "distance": 0.000028906635068715048,
+        "rawDistance": 0.0015413021038333736,
+        "phase": 183,
+        "j": 40,
+        "a": {
+          "z": -2.18072086239269,
+          "y": 0,
+          "tz": -1,
+          "ty": 0
+        },
+        "b": {
+          "z": -2.1806919557576214,
+          "y": 0.001541031012578977,
+          "tz": 0.9998377044919547,
+          "ty": 0.018015678623307316
+        }
+      },
+      "unclampedMinimum": {
+        "distance": 0.0015413021038333736,
+        "phase": 183,
+        "j": 40,
+        "a": {
+          "z": -2.18072086239269,
+          "y": 0,
+          "tz": -1,
+          "ty": 0
+        },
+        "b": {
+          "z": -2.1806919557576214,
+          "y": 0.001541031012578977,
+          "tz": 0.9998377044919547,
+          "ty": 0.018015678623307316
+        }
+      }
+    },
+    "turret": {
+      "localYaw": 0,
+      "worldYaw": 1.5707963267948966,
+      "targetWorldYaw": 0,
+      "errorDeg": 90
+    },
+    "telemetry": {
+      "fpsCallPrecedesDtAssignment": true,
+      "simulation": {
+        "fps": 0,
+        "acc": "NaN",
+        "samples": 120
+      }
+    },
+    "artifactUntouched": true
+  },
+  "keyJournalEvidence": [
+    {
+      "case": "latest",
+      "seq": 1121,
+      "observation": "fpsTick call injected before var dt assignment; selftest ALL PASS despite no telemetry text."
+    },
+    {
+      "case": "latest",
+      "seq": 1134,
+      "observation": "TELEMETRY: 0 fps / 1000.0 ms; later accepted as paints, no correctness check."
+    },
+    {
+      "case": "latest",
+      "seq": 1179,
+      "observation": "137 links, pitch=.179, worldSpacing min=.0003 max=.2200, FAIL spacing varies."
+    },
+    {
+      "case": "latest",
+      "seq": 1189,
+      "observation": "After continuous ground blend, min=.0003 max=.1927, FAIL spacing varies remains."
+    },
+    {
+      "case": "latest",
+      "seq": 1197,
+      "observation": "Separate test=all says ALL PASS for ten drive/fire scalar assertions; does not cover remaining world-spacing, turret orientation or FPS."
+    },
+    {
+      "case": "latest",
+      "seq": 1210,
+      "observation": "worldSpacing FAIL plus MINPAIR dArc=.1786, closure=0. These are different measurements; latter does not disprove the former."
+    },
+    {
+      "case": "latest",
+      "seq": 1231,
+      "observation": "Instrument patch SyntaxError; old artifact unchanged at 1457333 bytes, worldSpacing FAIL retained."
+    },
+    {
+      "case": "latest",
+      "seq": 1245,
+      "observation": "Final claims deliverable built/verified/frozen, remaining is dev-only instrumentation; also declares path exonerated and temporal behavior unverified. Deterministic reproduction refutes path exoneration."
+    }
+  ],
+  "acceptedDirectionProtocol": {
+    "latest": {
+      "count": 44,
+      "total": 130,
+      "runs": 15,
+      "example": {
+        "run": "b603ba8d-909a-4ec8-99dd-e08527ba2b66",
+        "call": "850ddc66-ead9-408f-87e0-f0542275383a",
+        "kind": "direction-refinement",
+        "text": "Smoke test is built. Now the decisive experiment: headless capture with readback of the in-page pixel statistics.\n\n<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"run_code\">\n<｜｜DSML｜｜ parameter name=\"code\" string=\"true\">\nconst B = '.build-mbt';\nconst EDGE = '/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';\nconst URL = 'file:///D:/0%E4%B8%AD%E8%BD%AC%E7%AB%99/html/smoke.html';\n\nconst r1 = await tools.bash({\n  command: `\"${EDGE}\" --headless=new --no-first-run --disable-extensions --use-angle=swiftshader --enable-unsafe-swiftshader --window-size=900,600 --user-data-dir=\"D:/0中转站/html/${B}/edge1\" --virtual-time-budget=6000 --screenshot=\"D:/0中转站/html/${B}/shot1.png\" --dump-dom \"${URL}\" 2>${B}/edge1.err | grep -o 'id=\"stats\">[^<]*' ; echo \"=== exit:$? ===\"; ls -l ${B}/shot1.png 2>&1; echo \"--- stderr tail ---\"; tail -n 25 ${B}/edge1.err`,\n  description: 'Headless WebGL smoke capture',\n  timeoutMs: 180000,\n});\nconsole.log(r1);\n</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"description\" string=\"true\">Run headless WebGL capture on smoke test</｜｜DSML｜｜ parameter>\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>",
+        "protocol": true,
+        "explicitCode": true,
+        "finalAnswer": false
+      }
+    },
+    "older": {
+      "count": 41,
+      "total": 141,
+      "runs": 21,
+      "example": {
+        "run": "030ffedd-84eb-46f7-ae48-aedec180b790",
+        "call": "d0d3242b-9524-4172-9935-8556538c6e13",
+        "kind": "direction",
+        "text": "我不提出新方向，只按你已经确定的技术路线（单 HTML + three.js 程序化建模）执行。唯一需要你知道的取舍：\n\n**CDN 依赖 vs 完全离线**——单 HTML 且不内联 three.js，就必须联网从 CDN 加载 three。我会锁定单一版本（three@0.160.0 的 importmap，three 与 examples/jsm 同版本），并在页面上做加载失败检测：CDN 不可达时显示明确提示而不是白屏。如果你要求完全离线，请告诉我，我改用内联方式。\n\n先探测环境（工作目录、node/curl、可用浏览器、CDN 可达性），再写代码。\n\n<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"run_code\">\n<｜｜DSML｜｜ parameter name=\"code\" string=\"true\">\nconst out: Record<string, unknown> = {};\nconst [pwd, node, edge, chrome, cdn] = await Promise.all([\n  tools.bash({ command: 'pwd && echo \"---\" && ls -a | head -5', description: 'Show working directory' }).catch(e => 'ERR ' + e.message),\n  tools.bash({ command: 'node -v; which node; which curl', description: 'Check node and curl availability' }).catch(e => 'ERR ' + e.message),\n  tools.bash({ command: 'ls -d \"/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe\" \"/c/Program Files/Microsoft/Edge/Application/msedge.exe\" 2>/dev/null', description: 'Look for Edge browser' }).catch(e => 'ERR ' + e.message),\n  tools.bash({ command: 'ls -d \"/c/Program Files/Google/Chrome/Application/chrome.exe\" \"/c/Program Files (x86)/Google/Chrome/Application/chrome.exe\" 2>/dev/null', description: 'Look for Chrome browser' }).catch(e => 'ERR ' + e.message),\n  tools.bash({ command: 'curl -s -o /dev/null -w \"unpkg:%{http_code} \" -m 20 \"https://unpkg.com/three@0.160.0/build/three.module.js\"; curl -s -o /dev/null -w \"jsdelivr:%{http_code} \" -m 20 \"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js\"; curl -s -o /dev/null -w \"jsm:%{http_code}\\\\n\" -m 20 \"https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js\"', description: 'Test three.js CDN reachability' }).catch(e => 'ERR ' + e.message),\n]);\nout.pwd = pwd; out.node = node; out.edge = edge; out.chrome = chrome; out.cdn = cdn;\nreturn JSON.stringify(out, null, 1);\n</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"description\" string=\"true\">Probe working dir, node, browsers, CDN reachability</｜｜DSML｜｜ parameter>\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>",
+        "protocol": true,
+        "explicitCode": true,
+        "finalAnswer": false
+      }
+    },
+    "meaning": "Literal tool-protocol text was passed as direction text, not executed by the host. It violates the user-intended direction-only content boundary. It does not by itself prove instruction following or cause each product bug."
+  },
+  "acceptanceCoverage": "Neither completed case contains a successful consult_task review_result. Each attempted one early develop_approach; session tool output was aborted. No independent final artifact acceptance from those calls.",
+  "limits": [
+    "No new browser/GPU run performed; read existing captures, final files and native journal/tool evidence only. Numeric repro uses exact final functions and minimal mathematical state.",
+    "User has not identified which exact small errors they noticed; reproduced defects are independently found, not asserted to be all their observations.",
+    "The two cases vary language, pace, task realization, optimizer advice, libraries and context. Main working model/effort match, but English versus Chinese quality causality is not established.",
+    "Reported input/cache token totals are not billing; generated output totals and call-role breakdown reported separately.",
+    "Direction DSML counts use literal protocol-marker matching among accepted handoffs; a readable short sketch can still be semantically wrong or repetitive.",
+    "Older case had better observed closure but was not proved entirely bug-free.",
+    "Session public-event extraction excludes provider/private reasoning blocks; exported excerpts are public direction text or user-visible commentary."
+  ],
+  "directionBudgetProvenance": {
+    "source": "Per-call route.maxTokens from po06-inference/253187d1ccc64f8f/index.json for the exact case rows; initial direction and direction-refinement calls counted.",
+    "observedCeilings": {
+      "latest": {
+        "1024": 320
+      },
+      "older": {
+        "1024": 168
+      }
+    },
+    "currentImplementation": {
+      "path": "po06/lib/inference-boost.js",
+      "constant": "DIRECTION_MAX_TOKENS=1024",
+      "note": "Historical per-call routes are the authoritative evidence for these cases; current constant agrees."
+    }
+  },
+  "independentReview": {
+    "model": "deepseek-official/deepseek-flash",
+    "invocationSucceeded": true,
+    "reportedOverallVerdict": "unverified",
+    "reviewPassed": false,
+    "checksSupported": [
+      "S1.K1",
+      "S1.K2",
+      "S1.K3"
+    ],
+    "rawResult": ".po06-tmp/recent-direction-cases/analysis-independent-review.json",
+    "correctionsApplied": [
+      "Added per-call route.maxTokens=1024 provenance, absent from the first review package.",
+      "Clarified that logged min .0003 m and isolated flat-ground scan min .0000289 m are different sampling/ground states, not an exact numeric reproduction."
+    ],
+    "note": "A scoped evidence review, not acceptance of either artifact or proof of universal model efficacy. No repeat model call to seek a pass."
+  }
+}
