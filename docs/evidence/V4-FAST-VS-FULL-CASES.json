@@ -1,0 +1,700 @@
+{
+  "createdAt": "2026-10-16T09:19:02.642Z",
+  "scope": "Read-only analysis of the newest two Chinese v4 cases requested by the user; artifacts/plugin unchanged.",
+  "sourceIndex": "C:/Users/33875/.dsh/po06-inference/253187d1ccc64f8f/index.json",
+  "sourceWorkingTreeCommit": "8a34057",
+  "cases": {
+    "fast": {
+      "id": "session-74675d8e-6deb-4dd4-b643-9c97c9489b00",
+      "retainedRuns": 58,
+      "versions": {
+        "4": 58
+      },
+      "settings": {
+        "{\"reasoningBoost\":true,\"reasoningMode\":\"hybrid\",\"reasoningCandidates\":3,\"reasoningRounds\":3,\"reasoningPace\":\"fast\",\"englishMode\":false}": 58
+      },
+      "route": {
+        "{\"provider\":\"deepseek-account\",\"model\":\"deepseek-flash\",\"reasoningEffort\":\"max\",\"maxTokens\":256000}": 58
+      },
+      "roleCounts": {
+        "direction": 174,
+        "working": 58
+      },
+      "runSpanMs": 3693584,
+      "wall": {
+        "n": 58,
+        "min": 10422,
+        "median": 31437,
+        "p90": 100045,
+        "max": 150768,
+        "sum": 2626333
+      },
+      "preparation": {
+        "n": 58,
+        "min": 4567,
+        "median": 8233,
+        "p90": 10325,
+        "max": 15230,
+        "sum": 492475
+      },
+      "directionMs": {
+        "n": 174,
+        "min": 3008,
+        "median": 6585,
+        "p90": 8941,
+        "max": 15008,
+        "sum": 1206927
+      },
+      "workingMs": {
+        "n": 58,
+        "min": 2913,
+        "median": 22732,
+        "p90": 90250,
+        "max": 142578,
+        "sum": 2129828
+      },
+      "validDirections": {
+        "n": 58,
+        "min": 0,
+        "median": 2,
+        "p90": 3,
+        "max": 3,
+        "sum": 106
+      },
+      "rejectedDirections": {
+        "n": 58,
+        "min": 0,
+        "median": 1,
+        "p90": 3,
+        "max": 3,
+        "sum": 68
+      },
+      "duplicateDirections": {
+        "n": 58,
+        "min": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0,
+        "sum": 0
+      },
+      "actualRounds": {
+        "0": 58
+      },
+      "stages": {
+        "failed": 8,
+        "done": 50
+      },
+      "iterationStatus": {
+        "failed": 8,
+        "executed": 39,
+        "evidence-only": 11
+      },
+      "runReasons": {
+        "generation-not-complete": 8,
+        "null": 50
+      },
+      "directionFinish": {
+        "stop": 151,
+        "max-tokens": 16,
+        "undefined": 7
+      },
+      "directionErrors": {
+        "null": 151,
+        "generation-not-complete": 16,
+        "direction-call-timeout": 7
+      },
+      "workingFinish": {
+        "error": 8,
+        "tool-calls": 49,
+        "stop": 1
+      },
+      "workingErrors": {
+        "generation-not-complete": 8,
+        "null": 50
+      },
+      "directionDecisions": {
+        "direction-unavailable: direction-program": 44,
+        "direction-unavailable: direction-error": 16,
+        "direction-unavailable: direction-call-timeout": 7,
+        "direction-unavailable: direction-final-report": 1
+      },
+      "objectives": {
+        "explore": 7,
+        "diagnose": 51
+      },
+      "evidenceCounts": {
+        "n": 58,
+        "min": 0,
+        "median": 4,
+        "p90": 5,
+        "max": 5,
+        "sum": 197
+      },
+      "noDirections": 14,
+      "tokens": {
+        "total": 10696203,
+        "output": 355557,
+        "directionOutput": 111887,
+        "workingOutput": 243670,
+        "unknownUsage": 15
+      },
+      "validInitialDirections": 106,
+      "validRefinements": 0,
+      "refinementAttempts": {},
+      "refinementAcceptedByRound": {},
+      "preparationAtLeast30sRuns": 0,
+      "pairedToolWallMs": 1000324,
+      "pairedToolWallCaveat": "Sum of correlated nested-tool intervals; overlapping tool calls are not an additive exclusive portion of total session wall time.",
+      "pairedToolCalls": 131,
+      "issueKinds": [
+        "invocation-failure"
+      ],
+      "contextClippedRuns": 58,
+      "mainTransportFailures": [
+        {
+          "at": 1792135014077,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792135115023,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792135230706,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792135311830,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792135564599,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792136214150,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792136461711,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792136604009,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        }
+      ],
+      "lastIssues": [
+        {
+          "id": "E398",
+          "kind": "invocation-failure",
+          "label": "Error: old_string was not found in \"D:\\0中转站\\html\\.mbtv2\\00_head.html\"",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E176",
+          "kind": "invocation-failure",
+          "label": "SyntaxError: Identifier 'gA' has already been declared",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E123",
+          "kind": "invocation-failure",
+          "label": "Nonzero exit 2",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E116",
+          "kind": "invocation-failure",
+          "label": "Error: code run failed (exception): Unterminated template",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E67",
+          "kind": "invocation-failure",
+          "label": "Nonzero exit 2",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        }
+      ],
+      "actualDirectionRoutes": {
+        "direction|deepseek-account|deepseek-flash|off|1024": 174
+      },
+      "mainFailureTypes": {
+        "{\"message\":\"DeepSeek Messages transport failed\",\"code\":\"TRANSPORT\"}": 8
+      }
+    },
+    "inherit": {
+      "id": "session-6b096f71-1321-4056-af8e-4feee5698532",
+      "retainedRuns": 68,
+      "versions": {
+        "4": 68
+      },
+      "settings": {
+        "{\"reasoningBoost\":true,\"reasoningMode\":\"hybrid\",\"reasoningCandidates\":3,\"reasoningRounds\":3,\"reasoningPace\":\"inherit\",\"englishMode\":false}": 68
+      },
+      "route": {
+        "{\"provider\":\"deepseek-account\",\"model\":\"deepseek-flash\",\"reasoningEffort\":\"max\",\"maxTokens\":256000}": 68
+      },
+      "roleCounts": {
+        "direction": 204,
+        "working": 68,
+        "direction-refinement": 85
+      },
+      "runSpanMs": 4427243,
+      "wall": {
+        "n": 68,
+        "min": 18708,
+        "median": 44883,
+        "p90": 83922,
+        "max": 137659,
+        "sum": 3512625
+      },
+      "preparation": {
+        "n": 68,
+        "min": 15118,
+        "median": 30096,
+        "p90": 30666,
+        "max": 30916,
+        "sum": 1891498
+      },
+      "directionMs": {
+        "n": 289,
+        "min": 178,
+        "median": 13513,
+        "p90": 15008,
+        "max": 15364,
+        "sum": 3507206
+      },
+      "workingMs": {
+        "n": 68,
+        "min": 1797,
+        "median": 15082,
+        "p90": 53811,
+        "max": 114679,
+        "sum": 1614597
+      },
+      "validDirections": {
+        "n": 68,
+        "min": 0,
+        "median": 2,
+        "p90": 3,
+        "max": 5,
+        "sum": 139
+      },
+      "rejectedDirections": {
+        "n": 68,
+        "min": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3,
+        "sum": 150
+      },
+      "duplicateDirections": {
+        "n": 68,
+        "min": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0,
+        "sum": 0
+      },
+      "actualRounds": {
+        "0": 10,
+        "1": 33,
+        "2": 23,
+        "3": 2
+      },
+      "stages": {
+        "failed": 7,
+        "done": 61
+      },
+      "iterationStatus": {
+        "failed": 7,
+        "executed": 53,
+        "evidence-only": 8
+      },
+      "runReasons": {
+        "generation-not-complete": 7,
+        "null": 61
+      },
+      "directionFinish": {
+        "stop": 150,
+        "undefined": 139
+      },
+      "directionErrors": {
+        "null": 150,
+        "direction-call-timeout": 90,
+        "direction-preparation-timeout": 49
+      },
+      "workingFinish": {
+        "error": 7,
+        "tool-calls": 60,
+        "stop": 1
+      },
+      "workingErrors": {
+        "generation-not-complete": 7,
+        "null": 61
+      },
+      "directionDecisions": {
+        "direction-unavailable: direction-program": 11,
+        "direction-unavailable: direction-call-timeout": 90,
+        "direction-unavailable: direction-preparation-timeout": 49
+      },
+      "objectives": {
+        "explore": 7,
+        "diagnose": 61
+      },
+      "evidenceCounts": {
+        "n": 68,
+        "min": 0,
+        "median": 8,
+        "p90": 10,
+        "max": 11,
+        "sum": 461
+      },
+      "noDirections": 10,
+      "tokens": {
+        "total": 11214099,
+        "output": 398147,
+        "directionOutput": 215303,
+        "workingOutput": 182844,
+        "unknownUsage": 146
+      },
+      "validInitialDirections": 112,
+      "validRefinements": 27,
+      "refinementAttempts": {
+        "1": 58,
+        "2": 25,
+        "3": 2
+      },
+      "refinementAcceptedByRound": {
+        "1": 25,
+        "2": 2
+      },
+      "preparationAtLeast30sRuns": 50,
+      "pairedToolWallMs": 750263,
+      "pairedToolWallCaveat": "Sum of correlated nested-tool intervals; overlapping tool calls are not an additive exclusive portion of total session wall time.",
+      "pairedToolCalls": 130,
+      "issueKinds": [
+        "invocation-failure"
+      ],
+      "contextClippedRuns": 68,
+      "mainTransportFailures": [
+        {
+          "at": 1792134419066,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792134519230,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792134624404,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792134742090,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792134883763,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792136131172,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        },
+        {
+          "at": 1792136588795,
+          "failure": {
+            "message": "DeepSeek Messages transport failed",
+            "code": "TRANSPORT"
+          }
+        }
+      ],
+      "lastIssues": [
+        {
+          "id": "E677",
+          "kind": "invocation-failure",
+          "label": "Error: old_string was not found in \"D:\\0中转站\\html\\.mbtv\\dl\\run_body.mjs\"",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E387",
+          "kind": "invocation-failure",
+          "label": "Error: old_string was not found in \"D:\\0中转站\\html\\.mbtv\\10-core.js\"",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E385",
+          "kind": "invocation-failure",
+          "label": "Error: old_string and new_string must differ",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E322",
+          "kind": "invocation-failure",
+          "label": "Error: code run failed (exception): Unexpected token `:`. Expected `}`",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E315",
+          "kind": "invocation-failure",
+          "label": "Error: cannot read \"D:\\0中转站\\html\\.mbtv\\cdn_verify.txt\": not found",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E232",
+          "kind": "invocation-failure",
+          "label": "Nonzero exit 1",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E208",
+          "kind": "invocation-failure",
+          "label": "Error: old_string and new_string must differ",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E147",
+          "kind": "invocation-failure",
+          "label": "Nonzero exit 1",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E108",
+          "kind": "invocation-failure",
+          "label": "Error: tool call aborted",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E88",
+          "kind": "invocation-failure",
+          "label": "Nonzero exit 1",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        },
+        {
+          "id": "E55",
+          "kind": "invocation-failure",
+          "label": "Nonzero exit 2",
+          "status": "open",
+          "pendingReason": "invocation-recovery-unobserved;not-a-product-check"
+        }
+      ],
+      "actualDirectionRoutes": {
+        "direction|deepseek-account|deepseek-flash|low|4096": 204,
+        "direction-refinement|deepseek-account|deepseek-flash|low|4096": 85
+      },
+      "mainFailureTypes": {
+        "{\"message\":\"DeepSeek Messages transport failed\",\"code\":\"TRANSPORT\"}": 7
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "label": "fast",
+      "path": "D:/0中转站/html/mbt-leviathan.html",
+      "sha256": "784225eef588caca21ee3ae64a1b595addffd93d3b35e6d5ee55e254dd9cfb8d",
+      "bytes": 1424144,
+      "unchangedAtFinish": true
+    },
+    {
+      "label": "inherit",
+      "path": "D:/0中转站/html/mbt-ultra-photoreal.html",
+      "sha256": "7b0b42f4ef121c051f0c85907a64b8a5ec26b74e5a2392b2183b44fe8227ad0e",
+      "bytes": 125070,
+      "unchangedAtFinish": true
+    }
+  ],
+  "evidenceInterfaceReproduction": {
+    "runId": "fa4dab95-2024-44df-a778-1e2d29112aac",
+    "realCase": "inherit",
+    "inputFields": [
+      "version",
+      "requestId",
+      "openIssues",
+      "recentEvidence",
+      "limitations",
+      "completionClaimAllowed",
+      "mode",
+      "omitted"
+    ],
+    "openSourceId": "E387",
+    "recentSourceId": "E421",
+    "recentActualExcerpt": "muzzleX        = 6.4000\nmuzzleX - tailX= 10  overallLen = 10  delta = 0.0000\naxle check: wheel 0.520 spr 0.500 idl 0.460\nlateral: tubHalf 1.13 trackInner 1.145 trackOuter 1.7799999999999998 sponsonHalf 1.81\nSELF.fails = 0  facts = 12\n\n[调用耗时 0.37s；准备 0.00s；执行与收尾 0.36s]\n[exit code: 0]",
+    "actualEntries": [
+      {
+        "kind": "issue",
+        "id": "E387",
+        "status": "open",
+        "criterion": "Error: old_string was not found in \"D:\\0中转站\\html\\.mbtv\\10-core.js\"",
+        "excerpt": "Error: old_string was not found in \"D:\\0中转站\\html\\.mbtv\\10-core.js\""
+      }
+    ],
+    "aliasOnlyForDiagnosisEntries": [
+      {
+        "kind": "issue",
+        "id": "E387",
+        "status": "open",
+        "criterion": "Error: old_string was not found in \"D:\\0中转站\\html\\.mbtv\\10-core.js\"",
+        "excerpt": "Error: old_string was not found in \"D:\\0中转站\\html\\.mbtv\\10-core.js\""
+      },
+      {
+        "kind": "observation",
+        "id": "E421",
+        "excerpt": "muzzleX = 6.4000 muzzleX - tailX= 10 overallLen = 10 delta = 0.0000 axle check: wheel 0.520 spr 0.500 idl 0.460 lateral: tubHalf 1.13 trackInner 1.145 trackOuter 1.7799999999999998 sponsonHalf 1.81 SELF.fails = 0 facts = 12 [调用耗时 0.37s；准备 0.00s；执行与收尾 0.36s] [exit code: 0]"
+      }
+    ],
+    "method": "Minimal isolation: one actual pending issue and one actual later successful observation from a real snapshot; production helper called unchanged. Mapping the latter to observations is an in-memory diagnostic only, not a production code edit. This shows lost field propagation; the unrelated successful check does not close the old invocation issue.",
+    "actualContainsRecentId": false,
+    "aliasContainsRecentId": true
+  },
+  "keyEvidence": [
+    {
+      "case": "fast",
+      "seq": 93,
+      "observed": "Actual Edge WebGL2 context and BLOB_IMPORT_OK with absolute workspace profile."
+    },
+    {
+      "case": "fast",
+      "seq": 199,
+      "observed": "Real renderer UV/bevel/shadow tests reveal scale() preserves UV and bevel expands geometry; changed construction."
+    },
+    {
+      "case": "fast",
+      "seq": 382,
+      "observed": "Actual browser finds stray > at module script tag that extraction parse missed."
+    },
+    {
+      "case": "fast",
+      "seq": 489,
+      "observed": "canvas.toDataURL output gets a real tank image despite blank page-level captures."
+    },
+    {
+      "case": "fast",
+      "seq": 590,
+      "observed": "Frame-counted actual window listener dispatch: hits KeyW/KeyD; dpos=3.96, dyaw=.915, actual rendering output."
+    },
+    {
+      "case": "fast",
+      "seq": 624,
+      "observed": "Read final_hero.png; image hash 73a2f31d993f3254608a41007d75cd6e7bbcbcdd1e2000456da242f911f3f1e7."
+    },
+    {
+      "case": "inherit",
+      "seq": 147,
+      "observed": "Edge attempt timed out at150s; other about:blank controls also time out. Flags differ from successful fast invocation; not proof browser is globally unusable."
+    },
+    {
+      "case": "inherit",
+      "seq": 385,
+      "observed": "Deliberate negative edit control ZZ_SENTINEL_ZZ->same; reports new_string must differ."
+    },
+    {
+      "case": "inherit",
+      "seq": 387,
+      "observed": "Deliberate absent old_string ZZ_ABSENT_ZZ->ZZ_REPL_ZZ; expected old_string missing."
+    },
+    {
+      "case": "inherit",
+      "seq": 421,
+      "observed": "Actual CFG source: SELF.fails=0, 12 facts, sponsonHalf=1.81; final report lower1.855 is stale text, not final numeric bug."
+    },
+    {
+      "case": "inherit",
+      "seq": 655,
+      "observed": "Node stub DOM/WebGL runs6 frames, no unknown IDs. This cannot establish shader compilation or actual image quality."
+    },
+    {
+      "case": "inherit",
+      "seq": 701,
+      "observed": "After presenting, worker responds to another direction questioning E385/E387 and audits17 edit strings; original probe intent was nil."
+    },
+    {
+      "case": "inherit",
+      "seq": 707,
+      "observed": "Final explicitly discloses real browser first frame/shader/PMREM unobserved."
+    }
+  ],
+  "lastRefinementPublicExcerpt": {
+    "runId": "086165bc-df5f-4f29-886d-4b2ba835881a",
+    "callId": "77bcdcf3-19d2-4c50-adff-f64ceb5182df",
+    "kind": "direction",
+    "text": "## 方法提要（下一步，供原工作模型决定是否采用）\n\n**质疑当前最受信的解释。** 目前对四个 open issue 的主导归因是「都是我一次性 harness 的编辑失误，产物无损」。这个归因对 **E677**（`run_body.mjs` 的 `old_string` 未命中）成立——那是 throwaway stub，从未进入交付物。但它被整体套用到 **E387**（`old_string was not found in \"10-core.js\"`）上尚未被证明：`10-core.js` 是**交付物分片**，不是测试脚手架。同类的 **E385**（`old_string and new_string must differ`）意味着那次 edit 是空操作，**E322**（`Unexpected token ':' Expected '}'`）说明当时确实存在语法层改动，只是改在了哪一侧不清楚。这三条观测指向同一件事：**某次预期的修改可能没落地，而后续全绿的静态检查无法察觉**——因为 `assemble_check.cjs` 的 7 项断言全是「ID 存在 / 选择器有 markup / 无重复顶层声明 / 无 `</script>` / bare specifier 可映射 / 无本地文件引用」，没有一项覆盖「某段特定代码是否真的写进了产物」。\n\n**该归因依赖的未证前提：**「静态检查全绿 ⇒ 分片内容符合预期」。这条前提从没被单独验证过，而 E387/E385 恰恰是它应该失败的地方。\n\n**可证伪的替代假设 H2（需要在采纳「已闭合」之前排除）：** E387 那笔未命中的修改，其意图**没有**体现在最终 125070 字节的产物中；产物依旧全绿，只是因为检查项不覆盖那条路径。\n\n**最小区分观察（便宜、无需浏览器、不新增依赖）：** 对每条曾报 `old_string was not found` / `must differ` 的编辑，取它 `new_string` 里的**独有特征串**（不是它自己也含有的公共片段），在最终 `mbt-ultra-photoreal.html` 的 module 段（97628 字符，sha16 `fa877b2cf5fdc17f`）中做一次包含判定。\n- 全部命中 → H2 被推翻，E387/E385 可归为「同一对象、同一可观察结果」的脚手架噪声，关闭有据。\n- 任一未命中 → H2 成立，那条 issue 不能按「不影响交付」驳回，需回到该分片补齐并重新核对模块哈希。\n注意区分对象版本：历史里出现过两次 `sha16`（`1c4108794a128116` 是含头换行的提取，`fa877b2cf5fdc17f` 是当前交付 module），比较必须固定在 `fa877b2cf5fdc17f` 这一版上，否则差 1 字节的边界伪影会再次污染结论（前一次 `shipped[0..3]=\"\\n\\n/*\"` vs `stub[0..3]=\"\\n/* \"` 就是这种伪影）。\n\n**另一条独立未证前提，别让它被上面的闭环顺带「证明」掉：** `specifier -> resolved URL` 全 OK 只证明了**文本层面的解析**，历史自己标注了 `premise(2) shader/PMREM compile in a real WebGL context: STILL UNOBSERVED`。11/11 HEAD 200 + 一次完整 GET（1272972 字节，`curl_rc=0`）证明的是**可取到**，不是**能编译运行**。若采纳了 H2 的反面，也**不要**据此宣称着色器已通过；`onBeforeCompile` 注入的世界空间迷彩噪声与 `PMREMGenerator` + `RoomEnvironment` 在真实 GLSL 上下文中的编译，仍是零观测项。相关接口的顺序/坐标系已知风险点：炮管轴定义为 `MUZZLE` 局部 `+X`，测距读取前必须先 `updateWorldMatrix(true,false)` 刷新，否则读到上一帧姿态——这与 E387 属于同一类「时序/落地」风险，值得一并纳入上面的特征串核查。\n\n以上均为假设与待观察项，不是事实；任何一条测试通过都不自动否定另一条失败。"
+  },
+  "observationLimits": [
+    "User reports clear speed/quality preference for fast; analyst saw fast preserved captures only and does not invent a full-mode image comparison.",
+    "Both runs used the same literal task, language, protocol, provider/model/max working effort, but mode changes both direction effort and round count. Not a one-variable causal experiment.",
+    "Sessions ran concurrently on same machine and provider; no process interference was proven. No new GPU/browser/model generation was run.",
+    "All working-generation errors are DeepSeek Messages TRANSPORT errors: fast8, full7; do not call these product bugs.",
+    "Reported token totals have unknown usage for15 fast calls and146 full calls, mostly aborted directions. No exact billed-cost or full-token superiority inferred.",
+    "Accepted direction means syntactically valid, not useful or adopted. The27 accepted refinements do not prove27 improvements.",
+    "Recent evidence is also available indirectly in clipped quoted history. Field mismatch proves the dedicated channel omission, not total model blindness.",
+    "Node config slice reproduces final numeric invariants only; it is not whole-artifact execution."
+  ],
+  "independentReview": {
+    "model": "deepseek-official/deepseek-flash",
+    "ok": false,
+    "reason": "advisor-invalid-json",
+    "reviewPassed": false,
+    "rawRecord": ".po06-tmp/v4-fast-full-independent-review.json",
+    "note": "One Flash review attempt failed JSON validation, not counted as accepted. The analysis rests on original traces, exact tool results and directly reproduced helper behavior; no repeated review for a pass.",
+    "followup": "Added exact actual per-call direction-route counts and working failure classifications to the durable evidence file after the review noted they were omitted from its compact statistics material. Review still not counted as accepted."
+  }
+}
