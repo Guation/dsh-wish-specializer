@@ -1,0 +1,1395 @@
+{
+  "arm": "fast",
+  "protocolVersion": 4,
+  "kind": "Real Flash API smoke test on a temporary fixture, not a live user session or universal quality comparison.",
+  "route": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "reasoningEffort": "max",
+    "maxTokens": 8192
+  },
+  "settings": {
+    "reasoningBoost": true,
+    "reasoningMode": "hybrid",
+    "reasoningCandidates": 3,
+    "reasoningRounds": 3,
+    "reasoningPace": "fast",
+    "englishMode": false
+  },
+  "initial": {
+    "artifact": {
+      "path": "unique.mjs",
+      "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d"
+    },
+    "checks": [
+      {
+        "id": "typed-key-distinction",
+        "status": "fail",
+        "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n      id: 1\n    },\n-   {\n-     id: '1'\n-   }\n  ]\n"
+      },
+      {
+        "id": "prototype-key-distinction",
+        "status": "fail",
+        "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ []\n- [\n-   {\n-     id: 'toString'\n-   },\n-   {\n-     id: '__proto__'\n-   }\n- ]\n"
+      },
+      {
+        "id": "empty-input",
+        "status": "pass"
+      },
+      {
+        "id": "first-value-kept",
+        "status": "pass"
+      },
+      {
+        "id": "custom-key",
+        "status": "fail",
+        "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n      code: 2\n    },\n-   {\n-     code: '2'\n-   }\n  ]\n"
+      },
+      {
+        "id": "missing-key-once",
+        "status": "pass"
+      },
+      {
+        "id": "original-order",
+        "status": "pass"
+      },
+      {
+        "id": "immutable-input",
+        "status": "pass"
+      }
+    ]
+  },
+  "evidenceAtStart": {
+    "version": 1,
+    "requestId": "human:1",
+    "openIssues": [
+      {
+        "key": "a50d8e775dc7439268fe1f609aab630c91244ecf06ab83534d1289cf258ac70f",
+        "id": "E3",
+        "kind": "reported-failure",
+        "checkId": "typed-key-distinction",
+        "checkIdentity": "structured",
+        "label": "typed-key-distinction",
+        "operation": "f96e5057a734ff58669489051775213d2319e08972f1c97c7f144ce1d030ee92",
+        "binding": {
+          "path": "unique.mjs",
+          "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+          "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+          "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "versionStatus": "observed-fresh",
+          "observedSeq": 3,
+          "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+        },
+        "excerpt": "2056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d\"},\"checks\":[{\"id\":\"typed-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      id: 1\\n    },\\n-   {\\n-     id: '1'\\n-   }\\n  ]\\n\"},{\"id\":\"prototype-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n+ []\\n- [\\n-   {\\n-     id: 'toString'\\n-   },\\n-   {\\n-     id: '__proto__'\\n-   }\\n- ]\\n\"},{\"id\":\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+        "source": {
+          "id": "E3",
+          "seq": 3,
+          "callId": "fixture-test",
+          "tool": "bash",
+          "transport": "native",
+          "type": "tool/result",
+          "requestId": "human:1",
+          "historical": false
+        },
+        "firstSeenAt": 1792128082849,
+        "lastSeenAt": 1792128082849,
+        "count": 1,
+        "refs": [
+          "E3"
+        ],
+        "status": "changed-pending",
+        "pendingReason": "object-may-have-changed"
+      },
+      {
+        "key": "a6d0156787c6e7a6b2d7d643b223e5a21b27a2456d86f32b96f04e6966c72ae7",
+        "id": "E3",
+        "kind": "reported-failure",
+        "checkId": "prototype-key-distinction",
+        "checkIdentity": "structured",
+        "label": "prototype-key-distinction",
+        "operation": "f96e5057a734ff58669489051775213d2319e08972f1c97c7f144ce1d030ee92",
+        "binding": {
+          "path": "unique.mjs",
+          "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+          "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+          "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "versionStatus": "observed-fresh",
+          "observedSeq": 3,
+          "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+        },
+        "excerpt": "n\\n  [\\n    {\\n      id: 1\\n    },\\n-   {\\n-     id: '1'\\n-   }\\n  ]\\n\"},{\"id\":\"prototype-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n+ []\\n- [\\n-   {\\n-     id: 'toString'\\n-   },\\n-   {\\n-     id: '__proto__'\\n-   }\\n- ]\\n\"},{\"id\":\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+        "source": {
+          "id": "E3",
+          "seq": 3,
+          "callId": "fixture-test",
+          "tool": "bash",
+          "transport": "native",
+          "type": "tool/result",
+          "requestId": "human:1",
+          "historical": false
+        },
+        "firstSeenAt": 1792128082849,
+        "lastSeenAt": 1792128082849,
+        "count": 1,
+        "refs": [
+          "E3"
+        ],
+        "status": "changed-pending",
+        "pendingReason": "object-may-have-changed"
+      },
+      {
+        "key": "d4ae3cd03d05e4a1784ef4de6606f3309998ec4020b6e6615c9f6a2149b5f8a8",
+        "id": "E3",
+        "kind": "reported-failure",
+        "checkId": "custom-key",
+        "checkIdentity": "structured",
+        "label": "custom-key",
+        "operation": "f96e5057a734ff58669489051775213d2319e08972f1c97c7f144ce1d030ee92",
+        "binding": {
+          "path": "unique.mjs",
+          "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+          "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+          "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "versionStatus": "observed-fresh",
+          "observedSeq": 3,
+          "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+        },
+        "excerpt": "\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+        "source": {
+          "id": "E3",
+          "seq": 3,
+          "callId": "fixture-test",
+          "tool": "bash",
+          "transport": "native",
+          "type": "tool/result",
+          "requestId": "human:1",
+          "historical": false
+        },
+        "firstSeenAt": 1792128082849,
+        "lastSeenAt": 1792128082849,
+        "count": 1,
+        "refs": [
+          "E3"
+        ],
+        "status": "changed-pending",
+        "pendingReason": "object-may-have-changed"
+      }
+    ],
+    "recentEvidence": [
+      {
+        "id": "E3",
+        "seq": 3,
+        "requestId": "human:1",
+        "callId": "fixture-test",
+        "tool": "bash",
+        "transport": "native",
+        "excerpt": "{\"artifact\":{\"path\":\"unique.mjs\",\"sha256\":\"12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d\"},\"checks\":[{\"id\":\"typed-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      id: 1\\n    },\\n-   {\\n-     id: '1'\\n-   }\\n  ]\\n\"},{\"id\":\"prototype-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n+ []\\n- [\\n-   {\\n-     id: 'toString'\\n-   },\\n-   {\\n-     id: '__proto__'\\n-   }\\n- ]\\n\"},{\"id\":\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+        "observedAt": 1792128082849,
+        "historical": false,
+        "isError": false,
+        "exitCode": null,
+        "checks": [
+          {
+            "id": "typed-key-distinction",
+            "identity": "structured",
+            "label": "typed-key-distinction",
+            "status": "fail",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "prototype-key-distinction",
+            "identity": "structured",
+            "label": "prototype-key-distinction",
+            "status": "fail",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "empty-input",
+            "identity": "structured",
+            "label": "empty-input",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "first-value-kept",
+            "identity": "structured",
+            "label": "first-value-kept",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "custom-key",
+            "identity": "structured",
+            "label": "custom-key",
+            "status": "fail",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "missing-key-once",
+            "identity": "structured",
+            "label": "missing-key-once",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "original-order",
+            "identity": "structured",
+            "label": "original-order",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "immutable-input",
+            "identity": "structured",
+            "label": "immutable-input",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          }
+        ],
+        "omittedChecks": 0,
+        "reportedFailures": 3
+      },
+      {
+        "id": "E5",
+        "seq": 5,
+        "requestId": "human:1",
+        "callId": "smoke-test",
+        "tool": "bash",
+        "transport": "native",
+        "excerpt": "{\"artifact\":{\"path\":\"unique.mjs\",\"sha256\":\"12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d\"},\"checks\":[{\"id\":\"empty-input\",\"status\":\"pass\"}]}",
+        "observedAt": 1792128082852,
+        "historical": false,
+        "isError": false,
+        "exitCode": null,
+        "checks": [
+          {
+            "id": "empty-input",
+            "identity": "structured",
+            "label": "empty-input",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 5,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          }
+        ],
+        "omittedChecks": 0,
+        "reportedFailures": 0
+      }
+    ],
+    "limitations": [
+      "Tool text is reported evidence, not host-certified product failure or acceptance.",
+      "Only exact check identities match; semantic entailment and hidden dependencies are not proven."
+    ],
+    "completionClaimAllowed": false,
+    "mode": "diagnose",
+    "omitted": {
+      "openIssues": 0,
+      "recentEvidence": 0
+    }
+  },
+  "requests": [
+    {
+      "kind": "direction",
+      "reasoningEffort": "off",
+      "maxTokens": 1024,
+      "tools": [],
+      "started": 1792128082858,
+      "text": "针对当前解释，可检验的替代假设与最小区分观察：\n\n- 假设A（属性容器语义）：`seen` 的对象身份表把数字键和字符串键隐式转成同一属性名。区分观察：对同一 `key` 分别喂 `{id:1}` 与 `{id:'1'}`，失败项 `typed-key-distinction` 已给出该反例。\n- 假设B（原型链污染）：`seen` 作为普通对象，`toString`/`__proto__` 等名字被原型或特殊属性吞掉。区分观察：`prototype-key-distinction` 期望两项却得到 `[]`，正与该假设一致。\n- 假设C（自定义键未走同一比较路径）：`custom-key` 在 `code` 上重复 `typed-key-distinction` 的符号，说明问题不是 `id` 专属。\n\n最小区分观察（按当前 artifact/version 引用）：在同一 `unique.mjs` 版本 `12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d` 上，用 `Map` 或等价的类型+值混合键记录 `seen`，重跑失败三项 `typed-key-distinction`、`prototype-key-distinction`、`custom-key`；若三项转为与期望深等，则支持A/B/C共同归因。当前未提供可区分“输入是否含原型属性名”的独立观察 ID；缺失该 ID，不编造引用。`missing-key-once`、`original-order`、`immutable-input` 已通过，说明顺序与不可变性不是本失败面，但未闭合失败不等于整体产品失败。",
+      "reasoningChars": 0,
+      "toolProposals": [],
+      "usage": {
+        "inputTokens": 1823,
+        "outputTokens": 380,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "totalTokens": 2203
+      },
+      "finish": {
+        "kind": "stop"
+      },
+      "ms": 3952
+    },
+    {
+      "kind": "direction",
+      "reasoningEffort": "off",
+      "maxTokens": 1024,
+      "tools": [],
+      "started": 1792128082861,
+      "text": "公开方法提要（供原工作模型决定是否采用）：\n\n针对当前失败，建议不再修补 `seen={}` 的普通对象索引，而把去重的“记录容器”换成不会把不同键身份合并的结构，并用同一 `unique.mjs`/version=`12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d` 的失败ID作为证伪目标：\n\n1. 针对 `E3 / typed-key-distinction`（当前失败：`1` 与 `'1'` 被合并）与 `E3 / custom-key`（当前失败：`2` 与 `'2'` 被合并）的可证伪替代假设：失败来自把键值作为普通对象属性名使用，导致数字和字符串属性名落到同一槽位。最小区分观察：对 `[{id:1},{id:'1'}]` 和 `[{code:2},{code:'2'}]` 分别检查两条输入是否都被保留；若只留首项，则该假设被同一批失败直接支持，而不是被 `empty-input`、`first-value-kept` 等 PASS 子集否定。\n\n2. 针对 `E3 / prototype-key-distinction`（当前失败：`toString`/`__proto__` 输入得到 `[]`）的可证伪替代假设：失败来自普通对象继承属性干扰存在性判断，尤其是 `__proto__` 赋值/读取路径；不能只凭 `missing-key-once` 通过就认定该路径安全。最小区分观察：用键值 `'toString'`、`'__proto__'` 分别检查首项是否保留；若普通对象索引仍使它们被误判为已见或丢失，则该假设成立。\n\n3. 若拟关闭 `E3`、将失败归为测试夹具/仪器误报，需要同一对象、同一 `path=unique.mjs`、同一 `version=12e22056...`、同一可观察结果的直接反证；仅以子集 smoke `{check: empty-input, status: pass}` 不足以否定上述三个 FAIL。缺失的独立观察ID不应编造引用。\n\n4. 相关接口检查点：确认 `uniqueBy(items,key=\"id\")` 的默认键、自定义键、输入顺序保持、首项保留、空数组、不改输入，以及键身份区分（数字/字符串/原型属性名）是在同一次实现里同时成立，而不是由不同子集测试互相替代。",
+      "reasoningChars": 0,
+      "toolProposals": [],
+      "usage": {
+        "inputTokens": 1823,
+        "outputTokens": 552,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "totalTokens": 2375
+      },
+      "finish": {
+        "kind": "stop"
+      },
+      "ms": 4628
+    },
+    {
+      "kind": "direction",
+      "reasoningEffort": "off",
+      "maxTokens": 1024,
+      "tools": [],
+      "started": 1792128082871,
+      "text": "针对当前失败，建议优先换用“键身份”而非“属性存在性”的判据，并做最小区分观察：\n\n- 对 `typed-key-distinction`（观察ID：`typed-key-distinction`，版本 `12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d`，路径 `unique.mjs`）：当前实现把 `1` 与 `'1'` 视为同一键。可证伪假设：区分应基于类型+值，而非仅值。区分观察：`[{id:1},{id:'1'}]` 应保留两项；`[{id:1},{id:1}]` 只留首项。\n- 对 `prototype-key-distinction`（同上ID/版本）：当前实现把 `'toString'`、`'__proto__'` 等与原型链属性混淆，结果为空。可证伪假设：键集合不能依赖普通对象及其原型链。区分观察：`[{id:'toString'},{id:'__proto__'},{id:'hasOwnProperty'}]` 应三项全保留（若彼此不同）。\n- 对 `custom-key`（同上ID/版本）：当前实现同样未区分 `2` 与 `'2'`（键 `code` 下）。与第一项同源假设，可用 `[{code:2},{code:'2'}]` 验证。\n- `empty-input`、`first-value-kept`、`original-order`、`immutable-input` 已 PASS（同一版本），可暂不扩大改动面；但不要因这些通过而否定上述失败。\n- 缺失项：`missing-key-once` 已 PASS，但未见其期望对“缺失键”与显式 `undefined` 是否同组的说明；如需严格身份，应补一个观察 `{id:undefined}` 与 `{}` 的区分，否则该边界仍属未闭合。\n\n若同一版本、同一可观察结果下仍复现，不应以“烟测 PASS”作为驳回依据；也不要把某一项失败等同于整个 `uniqueBy` 不可用。",
+      "reasoningChars": 0,
+      "toolProposals": [],
+      "usage": {
+        "inputTokens": 1823,
+        "outputTokens": 473,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "totalTokens": 2296
+      },
+      "finish": {
+        "kind": "stop"
+      },
+      "ms": 3844
+    },
+    {
+      "kind": "working",
+      "reasoningEffort": "max",
+      "maxTokens": 8192,
+      "tools": [
+        "write"
+      ],
+      "started": 1792128087497,
+      "text": "",
+      "reasoningChars": 2118,
+      "toolProposals": [
+        {
+          "type": "tool-call",
+          "id": "call_00_NtzbDGQfEqGtiehvTjyF5871",
+          "name": "write",
+          "arguments": "{\"path\": \"unique.mjs\", \"content\": \"export function uniqueBy(items, key = \\\"id\\\") {\\n  const seen = new Map();\\n  return items.filter((item) => {\\n    const value = item[key];\\n    if (seen.has(value)) return false;\\n    seen.set(value, true);\\n    return true;\\n  });\\n}\\n\"}"
+        }
+      ],
+      "usage": {
+        "inputTokens": 3214,
+        "outputTokens": 615,
+        "cacheReadTokens": 128,
+        "cacheWriteTokens": 0,
+        "totalTokens": 3957
+      },
+      "finish": {
+        "kind": "tool-calls"
+      },
+      "ms": 4550
+    }
+  ],
+  "elapsedMs": 9194,
+  "trace": {
+    "runId": "f63a27a5-7d03-4509-9144-8cd40425adbd",
+    "sessionId": "v4-flash-fast",
+    "stage": "done",
+    "settings": {
+      "reasoningBoost": true,
+      "reasoningMode": "hybrid",
+      "reasoningCandidates": 3,
+      "reasoningRounds": 3,
+      "reasoningPace": "fast",
+      "englishMode": false
+    },
+    "route": {
+      "provider": "deepseek-official",
+      "model": "deepseek-flash",
+      "reasoningEffort": "max",
+      "maxTokens": 8192
+    },
+    "startedAt": 1792128082855,
+    "updatedAt": 1792128092048,
+    "calls": [
+      {
+        "callId": "8fa58de4-c433-4874-ba1b-415dbe59170f",
+        "kind": "direction",
+        "label": "方向 1",
+        "round": 0,
+        "route": {
+          "provider": "deepseek-official",
+          "model": "deepseek-flash",
+          "reasoningEffort": "off",
+          "maxTokens": 1024
+        },
+        "stage": "done",
+        "startedAt": 1792128082858,
+        "updatedAt": 1792128086811,
+        "textChars": 736,
+        "reasoningChars": 0,
+        "toolCount": 0,
+        "usage": {
+          "inputTokens": 1823,
+          "outputTokens": 380,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 2203
+        },
+        "finish": {
+          "kind": "stop"
+        },
+        "error": null,
+        "finishedAt": 1792128086811
+      },
+      {
+        "callId": "82e2f2a7-10f0-455e-9b8a-0e79e4c90655",
+        "kind": "direction",
+        "label": "方向 2",
+        "round": 0,
+        "route": {
+          "provider": "deepseek-official",
+          "model": "deepseek-flash",
+          "reasoningEffort": "off",
+          "maxTokens": 1024
+        },
+        "stage": "done",
+        "startedAt": 1792128082861,
+        "updatedAt": 1792128087490,
+        "textChars": 1015,
+        "reasoningChars": 0,
+        "toolCount": 0,
+        "usage": {
+          "inputTokens": 1823,
+          "outputTokens": 552,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 2375
+        },
+        "finish": {
+          "kind": "stop"
+        },
+        "error": null,
+        "finishedAt": 1792128087490
+      },
+      {
+        "callId": "8be96cde-ed34-447e-ae41-888389f8db39",
+        "kind": "direction",
+        "label": "方向 3",
+        "round": 0,
+        "route": {
+          "provider": "deepseek-official",
+          "model": "deepseek-flash",
+          "reasoningEffort": "off",
+          "maxTokens": 1024
+        },
+        "stage": "done",
+        "startedAt": 1792128082871,
+        "updatedAt": 1792128086716,
+        "textChars": 876,
+        "reasoningChars": 0,
+        "toolCount": 0,
+        "usage": {
+          "inputTokens": 1823,
+          "outputTokens": 473,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 2296
+        },
+        "finish": {
+          "kind": "stop"
+        },
+        "error": null,
+        "finishedAt": 1792128086716
+      },
+      {
+        "callId": "74df11fe-dd42-485c-bb34-afb8c2f6d582",
+        "kind": "working",
+        "label": "原模型取舍并执行",
+        "round": 0,
+        "route": {
+          "provider": "deepseek-official",
+          "model": "deepseek-flash",
+          "reasoningEffort": "max",
+          "maxTokens": 8192
+        },
+        "stage": "done",
+        "startedAt": 1792128087497,
+        "updatedAt": 1792128092047,
+        "textChars": 0,
+        "reasoningChars": 2118,
+        "toolCount": 1,
+        "usage": {
+          "inputTokens": 3214,
+          "outputTokens": 615,
+          "cacheReadTokens": 128,
+          "cacheWriteTokens": 0,
+          "totalTokens": 3957
+        },
+        "finish": {
+          "kind": "tool-calls"
+        },
+        "error": null,
+        "finishedAt": 1792128092047
+      }
+    ],
+    "decisions": [
+      {
+        "kind": "direction-handoff",
+        "supplied": [
+          "8fa58de4-c433-4874-ba1b-415dbe59170f",
+          "82e2f2a7-10f0-455e-9b8a-0e79e4c90655",
+          "8be96cde-ed34-447e-ae41-888389f8db39"
+        ],
+        "selection": "working-model",
+        "reason": "原工作模型在正常生成中自行选用、组合或忽略方向。",
+        "fallback": false,
+        "at": 1792128087496
+      }
+    ],
+    "selectedCallId": "74df11fe-dd42-485c-bb34-afb8c2f6d582",
+    "summary": "简短方向已交原模型取舍，没有独立裁判。",
+    "reason": null,
+    "protocolVersion": "4",
+    "workflow": "directions-to-worker",
+    "iterationPlan": {
+      "mode": "hybrid",
+      "pace": "fast",
+      "workflow": "directions-to-worker",
+      "requestedCandidates": 3,
+      "requestedRounds": 3,
+      "effectiveCandidates": 3,
+      "effectiveRounds": 0,
+      "maxCalls": 4,
+      "maxExtraCalls": 3,
+      "capReason": "latency-profile-fast",
+      "callsUsed": 4,
+      "extraCallsUsed": 3,
+      "workingCallsUsed": 1,
+      "actualRounds": 0,
+      "status": "executed",
+      "validDirections": 3,
+      "rejectedDirections": 0,
+      "duplicateDirections": 0
+    },
+    "evidenceState": {
+      "version": 1,
+      "requestId": "human:1",
+      "openIssues": [
+        {
+          "key": "a50d8e775dc7439268fe1f609aab630c91244ecf06ab83534d1289cf258ac70f",
+          "id": "E3",
+          "kind": "reported-failure",
+          "checkId": "typed-key-distinction",
+          "checkIdentity": "structured",
+          "label": "typed-key-distinction",
+          "operation": "f96e5057a734ff58669489051775213d2319e08972f1c97c7f144ce1d030ee92",
+          "binding": {
+            "path": "unique.mjs",
+            "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+            "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+            "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+            "versionStatus": "observed-fresh",
+            "observedSeq": 3,
+            "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+            "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+          },
+          "excerpt": "2056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d\"},\"checks\":[{\"id\":\"typed-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      id: 1\\n    },\\n-   {\\n-     id: '1'\\n-   }\\n  ]\\n\"},{\"id\":\"prototype-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n+ []\\n- [\\n-   {\\n-     id: 'toString'\\n-   },\\n-   {\\n-     id: '__proto__'\\n-   }\\n- ]\\n\"},{\"id\":\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+          "source": {
+            "id": "E3",
+            "seq": 3,
+            "callId": "fixture-test",
+            "tool": "bash",
+            "transport": "native",
+            "type": "tool/result",
+            "requestId": "human:1",
+            "historical": false
+          },
+          "firstSeenAt": 1792128082849,
+          "lastSeenAt": 1792128082849,
+          "count": 1,
+          "refs": [
+            "E3"
+          ],
+          "status": "changed-pending",
+          "pendingReason": "object-may-have-changed",
+          "criterion": "typed-key-distinction",
+          "path": "unique.mjs",
+          "version": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "versionStatus": "object-may-have-changed"
+        },
+        {
+          "key": "a6d0156787c6e7a6b2d7d643b223e5a21b27a2456d86f32b96f04e6966c72ae7",
+          "id": "E3",
+          "kind": "reported-failure",
+          "checkId": "prototype-key-distinction",
+          "checkIdentity": "structured",
+          "label": "prototype-key-distinction",
+          "operation": "f96e5057a734ff58669489051775213d2319e08972f1c97c7f144ce1d030ee92",
+          "binding": {
+            "path": "unique.mjs",
+            "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+            "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+            "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+            "versionStatus": "observed-fresh",
+            "observedSeq": 3,
+            "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+            "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+          },
+          "excerpt": "n\\n  [\\n    {\\n      id: 1\\n    },\\n-   {\\n-     id: '1'\\n-   }\\n  ]\\n\"},{\"id\":\"prototype-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n+ []\\n- [\\n-   {\\n-     id: 'toString'\\n-   },\\n-   {\\n-     id: '__proto__'\\n-   }\\n- ]\\n\"},{\"id\":\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+          "source": {
+            "id": "E3",
+            "seq": 3,
+            "callId": "fixture-test",
+            "tool": "bash",
+            "transport": "native",
+            "type": "tool/result",
+            "requestId": "human:1",
+            "historical": false
+          },
+          "firstSeenAt": 1792128082849,
+          "lastSeenAt": 1792128082849,
+          "count": 1,
+          "refs": [
+            "E3"
+          ],
+          "status": "changed-pending",
+          "pendingReason": "object-may-have-changed",
+          "criterion": "prototype-key-distinction",
+          "path": "unique.mjs",
+          "version": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "versionStatus": "object-may-have-changed"
+        },
+        {
+          "key": "d4ae3cd03d05e4a1784ef4de6606f3309998ec4020b6e6615c9f6a2149b5f8a8",
+          "id": "E3",
+          "kind": "reported-failure",
+          "checkId": "custom-key",
+          "checkIdentity": "structured",
+          "label": "custom-key",
+          "operation": "f96e5057a734ff58669489051775213d2319e08972f1c97c7f144ce1d030ee92",
+          "binding": {
+            "path": "unique.mjs",
+            "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+            "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+            "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+            "versionStatus": "observed-fresh",
+            "observedSeq": 3,
+            "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+            "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+          },
+          "excerpt": "\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+          "source": {
+            "id": "E3",
+            "seq": 3,
+            "callId": "fixture-test",
+            "tool": "bash",
+            "transport": "native",
+            "type": "tool/result",
+            "requestId": "human:1",
+            "historical": false
+          },
+          "firstSeenAt": 1792128082849,
+          "lastSeenAt": 1792128082849,
+          "count": 1,
+          "refs": [
+            "E3"
+          ],
+          "status": "changed-pending",
+          "pendingReason": "object-may-have-changed",
+          "criterion": "custom-key",
+          "path": "unique.mjs",
+          "version": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+          "versionStatus": "object-may-have-changed"
+        }
+      ],
+      "recentEvidence": [
+        {
+          "id": "E5",
+          "seq": 5,
+          "requestId": "human:1",
+          "callId": "smoke-test",
+          "tool": "bash",
+          "transport": "native",
+          "excerpt": "{\"artifact\":{\"path\":\"unique.mjs\",\"sha256\":\"12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d\"},\"checks\":[{\"id\":\"empty-input\",\"status\":\"pass\"}]}",
+          "observedAt": 1792128082852,
+          "historical": false,
+          "isError": false,
+          "exitCode": null,
+          "checks": [
+            {
+              "id": "empty-input",
+              "identity": "structured",
+              "label": "empty-input",
+              "status": "pass",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 5,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            }
+          ],
+          "omittedChecks": 0,
+          "reportedFailures": 0
+        },
+        {
+          "id": "E3",
+          "seq": 3,
+          "requestId": "human:1",
+          "callId": "fixture-test",
+          "tool": "bash",
+          "transport": "native",
+          "excerpt": "{\"artifact\":{\"path\":\"unique.mjs\",\"sha256\":\"12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d\"},\"checks\":[{\"id\":\"typed-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      id: 1\\n    },\\n-   {\\n-     id: '1'\\n-   }\\n  ]\\n\"},{\"id\":\"prototype-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n+ []\\n- [\\n-   {\\n-     id: 'toString'\\n-   },\\n-   {\\n-     id: '__proto__'\\n-   }\\n- ]\\n\"},{\"id\":\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+          "observedAt": 1792128082849,
+          "historical": false,
+          "isError": false,
+          "exitCode": null,
+          "checks": [
+            {
+              "id": "typed-key-distinction",
+              "identity": "structured",
+              "label": "typed-key-distinction",
+              "status": "fail",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 3,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            },
+            {
+              "id": "prototype-key-distinction",
+              "identity": "structured",
+              "label": "prototype-key-distinction",
+              "status": "fail",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 3,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            },
+            {
+              "id": "empty-input",
+              "identity": "structured",
+              "label": "empty-input",
+              "status": "pass",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 3,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            },
+            {
+              "id": "first-value-kept",
+              "identity": "structured",
+              "label": "first-value-kept",
+              "status": "pass",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 3,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            },
+            {
+              "id": "custom-key",
+              "identity": "structured",
+              "label": "custom-key",
+              "status": "fail",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 3,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            },
+            {
+              "id": "missing-key-once",
+              "identity": "structured",
+              "label": "missing-key-once",
+              "status": "pass",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 3,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            },
+            {
+              "id": "original-order",
+              "identity": "structured",
+              "label": "original-order",
+              "status": "pass",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 3,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            },
+            {
+              "id": "immutable-input",
+              "identity": "structured",
+              "label": "immutable-input",
+              "status": "pass",
+              "binding": {
+                "path": "unique.mjs",
+                "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+                "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+                "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "versionStatus": "observed-fresh",
+                "observedSeq": 3,
+                "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+                "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+              }
+            }
+          ],
+          "omittedChecks": 0,
+          "reportedFailures": 3
+        }
+      ],
+      "limitations": [
+        "Tool text is reported evidence, not host-certified product failure or acceptance.",
+        "Only exact check identities match; semantic entailment and hidden dependencies are not proven."
+      ],
+      "completionClaimAllowed": false,
+      "mode": "diagnose",
+      "omitted": {
+        "openIssues": 0,
+        "recentEvidence": 0
+      }
+    },
+    "directionObjective": "diagnose",
+    "timingPolicy": {
+      "directionTimeoutMs": 15000,
+      "preparationTimeoutMs": 30000,
+      "workingUnchanged": true
+    },
+    "effortPlan": {
+      "pace": "fast",
+      "direction": "off",
+      "maxTokens": 1024,
+      "policy": "direction-reasoning-off",
+      "note": "方向提要使用目录声明的关闭推理档位；不改变工作模型档位。",
+      "noteEn": "Direction notes use a catalog-declared effort that disables reasoning; the working model strength is unchanged.",
+      "preserveReasoning": false,
+      "limited": false,
+      "englishMode": false,
+      "working": "max"
+    },
+    "directionPolicy": "direction-reasoning-off",
+    "directionMaxTokens": 1024,
+    "directionCallIds": [
+      "8fa58de4-c433-4874-ba1b-415dbe59170f",
+      "82e2f2a7-10f0-455e-9b8a-0e79e4c90655",
+      "8be96cde-ed34-447e-ae41-888389f8db39"
+    ],
+    "finishedAt": 1792128092048
+  },
+  "final": {
+    "artifact": {
+      "path": "unique.mjs",
+      "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d"
+    },
+    "checks": [
+      {
+        "id": "typed-key-distinction",
+        "status": "pass"
+      },
+      {
+        "id": "prototype-key-distinction",
+        "status": "pass"
+      },
+      {
+        "id": "empty-input",
+        "status": "pass"
+      },
+      {
+        "id": "first-value-kept",
+        "status": "pass"
+      },
+      {
+        "id": "custom-key",
+        "status": "pass"
+      },
+      {
+        "id": "missing-key-once",
+        "status": "pass"
+      },
+      {
+        "id": "original-order",
+        "status": "pass"
+      },
+      {
+        "id": "immutable-input",
+        "status": "pass"
+      }
+    ]
+  },
+  "evidenceAfterRetest": {
+    "version": 1,
+    "requestId": "human:1",
+    "openIssues": [],
+    "recentEvidence": [
+      {
+        "id": "E3",
+        "seq": 3,
+        "requestId": "human:1",
+        "callId": "fixture-test",
+        "tool": "bash",
+        "transport": "native",
+        "excerpt": "{\"artifact\":{\"path\":\"unique.mjs\",\"sha256\":\"12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d\"},\"checks\":[{\"id\":\"typed-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      id: 1\\n    },\\n-   {\\n-     id: '1'\\n-   }\\n  ]\\n\"},{\"id\":\"prototype-key-distinction\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n+ []\\n- [\\n-   {\\n-     id: 'toString'\\n-   },\\n-   {\\n-     id: '__proto__'\\n-   }\\n- ]\\n\"},{\"id\":\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"fail\",\"message\":\"Expected values to be strictly deep-equal:\\n+ actual - expected\\n\\n  [\\n    {\\n      code: 2\\n    },\\n-   {\\n-     code: '2'\\n-   }\\n  ]\\n\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+        "observedAt": 1792128082849,
+        "historical": false,
+        "isError": false,
+        "exitCode": null,
+        "checks": [
+          {
+            "id": "typed-key-distinction",
+            "identity": "structured",
+            "label": "typed-key-distinction",
+            "status": "fail",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "prototype-key-distinction",
+            "identity": "structured",
+            "label": "prototype-key-distinction",
+            "status": "fail",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "empty-input",
+            "identity": "structured",
+            "label": "empty-input",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "first-value-kept",
+            "identity": "structured",
+            "label": "first-value-kept",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "custom-key",
+            "identity": "structured",
+            "label": "custom-key",
+            "status": "fail",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "missing-key-once",
+            "identity": "structured",
+            "label": "missing-key-once",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "original-order",
+            "identity": "structured",
+            "label": "original-order",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "immutable-input",
+            "identity": "structured",
+            "label": "immutable-input",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 3,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          }
+        ],
+        "omittedChecks": 0,
+        "reportedFailures": 3
+      },
+      {
+        "id": "E5",
+        "seq": 5,
+        "requestId": "human:1",
+        "callId": "smoke-test",
+        "tool": "bash",
+        "transport": "native",
+        "excerpt": "{\"artifact\":{\"path\":\"unique.mjs\",\"sha256\":\"12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d\"},\"checks\":[{\"id\":\"empty-input\",\"status\":\"pass\"}]}",
+        "observedAt": 1792128082852,
+        "historical": false,
+        "isError": false,
+        "exitCode": null,
+        "checks": [
+          {
+            "id": "empty-input",
+            "identity": "structured",
+            "label": "empty-input",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 5,
+              "reportedSha256": "12e22056d8ea59bbd956668f5b9f3587ff504d7568dc151b381ec04f56613c5d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          }
+        ],
+        "omittedChecks": 0,
+        "reportedFailures": 0
+      },
+      {
+        "id": "E7",
+        "seq": 7,
+        "requestId": "human:1",
+        "callId": "actual-write",
+        "tool": "write",
+        "transport": "native",
+        "excerpt": "Temporary fixture replaced by the actual worker proposal.",
+        "observedAt": 1792128092049,
+        "historical": false,
+        "isError": false,
+        "exitCode": null,
+        "checks": [],
+        "omittedChecks": 0,
+        "reportedFailures": 0
+      },
+      {
+        "id": "E9",
+        "seq": 9,
+        "requestId": "human:1",
+        "callId": "actual-retest",
+        "tool": "bash",
+        "transport": "native",
+        "excerpt": "{\"artifact\":{\"path\":\"unique.mjs\",\"sha256\":\"939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d\"},\"checks\":[{\"id\":\"typed-key-distinction\",\"status\":\"pass\"},{\"id\":\"prototype-key-distinction\",\"status\":\"pass\"},{\"id\":\"empty-input\",\"status\":\"pass\"},{\"id\":\"first-value-kept\",\"status\":\"pass\"},{\"id\":\"custom-key\",\"status\":\"pass\"},{\"id\":\"missing-key-once\",\"status\":\"pass\"},{\"id\":\"original-order\",\"status\":\"pass\"},{\"id\":\"immutable-input\",\"status\":\"pass\"}]}",
+        "observedAt": 1792128092063,
+        "historical": false,
+        "isError": false,
+        "exitCode": null,
+        "checks": [
+          {
+            "id": "typed-key-distinction",
+            "identity": "structured",
+            "label": "typed-key-distinction",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 9,
+              "reportedSha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "prototype-key-distinction",
+            "identity": "structured",
+            "label": "prototype-key-distinction",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 9,
+              "reportedSha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "empty-input",
+            "identity": "structured",
+            "label": "empty-input",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 9,
+              "reportedSha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "first-value-kept",
+            "identity": "structured",
+            "label": "first-value-kept",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 9,
+              "reportedSha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "custom-key",
+            "identity": "structured",
+            "label": "custom-key",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 9,
+              "reportedSha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "missing-key-once",
+            "identity": "structured",
+            "label": "missing-key-once",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 9,
+              "reportedSha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "original-order",
+            "identity": "structured",
+            "label": "original-order",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 9,
+              "reportedSha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          },
+          {
+            "id": "immutable-input",
+            "identity": "structured",
+            "label": "immutable-input",
+            "status": "pass",
+            "binding": {
+              "path": "unique.mjs",
+              "root": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast",
+              "objectId": "c:\\users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs",
+              "sha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "versionStatus": "observed-fresh",
+              "observedSeq": 9,
+              "reportedSha256": "939fc6797db19cde2ea73b92a007265590ba62f18e00f9e8d3014410db99259d",
+              "actualPath": "C:\\Users\\33875\\.dsh\\plugins\\dsh-prompt-optimizer\\.po06-tmp\\recent-direction-cases\\flash-v4-guarded-fast\\unique.mjs"
+            }
+          }
+        ],
+        "omittedChecks": 0,
+        "reportedFailures": 0
+      }
+    ],
+    "limitations": [
+      "Tool text is reported evidence, not host-certified product failure or acceptance.",
+      "Only exact check identities match; semantic entailment and hidden dependencies are not proven."
+    ],
+    "completionClaimAllowed": false,
+    "mode": "explore",
+    "omitted": {
+      "openIssues": 0,
+      "recentEvidence": 0
+    }
+  },
+  "ok": true
+}

@@ -1,0 +1,424 @@
+{
+  "protocolVersion": "4",
+  "baseCommit": "8dd4eae",
+  "branch": "experiment/reasoning-latency-1",
+  "sourceHashes": {
+    "po06/lib/inference-boost.js": "e37f08e02e732a93c9aba67632acc8da8a757bc893a972b800cdcc93fe643753",
+    "po06/lib/inference-directions.js": "ddd642adce6a704f2cea66e580a4ee9fd7452909ac541a0135d948cda531d53c",
+    "po06/lib/inference-evidence.js": "263e9bbb7fdd9bd0a3a2fffe8ed11e3a975f7ebfe053ae30f7b4dcbb442999ee",
+    "po06/lib/inference-context.js": "de2387f1e9e467a8f1d83eb13eef2861d750c42312997f50e3c8067da0c19ca9",
+    "po06/lib/index.js": "c5bcef258936f69a29226b8c97f6f41b6debc0fde7c435d2167726f41a25ea55",
+    "po06/lib/client.js": "f50ea5e3e47d7c8b44ce98a47664c93e8df4cf18c9a5f84f70033e28c5ab17c1"
+  },
+  "tests": {
+    "focused": {
+      "tests": 153,
+      "pass": 152,
+      "fail": 0,
+      "skip": 1,
+      "skippedReason": "Windows denied symlink creation; existing readBounded guards are used but that runtime symlink case was not exercised.",
+      "log": ".po06-tmp/recent-direction-cases/v4-focused-tests.log"
+    },
+    "allNonBrowser": {
+      "files": 106,
+      "pass": 106,
+      "fail": 0,
+      "excluded": "verifier-html.test.mjs",
+      "log": ".po06-tmp/recent-direction-cases/v4-all-nonbrowser.log"
+    }
+  },
+  "replay": {
+    "path": "docs/evidence/INFERENCE-V4-REPLAY.json",
+    "acceptedDirectionTexts": 271,
+    "priorProtocolPayloadsRejected": 85,
+    "latestSpacingFailureStillOpen": true,
+    "originalArtifactsUnchanged": true
+  },
+  "realFlash": {
+    "INHERIT": {
+      "ok": true,
+      "elapsedMs": 105631,
+      "workingModel": "deepseek-flash",
+      "workingEffort": "max",
+      "originalOutputCeiling": 8192,
+      "settings": {
+        "reasoningBoost": true,
+        "reasoningMode": "hybrid",
+        "reasoningCandidates": 3,
+        "reasoningRounds": 3,
+        "reasoningPace": "inherit",
+        "englishMode": true
+      },
+      "directionCalls": [
+        {
+          "kind": "direction",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 9150,
+          "finish": "stop",
+          "error": null,
+          "textChars": 625
+        },
+        {
+          "kind": "direction",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 10174,
+          "finish": "stop",
+          "error": null,
+          "textChars": 482
+        },
+        {
+          "kind": "direction",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 11939,
+          "finish": "stop",
+          "error": null,
+          "textChars": 704
+        },
+        {
+          "kind": "direction-refinement",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 7098,
+          "finish": "stop",
+          "error": null,
+          "textChars": 597
+        },
+        {
+          "kind": "direction-refinement",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 4526,
+          "finish": "stop",
+          "error": null,
+          "textChars": 783
+        },
+        {
+          "kind": "direction-refinement",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 77575,
+          "finish": null,
+          "error": "DeepSeek Messages transport failed",
+          "textChars": 0
+        }
+      ],
+      "workingCalls": 1,
+      "validDirections": 5,
+      "rejectedDirections": 1,
+      "decisions": [
+        {
+          "kind": "direction-unavailable",
+          "callId": "2fb26fd9-e41a-4b09-80ae-ae1f511b1328",
+          "reason": "direction-error",
+          "fallback": true,
+          "at": 1792127781079
+        }
+      ],
+      "timingPolicy": null,
+      "finalChecks": [
+        {
+          "id": "typed-key-distinction",
+          "status": "pass"
+        },
+        {
+          "id": "prototype-key-distinction",
+          "status": "pass"
+        },
+        {
+          "id": "empty-input",
+          "status": "pass"
+        },
+        {
+          "id": "first-value-kept",
+          "status": "pass"
+        },
+        {
+          "id": "custom-key",
+          "status": "pass"
+        },
+        {
+          "id": "missing-key-once",
+          "status": "pass"
+        },
+        {
+          "id": "original-order",
+          "status": "pass"
+        },
+        {
+          "id": "immutable-input",
+          "status": "pass"
+        }
+      ],
+      "remainingIssues": 0
+    },
+    "GUARDED-FAST": {
+      "ok": true,
+      "elapsedMs": 9194,
+      "workingModel": "deepseek-flash",
+      "workingEffort": "max",
+      "originalOutputCeiling": 8192,
+      "settings": {
+        "reasoningBoost": true,
+        "reasoningMode": "hybrid",
+        "reasoningCandidates": 3,
+        "reasoningRounds": 3,
+        "reasoningPace": "fast",
+        "englishMode": false
+      },
+      "directionCalls": [
+        {
+          "kind": "direction",
+          "effort": "off",
+          "cap": 1024,
+          "ms": 3952,
+          "finish": "stop",
+          "error": null,
+          "textChars": 736
+        },
+        {
+          "kind": "direction",
+          "effort": "off",
+          "cap": 1024,
+          "ms": 4628,
+          "finish": "stop",
+          "error": null,
+          "textChars": 1015
+        },
+        {
+          "kind": "direction",
+          "effort": "off",
+          "cap": 1024,
+          "ms": 3844,
+          "finish": "stop",
+          "error": null,
+          "textChars": 876
+        }
+      ],
+      "workingCalls": 1,
+      "validDirections": 3,
+      "rejectedDirections": 0,
+      "decisions": [],
+      "timingPolicy": {
+        "directionTimeoutMs": 15000,
+        "preparationTimeoutMs": 30000,
+        "workingUnchanged": true
+      },
+      "finalChecks": [
+        {
+          "id": "typed-key-distinction",
+          "status": "pass"
+        },
+        {
+          "id": "prototype-key-distinction",
+          "status": "pass"
+        },
+        {
+          "id": "empty-input",
+          "status": "pass"
+        },
+        {
+          "id": "first-value-kept",
+          "status": "pass"
+        },
+        {
+          "id": "custom-key",
+          "status": "pass"
+        },
+        {
+          "id": "missing-key-once",
+          "status": "pass"
+        },
+        {
+          "id": "original-order",
+          "status": "pass"
+        },
+        {
+          "id": "immutable-input",
+          "status": "pass"
+        }
+      ],
+      "remainingIssues": 0
+    },
+    "GUARDED-INHERIT": {
+      "ok": true,
+      "elapsedMs": 50135,
+      "workingModel": "deepseek-flash",
+      "workingEffort": "max",
+      "originalOutputCeiling": 8192,
+      "settings": {
+        "reasoningBoost": true,
+        "reasoningMode": "hybrid",
+        "reasoningCandidates": 3,
+        "reasoningRounds": 3,
+        "reasoningPace": "inherit",
+        "englishMode": true
+      },
+      "directionCalls": [
+        {
+          "kind": "direction",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 7694,
+          "finish": "stop",
+          "error": null,
+          "textChars": 612
+        },
+        {
+          "kind": "direction",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 8409,
+          "finish": "stop",
+          "error": null,
+          "textChars": 606
+        },
+        {
+          "kind": "direction",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 9194,
+          "finish": "stop",
+          "error": null,
+          "textChars": 601
+        },
+        {
+          "kind": "direction-refinement",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 6721,
+          "finish": "stop",
+          "error": null,
+          "textChars": 630
+        },
+        {
+          "kind": "direction-refinement",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 9649,
+          "finish": "stop",
+          "error": null,
+          "textChars": 730
+        },
+        {
+          "kind": "direction-refinement",
+          "effort": "low",
+          "cap": 4096,
+          "ms": 4422,
+          "finish": null,
+          "error": "DeepSeek Messages request aborted",
+          "textChars": 0
+        }
+      ],
+      "workingCalls": 1,
+      "validDirections": 5,
+      "rejectedDirections": 1,
+      "decisions": [
+        {
+          "kind": "direction-unavailable",
+          "callId": "eb45b1d1-c77a-4852-804a-b6ae4924e36d",
+          "reason": "direction-preparation-timeout",
+          "fallback": true,
+          "at": 1792128112878
+        }
+      ],
+      "timingPolicy": {
+        "directionTimeoutMs": 15000,
+        "preparationTimeoutMs": 30000,
+        "workingUnchanged": true
+      },
+      "finalChecks": [
+        {
+          "id": "typed-key-distinction",
+          "status": "pass"
+        },
+        {
+          "id": "prototype-key-distinction",
+          "status": "pass"
+        },
+        {
+          "id": "empty-input",
+          "status": "pass"
+        },
+        {
+          "id": "first-value-kept",
+          "status": "pass"
+        },
+        {
+          "id": "custom-key",
+          "status": "pass"
+        },
+        {
+          "id": "missing-key-once",
+          "status": "pass"
+        },
+        {
+          "id": "original-order",
+          "status": "pass"
+        },
+        {
+          "id": "immutable-input",
+          "status": "pass"
+        }
+      ],
+      "remainingIssues": 0
+    }
+  },
+  "roleAndEvidencePolicy": {
+    "directionUsesDedicatedSystemAndQuotedPublicContext": true,
+    "workingContextAndNativeStreamPreserved": true,
+    "noNewSelector": true,
+    "mainEffortUnchanged": true,
+    "observationsHaveNoAcceptanceAuthority": true,
+    "sameHumanEpochOnly": true,
+    "historyHashesNotBackfilled": true,
+    "unknownOrStaleBindingCannotClose": true,
+    "freeTextCheckIdentityExact": true
+  },
+  "runtimeActivation": {
+    "existingUrl": "http://127.0.0.1:19387",
+    "lastObservedProtocol": "3",
+    "restartRequired": true,
+    "clientHmrWatcherVerified": false,
+    "existingGuiRenderVerified": false,
+    "note": "Source implementation and API harness are v4; existing DSH process retains v3 until a host/plugin reload or restart. Refreshing only the page does not replace server modules."
+  },
+  "limitations": [
+    "Smoke fixtures and offline replay test mechanisms, not general model quality or complete tank deliverables.",
+    "Literal direction screening cannot prove every semantic disguise or meaningful diversity is detected.",
+    "Unbound failures/historical unknown hashes may remain pending conservatively; free-text labels or tool changes never auto-match.",
+    "No extra model judges, acceptance/permission gate, user model/authorization mutation, or original artifact repair.",
+    "The initial pre-guard inherit run including a 77.6s transport delay remains preserved; final guarded profiles are a verification after a material timing change, not repeated quality sampling."
+  ],
+  "independentReview": {
+    "tool": "consult_task review_result",
+    "model": "deepseek-official/deepseek-flash",
+    "ok": false,
+    "reason": "advisor-invalid-citation",
+    "reviewPassed": false,
+    "rawRecord": ".po06-tmp/recent-direction-cases/v4-independent-code-review.json",
+    "rawAdviceNotAcceptance": true,
+    "followup": [
+      {
+        "concern": "Could skip/unknown close a failure?",
+        "observation": "Both extractors produce only fail/pass; explicit new regression confirms skip/skipped/unknown/pending/todo/not-run keep a failure open, and fresh actual pass closes it."
+      },
+      {
+        "concern": "Host entry not located by advisor",
+        "observation": "Advisor read nonexistent po06/index.js. Actual integration is po06/lib/index.js; live observer->context->engine integration and host registration are tested locally."
+      },
+      {
+        "concern": "Unknown effort catalog and GUI activation",
+        "observation": "Known limitations retained in help and report; original route is preserved with explicit limitation, existing host is v3 until reload."
+      }
+    ],
+    "coverageStatus": "Formal stage remains unverified. No successful independent acceptance recorded; no repeated calls to seek a pass."
+  },
+  "finalPromptCoverage": {
+    "distinctFailureLenses": true,
+    "source": "po06/test/inference-directions.test.mjs",
+    "note": "Final local regression verifies distinct premise, mapping/output, and instrumentation perspectives with the same actual evidence. Earlier real Flash smoke observations verify the role/evidence/cancellation API mechanism; they do not prove semantic diversity or final product quality."
+  }
+}

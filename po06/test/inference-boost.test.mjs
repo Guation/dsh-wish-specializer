@@ -13,7 +13,7 @@ const isDirection=o=>String(o.sessionId).includes('-po06-direction-')
 const config={reasoningBoost:true,reasoningMode:'parallel',reasoningCandidates:2,reasoningRounds:1,reasoningPace:'fast'}
 function make(responder,settings=config,options={}){
  const trace=createInferenceTrace(),requests=[]
- const llm={stream(o){requests.push(o);return responder(o,requests.length)}}
+ const llm={resolveModelInfo:async()=>({reasoning:{efforts:[{id:'off'},{id:'low'},{id:'high'},{id:'max'}],defaultEffort:'high'}}),stream(o){requests.push(o);return responder(o,requests.length)}}
  const boost=createInferenceBoost({llm,trace,isWorkingRequest:o=>o.sessionId==='sessionA',settingsFor:()=>settings,...options})
  return{boost,trace,requests,llm}
 }
@@ -35,7 +35,7 @@ test('all short directions reach the original worker; no independent selector or
  const out=await collect(h.boost.intercept(base,()=>{throw Error('unexpected fallback')}))
  assert.equal(h.requests.length,3)
  const directions=h.requests.filter(isDirection),main=h.requests.at(-1)
- for(const d of directions){assert.deepEqual(d.tools,[]);assert.ok(d.maxTokens<=DIRECTION_MAX_TOKENS);assert.notEqual(d.sessionId,base.sessionId);assert.strictEqual(d.messages[0],base.messages[0])}
+ for(const d of directions){assert.deepEqual(d.tools,[]);assert.ok(d.maxTokens<=DIRECTION_MAX_TOKENS);assert.notEqual(d.sessionId,base.sessionId);assert.equal(JSON.parse(d.messages[0].content[0].text).task,'complete task');assert.notStrictEqual(d.messages[0],base.messages[0]);assert.ok(d.system,'a dedicated direction system isolates the worker role')}
  assert.equal(main.sessionId,base.sessionId);assert.equal(main.provider,base.provider);assert.equal(main.model,base.model)
  assert.equal(main.reasoningEffort,base.reasoningEffort);assert.equal(main.maxTokens,base.maxTokens);assert.strictEqual(main.tools,base.tools)
  const hint=main.messages.at(-1)
@@ -214,7 +214,7 @@ test('hybrid refines only sketches before a single worker execution, never using
  assert.deepEqual(row.calls.map(c=>c.kind),['direction','direction','direction-refinement','working'])
  assert.equal(row.iterationPlan.actualRounds,1);assert.equal(row.iterationPlan.maxCalls,4);assert.equal(row.directionCallIds.length,3)
  assert.equal(row.iterationPlan.callsUsed,4);assert.equal(h.requests.filter(o=>!isDirection(o)).length,1)
- assert.match(h.requests[2].messages.at(-1).content[0].text,/Direction 1/)
+ assert.match(h.requests[2].system,/Direction 1/,'refinement references prior sketches in its isolated role')
  assert.match(h.requests.at(-1).messages.at(-1).content[0].text,/Direction 3/)
 })
 
@@ -298,4 +298,107 @@ test('explicit hybrid full rounds spend only short direction calls before one wo
  assert.deepEqual(row.calls.map(c=>c.kind),['direction','direction','direction-refinement','direction-refinement','direction-refinement','working'])
  assert.equal(row.iterationPlan.extraCallsUsed,5);assert.equal(row.iterationPlan.workingCallsUsed,1)
  assert.equal(row.iterationPlan.callsUsed,row.iterationPlan.maxCalls)
+})
+
+
+const reportedEvidence=()=>({version:1,requestId:'human:4',mode:'diagnose',openIssues:[{id:'E17',kind:'reported-failure',status:'open',label:'spacing varies',excerpt:'TRACE worldSpacing min=0.0003 | FAIL spacing varies | PASS no discontinuity',source:{id:'E17',seq:17},binding:{path:'artifact.html',sha256:'a'.repeat(64),versionStatus:'observed-fresh'}}],recentEvidence:[],limitations:[],completionClaimAllowed:false})
+test('actual reported failures change the direction objective and reach the worker with their source and version',async()=>{
+ let n=0,contexts=0
+ const h=make(o=>text(isDirection(o)?'Compare the actual world-space gap with an independently sampled path '+(++n)+'.':'Actual work'),config,{evidenceFor:()=>{contexts++;return reportedEvidence()}})
+ await collect(h.boost.intercept(request(),()=>{throw Error('no fallback')}))
+ assert.equal(contexts,1)
+ for(const d of h.requests.filter(isDirection)){assert.match(d.system,/E17/);assert.match(d.system,/hypothes|假设|解释/i);assert.match(d.system,/distinguish|区分|判别/i);assert.match(d.system,/artifact.html/)}
+ const main=h.requests.at(-1),hint=main.messages.at(-1).content[0].text
+ assert.match(hint,/E17/);assert.match(hint,/0.0003/);assert.match(hint,/a{64}/)
+ const row=h.trace.list('sessionA')[0];assert.equal(row.directionObjective,'diagnose');assert.equal(row.evidenceState.openIssues[0].criterion,'spacing varies')
+ assert.equal(row.evidenceState.completionClaimAllowed,false)
+})
+
+test('all DSML directions are rejected, while real unresolved evidence still reaches one original worker',async()=>{
+ const dsml='<｜｜DSML｜｜ calls><｜｜DSML｜｜ invoke name="run_code">await tools.write({path:"x"})</｜｜DSML｜｜ invoke>'
+ let working=0
+ const h=make(o=>isDirection(o)?text(dsml):(working++,tool('only-actual-worker')),config,{evidenceFor:reportedEvidence})
+ const out=await collect(h.boost.intercept(request(),()=>{throw Error('must preserve evidence even when sketches are all rejected')}))
+ assert.equal(working,1);assert.equal(h.requests.length,3)
+ const hint=h.requests.at(-1).messages.at(-1).content[0].text
+ assert.doesNotMatch(hint,/DSML|await tools.write/);assert.match(hint,/E17/)
+ assert.equal(out.filter(c=>c.block?.type==='tool-call').length,1)
+ const row=h.trace.list('sessionA')[0]
+ assert.equal(row.iterationPlan.validDirections,0);assert.equal(row.iterationPlan.rejectedDirections,2)
+ assert.ok(row.decisions.filter(d=>d.kind==='direction-unavailable').every(d=>d.reason==='direction-tool-protocol'))
+})
+
+test('inherit controls requested rounds but direction effort never inherits max when light effort is supported',async()=>{
+ let n=0
+ const h=make(o=>text(isDirection(o)?'Different approach '+(++n):'Work'),{...config,reasoningMode:'hybrid',reasoningRounds:3,reasoningPace:'inherit'})
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ assert.ok(h.requests.filter(isDirection).every(o=>o.reasoningEffort==='low'&&o.maxTokens===4096))
+ assert.equal(h.requests.at(-1).reasoningEffort,'max');assert.equal(h.requests.at(-1).maxTokens,256000)
+ const row=h.trace.list('sessionA')[0]
+ assert.equal(row.iterationPlan.actualRounds,3);assert.equal(row.directionPolicy,'direction-light-reasoning');assert.equal(row.directionMaxTokens,4096)
+})
+
+test('missing model metadata preserves the route with an explicit bounded limited policy',async()=>{
+ const h=make(o=>text(isDirection(o)?'A brief idea.':'Work'));delete h.llm.resolveModelInfo
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ assert.ok(h.requests.filter(isDirection).every(o=>o.reasoningEffort==='max'&&o.maxTokens===4096))
+ const row=h.trace.list('sessionA')[0]
+ assert.equal(row.effortPlan.limited,true);assert.equal(row.directionPolicy,'direction-metadata-unknown')
+})
+
+test('auxiliary quoted context excludes private reasoning/native replay data and has no executable worker system',async()=>{
+ const prior={id:'a1',role:'assistant',source:{kind:'model',replayState:{secret:'NATIVE_SECRET'}},content:[{type:'reasoning',text:'PRIVATE_ORIGINAL_REASONING'},{type:'text',text:'Public progress report.'},{type:'tool-call',id:'t1',name:'read',arguments:'{"path":"artifact.html"}'}]}
+ const base={...request(),system:'ORIGINAL_WORKER_MUST_USE_TOOL',messages:[...request().messages,prior]}
+ const h=make(o=>text(isDirection(o)?'Compare observations.':'Work'))
+ await collect(h.boost.intercept(base,()=>text('ordinary')))
+ const d=h.requests.find(isDirection),quoted=JSON.stringify(d.messages)
+ assert.doesNotMatch(quoted,/NATIVE_SECRET|PRIVATE_ORIGINAL_REASONING/)
+ assert.match(quoted,/Public progress report/);assert.doesNotMatch(d.system,/ORIGINAL_WORKER_MUST_USE_TOOL/)
+ assert.strictEqual(h.requests.at(-1).messages[1],prior);assert.equal(h.requests.at(-1).system,base.system)
+})
+
+test('off requests never collect extra evidence and unavailable evidence does not fail actual work',async()=>{
+ const off=make(()=>{throw Error('extra model call')},{...config,reasoningBoost:false},{evidenceFor:()=>{throw Error('off must not read evidence')}})
+ const sentinel=text('ordinary');assert.strictEqual(off.boost.intercept(request(),()=>sentinel),sentinel)
+ const h=make(o=>text(isDirection(o)?'A public idea.':'Actual task'),config,{evidenceFor:()=>{throw Error('unavailable')}})
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ assert.equal(h.trace.list('sessionA')[0].stage,'done')
+ assert.ok(h.trace.list('sessionA')[0].evidenceState.limitations.includes('evidence-context-unavailable'))
+})
+
+test('pure reply loop receives real unclosed observations without a new evidence judge call',async()=>{
+ const h=make(o=>text(o.system?.includes('具体反馈者')?JSON.stringify({revise:false,feedback:'',summary:'retain'}):'Original reply'),{...config,reasoningMode:'loop'},{evidenceFor:reportedEvidence})
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ assert.equal(h.requests.length,2)
+ assert.match(h.requests[0].messages.at(-1).content[0].text,/E17/)
+ assert.deepEqual(h.trace.list('sessionA')[0].calls.map(c=>c.kind),['candidate','feedback'])
+})
+
+
+test('an extra direction deadline aborts only that role and preserves earlier ideas for a single real worker',async()=>{
+ let n=0,workers=0
+ const h=make(o=>{
+  if(!isDirection(o)){workers++;return tool('work-after-deadline')}
+  if(++n===1)return text('Use the independently measured condition.')
+  return(async function*(){await new Promise(resolve=>{if(o.signal.aborted)resolve();else o.signal.addEventListener('abort',resolve,{once:true})});yield{type:'text-delta',index:0,text:'late and unusable'};yield finish('stop')})()
+ },config,{directionTimeoutMs:8,preparationTimeoutMs:40})
+ const out=await collect(h.boost.intercept(request(),()=>{throw Error('must use surviving direction')}))
+ assert.equal(workers,1);assert.equal(out.filter(c=>c.block?.type==='tool-call').length,1)
+ const row=h.trace.list('sessionA')[0];assert.equal(row.iterationPlan.validDirections,1)
+ assert.ok(row.decisions.some(d=>d.reason==='direction-call-timeout'),JSON.stringify(row.decisions));assert.equal(h.requests.at(-1).signal.aborted,false)
+ assert.equal(row.timingPolicy.workingUnchanged,true)
+})
+
+test('total direction preparation stops extra rounds while retaining valid context and unchanged main generation',async()=>{
+ let n=0
+ const h=make(o=>{
+  if(!isDirection(o))return text('actual task')
+  if(++n<=2)return text('Public useful idea '+n)
+  return(async function*(){await new Promise(resolve=>{if(o.signal.aborted)resolve();else o.signal.addEventListener('abort',resolve,{once:true})});yield finish('aborted')})()
+ },{...config,reasoningMode:'hybrid',reasoningPace:'inherit',reasoningRounds:3},{directionTimeoutMs:100,preparationTimeoutMs:12})
+ await collect(h.boost.intercept(request(),()=>{throw Error('must keep usable directions')}))
+ const row=h.trace.list('sessionA')[0]
+ assert.equal(row.iterationPlan.validDirections,2);assert.equal(h.requests.filter(o=>!isDirection(o)).length,1)
+ assert.ok(row.decisions.some(d=>d.reason==='direction-preparation-timeout'))
+ assert.equal(h.requests.at(-1).reasoningEffort,'max');assert.equal(h.requests.at(-1).signal.aborted,false)
 })

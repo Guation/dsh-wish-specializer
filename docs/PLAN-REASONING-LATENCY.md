@@ -1,5 +1,7 @@
 # 实验推理：方向交给原模型取舍
 
+> 本文件保留 v3 的历史方案与当时实测。当前实验实现已转为 [v4](INFERENCE-V4-IMPLEMENTATION.md)，方向档位、预算和真实证据背景以该说明为准。
+
 本地分支 `experiment/reasoning-latency-1`。发布版 `v0.8.4-stable` 未改、未发布此候选。
 
 ## 当前实现

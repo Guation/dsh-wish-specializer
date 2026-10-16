@@ -1,0 +1,62 @@
+{
+  "protocolVersion": 4,
+  "kind": "Offline replay of unchanged actual case journals and accepted public direction outputs; no real model calls or artifact execution.",
+  "cases": [
+    {
+      "label": "latest",
+      "sessionId": "session-9cce2069-05d4-4eba-a814-6c3d215b6244",
+      "journalFrames": 428,
+      "journalEvents": 1250,
+      "acceptedPublicDirectionsReplayed": 130,
+      "cleanDirectionsRetained": 80,
+      "priorProtocolPayloads": 44,
+      "protocolPayloadsRejected": 44,
+      "rejectionBreakdown": {
+        "clean": 80,
+        "direction-program": 5,
+        "direction-tool-protocol": 44,
+        "direction-final-report": 1
+      },
+      "openReportedIssues": 34,
+      "remainingSpacingFailures": [
+        {
+          "sourceId": "E1179",
+          "count": 4,
+          "status": "recheck-pending",
+          "label": "spacing varies"
+        }
+      ],
+      "limitations": [
+        "Tool text is reported evidence, not host-certified product failure or acceptance.",
+        "Only exact check identities match; semantic entailment and hidden dependencies are not proven.",
+        "event-sequence-unavailable"
+      ],
+      "artifactUnchanged": true,
+      "artifactSha256": "f5e1f79b34c0ea81daa42b39c56883be979b4d8ed74c628c67f450b0d94afc7a"
+    },
+    {
+      "label": "older",
+      "sessionId": "session-d8fde1ff-f6bd-4a42-b47d-619fdc39bf6f",
+      "journalFrames": 345,
+      "journalEvents": 849,
+      "acceptedPublicDirectionsReplayed": 141,
+      "cleanDirectionsRetained": 98,
+      "priorProtocolPayloads": 41,
+      "protocolPayloadsRejected": 41,
+      "rejectionBreakdown": {
+        "clean": 98,
+        "direction-tool-protocol": 41,
+        "direction-final-report": 2
+      },
+      "openReportedIssues": 14,
+      "remainingSpacingFailures": [],
+      "limitations": [
+        "Tool text is reported evidence, not host-certified product failure or acceptance.",
+        "Only exact check identities match; semantic entailment and hidden dependencies are not proven.",
+        "event-sequence-unavailable"
+      ],
+      "artifactUnchanged": true,
+      "artifactSha256": "3b092ba7c3223f3f4573a14b020815a8c1a38f7101fedde84e65a815893c74c1"
+    }
+  ]
+}

@@ -50,6 +50,8 @@ import { createAdvisor, registerAdvisorTool, resolveAdvisorTimeoutMs, resolveAdv
 import { createAdvisorProgress } from './advisor-progress.js'
 import { createInferenceTrace } from './inference-trace.js'
 import { createInferenceBoost } from './inference-boost.js'
+import {createInferenceEvidence} from './inference-evidence.js'
+import {createInferenceEvidenceContext} from './inference-context.js'
 import { createEnglishMode,protectEnglishLiterals,prepareEnglishInterpretation,finishEnglishInput,resolveEnglishInterpretation } from './english-mode.js'
 import { withAdvisorWorkflow } from './advisor-workflow.js'
 import { createAdvisorFeedback } from './advisor-context.js'
@@ -1951,8 +1953,10 @@ export function apply(ctx, config) {
   adapter.english=createEnglishMode({home:DSH_HOME,namespace:PROFILE_DIR})
   ctx.effect(()=>()=>adapter.english.dispose(),'dsh-arbiter: English input mode')
   const inferenceTrace = createInferenceTrace({home:DSH_HOME,namespace:PROFILE_DIR})
+  const inferenceEvidence=createInferenceEvidence({home:DSH_HOME,namespace:PROFILE_DIR})
+  const inferenceContext=createInferenceEvidenceContext({store:inferenceEvidence,getSession:sid=>{const a=adapter.agentFor(sid);return a?.session||a?.getSession?.()},policy:sid=>readPolicy({home:DSH_HOME,sessionId:sid}),rootFor:resolveSessionCwd})
   let inferenceEngine=null,inferenceReady=false,inferenceProblem=null
-  ctx.effect(()=>()=>{inferenceEngine?.dispose();inferenceTrace.dispose()},'dsh-arbiter: reasoning enhancement')
+  ctx.effect(()=>()=>{inferenceEngine?.dispose();inferenceTrace.dispose();inferenceContext.dispose()},'dsh-arbiter: reasoning enhancement')
   ctx.inject(['llm'],scope=>{
     let live=true
     scope.effect(()=>()=>{live=false;inferenceReady=false;inferenceEngine?.dispose()},'dsh-arbiter: reasoning model service')
@@ -1961,6 +1965,7 @@ export function apply(ctx, config) {
       if(!live)return
       if(!loaded.ok || typeof loaded.mod?.isAgentLoopRequest!=='function'){inferenceProblem=loaded.reason || 'working-request-marker-unavailable';return}
       const engine=createInferenceBoost({llm:scope.llm,trace:inferenceTrace,isWorkingRequest:loaded.mod.isAgentLoopRequest,
+        evidenceFor:options=>inferenceContext.evidenceFor(options),
         createNotice:(text,summary)=>loaded.mod.createUserMessage({content:[{type:'text',text}],source:{kind:'plugin:@dsh-external/dsh-arbiter-wf',form:'notice',summary}}),
         settingsFor:sid=>{const p=readPolicy({home:DSH_HOME,sessionId:sid});return {reasoningBoost:p.reasoningBoost,reasoningMode:p.reasoningMode,reasoningCandidates:p.reasoningCandidates,reasoningRounds:p.reasoningRounds,reasoningPace:p.reasoningPace,englishMode:p.englishMode}},log:appendWireLog})
       inferenceEngine=engine
@@ -2389,6 +2394,7 @@ export function apply(ctx, config) {
       const off = ctx.on('session/event', (session, event) => {
         try {
           const sid = session && session.id !== undefined ? String(session.id) : ''
+          inferenceContext.observe(session,event)
           // ── P10 步骤 2：先喂上下文累加器（**只观测，不做任何判定**）──────────
           // 放在最前面：`extractObservedModel` 命中时会 `return`，那个时候
           // `request/header`/`request/context` 事件里的正文我们也一样要收。

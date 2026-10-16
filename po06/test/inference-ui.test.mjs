@@ -79,3 +79,27 @@ test('direction controls describe sketches and original-model choice while retai
  assert.match(visible,/不先写几份实现|multiple implementations/)
  }finally{c.dispose()}
 })
+
+
+test('trace shows usable direction counts, rejection reason and unresolved real evidence separately from acceptance',()=>{
+ const c=client();try{
+ const run={workflow:'directions-to-worker',protocolVersion:'4',iterationPlan:{effectiveCandidates:3,validDirections:1,rejectedDirections:2,duplicateDirections:0},directionMaxTokens:4096,directionObjective:'diagnose',decisions:[{kind:'direction-unavailable',reason:'direction-tool-protocol'},{kind:'direction-unavailable',reason:'direction-incomplete'}],evidenceState:{completionClaimAllowed:false,openIssues:[{id:'E17',criterion:'spacing varies',path:'artifact.html',version:'a'.repeat(64),status:'changed-pending',excerpt:'FAIL spacing varies <script>not executable</script>'}],limitations:[],omitted:{openIssues:2}}}
+ const tree=c.mod.__debug.InferenceEvidenceDetails({run}),all=nodes(tree),text=all.flatMap(n=>n.children.filter(v=>typeof v==='string')).join(' ')
+ assert.ok(all.some(n=>n.props['data-po06']==='inference-effective-directions'))
+ assert.ok(all.some(n=>n.props['data-po06']==='inference-direction-rejections'))
+ assert.ok(all.some(n=>n.props['data-po06']==='inference-evidence'))
+ assert.match(text,/1/);assert.match(text,/2/);assert.match(text,/4096/);assert.match(text,/E17/);assert.match(text,/artifact.html/)
+ assert.match(text,/伪工具协议|Simulated tool protocol/)
+ assert.match(text,/不自动判断|not whole-product/)
+ assert.ok(!all.some(n=>n.props.dangerouslySetInnerHTML),'observed tool text must remain text')
+ assert.equal(run.evidenceState.completionClaimAllowed,false)
+ }finally{c.dispose()}
+})
+
+test('trace component reads old generations without new direction counters or evidence',()=>{
+ const c=client();try{
+ const tree=c.mod.__debug.InferenceEvidenceDetails({run:{workflow:'directions-to-worker',directionCallIds:['old-a','old-b'],decisions:[]}})
+ const text=nodes(tree).flatMap(n=>n.children.filter(v=>typeof v==='string')).join(' ')
+ assert.match(text,/2/);assert.ok(!nodes(tree).some(n=>n.props['data-po06']==='inference-evidence'))
+ }finally{c.dispose()}
+})
