@@ -1,0 +1,423 @@
+{
+  "at": "2026-10-16T00:31:56.231Z",
+  "baseCommit": "0f6659d",
+  "branch": "experiment/reasoning-latency-1",
+  "intent": "Candidates are brief public approach sketches. The original working model receives all usable sketches to choose, combine or ignore during its sole normal streamed generation. No separate selection judge for parallel or hybrid.",
+  "notPublished": true,
+  "scope": "parallel and hybrid; pure reply-loop behavior stays available",
+  "functionalObservation": "Each arm generated one actual module; 18 functional assertions passed. No manual implementation repairs or model quality resampling.",
+  "experimentStatus": "Initial paired observation retained. A documented role-effort correction after v1 budget exhaustion was followed by one v2 observation; not a preregistered universal win.",
+  "preregister": ".po06-tmp/direction-preregister.json",
+  "records": {
+    "baseline": {
+      "ok": true,
+      "elapsedMs": 10158,
+      "model": "deepseek-flash",
+      "provider": "deepseek-official",
+      "workingEffort": "low",
+      "functional": {
+        "total": 18,
+        "passed": 18,
+        "failed": []
+      },
+      "roles": [
+        {
+          "kind": "candidate",
+          "reasoningEffort": "low",
+          "maxTokens": 4096,
+          "ms": 8546,
+          "textChars": 0,
+          "reasoningChars": 4527,
+          "toolCount": 1,
+          "totalTokens": 2284,
+          "finish": "tool-calls"
+        },
+        {
+          "kind": "candidate",
+          "reasoningEffort": "low",
+          "maxTokens": 4096,
+          "ms": 5690,
+          "textChars": 0,
+          "reasoningChars": 1692,
+          "toolCount": 1,
+          "totalTokens": 1497,
+          "finish": "tool-calls"
+        },
+        {
+          "kind": "selector",
+          "reasoningEffort": "off",
+          "maxTokens": 4096,
+          "ms": 1602,
+          "textChars": 328,
+          "reasoningChars": 0,
+          "toolCount": 0,
+          "totalTokens": 2227,
+          "finish": "stop"
+        }
+      ],
+      "tokens": 6008,
+      "unknownUsageCalls": 0,
+      "directionCallIds": [],
+      "directions": [],
+      "artifactToolCalls": 1
+    },
+    "direction-v1": {
+      "ok": true,
+      "elapsedMs": 11329,
+      "model": "deepseek-flash",
+      "provider": "deepseek-official",
+      "workingEffort": "low",
+      "functional": {
+        "total": 18,
+        "passed": 18,
+        "failed": []
+      },
+      "roles": [
+        {
+          "kind": "direction",
+          "reasoningEffort": "low",
+          "maxTokens": 1024,
+          "ms": 6234,
+          "textChars": 252,
+          "reasoningChars": 1099,
+          "toolCount": 0,
+          "totalTokens": 1020,
+          "finish": "stop"
+        },
+        {
+          "kind": "direction",
+          "reasoningEffort": "low",
+          "maxTokens": 1024,
+          "ms": 7810,
+          "textChars": 0,
+          "reasoningChars": 2023,
+          "toolCount": 0,
+          "totalTokens": 1323,
+          "finish": "max-tokens"
+        },
+        {
+          "kind": "working",
+          "reasoningEffort": "low",
+          "maxTokens": 4096,
+          "ms": 3511,
+          "textChars": 0,
+          "reasoningChars": 933,
+          "toolCount": 1,
+          "totalTokens": 1478,
+          "finish": "tool-calls"
+        }
+      ],
+      "tokens": 3821,
+      "unknownUsageCalls": 0,
+      "directionCallIds": [
+        "2253efa3-2c40-4108-9e41-d3e26fb2657e"
+      ],
+      "directions": [
+        {
+          "text": "关键机制是“先做校验与过滤，再创建全新副本，排序后单趟扫描合并”。成立前提是输入区间均为有限数值且 `end >= start`，空区间 `start === end` 需忽略，且输出不能复用输入子数组。扫描时只需与结果数组末尾比较：`mergeAdjacent: true` 用下一区间 `start <= 末尾 end`，`false` 用 `start < 末尾 end`。下一步先实现“校验/过滤/复制/排序/合并”骨架，再针对 `mergeAdjacent` 开关、空区间和异常输入做最小验证。",
+          "valid": true
+        },
+        {
+          "text": "",
+          "valid": false
+        }
+      ],
+      "artifactToolCalls": 1
+    },
+    "direction-v2": {
+      "ok": true,
+      "elapsedMs": 6745,
+      "model": "deepseek-flash",
+      "provider": "deepseek-official",
+      "workingEffort": "low",
+      "functional": {
+        "total": 18,
+        "passed": 18,
+        "failed": []
+      },
+      "roles": [
+        {
+          "kind": "direction",
+          "reasoningEffort": "off",
+          "maxTokens": 1024,
+          "ms": 1845,
+          "textChars": 332,
+          "reasoningChars": 0,
+          "toolCount": 0,
+          "totalTokens": 439,
+          "finish": "stop"
+        },
+        {
+          "kind": "direction",
+          "reasoningEffort": "off",
+          "maxTokens": 1024,
+          "ms": 2161,
+          "textChars": 770,
+          "reasoningChars": 0,
+          "toolCount": 0,
+          "totalTokens": 459,
+          "finish": "stop"
+        },
+        {
+          "kind": "working",
+          "reasoningEffort": "low",
+          "maxTokens": 4096,
+          "ms": 4576,
+          "textChars": 0,
+          "reasoningChars": 1156,
+          "toolCount": 1,
+          "totalTokens": 1915,
+          "finish": "tool-calls"
+        }
+      ],
+      "tokens": 2813,
+      "unknownUsageCalls": 0,
+      "directionCallIds": [
+        "5540b14f-2bd5-40d5-b21f-140756711ac4",
+        "d959ec84-91fa-4d1c-961b-b393801873f8"
+      ],
+      "directions": [
+        {
+          "text": "使用 `write` 工具创建 `intervals.mjs`。核心机制：先对输入做元素级校验与浅拷贝（`const [s,e] = iv` 避免复用子数组），过滤掉 `s===e` 的空区间，按 `start` 升序排序，再用一次线性扫描合并——当 `next.start < current.end`（严格重叠），或 `mergeAdjacent` 为真且 `next.start <= current.end` 时扩展当前区间；否则推入结果并开启新区间。返回全新数组和全新区间对象。成立前提是“相邻”定义为 `next.start === current.end`，且排序后只需比较末尾。下一步：写文件后可用一组样例（乱序、相邻、空区间、非法输入）快速验证。",
+          "valid": true
+        },
+        {
+          "text": "Validate each element with a single pass checking `Array.isArray`, exact `length === 2`, both elements `typeof number && Number.isFinite` (TypeError), then `end < start` (RangeError); skip `start === end`. Sort a copied list by start, then fold left using a running `[s,e]`: merge when `next.start < current.end` (strict overlap) or, when `mergeAdjacent`, `next.start <= current.end`. Emit fresh two-element arrays at both sort and emit stages so no input subarray is reused. Key trade-off: sorting an O(n) copy gives O(n log n) and a clean single fold, versus a sweep/hash approach that complicates adjacency handling for no real gain; note NaN is already caught by `Number.isFinite`, and `Infinity` bounds are rejected as required since only finite values are allowed.",
+          "valid": true
+        }
+      ],
+      "artifactToolCalls": 1
+    }
+  },
+  "tests": {
+    "focused": ".po06-tmp/direction-focused-tests.log",
+    "broad": ".po06-tmp/direction-nonbrowser-tests.log",
+    "broadState": "completed",
+    "browser": "verifier-html.test.mjs excluded after the previous bounded execution hung; no browser/runtime UI pass claimed."
+  },
+  "limits": [
+    "Single small task; provider timings fluctuate and arms are not enough to prove a distributional speedup or broad quality benefit.",
+    "Any malformed, tool-emitting, too-long or incomplete direction is skipped; main execution is still attempted once with its original settings.",
+    "Protocol suggests directions only; host cannot prove the working model selected or followed any particular sketch.",
+    "Real-model calls use deepseek-flash only; local regressions use fake model streams."
+  ],
+  "historicalTrace": {
+    "source": "C:/Users/33875/.dsh/po06-inference/c215a38ab6b92553/index.json",
+    "total": 128,
+    "warning": "Whole-run overlap ratios in the earlier plan included serial feedback/selectors; they do not estimate candidate-only parallelism. Descriptive groups differ in model route/history/task and are not causal comparisons. Usage totals include input and cache, not just generated text.",
+    "groups": {
+      "hybrid|2|1|missing": {
+        "runs": 2,
+        "runMs": {
+          "count": 2,
+          "p50": 6342,
+          "p90": 6342,
+          "min": 6342,
+          "max": 8586
+        },
+        "initialCandidatePhaseMs": {
+          "count": 2,
+          "p50": 1163,
+          "p90": 1163,
+          "min": 1163,
+          "max": 1185
+        },
+        "candidatePhaseWidth": {
+          "count": 2,
+          "p50": 1.7214101461736888,
+          "p90": 1.7214101461736888,
+          "min": 1.7214101461736888,
+          "max": 1.8219409282700423
+        }
+      },
+      "hybrid|3|3|missing": {
+        "runs": 8,
+        "runMs": {
+          "count": 8,
+          "p50": 442552,
+          "p90": 737028,
+          "min": 9354,
+          "max": 1052671
+        },
+        "initialCandidatePhaseMs": {
+          "count": 8,
+          "p50": 19788,
+          "p90": 85967,
+          "min": 4968,
+          "max": 108184
+        },
+        "candidatePhaseWidth": {
+          "count": 8,
+          "p50": 2.2793573911114398,
+          "p90": 2.6231884057971016,
+          "min": 1.621319808763828,
+          "max": 2.983378016085791
+        }
+      },
+      "hybrid|2|2|missing": {
+        "runs": 1,
+        "runMs": {
+          "count": 1,
+          "p50": 171216,
+          "p90": 171216,
+          "min": 171216,
+          "max": 171216
+        },
+        "initialCandidatePhaseMs": {
+          "count": 1,
+          "p50": 21575,
+          "p90": 21575,
+          "min": 21575,
+          "max": 21575
+        },
+        "candidatePhaseWidth": {
+          "count": 1,
+          "p50": 1.4730938586326767,
+          "p90": 1.4730938586326767,
+          "min": 1.4730938586326767,
+          "max": 1.4730938586326767
+        }
+      },
+      "hybrid|3|3|fast": {
+        "runs": 14,
+        "runMs": {
+          "count": 14,
+          "p50": 63404,
+          "p90": 122278,
+          "min": 24076,
+          "max": 192962
+        },
+        "initialCandidatePhaseMs": {
+          "count": 14,
+          "p50": 34087,
+          "p90": 63473,
+          "min": 11401,
+          "max": 73152
+        },
+        "candidatePhaseWidth": {
+          "count": 14,
+          "p50": 2.5602861697577666,
+          "p90": 2.858847134103357,
+          "min": 2.06801077766422,
+          "max": 2.8900973598807123
+        }
+      },
+      "hybrid|2|2|fast": {
+        "runs": 77,
+        "runMs": {
+          "count": 77,
+          "p50": 24476,
+          "p90": 111206,
+          "min": 4672,
+          "max": 252758
+        },
+        "initialCandidatePhaseMs": {
+          "count": 77,
+          "p50": 10986,
+          "p90": 36986,
+          "min": 1967,
+          "max": 155888
+        },
+        "candidatePhaseWidth": {
+          "count": 77,
+          "p50": 1.8071617667549116,
+          "p90": 1.972393289445742,
+          "min": 1.066565727572595,
+          "max": 1.9969060661391762
+        }
+      },
+      "loop|2|3|balanced": {
+        "runs": 26,
+        "runMs": {
+          "count": 26,
+          "p50": 37083,
+          "p90": 192621,
+          "min": 7689,
+          "max": 488260
+        },
+        "initialCandidatePhaseMs": {
+          "count": 26,
+          "p50": 13838,
+          "p90": 61991,
+          "min": 3709,
+          "max": 130555
+        },
+        "candidatePhaseWidth": {
+          "count": 26,
+          "p50": 1,
+          "p90": 1,
+          "min": 1,
+          "max": 1
+        }
+      }
+    }
+  },
+  "independentReview": {
+    "model": "deepseek-official/deepseek-flash",
+    "invocationSucceeded": true,
+    "verdict": "unverified",
+    "reviewPassed": false,
+    "stageRecorded": true,
+    "summary": "证据范围不完整，不能将局部通过视为整体通过。四项检查均有可定位证据满足：关闭时零额外调用、开启时调用数由配置可预测、方向全部交给原模型取舍且无独立裁判、取消/失败不重放工具、回归与回退路径齐备。性能证据为单任务单样本、真实 GUI 未运行，文档已如实限定，未见实质缺陷；按用户口径保留当前实现。",
+    "checks": [
+      {
+        "checkId": "S1.K1",
+        "criterion": "实验功能关闭时工作请求路径零额外调用；开启后调用次数与配置可预测，串行环节不无意膨胀。",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F0",
+          "F1",
+          "F2",
+          "read:plugins/dsh-prompt-optimizer/po06/lib/inference-boost.js"
+        ]
+      },
+      {
+        "checkId": "S1.K2",
+        "criterion": "真实 trace 的延迟、调用数、tokens 与阶段记录能解释用户的严重变慢；不能只靠主观感觉调参。",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F3",
+          "F2",
+          "F1"
+        ]
+      },
+      {
+        "checkId": "S1.K3",
+        "criterion": "低延迟方案保留有效候选/修订的质量边界、取消/失败回退与可观测性；不偷偷改变用户原意或授权。",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F0",
+          "F1",
+          "F2",
+          "F3"
+        ]
+      },
+      {
+        "checkId": "S1.K4",
+        "criterion": "默认与显式高成本模式的行为和开关边界有回归测试，结果可回退。",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F2",
+          "F3"
+        ]
+      }
+    ],
+    "scopeLimit": "Model found no material defect and advised keeping the implementation. Host overall status remains unverified; real GUI and universal efficacy are not claimed.",
+    "usage": {
+      "inputTokens": 22753,
+      "outputTokens": 8346,
+      "cacheReadTokens": 20352,
+      "cacheWriteTokens": 0,
+      "totalTokens": 51451
+    }
+  },
+  "finalRegression": {
+    "directionUnitTests": 27,
+    "uiTests": 4,
+    "focusedTotal": 59,
+    "focusedFailed": 0,
+    "nonBrowserSuites": 103,
+    "nonBrowserFailures": 0,
+    "browserExcluded": true
+  }
+}

@@ -65,3 +65,17 @@ test('full traces survive reload and API refuses cross-session lookup and untrus
   assert.equal(cancellations,0)
  }finally{rmSync(home,{recursive:true,force:true})}
 })
+
+
+test('direction controls describe sketches and original-model choice while retaining stored mode values',()=>{
+ const c=client();try{
+ const tree=c.mod.__debug.InferenceControls({settings:{reasoningBoost:true,reasoningMode:'parallel',reasoningPace:'fast'},ready:true,save:()=>{}})
+ const all=nodes(tree),visible=all.flatMap(n=>n.children.filter(x=>typeof x==='string')).join(' ')
+ const mode=all.find(n=>n.props['data-po06']==='reasoning-mode')
+ assert.deepEqual(nodes(mode).filter(n=>n.type==='option').map(n=>n.props.value),['parallel','loop','hybrid'])
+ assert.match(visible,/方向|Direction/)
+ assert.match(visible,/原工作模型|original working model/)
+ assert.match(visible,/不调用择优裁判|No separate judge/)
+ assert.match(visible,/不先写几份实现|multiple implementations/)
+ }finally{c.dispose()}
+})

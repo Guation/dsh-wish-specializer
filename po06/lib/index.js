@@ -1961,6 +1961,7 @@ export function apply(ctx, config) {
       if(!live)return
       if(!loaded.ok || typeof loaded.mod?.isAgentLoopRequest!=='function'){inferenceProblem=loaded.reason || 'working-request-marker-unavailable';return}
       const engine=createInferenceBoost({llm:scope.llm,trace:inferenceTrace,isWorkingRequest:loaded.mod.isAgentLoopRequest,
+        createNotice:(text,summary)=>loaded.mod.createUserMessage({content:[{type:'text',text}],source:{kind:'plugin:@dsh-external/dsh-arbiter-wf',form:'notice',summary}}),
         settingsFor:sid=>{const p=readPolicy({home:DSH_HOME,sessionId:sid});return {reasoningBoost:p.reasoningBoost,reasoningMode:p.reasoningMode,reasoningCandidates:p.reasoningCandidates,reasoningRounds:p.reasoningRounds,reasoningPace:p.reasoningPace,englishMode:p.englishMode}},log:appendWireLog})
       inferenceEngine=engine
       scope.effect(()=>scope.on('llm/stream',(options,next)=>engine.intercept(options,next)),'dsh-arbiter: working generation interception')

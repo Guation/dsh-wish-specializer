@@ -59,9 +59,9 @@ An additive turn-tail annotation can show known defects, verification pending, s
 
 **Reasoning boost** (experimental, off by default)
 
-- Lives at the very bottom, under "Experimental", behind a divider. The UI shows requested rounds and the effective call plan:
-  Fast runs one candidate/selection pass (loop keeps one round), Balanced allows at most one revision, and Follow runs the requested rounds. High-cost paths remain explicit.
-- The "inference trace" panel only appears while it is on, and shows every call, its duration, and which candidate was adopted.
+- Direction selection produces brief approach sketches and hands all usable ones to the original working model to choose, combine or ignore during normal generation. There is no separate judge and no set of complete implementations. Direction calls have no tools and at most 1024 output tokens; the working effort, tools and output ceiling are preserved.
+- Hybrid refines sketches before the single working generation: Fast adds no refinement, Balanced allows one round, Follow preserves requested rounds. The full-response feedback loop remains a separate option.
+- The inference panel separates direction preparation, handoff and actual working output. Handoff is not validation and does not claim a particular direction was selected.
 - ⚠ **It is not established that this reliably improves capability, and it increases model working time substantially** —
   enable cautiously, and compare the same task with it on and off.
 
