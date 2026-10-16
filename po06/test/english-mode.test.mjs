@@ -157,7 +157,7 @@ test('slash commands stay literal and allowlisted commands remain interceptable 
  const source=readFileSync(new URL('../lib/client.js',import.meta.url),'utf8')
  assert.ok(source.includes("data-po06': 'experimental-divider'"),'推理增强必须单独分界为实验性功能')
  assert.match(source,/无法确定它能否稳定提升模型能力/,'必须写清能力提升不确定')
- assert.match(source,/大幅增加/,'必须写清耗时代价')
+ assert.match(source,/增加调用与等待时间/,'快速开关仍须写清额外调用与等待代价')
  assert.ok(source.includes('reasoningOn?h(InferenceMonitor'),'推理过程入口必须跟随推理增强开关')
  assert.ok(source.includes("if (t.startsWith('/') && !slashAllowedDraft(t)) return 'slash-command'"),'英文模式不得整体放行斜杠命令')
  assert.ok(!/englishOn\s*&&\s*draftNow\(\)\.startsWith\('\/'\)/.test(source),'不得因英文模式跳过允许列表命令')

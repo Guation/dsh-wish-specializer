@@ -1,0 +1,194 @@
+{
+  "protocolVersion": 5,
+  "profile": "fast-3x3",
+  "baseCommit": "8a34057",
+  "branch": "experiment/reasoning-latency-1",
+  "sourceHashes": {
+    "po06/lib/inference-profile.js": "4d1d74c61cee48c5d573e0431d612e5c7e9dfb8982937fd0dbfde96c82585779",
+    "po06/lib/settings.js": "7f9f4353bc32af547174d4c7b4b39bfa69594bb58adda7f508ff2cbae0919a2d",
+    "po06/lib/client.js": "85865a32a567230c3f4f042212e7f90ac569fdfb55ae0be3fa8e9c0355f987e0",
+    "po06/lib/index.js": "8c233ee8e95b06bb7c8fae550551077f8d5af28ff1432a9d63e987d698a99e61",
+    "po06/lib/inference-boost.js": "bacb1081f3ce72d5fb38bf8f631fefde590ddcb21be4de879d063721f117068e",
+    "po06/lib/inference-directions.js": "8531dbadca088e82f3ebc82179593d4a49d189152432e6731dbc21c83ddc69fe",
+    "po06/lib/inference-focus.js": "6d8fe2d2546ce1cd707de92ed3c17951fec296e75b3716da1e8859d0362d04de"
+  },
+  "changes": {
+    "singleQuickSwitch": true,
+    "boostDefault": false,
+    "fixedConfiguration": {
+      "reasoningMode": "hybrid",
+      "reasoningCandidates": 3,
+      "reasoningRounds": 3,
+      "reasoningPace": "fast"
+    },
+    "normalExecution": {
+      "parallelDirections": 3,
+      "serialRefinements": 0,
+      "independentSelectors": 0,
+      "workingCalls": 1,
+      "mainEffortPreserved": true
+    },
+    "legacyReadsAndWritesCanonicalized": true,
+    "sessionBoostDoesNotActivateGlobalAssistance": true,
+    "reportedProductFailureClosureUnchanged": true,
+    "invocationsAcknowledgedOnlyAfterCompletedVisibleWorker": true
+  },
+  "focused": {
+    "tests": 191,
+    "pass": 190,
+    "fail": 0,
+    "skip": 1,
+    "skippedReason": "Windows does not permit file symlinks for the readBounded runtime case",
+    "log": ".po06-tmp/fast-only-focused-tests.log"
+  },
+  "broad": {
+    "status": "completed",
+    "files": 108,
+    "pass": 108,
+    "fail": 0,
+    "excluded": "verifier-html.test.mjs",
+    "log": ".po06-tmp/fast-only-all-suites-final.log"
+  },
+  "realFlash": {
+    "path": "docs/evidence/INFERENCE-FAST-ONLY-FLASH.json",
+    "model": "deepseek-flash",
+    "provider": "deepseek-official",
+    "mainEffort": "max",
+    "elapsedMs": 9751,
+    "ok": true,
+    "calls": [
+      {
+        "kind": "direction",
+        "effort": "off",
+        "cap": 1024,
+        "ms": 5281,
+        "finish": "stop"
+      },
+      {
+        "kind": "direction",
+        "effort": "off",
+        "cap": 1024,
+        "ms": 5259,
+        "finish": "stop"
+      },
+      {
+        "kind": "direction",
+        "effort": "off",
+        "cap": 1024,
+        "ms": 5355,
+        "finish": "stop"
+      },
+      {
+        "kind": "working",
+        "effort": "max",
+        "cap": 8192,
+        "ms": 4323,
+        "finish": "tool-calls"
+      }
+    ],
+    "validDirections": 3,
+    "checks": 8,
+    "checksPassed": 8,
+    "note": "One API mechanism smoke test on a temporary fixture; not a real end-user session or speed/quality improvement claim."
+  },
+  "replay": {
+    "path": "docs/evidence/INFERENCE-FAST-ONLY-REPLAY.json",
+    "cases": {
+      "fast": {
+        "groups": 58,
+        "beforeDiagnose": 51,
+        "afterDiagnose": 5,
+        "rawPendingUnchanged": true,
+        "finalRawPending": 5
+      },
+      "inherit": {
+        "groups": 68,
+        "beforeDiagnose": 61,
+        "afterDiagnose": 13,
+        "rawPendingUnchanged": true,
+        "finalRawPending": 11
+      }
+    },
+    "productFailureRetained": true,
+    "interfaceRepair": {
+      "oldPendingId": "E387",
+      "newActualId": "E421",
+      "newActualResultNowPresent": true,
+      "diagnoseTriggeredByOldIncident": false,
+      "pendingRecordRetained": true
+    },
+    "artifactsUnchanged": true
+  },
+  "filter": {
+    "path": "docs/evidence/INFERENCE-FAST-ONLY-FILTER.json",
+    "samePayloadRecovered": 38,
+    "newlyRejected": 0,
+    "protocolSafetySample": true,
+    "scope": "Isolated single backtick tag mentions in prose only; complete HTML/programs and tool/control protocols remain rejected."
+  },
+  "runtime": {
+    "url": "http://127.0.0.1:19387",
+    "httpStatus": 200,
+    "protocolVersion": "4",
+    "profile": null,
+    "clientRevision": "2f612bc37975",
+    "activeRuns": 0
+  },
+  "limitations": [
+    "Off is still the default; user explicitly turns on quick enhancement.",
+    "3+3 retains prior fast configuration semantics; it is not three same-step correction/execution loops.",
+    "Focus acknowledgement means delivered to the worker, not accepted, fixed, executed or complete. Product failure records are unchanged and remain active.",
+    "Concurrent in-flight requests can both see a new invocation before either completes. Bounded ledger eviction can cause an old invocation to be highlighted again, never permanently suppress new product errors.",
+    "Offline snapshots hold original tool trajectory fixed and replay an acknowledgement after each originally successful generation; the measured reduction is diagnostic-mode activation, not measured future speed or artifact quality.",
+    "Unknown original artifact versions and tool provenance remain conservatively unverified; no semantic closure is inferred.",
+    "Deterministic validation cannot certify factual usefulness or every semantic disguise.",
+    "Live GUI runtime remains protocol4 until reload/restart; no replacement server or runtime setting change was made."
+  ],
+  "independentReview": {
+    "model": "deepseek-official/deepseek-flash",
+    "invocationSucceeded": true,
+    "verdict": "unverified",
+    "reviewPassed": false,
+    "summary": "固定快速3+3单开关在本专项范围内未发现实质缺陷：开关语义、调用预算、交接门控与关注视图持久化均可由源码与原始测试证据核对，且局限已随证据写明。界面部分未读客户端源码，只据测试与运行时状态写限度，未宣称 GUI 已激活。",
+    "checks": [
+      {
+        "checkId": "S1.K1",
+        "status": "unverified",
+        "evidenceRefs": [
+          "F2",
+          "F3",
+          "read:plugins/dsh-prompt-optimizer/po06/lib/settings.js",
+          "read:plugins/dsh-prompt-optimizer/po06/lib/index.js"
+        ]
+      },
+      {
+        "checkId": "S1.K2",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F1",
+          "F2",
+          "F3"
+        ]
+      },
+      {
+        "checkId": "S1.K3",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F0",
+          "F1",
+          "F3"
+        ]
+      },
+      {
+        "checkId": "S1.K4",
+        "status": "satisfied",
+        "evidenceRefs": [
+          "F0",
+          "F3"
+        ]
+      }
+    ],
+    "rawRecord": ".po06-tmp/fast-only-independent-review.json",
+    "note": "K2/K3/K4 supported; K1 unverified because current client runtime was not reloaded/rendered. No material defect found in reviewed implementation. This is not whole-artifact or GUI activation acceptance."
+  }
+}

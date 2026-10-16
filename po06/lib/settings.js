@@ -13,6 +13,7 @@
 //   ③ **未知字段不写进去**：白名单合并，避免把别人的字段顺手改坏（ADR-0036 的同一条精神）。
 import { readFileSync, writeFileSync, existsSync, renameSync, rmSync, copyFileSync, readdirSync } from 'node:fs'
 import { dirname, basename, join } from 'node:path'
+import { FAST_REASONING_PROFILE } from './inference-profile.js'
 
 /** 补充程度：它决定"把用户的话展开到多细"。 */
 export const DETAIL_LEVELS = Object.freeze(['minimal', 'standard', 'detailed'])
@@ -72,6 +73,7 @@ export const TURNS_MAX = 10
  *   ② 它**不放松决策边界**——强结果导向最容易带来"懒得问、自己定了"，所以块内必须显式反制。
  */
 export const FRAMINGS = Object.freeze(['neutral', 'hard'])
+// Deprecated input domains: accepted for migration, never an execution-path selector.
 export const REASONING_MODES = Object.freeze(['parallel', 'loop', 'hybrid'])
 export const REASONING_PACES = Object.freeze(['fast', 'balanced', 'inherit'])
 export const REASONING_KEYS = Object.freeze(['reasoningBoost', 'reasoningMode', 'reasoningCandidates', 'reasoningRounds', 'reasoningPace'])
@@ -106,10 +108,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // 因为它会改变执行姿态（更强推进、更少客套），对正式类任务并不总是合适。
   framing: 'neutral',
   reasoningBoost: false,
-  reasoningMode: 'parallel',
-  reasoningCandidates: 2,
-  reasoningRounds: 1,
-  reasoningPace: 'fast',
+  ...FAST_REASONING_PROFILE,
   englishMode: false,
   permission: 'auto',   // P10
   historyMode: 'turns', // P10
@@ -188,6 +187,14 @@ export function normalizeSettings(raw) {
     }
     return v
   }
+  // Profile selectors are retained for old files, but reads and writes use one fast profile.
+  const pickReasoning = (key, value = src[key], problemKey = key) => {
+    const used = FAST_REASONING_PROFILE[key]
+    if (value !== undefined && value !== used) {
+      problems.push({ key: problemKey, kind: typeof value === typeof used ? 'fast-profile-migration' : 'wrong-type', got: value, used })
+    }
+    return used
+  }
   // 按会话的档位覆盖：{ [sessionId]: { assist?, detail?, budget?, tier? } }。
   // 只认 SESSION_KEYS 四个档位键；越界的键（如 bash/model）**丢弃并记问题**——
   // 它们是这台机器的属性，不该被某个会话改掉。逐条校验、坏条目单条丢弃，不整表回退。
@@ -205,11 +212,12 @@ export function normalizeSettings(raw) {
         if (!SESSION_KEYS.includes(k)) { problems.push({ key: "bySession[" + sid + "]." + k, kind: "not-session-scoped", got: ov[k], used: undefined }); continue }
         const val = ov[k]
         if (val === undefined) continue
+        // Only canonicalize keys actually present: sparse session intent must stay sparse.
+        if (Object.hasOwn(FAST_REASONING_PROFILE, k)) {
+          clean[k] = pickReasoning(k, val, 'bySession[' + sid + '].' + k)
+          continue
+        }
         const valid = k==='reasoningBoost'||k==='englishMode' ? typeof val==='boolean'
-          : k==='reasoningMode' ? REASONING_MODES.includes(val)
-          : k==='reasoningPace' ? REASONING_PACES.includes(val)
-          : k==='reasoningCandidates' ? Number.isInteger(val) && val>=2 && val<=3
-          : k==='reasoningRounds' ? Number.isInteger(val) && val>=1 && val<=3
           : typeof val==='string' && domains[k]?.includes(val)
         if (!valid) { problems.push({ key: "bySession[" + sid + "]." + k, kind: "not-in-domain", got: val, used: undefined }); continue }
         clean[k] = val
@@ -267,10 +275,10 @@ export function normalizeSettings(raw) {
     bySession: pickSessionMap(),
     framing: pick('framing', FRAMINGS, DEFAULT_SETTINGS.framing),
     reasoningBoost: pickBool('reasoningBoost', DEFAULT_SETTINGS.reasoningBoost),
-    reasoningMode: pick('reasoningMode', REASONING_MODES, DEFAULT_SETTINGS.reasoningMode),
-    reasoningCandidates: pickInt('reasoningCandidates', 2, 3, DEFAULT_SETTINGS.reasoningCandidates),
-    reasoningRounds: pickInt('reasoningRounds', 1, 3, DEFAULT_SETTINGS.reasoningRounds),
-    reasoningPace: pick('reasoningPace', REASONING_PACES, DEFAULT_SETTINGS.reasoningPace),
+    reasoningMode: pickReasoning('reasoningMode'),
+    reasoningCandidates: pickReasoning('reasoningCandidates'),
+    reasoningRounds: pickReasoning('reasoningRounds'),
+    reasoningPace: pickReasoning('reasoningPace'),
     englishMode: pickBool('englishMode', DEFAULT_SETTINGS.englishMode),
     permission: pick('permission', PERMISSIONS, DEFAULT_SETTINGS.permission),
     historyMode: pick('historyMode', HISTORY_MODES, DEFAULT_SETTINGS.historyMode),
@@ -311,7 +319,8 @@ export function tierOf(settings) {
 
 /** 合并补丁：只接受白名单键（外加档位别名 `tier`）；`undefined` 表示"不改这一项"。纯函数。 */
 export function mergeSettings(current, patch) {
-  const base = normalizeSettings(current).settings
+  const normalized = normalizeSettings(current)
+  const base = normalized.settings
   const p = isPlainObject(patch) ? patch : {}
   const next = { ...base }
   // 档位先铺预设，**显式给出的三项仍然覆盖它**（顺序就是语义，写在这里以免以后被"顺手重排"）
@@ -320,6 +329,14 @@ export function mergeSettings(current, patch) {
   for (const k of SETTINGS_KEYS) if (p[k] !== undefined) next[k] = p[k]
   // 非法档位也要如实报出来（不能静默丢弃）
   const out = normalizeSettings(p.tier !== undefined && !tierOk ? { ...next, tier: p.tier } : next)
+  // An unrelated write also migrates old stored profile values; report that migration.
+  // Do not carry stale source problems for a key/map explicitly replaced by the patch.
+  for (const problem of normalized.problems) {
+    const profileKey = Object.hasOwn(FAST_REASONING_PROFILE, problem.key)
+    const sessionProfileKey = /^bySession\[.*\]\.(reasoningMode|reasoningCandidates|reasoningRounds|reasoningPace)$/.test(problem.key)
+    if ((profileKey && p[problem.key] === undefined || sessionProfileKey && p.bySession === undefined)
+      && !out.problems.some((item) => item.key === problem.key)) out.problems.push(problem)
+  }
   // ⚠ 补丁里**多出来的键**也要报：界面上打错字段名时，用户会以为"保存成功了"，
   // 而实际上我们什么都没改——静默忽略等于骗人（实测这条是被用例逼出来的）。
   const extra = Object.keys(p).filter((k) => !SETTINGS_KEYS.includes(k) && k !== 'tier')
@@ -414,9 +431,16 @@ export function writeSettings({ path, patch, now = Date.now() } = {}) {
   // 语义**故意与顶层写入不同**：按会话的写入**只能开、不能关** —— 把某一场设为"关闭"
   // 不代表别的会话也要关，所以 off 那条不写 gate（否则关掉一个会话就把整个插件关了）。
   // 只改 `framing` 这类非档位字段同样不碰启用意图（与顶层那条边界一致）。
+  // Client session writes preserve the complete map. An unchanged tier in that map
+  // is not a new tier choice (e.g. an independent boost/English toggle).
   const sessionTurnsOn = isPlainObject(patch) && isPlainObject(patch.bySession)
-    && Object.values(patch.bySession).some((v) => isPlainObject(v)
-      && LEVEL_KEYS.some((k) => v[k] !== undefined) && v.tier !== 'off')
+    && Object.entries(patch.bySession).some(([sid, v]) => {
+      if (!isPlainObject(v)) return false
+      const previous = isPlainObject(before.bySession?.[sid]) ? before.bySession[sid] : {}
+      const clean = merged.settings.bySession[sid] || {}
+      return LEVEL_KEYS.some((k) => v[k] !== undefined && clean[k] !== undefined && clean[k] !== previous[k])
+        && clean.tier !== 'off'
+    })
   const gatePatch = {}
   if (hasTopLevel && tierOf(merged.settings) === 'off') {
     gatePatch.enabled = false

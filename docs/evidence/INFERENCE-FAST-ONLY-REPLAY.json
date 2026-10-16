@@ -1,0 +1,1198 @@
+{
+  "protocolVersion": 5,
+  "kind": "Offline replay of actual v4 snapshots through the new focus and fixed plan. No model runs; this is mechanism evidence, not simulated user outcome.",
+  "cases": {
+    "fast": {
+      "groups": 58,
+      "beforeDiagnose": 51,
+      "afterDiagnose": 5,
+      "allRawPendingUnchanged": true,
+      "finalView": {
+        "runId": "26e89746-8604-4368-83eb-adf17c28af02",
+        "before": "diagnose",
+        "after": "explore",
+        "active": 0,
+        "retained": 5,
+        "rawPending": 5,
+        "originalStage": "done"
+      },
+      "plannedExtraCallsPerGroup": 3,
+      "serialRefinementsPerGroup": 0,
+      "replayDetails": [
+        {
+          "runId": "27b30362-f794-454f-bddf-55b4e275c1a1",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "6980e235-aa1c-48c2-bd4a-ccf6ddc17922",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "ccd9cbb7-7f2f-4d69-9bae-9d36762e6bc2",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "2bb9e3f9-dd06-4c75-99ff-a3485fa28ea7",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "ac7fc660-d3b7-4ac1-bf31-2ab66deb6950",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "done"
+        },
+        {
+          "runId": "f4c87684-ed9e-490b-8030-3bb58b5c808d",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "done"
+        },
+        {
+          "runId": "04e31765-cd6b-4b5b-852d-b2fa332b2126",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "done"
+        },
+        {
+          "runId": "f3ad793e-c2e7-4583-beb4-2b5e4739e675",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 0,
+          "rawPending": 1,
+          "originalStage": "done"
+        },
+        {
+          "runId": "b250eb35-508e-49b7-8559-634a2438d0d2",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 1,
+          "rawPending": 1,
+          "originalStage": "done"
+        },
+        {
+          "runId": "439ffaae-aeb7-4781-9e07-57928c0fd2f5",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 1,
+          "rawPending": 1,
+          "originalStage": "done"
+        },
+        {
+          "runId": "f98f81f0-3e28-4202-a8c9-d2c99708ec38",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 1,
+          "rawPending": 1,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "53a5cce2-f306-4057-ac6b-75eb220362bd",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 1,
+          "rawPending": 1,
+          "originalStage": "done"
+        },
+        {
+          "runId": "faf0eb14-8ce8-4a05-a396-21f1b006b312",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 1,
+          "rawPending": 1,
+          "originalStage": "done"
+        },
+        {
+          "runId": "b4efc38a-552a-4d81-aedc-b039b3720f5a",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 1,
+          "rawPending": 2,
+          "originalStage": "done"
+        },
+        {
+          "runId": "2e84f2f3-fed8-49a8-9f06-e2a3e509aa67",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 2,
+          "rawPending": 3,
+          "originalStage": "done"
+        },
+        {
+          "runId": "09795dbc-9b15-4ca0-96e8-c83eb45a3d17",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 3,
+          "rawPending": 3,
+          "originalStage": "done"
+        },
+        {
+          "runId": "b410a633-e683-4192-9c87-d71eb667f713",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 3,
+          "rawPending": 3,
+          "originalStage": "done"
+        },
+        {
+          "runId": "05118f2a-0fd4-4c6e-98b5-78f6cf5a32ab",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 3,
+          "rawPending": 3,
+          "originalStage": "done"
+        },
+        {
+          "runId": "e121099b-7082-44d2-83d4-ce261bae6f2d",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 3,
+          "rawPending": 3,
+          "originalStage": "done"
+        },
+        {
+          "runId": "a3642132-d299-4025-8202-a47d53fe9922",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 3,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "898bd19c-0deb-4517-ae12-873ce3a7a12c",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "51a4c10c-abba-4112-921a-233b2e1a34b1",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "5f94c389-1456-43da-b5a4-114b78b33833",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "42b38f34-3ef6-45a0-a22b-0bc8a0f2857b",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "478fbd80-c902-4eb7-a711-41b301dcad0d",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "68b5ae93-2908-426c-8752-273c691a348e",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "20624d81-81cc-4562-a922-f23d927a0122",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "4b1c6064-d8b3-48be-b0a7-96f4ac179c11",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "723126d7-d57d-4ea5-8f94-7f3b15094b54",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "be092dea-d926-4484-99fd-bd7fad757259",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "505eaeca-e460-4d84-8e98-826056894aab",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "e060af21-5803-491f-95ae-3c719e146e69",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "8f2f6558-babc-4a1d-b606-a42ed27fb716",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "c1edfee1-9e46-4add-93d7-74c59e9c2142",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "0fd6a1bc-f5a7-449b-938a-fa703d10b55a",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "e2de6d3d-0fe9-4fe7-a5fd-9687a8723413",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "4b39a44e-1e38-42b9-8940-cb931ade01c0",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "2b2f9c97-f34f-4938-bf8f-1bd6ff6142c7",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "825e8278-db83-4e07-af5e-497f4dac2aeb",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "de097673-673e-4170-93b3-7e4984d603f5",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "1b37feb7-4092-431f-aa88-4d06f49fd1b6",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 4,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "d50be102-45f1-4762-a491-12b91d36c563",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "2b607fbf-957c-40c6-8f3c-407bacecc568",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "7cb3ae16-92fd-4bbb-a00e-073915061e92",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "a468a33c-f235-46ef-b486-fc8b418a4ca6",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "9f06826a-588a-45f1-8b50-88661a7aecb9",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "1f95acf7-db7d-4782-b6e6-c56ebbf8ff69",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "3c0acf7c-e02a-4f64-93d2-823a3fd6517d",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "c464b59f-8088-46c0-a8b4-a5fa3f7b6f08",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "517f1f7b-ab0b-4579-ad6e-cfaca9fe9633",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "4322ed5d-c91a-486a-9537-d5eb7738b784",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "76b27e1f-869c-4c8a-89fb-8a7f49515a25",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "0bfa5ca7-3f4d-4ad9-987c-82592c44be5e",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "afe1e9fb-9cb4-4306-beb0-8e90308a7efb",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "e5ca2885-4825-4d5e-9e05-a5f9828c9604",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "321e1dff-1c7c-4c91-accf-aa4d2a6643ff",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "23725553-cc29-46d4-8559-60fd65164d75",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "26e89746-8604-4368-83eb-adf17c28af02",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        }
+      ]
+    },
+    "inherit": {
+      "groups": 68,
+      "beforeDiagnose": 61,
+      "afterDiagnose": 13,
+      "allRawPendingUnchanged": true,
+      "finalView": {
+        "runId": "0aabf536-aa3f-436f-b95c-09bb990a915c",
+        "before": "diagnose",
+        "after": "explore",
+        "active": 0,
+        "retained": 11,
+        "rawPending": 11,
+        "originalStage": "done"
+      },
+      "plannedExtraCallsPerGroup": 3,
+      "serialRefinementsPerGroup": 0,
+      "replayDetails": [
+        {
+          "runId": "7cf746ce-ac7f-40f3-8afe-21df25139345",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "6fa9d0e7-765a-4ad9-8d4a-673c711ea6b5",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "027c49a6-a015-4377-8300-bd358f4d52fd",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "a3569453-311c-4185-8c0a-79079a2175b2",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "3f05aa12-7746-4f54-b435-0947452465cf",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "61622bc6-af6f-4a1d-95d9-cde7320b36c6",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "done"
+        },
+        {
+          "runId": "4e106fcb-f1be-4e25-88a9-825547fd7876",
+          "before": "explore",
+          "after": "explore",
+          "active": 0,
+          "retained": 0,
+          "rawPending": 0,
+          "originalStage": "done"
+        },
+        {
+          "runId": "cbd43384-0d96-4c1c-b6b1-46be6a4a2efa",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 0,
+          "rawPending": 1,
+          "originalStage": "done"
+        },
+        {
+          "runId": "861d4256-536c-49be-bd5d-1faf7f50b613",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 1,
+          "rawPending": 1,
+          "originalStage": "done"
+        },
+        {
+          "runId": "cd0ace27-4719-421d-a8a9-7cbf7399553b",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 1,
+          "rawPending": 1,
+          "originalStage": "done"
+        },
+        {
+          "runId": "eb9b8299-410d-4a85-81bf-74ad1243ede5",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 1,
+          "rawPending": 2,
+          "originalStage": "done"
+        },
+        {
+          "runId": "dc36db8b-4e17-4938-a577-7472ad37f0aa",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 2,
+          "rawPending": 2,
+          "originalStage": "done"
+        },
+        {
+          "runId": "5e8b4840-93cb-4a9b-8100-b222d67eaae7",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 2,
+          "rawPending": 3,
+          "originalStage": "done"
+        },
+        {
+          "runId": "00d921b9-e246-4794-920c-dc174f2c9969",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 3,
+          "rawPending": 3,
+          "originalStage": "done"
+        },
+        {
+          "runId": "809580cd-c386-42ca-bca7-59d1b6001b0e",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 3,
+          "rawPending": 3,
+          "originalStage": "done"
+        },
+        {
+          "runId": "5f503d83-9771-45b7-a3ae-5fac2105723e",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 3,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "447f9f81-a3a2-49d1-9568-5e21079c3004",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "8bfa8edd-9dd1-471c-b8cd-5281da30a38e",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "f0eeec33-1655-44a5-8fff-e66f53a38a13",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "e3907f90-0e21-48b0-9683-155c145db570",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "0b5fae00-4707-4d3e-98d4-509cc2a0a788",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 4,
+          "rawPending": 4,
+          "originalStage": "done"
+        },
+        {
+          "runId": "00eefd5f-1508-437b-a69c-ebea447f6a69",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 4,
+          "rawPending": 5,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "956a52d8-df63-4980-a585-17527f6a128c",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 4,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "1f61c808-8ca2-4177-b846-f14ebabbfa55",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 5,
+          "rawPending": 5,
+          "originalStage": "done"
+        },
+        {
+          "runId": "db5288e1-e8a3-4ff8-8983-fdb0175353c2",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 5,
+          "rawPending": 6,
+          "originalStage": "done"
+        },
+        {
+          "runId": "e75d40d3-9cfd-404d-8b8f-ff309239cbb2",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 6,
+          "rawPending": 6,
+          "originalStage": "done"
+        },
+        {
+          "runId": "6dc84173-321f-4dd3-8c04-cc7ea0ff4bf5",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 6,
+          "rawPending": 6,
+          "originalStage": "done"
+        },
+        {
+          "runId": "61ad354d-1053-4dd5-934b-42c9731f564c",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 6,
+          "rawPending": 6,
+          "originalStage": "failed"
+        },
+        {
+          "runId": "6358bd79-1e44-4e09-ab73-efba01a2d333",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 6,
+          "rawPending": 6,
+          "originalStage": "done"
+        },
+        {
+          "runId": "2402896e-ca78-49ea-9df1-b5f11bf500df",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 6,
+          "rawPending": 6,
+          "originalStage": "done"
+        },
+        {
+          "runId": "2d2d5a1e-14b7-4e46-ade7-2486912c8f0c",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 6,
+          "rawPending": 6,
+          "originalStage": "done"
+        },
+        {
+          "runId": "730ac8df-2e48-4012-afc3-44a5e19fd39e",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 6,
+          "rawPending": 7,
+          "originalStage": "done"
+        },
+        {
+          "runId": "3fd4ad59-d557-4af3-957b-02bb20ee6487",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 7,
+          "rawPending": 8,
+          "originalStage": "done"
+        },
+        {
+          "runId": "83062932-a926-4581-ab9b-d65207ec5480",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 8,
+          "rawPending": 8,
+          "originalStage": "done"
+        },
+        {
+          "runId": "3840f507-92e2-4077-9087-b4799d346762",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 8,
+          "rawPending": 8,
+          "originalStage": "done"
+        },
+        {
+          "runId": "a1bce458-193d-462d-8531-e9b83f81e24c",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 8,
+          "rawPending": 8,
+          "originalStage": "done"
+        },
+        {
+          "runId": "b939bf35-28e9-45e1-95d3-215fe4c877cc",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 8,
+          "rawPending": 8,
+          "originalStage": "done"
+        },
+        {
+          "runId": "053be6b8-c95d-4593-9fc4-e314cb2d9125",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 2,
+          "retained": 8,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "5c0eed82-c00c-425d-9b56-c8ac9a40c328",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "e55e0eb9-432a-46da-b131-400dbdb749a6",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 10,
+          "rawPending": 11,
+          "originalStage": "done"
+        },
+        {
+          "runId": "fa4dab95-2024-44df-a778-1e2d29112aac",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "de7060c7-8c2a-466e-bb9d-197c182dd41f",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "230a843a-c9c4-4e73-9011-5ab2660d7493",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "aceabc76-9862-4a73-832e-b177f4506a86",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "0be672bc-8e63-43f9-ab2f-f2f8c97fb522",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "efd9f6b1-a214-4da3-bd8f-da0a75a357f3",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "5da5febb-b3ba-45d9-8190-bcb85e6d1fd7",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "7665d9a3-7b56-48ec-be45-9fdcd3dac915",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "97d096aa-fb38-418c-8648-ed6fd398e74d",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "f847b342-bbed-4451-b156-46ee98237062",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "0c2ab406-d5ae-474e-b620-966b85e03c1e",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "7e66d08f-cf53-4f20-a03b-6706b70fd73f",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "bc7ef634-d66f-4f51-bb19-670417d88f1d",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "cc3fb630-2da2-4279-b182-d073c01c5587",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "da08f34b-5979-46ac-958b-48ea41b92bbd",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "ebd6f2df-dad6-428f-88d7-bf99ffe4fbfb",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "b8d63163-9bae-4619-b8fd-2d6af8c9f5b1",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 10,
+          "rawPending": 11,
+          "originalStage": "done"
+        },
+        {
+          "runId": "fa447886-54d5-4767-8aec-d6072fd039a4",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 11,
+          "rawPending": 11,
+          "originalStage": "done"
+        },
+        {
+          "runId": "7ca3d64b-2c45-452d-8897-4219d3917e28",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "0aa1d095-5710-445f-afa7-b00417d2d56a",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "379f0fbe-b6ce-4344-be88-6f637f706b38",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "dd461543-f990-4e48-a754-af77e3fa5a69",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "64b797cc-8b39-4104-b520-dda858d6374c",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "f51bca46-34f7-4aa3-810b-353f75fae4da",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 10,
+          "rawPending": 10,
+          "originalStage": "done"
+        },
+        {
+          "runId": "37c82947-c510-411d-b335-72c9a1c9f0ac",
+          "before": "diagnose",
+          "after": "diagnose",
+          "active": 1,
+          "retained": 10,
+          "rawPending": 11,
+          "originalStage": "done"
+        },
+        {
+          "runId": "d1d7a87b-ecc4-464b-a154-011cff293edb",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 11,
+          "rawPending": 11,
+          "originalStage": "done"
+        },
+        {
+          "runId": "086165bc-df5f-4f29-886d-4b2ba835881a",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 11,
+          "rawPending": 11,
+          "originalStage": "done"
+        },
+        {
+          "runId": "0aabf536-aa3f-436f-b95c-09bb990a915c",
+          "before": "diagnose",
+          "after": "explore",
+          "active": 0,
+          "retained": 11,
+          "rawPending": 11,
+          "originalStage": "done"
+        }
+      ]
+    }
+  },
+  "productFailureRetained": true,
+  "interfaceRepair": {
+    "oldPendingId": "E387",
+    "newActualId": "E421",
+    "newActualResultNowPresent": true,
+    "diagnoseTriggeredByOldIncident": false,
+    "pendingRecordRetained": true
+  },
+  "artifacts": [
+    {
+      "path": "D:/0中转站/html/mbt-leviathan.html",
+      "sha256": "784225eef588caca21ee3ae64a1b595addffd93d3b35e6d5ee55e254dd9cfb8d",
+      "unchanged": true
+    },
+    {
+      "path": "D:/0中转站/html/mbt-ultra-photoreal.html",
+      "sha256": "7b0b42f4ef121c051f0c85907a64b8a5ec26b74e5a2392b2183b44fe8227ad0e",
+      "unchanged": true
+    }
+  ]
+}

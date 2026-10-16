@@ -1,0 +1,380 @@
+{
+  "baseline": "8a34057",
+  "mechanism": "Deterministic validation of the exact same retained public texts; no model regeneration, no artifact changes.",
+  "changed": 38,
+  "recovered": 38,
+  "newlyRejected": 0,
+  "protocolSafetySample": true,
+  "examples": [
+    {
+      "label": "fast",
+      "runId": "ac7fc660-d3b7-4ac1-bf31-2ab66deb6950",
+      "callId": "fd0f0747-cb0c-4d26-9fa3-4c4d132c5bc5",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供决策，仅供下一步参考）：\n\n- 单文件结构先定稳：HTML 内联 CSS、内联 `<script type=\"module\">`，所有几何/材质/控制逻辑都写在同一个文件里，不建额外资源文件。\n- 用 importmap 从 CDN 引入 three.js 与 `OrbitControls`，避免打包步骤；版本锁定为明确的小版本号。\n- 车体与炮塔用多个 Box/圆柱/拉伸几何拼合，重点靠倒角、间隙和分层装甲块制造“精细感”，而不是靠单个高面数网格。\n- 履带和负重轮用循环批量生成，履带片用少量重复几何 + InstancedMesh，兼顾观感与帧率。\n- 材质上区分装甲漆、金属裸露件、橡胶履带、玻璃/光学件，用 `MeshStandardMaterial` 配合环境贴图和高低粗糙度制造真实反射。\n- 光影是“帅气”的关键：方向光 + 阴影贴图 + 环境光/半球光，再加一盏轮廓补光；色调映射用 ACESFilmic，开抗锯齿。\n- 操控层：OrbitControls 负责绕车预览，另加少量键盘/界面控件控制炮塔旋转、炮管俯仰、履带启动感，以及一个自动环绕演示模式体现“炫技”。\n- 加轻微程序化动效：炮塔缓动、车体微悬浮/震动、履带循环纹理滚动，避免静态模型感。\n- 加可选后期（如 `EffectComposer` + 泛光/暗角）但设为可开关，保证低配也跑得动。\n- 最终产物为一个可直接双击打开的 HTML，桌面鼠标和触屏都能操作。"
+    },
+    {
+      "label": "fast",
+      "runId": "f4c87684-ed9e-490b-8030-3bb58b5c808d",
+      "callId": "b6ca967d-1370-42d9-9353-ee2b81692233",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "单文件 Three.js 主战坦克公开方法提要（供决定是否采用）：\n\n**1. 资源判定先于建模**\n先确认 three.js 来源：内联打包（体积大但离线可控）还是 CDN 引入。若网络不可用，立刻改为内联 `<script>` 版的 three 构建，并在写文件前定稿，避免中途改架构。\n\n**2. 几何分层，而非一次成型**\n把车体拆成独立可复用函数：车体基座、炮塔、炮管、负重轮/履带、裙板、附件（天线、机枪、烟雾弹、储物箱、牵引钩）。每层单独建立并 `mergeGeometries` 或保留为 Group，便于后续调材质与动画，也让“精细”体现在可数的零件数上。\n\n**3. 材质是写实感的决定项**\n用 `MeshStandardMaterial` 或 `MeshPhysicalMaterial`，配金属度/粗糙度贴图（可用 Canvas 程序化生成，避免外部文件）。履带与炮管用不同粗糙度，车体加轻微法线扰动，避免全车同一光泽。\n\n**4. 环境与光照必须一起给**\nHDR 风格环境贴图（可程序化渐变球）+ 主平行光（带阴影）+ 补光 + 轻微雾。没有环境反射，金属看起来是塑料。\n\n**5. 交互与运镜**\nOrbitControls（或自写的阻尼轨道）为预览基础，加炮塔独立旋转、炮管俯仰、履带随速度滚动。炫技部分做一段自动巡演相机路径，可由按键切换手动/自动。\n\n**6. 性能护栏**\n单 HTML 内注意几何分段数、阴影贴图分辨率、实时反射开关。准备一个自动降级：低端设备关阴影或降像素比，保证可交互而非卡死。\n\n**7. 验证方式**\n无法直接预览时，用无头浏览器截图若干机位（正侧、前 3/4、顶部、特写）自查比例与光照；这是发现“看着不像坦克”的最快回路。\n\n**会改变方案的前提**\nthree.js 能否离线获取，以及是否有无头浏览器可截图——两者任一不成立，都需要在动手前换路线，而不是写到一半再补。"
+    },
+    {
+      "label": "fast",
+      "runId": "04e31765-cd6b-4b5b-852d-b2fa332b2126",
+      "callId": "d8678077-286f-4085-88cb-1509ac6f9650",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对原任务，下一项有用的观察：确认本地是否已有可离线内联的 three.js 构建产物（含版本号与体积），因为这决定单文件是\"零依赖可离线运行\"还是\"需 CDN 兜底\"——两者的交付前提不同。\n\n公开方法提要（供原工作模型取舍，不代其决策）：\n\n1. **单文件承载方式**：优先把 three.js 最小构建**内联进 `<script>`**，保证双击即开、完全离线；若内联体积过大不可接受，则保留 `CDN + 本地缓存回退` 双路径，但必须在文件中显式写清回退逻辑。这一选择要先于建模动手。\n\n2. **建模精度策略**：把坦克拆成\"车体轮廓 / 炮塔与炮管 / 行走机构（负重轮、履带、主动轮）/ 附加细节（观瞄、储物篮、烟幕发射器、天线、机枪、装甲板接缝）\"若干可独立调参的组，用 `ExtrudeGeometry`+倒角与 `LatheGeometry` 处理曲面件，履带用实例化或重复单元沿路径布列。精细度的瓶颈在**履带与轮系的重复单元**和**面板倒角**，不在主体大块。\n\n3. **操控与展示**：`OrbitControls` 做自由观察，另设炮塔独立旋转、炮管俯仰、舱盖开合等可控件；用 `EIM` 或物理近似做履带/悬挂的视觉联动时，只做观感联动而非真实仿真，避免性能塌陷。\n\n4. **\"炫技写真\"落点**：PBR 材质（`roughness/metalness` 贴图可用程序化 canvas 生成，避免外部图片依赖）+ 环境贴图（程序化或 `PMREMGenerator`）+ 接触阴影 + 后处理（SSAO/Bloom/抗锯齿）是提升观感收益最高的三项；相机预设（英雄机位、低角度、侧视、顶视）与自动环绕、慢动作开炮/发动机启动等动画是\"炫技\"的主要抓手。\n\n5. **验证前提**：单 HTML 的**实际交互与性能无法由源码或静态截图证明**。若要声称\"可预览、可操控\"，需要一次真实浏览器运行（含 WebGL 上下文、帧率与交互响应）作为证据；否则应把结论限定为\"已按此结构实现，运行时表现未实测\"。"
+    },
+    {
+      "label": "fast",
+      "runId": "f3ad793e-c2e7-4583-beb4-2b5e4739e675",
+      "callId": "ed862feb-4fad-47dc-bc56-ab072a5900cd",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供原工作模型决定是否采用）\n\n方向判断：本地已有完整可用的 Three.js r160 构建（`.build_three.min.js`，670681 字节，含 MIT 许可头）与 Edge 浏览器（`/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`），足以支撑单文件 HTML 的构建与离屏截图验证。工作区已存在大量同类产物（`mbt-*.html` 系列、多个 preview PNG），可作为几何/材质密度的对照基线，但不得直接当作本次交付物的证据。\n\n建议的下一步路线：\n1. 单文件优先：把 Three.js r160 以 `<script>` 静态内联进生成的 HTML，配合本地已有的 `examples_jsm_controls_OrbitControls.js`（如路线需要轨道控制），避免运行时任何网络依赖；其余纹理/法线用程序化 Canvas 生成，杜绝外部资源引用。\n2. 几何分层：底盘的负重轮/履带/扭杆、炮塔与主炮、附属件（观瞄、烟幕发射器、天线、格栅、附加装甲）拆成独立 builder 函数，统一由参数化的尺度表驱动，便于反复调整细节密度。\n3. 真实感来自材质与光照，不是面数堆叠：PBR 金属/粗糙度贴图 + 环境贴图（程序化生成的天空/地面） + 定向太阳光与阴影，是\"写真\"观感的主要来源；其次是履带与轮组的几何连接关系不能穿模。\n4. 操控与运镜：区分自由环视、自动巡航、写真镜头组三种模式，键盘切换，配合简单的悬挂起伏/履带滚动/炮塔转向动画。\n5. 验证方式：用 Edge headless 截图渲染结果，同时在页面内暴露一个状态对象（相机位置、渲染帧数、任何异常），截图与状态一并留档。注意此前 `posix` 只读层会拒绝 `head`（\"head 需要文件名\"）与重定向，涉及管道/重定向的检查需走完整 bash 层，这与产物缺陷无关。\n6. 关于已有的 `[exit code: 2]`（E67，open）：那是定位浏览器时两个不存在的 Chrome 路径导致的 `ls` 非零退出，观测对象是路径探测命令本身，不是任何 HTML 产物。当前任务只要求不预览文件夹内其他文件、产出单 HTML，因此该失败若不阻碍后续浏览器验证即可视作与本次交付无关；但若要正式关闭，仍需同一条命令在补上有效路径（Edge 已确认存在）后返回 0，或明确指出这是探测清单中的缺失项而非产物失败。\n\n需要提请注意的不确定点：任务原文说\"不要预览文件夹内的其他文件\"，但本次验证必须调用浏览器与查看渲染截图，这两件事互不冲突（浏览器读取的是新生成的文件），然而工作区里已有大量同名前缀产物，生成新文件时应取一个不与既有文件冲突的名字，并在最终答复里只引用本次新建的产物。"
+    },
+    {
+      "label": "fast",
+      "runId": "b250eb35-508e-49b7-8559-634a2438d0d2",
+      "callId": "236dece7-e637-4168-a832-8fdc5a9b76b5",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "关于下一步的公开方法提要（供原工作模型决定是否采用）：\n\n**已确认的可用基础**\n- 本地存在未压缩的 three.js r161 ESM 源码 `.threecache/_three_core.mjs`（53316 行，纯 ESM，无顶层 import），适合内联进单文件而不依赖任何在线/CDN 资源。\n- 本机可用无头浏览器：`C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe`（未发现 Chrome）。\n- 之前用只读 `posix` 层做 `head`/重定向被拒（E67 之外的独立现象），改走 `bash` 后正常，说明该拒绝是工具子集限制，不是环境缺陷。\n\n**建议的验证路线（可证伪、互相独立）**\n1. **先验仪器是否可信**：写一个最小 WebGL 探针页（`.mbtv2/probe.html` 已写入，尚未执行），用无头 Edge 截图/读 `document.title`，确认能否拿到 `GL_VERSION`、`WEBGL_debug_renderer_info` 渲染器名与 `MAX_TEXTURE_SIZE`。\n   - 若探针本身返回 `NO_GL`/空白截图，则后续所有“画面异常”都不能归因于成品——这是区分**仪器缺陷**与**实现缺陷**的同一可观察结果的最小区分观察。\n   - 若探针正常出图，而目标页截图异常，才可把问题指向成品侧。\n2. **加载路径单点验证**：单独确认内联 ESM 的可行性——把 r161 源码包成 blob URL 或直接 `<script type=\"module\">` 内联后 `import`，页面内写入一个可由标题/文本读出的哨兵值（如导出一个常量并在 DOM 回显）。这一步只回答“能否离线跑起来”，不回答“模型好不好看”。\n3. **几何与外观分离审**：模型几何/材质/光照属于源码可审查维度，能不能渲染出图、出什么图属于运行维度；两者不互相代证。截图不能证明交互（鼠标轨道、按键、动画循环），需要单独的可观察信号（如曝光/参数变化后画面确实改变，或暴露到 DOM 的状态值随输入变化）。\n4. **坐标系与单位**：坦克为“上为 +Y、炮口指向 +Z/-Z”这类约定需要显式声明并在源码与运行时状态里保持一致；三处常见不一致点是模型局部朝向、相机轨道目标点、以及车轮/悬挂旋转轴的正负号。检查顺序应为：先定参考坐标系与单位，再看旋转/位移是否在其下自洽。\n\n**对 E67 的处置建议**\nE67 目前只有 `[exit code: 2]`，缺少触发命令、目标对象与可观察结果，无法判断它是否仍影响当前任务。若它属于前述“只读层拒绝 `head`/重定向”那类工具子集限制，且有同一会话中改走 `bash` 后成功的直接反证，则可按仪器/工具误报驳回，无需记为成品缺陷；若无法给出同一对象同一可观察结果的闭合证据，应保持 open 而不推定失败或通过。\n\n**下一步最小动作**：执行已写好的探针页，拿到 WebGL 可用性与渲染器信息，再决定内联路径是否成立。"
+    },
+    {
+      "label": "fast",
+      "runId": "439ffaae-aeb7-4781-9e07-57928c0fd2f5",
+      "callId": "bb409a6b-14d0-4489-ae7b-e422a57afd4c",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "可证伪的替代假设与最小区分观察（只就当前\"离线单文件 three.js\"这一路线）\n\n现有解释依赖的未证前提：`.threecache/_three_core.mjs`（标称 r161、非压缩、顶层无 import、末尾单个 export）被内联进一个 `<script type=\"module\">` 后，能按名称正常引用（构造器、常量、`WebGLRenderer` 等），且该文件不依赖任何未随附的运行时资源。\n\n可推翻它的对照观察（区分性最强，成本最低）：\n1. 把该文件原样内联为单个 module 脚本，在文件中放置 `console.log(THREE.REVISION)` 与 `new THREE.WebGLRenderer()`；若控制台报 `Export 'X' is not defined` / `THREE is not defined` / 名称缺失，则内联方案不成立，需改为经 blob URL 的 `import()` 动态加载或退回压缩版。\n2. 命中前提的反证：若内联后能取到 `REVISION === '161'` 且渲染器成功构造，则该前提被支持（不是被\"别的测试通过\"顺带证明）。\n\n需同时核对的接口项（与上述观察同一对象/版本）：\n- 初始化顺序：`three` 的 ESM 导出是否在依赖它的模块代码之前求值（同一 module 内先声明后使用 vs 分两个 module）。\n- 参考坐标系与单位：three 默认 `Y-up`、右手系，长度单位由建模侧决定；确认视角相机与模型尺度使用同一单位。\n- 已报告的 E67 属 `ls: cannot access ...`（探测 Chrome 路径的仪器误报，有直接反证：Edge 存在、Chrome 路径不存在），与成品缺陷无关，不应据此判定产品失败。\n\n缺少可引用的观察 ID 的地方：本轮除 E67 外未提供其他真实观察/结果 ID，故未对\"内联后能正常渲染\"编造引用；该判断目前仍是待证假设，需上述观察 1 落地后才可定论。"
+    },
+    {
+      "label": "fast",
+      "runId": "439ffaae-aeb7-4781-9e07-57928c0fd2f5",
+      "callId": "298682cf-11c3-4c7e-95b7-435c7e1bb1ab",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对当前任务（单 HTML、three.js、精细主战坦克、可操控预览、离线自包含）的公开方法提要，供原工作模型决定是否采用：\n\n**核心可行路线**\n把 `.threecache/_three_core.mjs`（three.js r161，非压缩、真实公共名、无顶层 import、末尾单一 export）整体内联进一个 `<script type=\"module\">`，本文件即为唯一产物，无需 CDN，双击可离线运行。同时确认 `.build_three.min.js` 是压缩 ESM（变量名不可读），不适合作内联源。\n\n**优先解决的两个未决观测**\n1. **WebGL 无头渲染是否可用**（决定\"可预览/可截图验证\"能否成立）。已观测到失败的直接原因是 `--user-data-dir` 指向 C 盘临时目录被拒（`mkdir ... Permission denied`）与 ProcessSingleton 锁冲突，属仪器/路径问题，不是 WebGL 能力结论或产物缺陷。最小区分观察：把 `--user-data-dir` 改到工作区内可写目录（如 `D:/0中转站/html/.mbtv2/edgeprofile/x`，注意不要与其他实例共用同一 profile），重跑同一 probe.html，检查输出中是否出现 `GL_VERSION=` 或 `NO_GL`。若只有 `NO_GL`，再考虑 `--enable-unsafe-swiftshader` / `--use-gl=angle` 等开关；不要仅凭一次 profile 写入失败就判定无头渲染不可用。\n2. **`--dump-dom` 读取时机**。probe 用 `startTimeout`-style 的 1.5s 兜底写 DOM，而 `--virtual-time-budget=4000` 与异步 `import(blob)` 的完成顺序未确认。区分观察同上：同一 URL 同时看 `document.title` 是否为 `RESULT`，以判断是脚本未执行还是脚本执行了但结果未被抓取。\n\n**需要注意的顺序与单位/坐标系检查**\n- 内联 three 源必须以 `<script type=\"module\">` 加载，且该内联模块自身的代码不得再出现顶层 `import`（已确认源文件无顶层 import），否则整段会被浏览器拒绝执行——这是\"文件能打开但画面全黑\"的最可能机制，与几何/材质代码无关。\n- 相机、模型、灯光的 up 轴与 Y/Z 朝向要在装配处统一；坦克长轴通常沿 Z（或 X），俯视/侧视镜头方位角依赖该约定。截图观察到的\"模型朝向与预期不符\"应先核对这一约定，再怀疑建模。\n- 坦克尺寸与相机近远裁剪面、地面网格单位需一致（毫米级 vs 米级混用会表现为模型被裁掉或缩到不可见），若出现这类现象，先查构造参数单位而非材质。\n\n**关于历史失败项**\n已报 `E67: [exit code: 2]`，其观测文本只有 `exit code: 2`，缺少产生该码的命令与 stderr 引用，无法据此定位具体机制；上下文中的对应失败可归因于对不存在路径执行 `ls` 的探测行为。该项是否影响当前任务，取决于它是否与产物文件的语法/运行错误耦合——在拿到同一文件、同一可观察结果（如打开后控制台报错行号）的证据前，不宜判定产品成功或失败。历史调用错误本身不构成新要求。\n\n**验证优先级建议**\n先做\"模块内联后能否在无头浏览器中产出非黑帧\"这一条，再评审几何精细度与操控手感；源码审查不能替代运行观察，截图不能替代交互验证。"
+    },
+    {
+      "label": "fast",
+      "runId": "439ffaae-aeb7-4781-9e07-57928c0fd2f5",
+      "callId": "53b2fc59-476b-4522-9ab0-482a3c09f7ea",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对当前处于“先探查、未产出成品”阶段的任务，建议下一步只做一件事：用工作区内的本地 three.js 拷贝（`.threecache/_three_core.mjs`，r161、无顶层 import、结尾单一 export）作为唯一依赖来源，直接写成一个内联 `<script type=\"module\">` 的单文件 HTML。\n\n配套的最小验证只保留一条可判定的观察：用无头 Edge 打开该文件并截图，除了确认画布非空白外，还要确认渲染器初始化与场景对象数量这两个可读指标能取到值，而不是只看“能打开”。\n\n关于 E67：`[exit code: 2]` 的直接反证已在同批输出中出现，是探针路径写入失败（`mkdir ... Permission denied`）与浏览器占用 profile 造成的进程退出，并非成品缺陷，据此可以关闭该项，且关闭依据的正是同一命令、同一可观察结果。\n\n在最终确定几何与材质前，值得先用一次 develop_approach 取独立构造意见，重点是坦克外形比例、履带/负重轮分件与 PBR 材质参数的可用取值；拿到具体数值后自行取舍，顾问意见不替代实际产物判断。"
+    }
+  ],
+  "allChanges": [
+    {
+      "label": "fast",
+      "runId": "ac7fc660-d3b7-4ac1-bf31-2ab66deb6950",
+      "callId": "fd0f0747-cb0c-4d26-9fa3-4c4d132c5bc5",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供决策，仅供下一步参考）：\n\n- 单文件结构先定稳：HTML 内联 CSS、内联 `<script type=\"module\">`，所有几何/材质/控制逻辑都写在同一个文件里，不建额外资源文件。\n- 用 importmap 从 CDN 引入 three.js 与 `OrbitControls`，避免打包步骤；版本锁定为明确的小版本号。\n- 车体与炮塔用多个 Box/圆柱/拉伸几何拼合，重点靠倒角、间隙和分层装甲块制造“精细感”，而不是靠单个高面数网格。\n- 履带和负重轮用循环批量生成，履带片用少量重复几何 + InstancedMesh，兼顾观感与帧率。\n- 材质上区分装甲漆、金属裸露件、橡胶履带、玻璃/光学件，用 `MeshStandardMaterial` 配合环境贴图和高低粗糙度制造真实反射。\n- 光影是“帅气”的关键：方向光 + 阴影贴图 + 环境光/半球光，再加一盏轮廓补光；色调映射用 ACESFilmic，开抗锯齿。\n- 操控层：OrbitControls 负责绕车预览，另加少量键盘/界面控件控制炮塔旋转、炮管俯仰、履带启动感，以及一个自动环绕演示模式体现“炫技”。\n- 加轻微程序化动效：炮塔缓动、车体微悬浮/震动、履带循环纹理滚动，避免静态模型感。\n- 加可选后期（如 `EffectComposer` + 泛光/暗角）但设为可开关，保证低配也跑得动。\n- 最终产物为一个可直接双击打开的 HTML，桌面鼠标和触屏都能操作。"
+    },
+    {
+      "label": "fast",
+      "runId": "f4c87684-ed9e-490b-8030-3bb58b5c808d",
+      "callId": "b6ca967d-1370-42d9-9353-ee2b81692233",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "单文件 Three.js 主战坦克公开方法提要（供决定是否采用）：\n\n**1. 资源判定先于建模**\n先确认 three.js 来源：内联打包（体积大但离线可控）还是 CDN 引入。若网络不可用，立刻改为内联 `<script>` 版的 three 构建，并在写文件前定稿，避免中途改架构。\n\n**2. 几何分层，而非一次成型**\n把车体拆成独立可复用函数：车体基座、炮塔、炮管、负重轮/履带、裙板、附件（天线、机枪、烟雾弹、储物箱、牵引钩）。每层单独建立并 `mergeGeometries` 或保留为 Group，便于后续调材质与动画，也让“精细”体现在可数的零件数上。\n\n**3. 材质是写实感的决定项**\n用 `MeshStandardMaterial` 或 `MeshPhysicalMaterial`，配金属度/粗糙度贴图（可用 Canvas 程序化生成，避免外部文件）。履带与炮管用不同粗糙度，车体加轻微法线扰动，避免全车同一光泽。\n\n**4. 环境与光照必须一起给**\nHDR 风格环境贴图（可程序化渐变球）+ 主平行光（带阴影）+ 补光 + 轻微雾。没有环境反射，金属看起来是塑料。\n\n**5. 交互与运镜**\nOrbitControls（或自写的阻尼轨道）为预览基础，加炮塔独立旋转、炮管俯仰、履带随速度滚动。炫技部分做一段自动巡演相机路径，可由按键切换手动/自动。\n\n**6. 性能护栏**\n单 HTML 内注意几何分段数、阴影贴图分辨率、实时反射开关。准备一个自动降级：低端设备关阴影或降像素比，保证可交互而非卡死。\n\n**7. 验证方式**\n无法直接预览时，用无头浏览器截图若干机位（正侧、前 3/4、顶部、特写）自查比例与光照；这是发现“看着不像坦克”的最快回路。\n\n**会改变方案的前提**\nthree.js 能否离线获取，以及是否有无头浏览器可截图——两者任一不成立，都需要在动手前换路线，而不是写到一半再补。"
+    },
+    {
+      "label": "fast",
+      "runId": "04e31765-cd6b-4b5b-852d-b2fa332b2126",
+      "callId": "d8678077-286f-4085-88cb-1509ac6f9650",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对原任务，下一项有用的观察：确认本地是否已有可离线内联的 three.js 构建产物（含版本号与体积），因为这决定单文件是\"零依赖可离线运行\"还是\"需 CDN 兜底\"——两者的交付前提不同。\n\n公开方法提要（供原工作模型取舍，不代其决策）：\n\n1. **单文件承载方式**：优先把 three.js 最小构建**内联进 `<script>`**，保证双击即开、完全离线；若内联体积过大不可接受，则保留 `CDN + 本地缓存回退` 双路径，但必须在文件中显式写清回退逻辑。这一选择要先于建模动手。\n\n2. **建模精度策略**：把坦克拆成\"车体轮廓 / 炮塔与炮管 / 行走机构（负重轮、履带、主动轮）/ 附加细节（观瞄、储物篮、烟幕发射器、天线、机枪、装甲板接缝）\"若干可独立调参的组，用 `ExtrudeGeometry`+倒角与 `LatheGeometry` 处理曲面件，履带用实例化或重复单元沿路径布列。精细度的瓶颈在**履带与轮系的重复单元**和**面板倒角**，不在主体大块。\n\n3. **操控与展示**：`OrbitControls` 做自由观察，另设炮塔独立旋转、炮管俯仰、舱盖开合等可控件；用 `EIM` 或物理近似做履带/悬挂的视觉联动时，只做观感联动而非真实仿真，避免性能塌陷。\n\n4. **\"炫技写真\"落点**：PBR 材质（`roughness/metalness` 贴图可用程序化 canvas 生成，避免外部图片依赖）+ 环境贴图（程序化或 `PMREMGenerator`）+ 接触阴影 + 后处理（SSAO/Bloom/抗锯齿）是提升观感收益最高的三项；相机预设（英雄机位、低角度、侧视、顶视）与自动环绕、慢动作开炮/发动机启动等动画是\"炫技\"的主要抓手。\n\n5. **验证前提**：单 HTML 的**实际交互与性能无法由源码或静态截图证明**。若要声称\"可预览、可操控\"，需要一次真实浏览器运行（含 WebGL 上下文、帧率与交互响应）作为证据；否则应把结论限定为\"已按此结构实现，运行时表现未实测\"。"
+    },
+    {
+      "label": "fast",
+      "runId": "f3ad793e-c2e7-4583-beb4-2b5e4739e675",
+      "callId": "ed862feb-4fad-47dc-bc56-ab072a5900cd",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供原工作模型决定是否采用）\n\n方向判断：本地已有完整可用的 Three.js r160 构建（`.build_three.min.js`，670681 字节，含 MIT 许可头）与 Edge 浏览器（`/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`），足以支撑单文件 HTML 的构建与离屏截图验证。工作区已存在大量同类产物（`mbt-*.html` 系列、多个 preview PNG），可作为几何/材质密度的对照基线，但不得直接当作本次交付物的证据。\n\n建议的下一步路线：\n1. 单文件优先：把 Three.js r160 以 `<script>` 静态内联进生成的 HTML，配合本地已有的 `examples_jsm_controls_OrbitControls.js`（如路线需要轨道控制），避免运行时任何网络依赖；其余纹理/法线用程序化 Canvas 生成，杜绝外部资源引用。\n2. 几何分层：底盘的负重轮/履带/扭杆、炮塔与主炮、附属件（观瞄、烟幕发射器、天线、格栅、附加装甲）拆成独立 builder 函数，统一由参数化的尺度表驱动，便于反复调整细节密度。\n3. 真实感来自材质与光照，不是面数堆叠：PBR 金属/粗糙度贴图 + 环境贴图（程序化生成的天空/地面） + 定向太阳光与阴影，是\"写真\"观感的主要来源；其次是履带与轮组的几何连接关系不能穿模。\n4. 操控与运镜：区分自由环视、自动巡航、写真镜头组三种模式，键盘切换，配合简单的悬挂起伏/履带滚动/炮塔转向动画。\n5. 验证方式：用 Edge headless 截图渲染结果，同时在页面内暴露一个状态对象（相机位置、渲染帧数、任何异常），截图与状态一并留档。注意此前 `posix` 只读层会拒绝 `head`（\"head 需要文件名\"）与重定向，涉及管道/重定向的检查需走完整 bash 层，这与产物缺陷无关。\n6. 关于已有的 `[exit code: 2]`（E67，open）：那是定位浏览器时两个不存在的 Chrome 路径导致的 `ls` 非零退出，观测对象是路径探测命令本身，不是任何 HTML 产物。当前任务只要求不预览文件夹内其他文件、产出单 HTML，因此该失败若不阻碍后续浏览器验证即可视作与本次交付无关；但若要正式关闭，仍需同一条命令在补上有效路径（Edge 已确认存在）后返回 0，或明确指出这是探测清单中的缺失项而非产物失败。\n\n需要提请注意的不确定点：任务原文说\"不要预览文件夹内的其他文件\"，但本次验证必须调用浏览器与查看渲染截图，这两件事互不冲突（浏览器读取的是新生成的文件），然而工作区里已有大量同名前缀产物，生成新文件时应取一个不与既有文件冲突的名字，并在最终答复里只引用本次新建的产物。"
+    },
+    {
+      "label": "fast",
+      "runId": "b250eb35-508e-49b7-8559-634a2438d0d2",
+      "callId": "236dece7-e637-4168-a832-8fdc5a9b76b5",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "关于下一步的公开方法提要（供原工作模型决定是否采用）：\n\n**已确认的可用基础**\n- 本地存在未压缩的 three.js r161 ESM 源码 `.threecache/_three_core.mjs`（53316 行，纯 ESM，无顶层 import），适合内联进单文件而不依赖任何在线/CDN 资源。\n- 本机可用无头浏览器：`C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe`（未发现 Chrome）。\n- 之前用只读 `posix` 层做 `head`/重定向被拒（E67 之外的独立现象），改走 `bash` 后正常，说明该拒绝是工具子集限制，不是环境缺陷。\n\n**建议的验证路线（可证伪、互相独立）**\n1. **先验仪器是否可信**：写一个最小 WebGL 探针页（`.mbtv2/probe.html` 已写入，尚未执行），用无头 Edge 截图/读 `document.title`，确认能否拿到 `GL_VERSION`、`WEBGL_debug_renderer_info` 渲染器名与 `MAX_TEXTURE_SIZE`。\n   - 若探针本身返回 `NO_GL`/空白截图，则后续所有“画面异常”都不能归因于成品——这是区分**仪器缺陷**与**实现缺陷**的同一可观察结果的最小区分观察。\n   - 若探针正常出图，而目标页截图异常，才可把问题指向成品侧。\n2. **加载路径单点验证**：单独确认内联 ESM 的可行性——把 r161 源码包成 blob URL 或直接 `<script type=\"module\">` 内联后 `import`，页面内写入一个可由标题/文本读出的哨兵值（如导出一个常量并在 DOM 回显）。这一步只回答“能否离线跑起来”，不回答“模型好不好看”。\n3. **几何与外观分离审**：模型几何/材质/光照属于源码可审查维度，能不能渲染出图、出什么图属于运行维度；两者不互相代证。截图不能证明交互（鼠标轨道、按键、动画循环），需要单独的可观察信号（如曝光/参数变化后画面确实改变，或暴露到 DOM 的状态值随输入变化）。\n4. **坐标系与单位**：坦克为“上为 +Y、炮口指向 +Z/-Z”这类约定需要显式声明并在源码与运行时状态里保持一致；三处常见不一致点是模型局部朝向、相机轨道目标点、以及车轮/悬挂旋转轴的正负号。检查顺序应为：先定参考坐标系与单位，再看旋转/位移是否在其下自洽。\n\n**对 E67 的处置建议**\nE67 目前只有 `[exit code: 2]`，缺少触发命令、目标对象与可观察结果，无法判断它是否仍影响当前任务。若它属于前述“只读层拒绝 `head`/重定向”那类工具子集限制，且有同一会话中改走 `bash` 后成功的直接反证，则可按仪器/工具误报驳回，无需记为成品缺陷；若无法给出同一对象同一可观察结果的闭合证据，应保持 open 而不推定失败或通过。\n\n**下一步最小动作**：执行已写好的探针页，拿到 WebGL 可用性与渲染器信息，再决定内联路径是否成立。"
+    },
+    {
+      "label": "fast",
+      "runId": "439ffaae-aeb7-4781-9e07-57928c0fd2f5",
+      "callId": "bb409a6b-14d0-4489-ae7b-e422a57afd4c",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "可证伪的替代假设与最小区分观察（只就当前\"离线单文件 three.js\"这一路线）\n\n现有解释依赖的未证前提：`.threecache/_three_core.mjs`（标称 r161、非压缩、顶层无 import、末尾单个 export）被内联进一个 `<script type=\"module\">` 后，能按名称正常引用（构造器、常量、`WebGLRenderer` 等），且该文件不依赖任何未随附的运行时资源。\n\n可推翻它的对照观察（区分性最强，成本最低）：\n1. 把该文件原样内联为单个 module 脚本，在文件中放置 `console.log(THREE.REVISION)` 与 `new THREE.WebGLRenderer()`；若控制台报 `Export 'X' is not defined` / `THREE is not defined` / 名称缺失，则内联方案不成立，需改为经 blob URL 的 `import()` 动态加载或退回压缩版。\n2. 命中前提的反证：若内联后能取到 `REVISION === '161'` 且渲染器成功构造，则该前提被支持（不是被\"别的测试通过\"顺带证明）。\n\n需同时核对的接口项（与上述观察同一对象/版本）：\n- 初始化顺序：`three` 的 ESM 导出是否在依赖它的模块代码之前求值（同一 module 内先声明后使用 vs 分两个 module）。\n- 参考坐标系与单位：three 默认 `Y-up`、右手系，长度单位由建模侧决定；确认视角相机与模型尺度使用同一单位。\n- 已报告的 E67 属 `ls: cannot access ...`（探测 Chrome 路径的仪器误报，有直接反证：Edge 存在、Chrome 路径不存在），与成品缺陷无关，不应据此判定产品失败。\n\n缺少可引用的观察 ID 的地方：本轮除 E67 外未提供其他真实观察/结果 ID，故未对\"内联后能正常渲染\"编造引用；该判断目前仍是待证假设，需上述观察 1 落地后才可定论。"
+    },
+    {
+      "label": "fast",
+      "runId": "439ffaae-aeb7-4781-9e07-57928c0fd2f5",
+      "callId": "298682cf-11c3-4c7e-95b7-435c7e1bb1ab",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对当前任务（单 HTML、three.js、精细主战坦克、可操控预览、离线自包含）的公开方法提要，供原工作模型决定是否采用：\n\n**核心可行路线**\n把 `.threecache/_three_core.mjs`（three.js r161，非压缩、真实公共名、无顶层 import、末尾单一 export）整体内联进一个 `<script type=\"module\">`，本文件即为唯一产物，无需 CDN，双击可离线运行。同时确认 `.build_three.min.js` 是压缩 ESM（变量名不可读），不适合作内联源。\n\n**优先解决的两个未决观测**\n1. **WebGL 无头渲染是否可用**（决定\"可预览/可截图验证\"能否成立）。已观测到失败的直接原因是 `--user-data-dir` 指向 C 盘临时目录被拒（`mkdir ... Permission denied`）与 ProcessSingleton 锁冲突，属仪器/路径问题，不是 WebGL 能力结论或产物缺陷。最小区分观察：把 `--user-data-dir` 改到工作区内可写目录（如 `D:/0中转站/html/.mbtv2/edgeprofile/x`，注意不要与其他实例共用同一 profile），重跑同一 probe.html，检查输出中是否出现 `GL_VERSION=` 或 `NO_GL`。若只有 `NO_GL`，再考虑 `--enable-unsafe-swiftshader` / `--use-gl=angle` 等开关；不要仅凭一次 profile 写入失败就判定无头渲染不可用。\n2. **`--dump-dom` 读取时机**。probe 用 `startTimeout`-style 的 1.5s 兜底写 DOM，而 `--virtual-time-budget=4000` 与异步 `import(blob)` 的完成顺序未确认。区分观察同上：同一 URL 同时看 `document.title` 是否为 `RESULT`，以判断是脚本未执行还是脚本执行了但结果未被抓取。\n\n**需要注意的顺序与单位/坐标系检查**\n- 内联 three 源必须以 `<script type=\"module\">` 加载，且该内联模块自身的代码不得再出现顶层 `import`（已确认源文件无顶层 import），否则整段会被浏览器拒绝执行——这是\"文件能打开但画面全黑\"的最可能机制，与几何/材质代码无关。\n- 相机、模型、灯光的 up 轴与 Y/Z 朝向要在装配处统一；坦克长轴通常沿 Z（或 X），俯视/侧视镜头方位角依赖该约定。截图观察到的\"模型朝向与预期不符\"应先核对这一约定，再怀疑建模。\n- 坦克尺寸与相机近远裁剪面、地面网格单位需一致（毫米级 vs 米级混用会表现为模型被裁掉或缩到不可见），若出现这类现象，先查构造参数单位而非材质。\n\n**关于历史失败项**\n已报 `E67: [exit code: 2]`，其观测文本只有 `exit code: 2`，缺少产生该码的命令与 stderr 引用，无法据此定位具体机制；上下文中的对应失败可归因于对不存在路径执行 `ls` 的探测行为。该项是否影响当前任务，取决于它是否与产物文件的语法/运行错误耦合——在拿到同一文件、同一可观察结果（如打开后控制台报错行号）的证据前，不宜判定产品成功或失败。历史调用错误本身不构成新要求。\n\n**验证优先级建议**\n先做\"模块内联后能否在无头浏览器中产出非黑帧\"这一条，再评审几何精细度与操控手感；源码审查不能替代运行观察，截图不能替代交互验证。"
+    },
+    {
+      "label": "fast",
+      "runId": "439ffaae-aeb7-4781-9e07-57928c0fd2f5",
+      "callId": "53b2fc59-476b-4522-9ab0-482a3c09f7ea",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对当前处于“先探查、未产出成品”阶段的任务，建议下一步只做一件事：用工作区内的本地 three.js 拷贝（`.threecache/_three_core.mjs`，r161、无顶层 import、结尾单一 export）作为唯一依赖来源，直接写成一个内联 `<script type=\"module\">` 的单文件 HTML。\n\n配套的最小验证只保留一条可判定的观察：用无头 Edge 打开该文件并截图，除了确认画布非空白外，还要确认渲染器初始化与场景对象数量这两个可读指标能取到值，而不是只看“能打开”。\n\n关于 E67：`[exit code: 2]` 的直接反证已在同批输出中出现，是探针路径写入失败（`mkdir ... Permission denied`）与浏览器占用 profile 造成的进程退出，并非成品缺陷，据此可以关闭该项，且关闭依据的正是同一命令、同一可观察结果。\n\n在最终确定几何与材质前，值得先用一次 develop_approach 取独立构造意见，重点是坦克外形比例、履带/负重轮分件与 PBR 材质参数的可用取值；拿到具体数值后自行取舍，顾问意见不替代实际产物判断。"
+    },
+    {
+      "label": "fast",
+      "runId": "f98f81f0-3e28-4202-a8c9-d2c99708ec38",
+      "callId": "991f9bc2-d6df-4ffd-9796-e4a59a2ba2dd",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对当前任务，公开方法提要如下（供原工作模型自行决定是否采用）：\n\n**当前最受信的解释及其未证前提**\n\n现有证据已支持：`.threecache/_three_core.mjs` 是 r161 非压缩 ESM、无顶层 import、单一 export；headless Edge（SwiftShader）可渲染 WebGL2；Blob URL 的 `import()` 可用（`BLOB_IMPORT_OK=42`）。由此推断“把该 ESM 直接内联进单个 `<script type=\"module\">` 并离线运行单 HTML”是当前主线。\n\n它仍依赖一个未证前提：**该 1.28 MB 的 `export {...}` 尾部长列表，在直接内联进 HTML 后能作为一个模块被正常解析并具名引用，且在 WebGL 上下文中没有对 sourceURL/相对路径资源的隐性依赖**。上述探测只证明了“Blob 里的小模块可 import”，没有证明“整文件内联可加载”，两者不是同一可观察结果。\n\n**可推翻该前提的对照观察（最小、可证伪）**\n\n1. 同一文件、同一版本的 ESM 全文内联后，观察控制台是否出现 `SyntaxError`/解析期报错，并与“从外部 `.mjs` 路径 import 同一文件”的结果做对照——指向 ID：暂无；本次引用中缺少该实验的观察 ID，不编造。\n2. 若内联失败而外部路径成功，需检查受影响接口的加载顺序与坐标/单位初始化（如相机坐标系与场景单位设定是否在库加载前执行），而非归因于库本身。\n3. 若两者皆失败，则对“无顶层 import 即可内联”这一前提的直接反证成立，应转向 `BLOB_IMPORT_OK` 已证实的 Blob URL 方案（把核心源码作为字符串注入后 `import()`），而非继续假设内联一定可行。\n\n**对 E67 的处理**：`ls: cannot access .../chrome.exe` 属探测路径不存在造成的清单缺失，范围仅限一次性探测命令，与产物缺陷无关；该项按探测误报关闭是成立的，但需注意这不构成对整个产品验收的结论。\n\n**续做时的检查点**：内联模块后先做一次仅含“创建 WebGLRenderer + 渲染单色背景”的最小可视化对照，再看模型几何；避免把库加载失败误判为主战坦克模型的几何或外观问题。"
+    },
+    {
+      "label": "fast",
+      "runId": "f98f81f0-3e28-4202-a8c9-d2c99708ec38",
+      "callId": "46104066-4b05-4109-a90e-0e24e36caf57",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "**公开方法提要（供原工作模型决定是否采用）**\n\n核心思路：不采用“先拼装外部依赖再截图”的构建链，而是把已验证的本地 three.js r161 源码直接内联进单个 HTML，用同一个 headless Edge 通道做端到端可运行验证。该路线绕开 CDN 与多文件构建，符合“单文件、可预览、离线”的要求。\n\n关键判断依据（可直接复用，无需重新探测）：\n- `.threecache/_three_core.mjs`（1,280,747 字节）为 three.js r161，非压缩、保留真实公开名、零顶层 import、仅末尾单个 `export`。因此可去掉该 export，整体嵌入 `<script type=\"module\">`，并以顶层 `const`/`class` 名字直接引用，无需 Blob URL 或 import map。\n- 相反 `.build_three.min.js`（670,681 字节）为压缩 ESM（`const t=\"160\"`），名字不可读，不适合内联手写代码引用。\n- headless Edge 可用：`/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`，`--headless=new --disable-gpu --enable-unsafe-swiftshader --no-sandbox --virtual-time-budget=4000 --dump-dom` 实测返回 `GL_VERSION=WebGL 2.0`、`RENDERER=ANGLE ... SwiftShader`、`BLOB_IMPORT_OK=42`。说明 WebGL2 与模块导入在该环境都真实可用，视觉验证可行。\n- 约束：临时目录 `C:/Users/33875/AppData/Local/Temp/...` 被沙箱拒绝（`mkdir: Permission denied`），`--user-data-dir` 必须落在工作区内（如 `.mbtv2/edgeprofile`），否则报 `Lock file can not be created`。\n\n可证伪的替代假设与最小区分观察：\n- 假设 A（我倾向前者）：内联 r161 源码即可正常渲染，SwiftShader 的 WebGL2 路径足以支撑 PBR/后处理。\n  - 最小区分观察：把 r161 去掉末尾 `export` 后内联进一个最小 HTML，只创建 `WebGLRenderer` + 一个 `MeshStandardMaterial` 球体并渲染一帧，用 `--dump-dom` 读回 `renderer.info.render.triangles > 0` 与任何 `WebGL` 报错文本。若三角数为 0 或抛 shader 编译错误，则假设 A 被推翻。\n- 假设 B：SwiftShader 无法编译该项目需要的复杂 shader（如大量自定义 uniform、阴影、后期），导致画面全黑但无 JS 异常。\n  - 最小区分观察：同一最小场景开/关阴影贴图与 tone mapping 各渲染一次，比较读回的像素统计（如 `readPixels` 非背景像素计数）。若最小场景通过而开阴影后归零，则失败归因于 shader 复杂度而非内联方式。\n- 以上两者不能由彼此的结果互相否定：最小场景通过不能证明完整坦克场景可渲染，反之亦然。\n\n受影响接口的自检项（针对本任务）：\n- 渲染器初始化顺序：`WebGLRenderer` 创建须早于任何 `renderer.setPixelRatio/setSize`，且 `outputColorSpace` 用 r161 中的 `SRGBColorSpace`（注意勿沿用旧版 `sRGBEncoding`，r161 中它仍在导出表但语义不同）。\n- 相机与坐标系：透视相机默认 Y 轴向上；坦克模型若以 Z 为前进方向，朝向与“炮塔旋转/炮管俯仰”角度必须统一到同一参考系，否则观感正确但操控方向相反。\n- 单位与尺度：车长约 9.5–11 m 量级，若模型按米建模则相机 near/far（如 0.1/2000）与阴影相机范围须匹配，避免 z-fighting 或阴影裁剪。\n\n引用说明：本次结论来自本轮真实观察，涉及的文件路径与命令输出即为上文所给上下文；`E67` 对应的 `[exit code: 2]` 已由同对象（`ls` 对不存在 Chrome 路径）、同可观察结果（`ls: cannot access ...`）直接反证为探测噪声，非成品缺陷，其余条目无新 ID 可引。"
+    },
+    {
+      "label": "fast",
+      "runId": "f98f81f0-3e28-4202-a8c9-d2c99708ec38",
+      "callId": "02ad8d56-9568-4df8-b3c5-2e270875d045",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供原工作模型决定是否采用）\n\n针对当前任务\"单 HTML 内 three.js 现代主战坦克、可预览可操控\"，下一步最关键的是确定**入库方式**与**验证闭环**两条路线，因为这两点直接决定成品能否离线单文件打开、以及能否被独立观测。\n\n1. 入库方式（已具备事实基础）\n   - 已确认 `.threecache/_three_core.mjs` 为 three.js r161、未压缩、真实公开名、无顶层 import、末尾单一 export —— 可直接内联进单个 `<script type=\"module\">` 并按名引用，无需 CDN。也可考虑 `.build_three.min.js`（r160 压缩 ESM，名字不可读）与其对比，但那会显著降低可写/可审计性，需给出理由再取舍。\n   - 可证伪的替代假设：内联 r161 完整 core 会导致单文件体积/解析超限或浏览器首帧超时。最小区分观察：把内联后的文件在 headless Edge 中打开，观测能否出现非空渲染画面（而不是只看 exit code / DOM 标题）。\n   - 受影响接口需检查：模块解析顺序、`export` 语句位置、`type=\"module\"` 与 file:// 协议的相容性、单位与参考坐标系（建模单位 vs 相机 near/far）。\n\n2. 验证闭环（本机已具备条件）\n   - 已确认 headless Edge 可跑 WebGL2（SwiftShader），并能执行 Blob module import。这是后续\"截图看画面\"路径的可用观测面。\n   - 潜在仪器侧问题：SwiftShader 软渲染可能导致画面与真实 GPU 不同（着色器精度、贴图尺寸上限、后处理差异）。这**不能**单独用来否定成品缺陷——需要同一可观察结果的独立测量来区分仪器解释与实现缺陷；例如对同一场景分别测 (a) 是否出现非空非底色像素、(b) WebGL 上下文是否丢失或 shader 编译报错、(c) 相比纯色清屏是否出现多色结构。只有三者同时指向同一原因时才可归因。\n   - 仪器缺陷的排除，需有直接反证，例如同一页面在带 GPU 的普通浏览器手动打开时画面正常，与 headless 结果不一致。\n\n3. 关于 E67（open）\n   - 观测仅 [exit code: 2]，无输出可归因。若原任务仍依赖该命令的产物，则应先取得其真实 stdout/stderr 再判断；若该步骤未被后续路径依赖，可先搁置，但不应以\"别的测试通过\"为由直接判定其无缺陷。\n\n4. 可能需要独立咨询的点\n   - 若\"内联 1.28MB ESM 到单文件\"在浏览器首帧出现可复现的白屏或超时，则属于无新证据的同路反复失败，宜先做最小实验（仅内联 + 渲染一个立方体）再决定继续、缩小或换路线，而不是直接放大到坦克模型。"
+    },
+    {
+      "label": "fast",
+      "runId": "53a5cce2-f306-4057-ac6b-75eb220362bd",
+      "callId": "66294456-caca-43fc-b09c-1267b0cb1228",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "**方法提要（供原模型决定是否采用）**\n\n1. **E67 的处理**：日志中 `ls: cannot access ...chrome.exe` 与 `Lock file can not be created` 属仪器/环境误报，已由 `.mbtv2` 内工作区 profile 的成功探测（同一 Edge 可执行文件、同一探测页）直接反证；该证据只对“Chrome 路径存在性”这一可观察结果成立，不能外推到成品本身。闭合 E67 需同一对象、同一可观察结果的反证，目前仅有该反证，未见成品层面证据，故 E67 只能标为“仪器归因”，不应作为成品验收结论。\n\n2. **当前最受信解释的未证前提**：现假定“`.threecache/_three_core.mjs`（r161、无顶层 import、单 export）可直接内联进单 HTML 的 `<script type=\"module\">` 并按名引用”。该前提依赖“单文件体量下内联 1.28 MB ESM 不会触碰浏览器的内联脚本/模块解析上限”，而这一点尚无观察。\n\n3. **可推翻该前提的对照观察**：用一个只内联该 core、不接任何模型的空场景 HTML 在 headless Edge 中打开，取 `document.title` 或 DOM 中的导出符号探针（如 `THREE.REVISION`）。若该对照页能正常渲染且 `REVISION` 可读，则前提成立；若报模块解析失败或空白，则需改为 IIFE/UMD 包装或 `Blob`+`import()` 路线。此对照与真实任务同对象（同一份 core 文件）、同版本，且可观察结果独立，可作为分界判据。\n\n4. **未闭合失败的归属**：`--dump-dom` 输出里混入了源码片段（`GL_VERSION='+gl.getParameter(...)` 等）与重复 `NO_GL`，属 `grep` 对整页文本误抓，与 3 中对照页无关，不影响对其结论的判定。\n\n5. **相关接口检查点**：若采用内联路线，需确认 core 内 `createCanvasElement`、`WebGLRenderer` 初始化顺序在单文件环境下仍成立，且无依赖 DOM-ready 的时序假设；参考坐标系与单位在 core 内部一致（r161 默认 Y-up、右手系），不得在装配层额外引入转换。\n\n6. **缺失引用说明**：除 E67 外，本轮上下文未提供其他 issue/ID，故未编造引用；上述第 2、3 点中的控制变量（同一 core 文件、同一 r161 版本）取自已给出的 `.threecache/_three_core.mjs` 观察，非推断。"
+    },
+    {
+      "label": "fast",
+      "runId": "53a5cce2-f306-4057-ac6b-75eb220362bd",
+      "callId": "5b016baa-e7bd-48a5-94ae-0023bb386cda",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对当前任务，可证伪的替代假设与最小区分观察如下（引用真实观察，仅作方向建议，是否采用由你决定）：\n\n**已有失败判断**\n- E67（exit code 2）已在历史中被归因为探针自身的 `ls` 对不存在路径的报错，属仪器误报，不是产物缺陷；若当前任务不再依赖该次 `ls` 结果，可不再追查。归因依据是同一命令输出中 `ls: cannot access ...` 文本与随后 `--version`/浏览器探测成功并存。\n\n**针对当前瓶颈的替代假设**\n当前真正待验证的是“单 HTML 内联 three.js r161 非压缩 ESM 能否在一个 `<script type=\"module\">` 中被正确引用并渲染”。可考虑以下竞争假设：\n- H1：内联后名字可解析，渲染正常 —— 区分观察：打开产物首帧是否出现渲染画面且控制台无 `ReferenceError`/`SyntaxError`。\n- H2：内联方式（例如 blob: URL 或 `<script type=\"module\">` 内直接展开）导致 `export` 语句在非模块上下文中语法错误。\n- H3：WebGL 上下文可创建但纹理/渲染目标初始化顺序或颜色空间/单位设置有误，表现为黑屏但无报错。\n\n**最小区分观察建议**\n1. 在同一页面内先只内联 `_three_core.mjs` 并 `console.log(THREE.REVISION)`，确认 `REVISION === '161'` 且无模块语法错误 —— 这一步把 H1 与 H2 分开。\n2. 再加一个仅含 `MeshBasicMaterial` 立方体的最小场景，输出画布像素均值或场景内对象数 —— 这一步把 H1/H2 与 H3 分开。\n3. 因历史已确认 headless Edge + SwiftShader 可出 WebGL 2.0 与 `BLOB_IMPORT_OK=42`，截图/`--dump-dom` 是可用的验证通道；注意 `.mbtv2` 与 `.edgeprofile` 属工作区内可写路径，系统临时目录被拒。\n\n缺失的引用：本轮未给出与 H2/H3 直接相关的具体观察 ID 或已运行结果，因此上述假设尚未有对应证据支撑，属待验证提议，不能据此判定产物失败或通过。相关时请优先检查这三处接口：内联脚本的模块上下文、渲染器初始化顺序、以及任何自定义尺寸/单位换算（真实观察中 `MAXTEX` 已获取，可用于排除纹理尺寸上限误报）。"
+    },
+    {
+      "label": "fast",
+      "runId": "53a5cce2-f306-4057-ac6b-75eb220362bd",
+      "callId": "df0e44d1-d0a4-4033-a33a-7b20da44ab4a",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "## 公开方法提要（供原工作模型决定是否采用）\n\n**当前可确认的事实（引用最近观测）**\n- `.threecache/_three_core.mjs`：three.js r161，非压缩，顶层无 `import`，末尾单一 `export {...}` → 可整段内联进一个 `<script type=\"module\">`，离线可用，无需 CDN。这是构建单 HTML 的关键依赖结论。\n- 无头 Edge 探测返回：`GL_VERSION=WebGL 2.0 (...)`、`RENDERER=ANGLE ... SwiftShader`、`BLOB_IMPORT_OK=42` → 本机无头 Edge 具备 WebGL2 + blob 模块导入能力，可做离线截图验证。\n- E67（`[exit code: 2]`）：来源是对不存在 Chrome 路径的 `ls`（`ls: cannot access ...`），属探测仪器误报，非产品缺陷；但关闭须以**同一对象、同一可观察结果**的反证为准——目前反证仅是\"该 `ls` 目标不存在\"，若要彻底排除\"浏览器缺失影响截图路线\"，需一次直接反证：用已确认存在的 `msedge.exe` 实际渲染成功（上一条已给出 `RESULT` + WebGL2 输出，可视为该反证成立）。\n\n**下一步可做的公开动作（不预设结论）**\n1. 选构建形态前先做一次最小对照实验：把 `.threecache/_three_core.mjs` 内联进单文件 HTML，用无头 Edge 以 `--dump-dom` 抓取一个渲染成功标记（如 `renderer.info.render.triangles > 0` 或自定义 `document.title=RESULT`），用于区分\"内联 ESM 可行\"与\"内联后模块解析失败\"两种假设。\n2. 同时独立测一次 GPU 侧真实渲染（非仅 GL 上下文创建）：读回一帧像素或用 `readRenderTargetPixels`，用来区分\"SwiftShader 只创建上下文但渲染异常\"与\"实现缺陷\"。\n3. 若选择用 `.build_three.min.js`（压缩版，变量名不可读）路线，需独立验证其导出边界是否与 `_three_core.mjs` 一致；否则优先非压缩版。\n\n**待确认项（缺失引用）**\n- `E67` 的 `criterion: \"Nonzero exit 2\"` 未注明该退出号来自哪条命令的哪个阶段；若该判据仍是当前任务范围内需要闭合的对象，请提供对应的命令/阶段标识，否则无法做同对象比对。\n\n以上仅为公开建议，是否采纳由原工作模型决定。"
+    },
+    {
+      "label": "fast",
+      "runId": "faf0eb14-8ce8-4a05-a396-21f1b006b312",
+      "callId": "039590e8-bd9a-4bbf-bea5-b2da5c52ec8f",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "现在最值得先证伪的是「把 `.threecache/_three_core.mjs` 整段内联进单个 `<script type=\"module\">` 即可离线运行」这一解释——它尚未被同一文件、同一浏览器中的一次真实渲染观察证实。\n\n它仍依赖两个未证前提：\n\n1. 该文件不含 HTML 解析器会提前截断的序列（例如 `</script`），否则内联后脚本在 `</script` 处被切断。\n2. 末尾唯一那行 `export {...}`（第 53316 行）作为 module 顶层语句在浏览器中合法可执行，且导出名在后续同模块代码中可直接按名引用。\n\n最小区分观察（针对 E67 同一 `.threecache/_three_core.mjs`、版本 r161 的对象，不要换文件、不要换来源）：\n\n- 对前提 1：在 `.threecache/_three_core.mjs` 上统计 `</script`（大小写不敏感）出现次数。前一次尝试因 `cd` 到含非 ASCII 路径失败（`cd: $'/d/0�转�/html': No such file or directory`，stderr 编码诊断 invalid-bytes），那次计数结果无效，未被观测——不构成通过也不构成失败。若计数为 0，前提 1 在此文件上被支持；若不为 0，须改用 blob URL 或 `type=\"module\" src` 之外的内联规避方式，原「直接拼接」办法被推翻。\n- 对前提 2：用已写好的 `.mbtv2/t1_head.html` + `.threecache/_three_core.mjs` + `.mbtv2/t1_tail.html` 拼出一个临时单文件，在同一次 headless Edge（SwiftShader WebGL 2，已确认 `GL_VERSION=WebGL 2.0`、`BLOB_IMPORT_OK=42`）里 `--dump-dom`，看 `<title>` 是否变为 `OK_rev161_gl2=true`。若 title 为 `PENDING` 或控制台报 module 解析错误，则「按名引用导出」的假设被推翻，需改为自行追加一行显式绑定，或退回 blob URL 导入。\n\n同时注意：`t1_tail.html` 里我用了 `new Scene()` 等裸名，这恰好是对前提 2 的直接负载检验——即使拼接成功而 tail 报 `Scene is not defined`，也说明导出名并未在模块作用域自动可见，那正是前提 2 的否定证据，而不是拼接步骤的失败。\n\n另需说明：E67 的 `[exit code: 2]` 已被同一次调用内的直接反证关闭（同一命令中 `ls` 对两处不存在的 Chrome 路径报 `cannot access`，而同一命令的有效输出返回了 Edge 路径），属探针固有失败，不是成品缺陷；但这不影响上述两个前提仍需各自的观察。"
+    },
+    {
+      "label": "fast",
+      "runId": "faf0eb14-8ce8-4a05-a396-21f1b006b312",
+      "callId": "b122a338-b935-49e1-98c7-7ccfc3554808",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "**E67 复核结论**：该 exit 2 的直接同次观测为 `ls: cannot access '.../Google/Chrome/...chrome.exe': No such file or directory`，属对不存在路径的负向探测，非产物缺陷；同一次调用中 Edge 路径已正常返回。现有证据足以驳回，无需再跑重复命令。\n\n**已确立的可用事实**（作为下一步前提，不作续写）：\n- `.threecache/_three_core.mjs` 为 three.js r161 非压缩 ESM，53,316 行，**零顶层 import、零 dynamic import、零 `import.meta`、仅文件末尾一处 `export {...}`**，可整段内联进单个 `<script type=\"module\">`，按公开名引用，完全离线。\n- 无头 Edge 具备 WebGL 2（SwiftShader，`GL_VERSION=WebGL 2.0 (OpenGL ES 3.0 Chromium)`），且 Blob 模块导入可用，说明**视觉验证通道存在**。\n- 工作区内 `.mbtv2/edgeprofile` 可用；宿主 Temp 目录被沙箱拒绝，浏览器 profile 必须留在工作区。\n\n**下一步方法提要（供原工作模型决定是否采用）**：\n1. 先做一次最小端到端拼装验证——把 `_three_core.mjs` 与一段极短渲染脚本合成单 HTML，在无头 Edge 中确认 `REVISION==='161'`、`capabilities.isWebGL2===true`、且能出非空画面。这一步只验证\"内联 + 离线 + 可渲染\"三者成立，不涉及坦克本体。\n2. 通过后再写正式模型。建议按可独立截图的机制分组，而不是按重复构造自证：**几何生成（车身/炮塔/负重轮）→ 材质与贴图（PBR 参数、程序化锈蚀/涂装）→ 光照与环境（方向光/IBL/阴影）→ 相机与操控（OrbitControls 同源内联）→ 后期与炫技层（色调映射、泛光、夜视/热成像等模式切换）**，每组各自有可区分的输出，避免\"构造本身重复检查\"当作验收。\n3. 验收材料分工要区分：截图能证外观，不能证交互与性能；源码能证结构，不能证运行。三者需分别取真实证据，不得互相代证。\n4. 每个关键接口（相机参考坐标系、单位、渲染器初始化顺序、纹理色彩空间）在首次接入时即确认，不等到最后总验收。\n\n**缺少的引用 ID**：当前未决项上下文标注\"这一轮没有从中提取到可执行内容\"，故无对照 ID 可引；上述判断仅基于已给出的 E67 与三条真实命令观测。"
+    },
+    {
+      "label": "fast",
+      "runId": "b4efc38a-552a-4d81-aedc-b039b3720f5a",
+      "callId": "cb70a5dd-4fda-4a2f-ab4d-636dee6dc5f0",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供原工作模型判断是否采用）：\n\n对象：`.mbtv2/t1.html`（由 `t1_head.html` + `.threecache/_three_core.mjs` + `t1_tail.html` 拼接），目标是以内联 `<script type=\"module\">` 形式离线加载 three.js r161 并渲染一帧可截图画面。\n\n当前观测：\n- E116（Unterminated template，open）：出现在上述拼接与截图那次 run_code 调用，属我构造命令字符串时的语法问题（拼接用的模板字符串未闭合），尚不能判定为产物的渲染缺陷。它影响的只是\"命令行组装环节\"，尚未触及 t1.html 是否真被生成、能否渲染。\n- E67（exit 2，open）：来自 `ls` 对不存在的 Chrome 路径的正常报错（`ls: cannot access ...`），同一命令的真实载荷已返回 Edge 路径；这与坦克程序本身无关。\n\n可证伪的替代假设与最小区分观察（均不预设成立）：\n1. H1：t1.html 从未被生成，故任何渲染结论都无从谈起。\n   - 最小区分观察：只读 `ls -la .mbtv2/t1.html` 是否非零大小。若存在且 >600KB，H1 被否。\n2. H2：t1.html 已生成，但页面在运行时报错（而非模板未闭合）。E116 只覆盖\"调用脚本自身\"，不覆盖页面内执行。\n   - 最小区分观察：`--dump-dom` 抓 `<title>` 与 `GL_VERSION`/`RENDERER`，同时用 `--enable-logging=stderr --v=0` 抓 `Uncaught`。若 title 停在 PENDING 且有 `Uncaught`，则 H2 成立。\n3. H3：三次测试失败都是同一构造脚本的问题，页面其实成功。\n   - 最小区分观察：抓 `.mbtv2/t1.png` 的字节数并读其像素主色是否接近橙色 0xff8830（约 `(255,136,48)`）。若主体色相符，H3 成立、E116 可归为构造侧误报。\n4. H4：内联模块被浏览器当作模块外的脚本执行（`type=\"module\"` 丢失或被 head/tail 覆盖）。\n   - 最小区分观察：dump 出来的 DOM 中检查 `<script` 是否带 `type=\"module\"`，并确认只有一个 `</script>` 位于尾部。\n\n缺失 ID 说明：上面提到的是历史里只列出 E116/E67 两条，若这两条之外还有占用同一 `run_code` 调用的其他错误条目，我这边看不到，无法引用，不编造。\n\n与接口初始化/顺序相关处：内联时模块必须**先**执行 `_three_core.mjs` 的导出语句**再**执行 tail 里的使用代码；tail 依赖的三个名称（`WebGLRenderer`/`Scene`/`Color` 等）必须确实位于同一次 `export` 的列表中——历史里未核对过这份清单，这是本方向下一个可查的硬性接口点。\n\n未闭合失败不代表整个产品失败：E67 与 E116 都不足以在坦克程序层面判死；要关闭它们，须有同一 `t1.html`、同一可观察结果（同一份 DOM 或同一张截图）的证据，并说明是构造侧误报还是真实渲染缺陷。"
+    },
+    {
+      "label": "fast",
+      "runId": "09795dbc-9b15-4ca0-96e8-c83eb45a3d17",
+      "callId": "04fc11a8-e47a-41dd-a96e-3e0be5991049",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "可证伪的下一步方向（不执行，仅作公开方法提要）：\n\n当前最受信的解释是“内联 three.js r161 到单文件 `<script type=\"module\">` + 无头 Edge SwiftShader 截图”这条路可行。它仍依赖两个未证前提：\n\n1. **内联断言只验证了“能渲染一个方块”**，没验证“能渲染你的坦克代码”——即 `.threecache/_three_core.mjs` 尾部单条 `export {...}` 在拼接后、与你的业务代码同处一个模块作用域时，命名是否真的全部可用。E116（`Unterminated template`）与 E123（exit 2）都还没有针对“真实 app 内联版”的产物级反证。\n2. **SwiftShader 软渲染的成功被当成“视觉效果可验证”**。E123 那条 exit 2 的对照实验（相对 `--user-data-dir` → 无 title、无 PNG；绝对路径 → 有 title、有 2203 字节 PNG）+ 后续 t1abs.png 成功，只证明“路径绝对化能出图”，**不证明**软渲染的金属/法线/后处理效果与真实 GPU 一致。把它当作“帅气写真”的证据会被归因错误。\n\n**最小区分观察（引用真实 ID/路径）：**\n- 对前提 1：把 `.mbtv2/t1_head.html` 尾部替换成“调用一个仅由 core 导出、但被业务代码以别名引用的符号”（如 `WebGLRenderer` 直接 `new` 已过；换成 core 导出表里的 `ACESFilmicToneMapping` 常量参与一次渲染并写入 title）。若 title 仍为 `OK_rev161_gl2=true` 且截图非空 → 提1成立；若出现 `ReferenceError` 落进 title 或被吞 → 提1被推翻。缺失业务级 ID，此处仅能引用 E116/E123 与 `t1abs.png`。\n- 对前提 2：同一内联页在同一命令链里跑两次截图——一次默认 SwiftShader，一次加 `--use-angle=swiftshader` 之外不做任何渲染参数变更——对同一 `t1abs.png` 与新图做逐像素差；若差异集中出现在高光/金属边缘，则“软渲染可代表最终观感”被削弱。缺失 GPU 对照，不能靠 t1abs.png 单独断言。\n\n**受影响接口需一并核对（相关时）：**\n- 初始化顺序：`WebGLRenderer` 必须在 DOM canvas 附加前/后一致，`--virtual-time-budget` 8s 是否覆盖你后续 `EffectComposer`/`PMREMGenerator` 的首帧时间。\n- 参考坐标系与单位：坦克模型、相机、光照应统一右手系 + 米制；t1 测试里 `cam.position.set(2.4,1.8,3.0)` 只是占位，不能外推到坦克尺寸。\n- 关闭/驳回 E116、E123 若要生效，须有**同一内联产物文件、同一可观察结果（title 或像素）**的复现证据；E67 此前被归因为探针自伤已有同调用反证，可以保留其关闭结论，但不要顺手拿它给 E116/E123 背书。\n\n未闭合失败不等于整个单文件方案失败；上述观察未做之前，不要把 “t1abs.png 已出图” 当作对最终坦克单文件成品的验收。"
+    },
+    {
+      "label": "fast",
+      "runId": "09795dbc-9b15-4ca0-96e8-c83eb45a3d17",
+      "callId": "fb2dc97b-2e9d-4c36-af8f-32397d63f431",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供原工作模型取舍，不是任务续写）：\n\n关键结论已由原文证据支持：`.threecache/_three_core.mjs` 是 three.js r161 未压缩 ESM，无顶层 import、无 `import.meta`、无动态 `import(`、末尾单个 `export {}`，因此可整体内联进单个 `<script type=\"module\">`，按公开名引用，**无需 CDN，可完全离线**（依据调用 `daf08c67` 的缓存在场、`bdaa22d5` 的 core 结构统计与 `f20578ce` 的 import/export 检查）。\n\n针对当前尚未闭合的失败——E116（`Unterminated template`）：归因为 **run_code 源码中出现字面量 `</script` 提前终结了宿主脚本包装**，属工具侧/宿主侧，不是成品缺陷。同一可观察结果（调用 `733918db` 失败、下一调用 `481c03b8` 成功）的独立区分测量已经具备：用 `${\"</scr\"}${\"ipt\"}` 之类的字符串拼接构造该标记，并 `grep -c` 统计目标文件中该标记出现次数；实测为 0，说明目标文件本身不含此危险序列——这条区分测量的同一对象是 `.threecache/_three_core.mjs` 与该拼接源码，同一可观察结果是“宿主是否被提前终结”，结论是同对象同版本证据，可据以关闭 E116，不必复跑。\n\n针对 E123（`[exit code: 2]`）：观测链为 `grep -c` + `cat`/`wc` + 两次 Edge（`grep` 取 title、`--screenshot` 取 PNG），失败来自末段 `ls: cannot access '.mbtv2/t1.png'`——链内中间失败被尾部状态掩盖的**链式退出码假象**，不是渲染或写入失败。同一可观察结果的独立测量已经完成（调用 `bef07338`，分步、绝对路径、保留 stderr）：`<title>OK_rev161_gl2=true`、`STEP1_EXIT=0`、`STEP2_EXIT=0`、PNG 2203 字节。前次两者皆空的可鉴别变量是**相对 `--user-data-dir` 与相对 `--screenshot` 输出路径**；改用绝对路径后恢复。故 E123 归因于调用命令的路径形式与 `2>/dev/null` 掩错，不是产品缺陷或渲染失败。\n\n仪器面结论：headless Edge 通过 SwiftShader 提供 **WebGL 2**（依据 `9c27c2c2` 的 `GL_VERSION=WebGL 2.0`、`RENDERER=ANGLE(...SwiftShader...)`），配合 `--dump-dom` 读 title 与 `--screenshot` 落盘，可作最终视觉验证通道。但仪器可用**不能**单独排除成品问题：仍需在最终单文件中用**独立的第二测量**（如像素统计/首帧颜色块、控制台错误文本捕获）与 title/尺寸检查交叉验证，避免仅凭“截图存在”判定模型正确。\n\n待鉴别假设与最小区分观察（建议原模型核对，相关时才检）：\n1. 假设：内联整体可行，但运行时某 API 依 160/161 版本差异失败。区分观察：`REVISION` 常量与 `renderer.capabilities.isWebGL2` 是否一致输出，配合捕获的 console error 文本。\n2. 假设：截图成功但画面为纯背景（未绘制坦克）。区分观察：对 PNG 做非背景色像素计数或颜色直方图；仅比较同一最终文件的该统计，不与“截图存在”混淆。\n3. 假设：坐标系/单位或初始化顺序导致模型不可见。区分观察：在最终文件内检查相机投影、几何包围盒、以及首帧渲染前后的顺序日志。\n\n注意：上列假设均为待检验项，不是事实；任何一项的通过都不否定其他项未闭合。E116 与 E123 的关闭必须绑定上述同一对象、同一可观察结果的证据；此前调用错误本身不构成成品缺陷或用户新增要求。若需引用具体现象而缺少 ID，请标注 ID 缺失，勿编造。"
+    },
+    {
+      "label": "fast",
+      "runId": "05118f2a-0fd4-4c6e-98b5-78f6cf5a32ab",
+      "callId": "f16245c7-1b11-49a5-bdab-4e18173cb531",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "下一步公开方法提要（供原工作模型裁定是否采用）：\n\n**当前可复用的既有事实**\n- 内联 `_three_core.mjs`（r161，`export` 仅在文件末行）作为单个 `<script type=\"module\">` 可行；需避免源码中出现字面脚本闭合标记（E116 已在同命令复现修复）。\n- 无头 Edge 提供 WebGL2（SwiftShader）；`--user-data-dir` 必须为绝对路径，否则两次运行均静默失败（E123 的同一可观察结果已由绝对路径版本区分开：`<title>OK_rev161_gl2=true` + 2203 字节 PNG）。\n- 参考坐标系/单位：几何用 `ExtrudeGeometry` 圆角盒，UV 以米为单位，装甲贴花比例在全部板件间连续。\n\n**建议的下一步顺序**\n1. 先固定单文件骨架：`<script type=\"module\">` 内先内联 three 核，再在**一个 IIFE** 内写应用（避开模块作用域 `clamp`/`lerp` 等重复声明导致的 `SyntaxError`）。\n2. 建立可视觉证伪的最小观察：以同一无头 Edge 命令连续截 3 张不同相机角度 PNG，确认车体、炮塔、行走机构、履带都真实出现在像素中，而非仅 `<title>` 变化。\n3. 再叠加操控与交互（炮塔随鼠标、履带滚动、灯光/后处理），每加一层都重跑同一截图命令对照新旧 PNG，保留改前版本。\n4. 若出现新失败，先按“同一对象、同一可观察结果”判断是仪器（无头浏览器/沙箱/编码）还是实现缺陷，再决定是否登记；不要仅凭一次截图通过就否定仍开放的其他维度（交互、性能）。\n\n**待区分的替代假设（下一步即测）**\n- 假设A：截图无车是因为模型/材质未加进场景 → 观察：DOM 中是否有渲染器 canvas 尺寸与 `scene.children.length` 写入 `<title>`。\n- 假设B：截图无车是因为 `--virtual-time-budget` 太短，几何仍在构建 → 观察：把预算从 4000 提到 15000，同一 PNG 是否由空白变为有内容。\n- 假设C：SwiftShader 精度下某些材质/阴影导致全黑 → 观察：临时关闭阴影与后处理，同一相机位是否恢复可见。\n\n缺失的引用ID：本轮未提供对应新增失败的独立 issue ID，故上述区分观察暂以既有 E116/E123/E67 为参照基线，不编造新ID。"
+    },
+    {
+      "label": "fast",
+      "runId": "a3642132-d299-4025-8202-a47d53fe9922",
+      "callId": "97593400-ef6c-4aaa-ba2b-27f232c943e7",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对当前最受信的解释（\"E176 是模块作用域内 `gA` 重复声明，属于测试脚手架错误，不影响产品路线\"），给出可证伪替代假设与最小区分观察：\n\n**未证前提**\n1. E176 的 `SyntaxError: Identifier 'gA' has already been declared` 被归因为我的 t2 探针自身变量名撞车，但该报错来自 `node --check`（`check.mjs:177`），而不是浏览器执行；同一段代码在 Edge 里的实际行为尚未观测。\n2. \"gA 只在我自己的探针里出现\"是推断，不是观测——引用 E176 的摘录只给出报错误息，未给出该作用域内 `gA` 的全部声明点。\n\n**替代假设（H1）**\n`gA` 的重复声明来自 three.js 核心模块中已存在的同名导出/顶层绑定（与我拼接进来的探针正文共处同一 `<script type=\"module\">` 作用域），因此**真实构建中任何与 three 顶层名冲突的标识符都会在同名冲突时抛同类 SyntaxError**。若成立，影响面不止探针，而是整个\"IIFE 包裹 + 单模块内联\"的架构选择。\n\n**最小区分观察（可推翻 H1）**\n- 观察1：在内联模块里只写 `const gA = 1;`（不导入、不拼接任何探针正文），若仍报 `gA has already been declared`，H1 成立；若正常，H1 被推翻，回到\"探针自身撞名\"的原解释。\n- 观察2：对同一份 `check.mjs`，把 `gA` 改名为 `zzA` 后重跑 `node --check`。若改后通过，则冲突源在探针命名空间内，与 three 顶层作用域无关。\n- 观察3：`grep -n \"gA\" .threecache/_three_core.mjs ` 的**声明**行（`const|let|var|function|class` 后接 `gA`）计数。计数为 0 时 H1 缺直接支持。\n\n**引用缺失说明**\nE176 摘录未给出 `check.mjs:177` 的行文本以外的作用域边界，也未给出 `_three_core.mjs` 中 `gA` 的出现情况；这两项的引用在当前证据节选中缺失，不编造。\n\n**受影响接口检查项（相关时）**\nE176 与 E116 同属\"源码 → 单模块内联 → 浏览器执行\"这条链。既然 E116 已由\"字面量闭合标签终止包装层\"解释并复现，E176 应独立核对：它是**语法期**失败，与 E116 的**包装期**失败机制不同，不能因 E116 已闭合就顺带认定 E176 已闭合或已排除。\n\n建议下一步只做观察1与观察3（各一次廉价运行），结果出来再决定 IIFE 包裹策略是否仍是最优；E176 在此之前保持 open。"
+    },
+    {
+      "label": "fast",
+      "runId": "321e1dff-1c7c-4c91-accf-aa4d2a6643ff",
+      "callId": "25ff03bd-b7de-42a6-b432-fcb978675fa1",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供原工作模型决定是否采用）\n\n当前最受信的解释是「材质金属度/环境反射过高导致沙漠场景出现饱和蓝天反光，已通过降低 metalness 与 envMapIntensity 修复」。它依赖一个尚未验证的前提：E398 报告的那次 `old_string was not found` 只是历史编辑噪声，与最终成品头部脚本无关。但刚才的检查显示 `.mbtv2/00_head.html` 第 215 行现在是 `<script type=\"module\">`，而最终工件里也出现同一行——这既可能是 E398 那次编辑后来被别的写法覆盖后成功，也可能是模块标签被重复插入而把整个 module 段截断成了两个。后者会直接解释 E176（`Identifier 'gA' has already been declared`），也可能与 E116（`Unterminated template`）同源。\n\n可证伪的替代假设与最小区分观察：\n- 假设 A：头部脚本结构正常，E398/E176 为历史残留。区分观察：统计最终工件中 `<script type=\"module\">` 的出现次数；若为 1，且提取出的 module 体单独解析成功，则 A 成立。\n- 假设 B：模块标签重复或被拼接破坏，导致顶层标识符重复声明。区分观察：若出现次数 ≥ 2，或提取体解析时报重复声明/未终止模板，则 B 成立——此时蓝天反光的修复可能只是表面改善，因为那份渲染结果未必来自当前工件。\n\n刚才那次 `--check` 未真正执行（stderr 显示 `--check: command not found`，是 shell 变量在拼接命令里未被展开），所以 `projNaN=0`、`shaderDiag=0` 这些运行期数字**只证明当时运行的工件可跑，不能证明当前 1424144 字节版本的可解析性与单模块结构**。E123（`[exit code: 2]`）的归属也仍未确定，需与上述计数一起看，而不是默认已随新版本消失。\n\n建议顺序：先做上面两条计数与提取体解析（一次命令内完成，避免再被变量展开问题干扰），再决定是继续收尾交付还是先修结构。若计数为 1 且解析通过，则当前版本可视为结构完好，蓝天反光修复的收益可对照新旧截图确认；若计数 ≥ 2 或解析失败，则先前的画面观感结论都不能直接归因到最新材质改动。"
+    },
+    {
+      "label": "fast",
+      "runId": "321e1dff-1c7c-4c91-accf-aa4d2a6643ff",
+      "callId": "09e644dd-6516-470d-8c1c-d694aff02aeb",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供原工作模型判断是否采用，不改变既定路线）：\n\n先固定一条判据：**蓝色高光是否真的来自涂装装甲的环境反射**，而不是天空、雾或后处理。可证伪的替代假设有两个：(a) 天空/半球光染色投射到哑光表面；(b) 后处理色差/饱和把中性高光推蓝。最小区分观察是同一相机、同一帧下只切换一个变量（例如把装甲 `envMapIntensity` 归零 vs 把后处理 `uSat`/`uCA` 归零），对比装甲区像素的 B−R 均值差——若归零后仍偏蓝，则归因于 (a)/(b)，当前\"金属度致蓝\"的修法收益存疑。\n\n对这条观察的现状说明：所引证据中带 ID 的失败项（E116 Unterminated template、E398 old_string not found、E176 Identifier 'gA' already declared、E123 exit 2）与本次材质/曝光改动不是同一对象或同一可观察结果，不能用来判定或否定本轮改动，也不构成成品缺陷证据；同时也没有同一对象的失败证据，因此不应把它们当作本轮已通过或已关闭的依据。E398 的相关文件当前内容已确认为 `<script type=\"module\">`，与旧失败描述的文本不再一致，属于对象已变化而非该项被证明修复。\n\n引用所给真实观察：`hits={\"KeyW\":1,\"KeyD\":1}` 与 `dpos=3.96 dyaw=0.915 thr=0.13 spd=3.65`（键路径动起来）已构成输入可达车辆的正面观察，不必重测；另有一条 `dpos=0.00 dyaw=0.000`（ID 缺失，无法引用为具体条目）已由定时/帧上限竞争解释，属于同对象上的后续反证，可视为闭合但需保留归因说明。\n\n若继续验证材质改动，优先查受影响接口的**单位与坐标系**：`envMapIntensity` 是无量纲乘子、`metalness/roughness` 为 0–1、法线贴图缩放为 `Vector2` 的 UV 系数；三者任一被写错标尺都会产生\"仍然发蓝/突然全黑\"的假象，而重复导出或重复构造检查无法区分这一点。"
+    },
+    {
+      "label": "fast",
+      "runId": "321e1dff-1c7c-4c91-accf-aa4d2a6643ff",
+      "callId": "73f76340-7640-431c-8d67-529e3411380e",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供工作模型决定是否采用，不改变用户路线）\n\n当前成品目标的最后一段可信证据是：键盘路径已用 `hits={\"KeyW\":1,\"KeyD\":1}` + `dpos=3.96 dyaw=0.915` 证伪了\"按键无效\"的假设（原 dpos=0.00 归因于虚拟计时器与帧上限竞争，属解释性归因，非独立复现）；材质编辑已确认落进 `mbt-leviathan.html`（`envMapIntensity: 0.42` / `metalness: 0.16` 三处、`metalness: 0.62` 一处），artifact 大小 1424144、56147 行。尚未闭合的观测里，只有 **E398** 在本轮末次调用中留下直接冲突：criteria 是 `old_string was not found in \"...00_head.html\"`，而实测第 215 行确为 `<script type=\"module\">`。这构成\"目标文本现已存在、失败系早前工具调用时的文件版本/空白差异\"的可证伪替代假设。\n\n建议的最小区分观察（一次 `run_code` 内串行完成，不新增用户要求）：\n\n1. **E398**：取 `00_head.html` 第 211–219 行原文（含不可见字符用 `cat -A` 或对 `\\r` 计数），对照当时 `old_string` 的字面量；若差异只在换行/缩进，则该失败属编辑上下文失配，直接驳回并引用 E398 同一对象同一观测。\n2. **E176**（`Identifier 'gA' has already been declared`）：这是唯一可能直接推翻\"artifact 可解析\"的静态观测。上轮 `${node} --check` 因 shell 变量拼接失败（`--check: command not found`），实际未执行，属仪器失效而非缺陷证据。补做：把提取出的 module body 写文件后以 `node --check` 独立执行，另在真实浏览器加载中读取 `window.onerror` / `unhandledrejection` 是否出现 `gA`。**同一可观测结果（页面是否抛 gA）由两条独立测量（静态 parse + 运行时错误钩子）区分**，可分离\"实现缺陷\"与\"提取器/拼接仪器缺陷\"。\n3. **E116** `Unterminated template`、**E123** `Nonzero exit 2`：均无同一对象同一可观察结果的证据；仅在上述 parse 与运行钩子复现同类失败时才重新激活，否则按\"未闭合\"保留，不声明成品通过。\n\n归因纪律：`metalness: 0.16` 存在只能证明源与成品一致，不能证明\"蓝色天光反射已消除\"；若还需该项，需同一帧的新渲染对照。仪器（截图/parse 二进制路径）存在缺陷不能单独排除成品问题，但也不能据此判失败。"
+    },
+    {
+      "label": "fast",
+      "runId": "23725553-cc29-46d4-8559-60fd65164d75",
+      "callId": "216da96b-e00d-4f9e-aa4c-9ae4ffc41670",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "**下一步公开方法提要**\n\n**仍影响当前任务、值得先追的一条**\n在最终成品里核对“模块是否真正可解析”的那次检查并没有成功（`dsh-bash: line 1: --check: command not found`，`[exit code: 0]` 是整段命令链的退出码，不是 `node --check` 的结果）。也就是说，**成品文件内联模块的语法通过性至今没有直接证据**；而 `grep` 只证明了材质字面量计数一致（`final=source`），不能证明整块 module 没有重复声明或截断。E176 的 `Identifier 'gA' has already been declared` 与 E116 `Unterminated template` 属于同一类“构建后语法/重复声明”故障，因此这两项未闭合的观测与“成品能否启动”直接相关，不能仅凭历史多次 `PARSE_OK` 关闭。\n\n**仍依赖的未证前提**\n更受信的解释是“多次成功运行 + `shaderDiag=0` + `projNaN=0` 已足以证明成品语法完好”。这个前提没有覆盖**当前版本**：`PARSE_OK` 是上一次构建的输出，材质编辑之后重新产出过 `mbt-leviathan.html`（1,424,144 字节，与编辑前 1,424,144/1,423,594 不同），而对该新版本模块体的解析检查因命令拼写失败没有执行。\n\n**可证伪的替代假设**\n假设 A：当前成品的内联 module 存在重复顶层声明或未闭合模板，浏览器端会静默失败，而此前所有运行证据都来自旧版本。\n假设 B：当前成品语法完好，之前的 E116/E176 只属于构建中间态，已经被后续重建消除。\n\n**最小区分观察（一条即可判定）**\n对**当前** `mbt-leviathan.html` 重新抽取 `<script type=\"module\">` 段落到临时文件，用**可执行路径**（`node.exe` 绝对路径或直接在 `run_code` 内以字符串调用解析器）做语法校验；同时统计顶层 `const/let/function` 声明名是否唯一。若同一对象、同一可观察结果（解析失败或重名）出现，则假设 A 成立、E116/E176 仍开放；若解析通过且无重名，才能把这两项按“旧构建态、已被重建消除”归档，且需附带该次在新版本上的直接输出作为反证。\n\n**相关时一并检查**\n受影响接口的初始化与顺序：`00_head.html` 第 215 行现在是 `<script type=\"module\">`，而 E398 记录的 `old_string was not found` 目标是同一行——说明该文件的该处内容在编辑尝试后被改写过，需确认改动是有意为之、且与拼接顺序一致；`00_head.html` 内联库与业务模块的加载次序、以及材质 `envMapIntensity` 改动是否落在同一构建产物中，都属同一对象族。\n\n**范围声明**\n本条不新增用户要求，不改变既定路线（单 HTML、three.js、离线自包含），也不代表整个产品失败；未闭合项须以同一对象、同一可观察结果的证据才可关闭或驳回。\n\n**缺失说明**：所给证据中 E123（`Nonzero exit 2`）的原始命令与其退出位置未提供，无法据此判断归属，故不引用为论据。"
+    },
+    {
+      "label": "fast",
+      "runId": "26e89746-8604-4368-83eb-adf17c28af02",
+      "callId": "9ab23635-19d0-4983-b138-2f97ef94c686",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "当前对\"E176/E398/E123 可归因于工具误报\"这一解释，最未证的前提是：**这些错误自发生起，其对象（文件/版本）未再变化，因此当前观测可代表当时观测。** 但证据显示对象已变：`00_head.html` 第 215 行如今是 `<script type=\"module\">`，而 E398 报的是 `old_string was not found in \"D:\\0中转站\\html\\.mbtv2\\00_head.html\"` —— 排查显示该文件中 `const SO` 与 `SO.replace` 计数均为 0，即目标文本根本不在该文件里，这更像\"编辑目标选错文件/文本已不存在\"，而非环境误报；对象经过多次构建已被重写，同对象性无法仅凭\"现在能跑\"恢复。\n\n可证伪的替代假设与最小区分观察（引用所给ID）：\n\n- **E116（`Unterminated template`）**：假设是构建脚本里某段模板字符串被截断，而非运行环境问题。区分观察：对产生该错误的那个脚本版本单独做语法检查；若通过，则假设被推翻，指向调用时的字符串转义/引号层。当前没有该脚本的ID级快照，**缺失引用，不编造**。\n- **E176（`Identifier 'gA' has already been declared`）**：假设是拼接时同一段 AI 生成代码被注入两次。区分观察：在**当初报错的拼接产物**上统计 `gA` 声明次数，并与成品模块对比。当前成品模块 `--check` 通过、`gA` 无重复声明，但这是**不同对象**——成品没有该错误，不能反证旧拼接产物曾重复注入。缺少旧版本ID，标注缺失。\n- **E123（`Nonzero exit 2`）**：假设来自未闭合的引号/重定向使命令自身解析失败（类似本轮 `dsh-bash: line 1: --check: command not found` 那样，变量展开吞掉了命令名）。区分观察：复现原命令并打印其展开后的完整字符串；若展开正常而退出码仍为 2，则假设被推翻。\n- **E398**：假设是编辑目标文件选错（目标是实际已含目标文本的文件）。区分观察：在**同版本快照**里对该字符串做全仓 grep，定位其真实所在文件；命中文件即推翻\"环境误报\"。\n\n关于引用完整性：上述四个ID中，E176/E123 所对应的原始命令、脚本路径与版本均未在提供的证据节选中给出，因此无法建立同对象对照，**只能标为证据缺失，不声称已关闭**。E116 亦然。\n\n受影响的接口层面还应单独核一遍：这三类错误分别落在\"文件读写路径\"\"构建期字符串拼接\"\"shell 调用与退出码解析\"，与成品坦克的初始化、参考系、单位无关；因此它们**不构成成品缺陷**，但**也不因此被驳回**。建议下一步只做一件事：对 E398 做一次全仓同版本 grep 定位，其余三项若拿不到同对象快照，就带着\"缺证\"状态保留，不要用本轮成品通过来结清。"
+    },
+    {
+      "label": "fast",
+      "runId": "26e89746-8604-4368-83eb-adf17c28af02",
+      "callId": "632c1adc-6c14-40c2-9901-b12dc8c92a0a",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "**关于 E116 / E398 / E176 / E123 的公开方法提要**（供原工作模型决定是否采用；引用仅作上下文，不代表重新授权）\n\n**先判断这些条目是否仍影响当前任务**\n- E398、E176、E123 的对象分别是生成期/工具期的中间态（`00_head.html` 编辑目标、内联模块标识符、shell 退出码），与最终交付物 `mbt-leviathan.html` 不是同一对象。已有观测显示：`00_head.html` 第 215 行现为 `<script type=\"module\">`，`SO.replace`/`const SO` 命中数均为 0（来源缺失，无法定位原编辑点）；当前成品的完整 module 体通过标识符检查，`^const APP` 计数为 1；`ls` 返回 `LS_EXIT=0`。若原工作模型认为这些已不再约束成品，可据「同对象同可观察结果」原则关闭或保留为已解释；**关闭需同一对象同一可观察结果的证据，归因误报也需直接反证**——目前给出的是成品可运行的正证据，不是对失败命令的重放反证，二者不可互换。\n- E116（`Unterminated template`）与上述三类不同：它是生成器一次运行失败，未提供任何指向对象；成品 `.mbt-leviathan.html` 能构建、能运行，只能说明该次失败**未在成品上留下可观察后果**，不能说明该失败已被解释。在无新证据前应保持 open，不要用「成品 20+ 项自检通过」去关闭它。\n\n**针对 E116 的可证伪替代假设与最小区分观察**（这是本提要里唯一需要新证据的项）\n- H1：模板字面量在拼接/转义时被截断（生成脚本侧缺陷），产物本身无残留。\n- H2：该异常来自被测代码内容而非生成器——例如某段模板含未转义的反引号或 `${`。\n- H3：日志只记了异常首行，`Unterminated template` 是级联症状，真实错因在别处。\n- 最小区分观察：对**同一次失败运行的输入**（同一 `old_string`/注入片段）做定界符配平统计（反引号、`${`、`\\` 的奇偶），比对成品文件中该片段是否存在；若配平恒为偶且成品中不含该片段，支持 H1/H2 而非「成品缺陷」。**缺少该次运行的具体输入与 trace ID，无法引用；不编造。**\n\n**若继续朝该方向取数，建议检查的接口面**\n- 事件注入层：`window.addEventListener(\"keydown\", ...)` 的 `KEY[e.code]` 在 `keyup` 后仍读到 `KEYW=0 KEYD=0`，与 `hits={\"KeyW\":1,\"KeyD\":1}`、`dpos=3.96 dyaw=0.915` 一致——说明写入路径正常，则该类失败更可能发生在生成/转义阶段而非运行时输入路径。\n- 坐标系与单位：`dpos` 为场景单位、`dyaw` 为弧度，二者与 `spd=3.65` 的量纲一致性可作旁证，用来区分「运动失效」与「记录量纲错误」；已有 `speed=3.65` 与 `dpos=3.96` 同帧出现，支持记录层无单位错配。\n- 初始化顺序：`shaderDiag=0`、`projNaN=0`、`customMats=5` 说明渲染初始化完成，可将失败范围收缩到文本生成阶段。\n\n**边界说明**\n- 未闭合失败不等于整个产品失败；上述 E398/E176/E123 若被驳回，务必写明依据的是「同一对象 + 同一可观察结果」，或对「仪器误报」给出直接反证，二者不可互相替代。\n- 本提要不对候选方案做裁判，也不改变你的技术路线与语言要求；仅为下一步取数提供可证伪路径。"
+    },
+    {
+      "label": "fast",
+      "runId": "26e89746-8604-4368-83eb-adf17c28af02",
+      "callId": "ac650159-1ab9-4adf-a78e-0c61a5523253",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "针对下一步的公开方法提要（供原工作模型决定是否采用）：\n\n**核心思路**：把四个未闭合问题按\"同一对象、同一可观察结果\"分别取证，不做整包验收，也不因成品指标通过就顺带关闭工具链问题。\n\n**E398（`old_string was not found in 00_head.html`）**\n- 现有观测已显示：该文件当前第 215 行为 `<script type=\"module\">`，且 `const SO` / `SO.replace` 匹配数均为 0——说明当初传入的 `old_string` 对象在现行版本里已不存在，属\"目标文本随版本演进消失\"，而非编辑实现缺陷。\n- 可证伪的替代假设：编辑工具本身在该文件上的匹配有缺陷（例如空白/编码归一化）。最小区分观察：对同一文件做一次**确定存在**的文本替换（如该行原样换成等长变体再换回），若成功则匹配逻辑正常，失败则指向工具缺陷。缺少该观察时，E398 保持在\"目标文本已不存在、未确认工具侧行为\"的状态。\n\n**E176（`Identifier 'gA' has already been declared`）**\n- 现有观测：对成品内 module 段做 `--check` 得 `DUP_SCAN_OK_no_duplicate_declarations`，`^const APP` 计数为 1。\n- 但注意：这证明的是**当前成品**无重复顶层声明，不是当初报错那份构建输入。要关闭需对齐同一版本：确认报错发生在哪一份拼接产物，再对该产物做同样的 `--check`。跨版本不能用成品通过来反证旧失败。\n- 可证伪假设：报错来自拼接时同名 chunk 被并入两次；区分观察是统计拼接前各 chunk 内 `gA` 声明数之和与拼接后声明数是否一致。\n\n**E123（`Nonzero exit 2`）**\n- 现有观测：对 Edge 产出的截图 `ls -la` 返回 `LS_EXIT=0`，文件存在且字节数正常。这与\"截图流程整体失败\"不一致，更支持\"当时那条命令自身参数/路径问题\"。\n- 但缺该次调用的原始命令与 stderr，无法直接归因。最小区分观察：在同一 shell 下重放该命令并保留 stderr；或比对同期其他命令的退出码。仪器（无头 Edge/SwiftShader 丢图层）此前已有独立反证，可作为 E123 若与截图有关的旁证，但不能单独排除实现缺陷。\n\n**E116（`Unterminated template`）**\n- 现有材料不足以定位：没有该次运行的代码文本、行号与缩进上下文。\n- 可证伪假设：① 模板字符串真的未闭合；② 传输/拼接阶段截断了内容；③ 分词在含 `${` 或反引号嵌套处误判。区分观察：对当时的**确切代码片段**做语法解析并报出首个错误行列；若解析器指向文件末尾，则偏向截断（②），若指向具体 `${` 附近，则偏向前者/后者。\n\n**受影响的接口检查项**（若后续要动）：初始化顺序（材质/贴图在引用前构建）、模块拼接顺序与作用域边界、参考坐标系与单位（`UV 米制` 已声明，需与几何缩放一致）。\n\n**边界**：以上为方法提要，不构成任何一项已关闭的结论；E116 缺失原始输入，不应在无该证据时判为闭环。"
+    },
+    {
+      "label": "inherit",
+      "runId": "7cf746ce-ac7f-40f3-8afe-21df25139345",
+      "callId": "89121561-2d00-44a4-99d7-41f7ed032ec0",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "下一步的关键机制（建议，供决定是否采用）：\n\n- 单文件但强分段：一个 `<script type=\"module\">` 内按 `CONFIG → MATERIALS → BUILDERS → ASSEMBLE → RIG → FX → INPUT → LOOP → HUD` 切块，所有可变参数（全长≈10m、宽≈3.7m、炮口120mm、漆色、按键）集中在 CONFIG，写错了只改一段。\n- 依赖锁定：importmap 固定同一个 three 版本（如 `three@0.160.0`）及 `OrbitControls / RoomEnvironment / BufferGeometryUtils / EffectComposer+UnrealBloomPass+OutputPass`，避免 addons 与核心版本错配导致的隐性故障。\n- 精细度的第一杠杆是倒角不是面数：装甲板走 `ExtrudeGeometry + bevelEnabled`（bevel≈0.015–0.03、2–3 段），棱线补细 Tube 焊道；只堆细分而没倒角几乎不变样还吃性能。\n- 两个“像真的”的来源先立住：以米为单位的一致尺度（决定阴影软硬和噪声密度），以及 PMREM + RoomEnvironment 的环境反射（否则金属发死）。\n- 履带用单节几何 + `InstancedMesh` 沿闭合曲线按弧长铺排，行驶时按“已驶距离 % 节距”推进单节矩阵偏移、轮速 ω=v/r 同步；约 2 个 draw call 换到最显眼的写实特征。\n- 相机模式与载具操控必须解耦：自由观察/跟随锁定切换，否则 WASD 同时转视角和转车，手感立刻崩。\n- 炫技优先压在一次事件上：开火链路（炮口点光 + 火球 + 后坐复进 + 车体后仰 + 烟 + 相机震动）约 1.4s，比再加二十万三角面更能立住画面；后处理保持克制，r152+ 必须接 OutputPass 否则发灰。\n- 不读取文件夹内任何既有文件，模型形体按通用西方 120mm 形制（7 对负重轮、楔形炮塔）从零构造；若后续要指定型号/涂装，差异全部收进 CONFIG。\n- 验证边界要认清：截图只能证明静态外观，交互与帧率需另证。"
+    },
+    {
+      "label": "inherit",
+      "runId": "3f05aa12-7746-4f54-b435-0947452465cf",
+      "callId": "76f86e63-5fa7-4079-8ed6-7c58b6772aca",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "可执行的方法提要（供你决定是否采用）：\n\n- 单一文件、单一路径：全部代码写进一个 `.html`（`<script type=\"importmap\">` 锁定一个 three 版本 + OrbitControls / RoomEnvironment / BufferGeometryUtils / EffectComposer 系列，另配一个备用离线分支思路），不读取、不引用文件夹内任何既有文件。\n- 先定 CONFIG 再建模：把单位统一成米（车宽≈3.7、含炮全≈10、炮口 120mm）、相机 near/far、按键映射、涂装色、性能档位集中到一个 `CONFIG`，后续所有几何与逻辑只读它。\n- 几何用“挤出+倒角”：装甲板走 `ExtrudeGeometry` + bevel（0.015–0.03、2–3 段），炮塔楔形与首上整体挤出后切斜；这条比堆分段数更能立刻消掉玩具感。\n- 履带与行走机构单独做一套：`InstancedMesh` 单节履带沿闭合曲线按弧长铺排，行驶时按已驶距离推进节距，轮速 ω=v/r 同源驱动，顺带给下垂量。\n- 真实感优先级放在光照与反射：PMREM + RoomEnvironment 给金属环境反射，ACES + exposure 1.0–1.25、PCFSoft、平行光阴影框紧包车体；纹理全部由 canvas 程序化生成（噪声、划痕、地面颗粒、烟雾）。\n- 相机与载具解耦：自由观察用 OrbitControls（damping≈0.06、距离 6–40、限极角），驾驶/武器模式改为跟随锁定；W/S/A/D 控制车体、Q/E/↑↓ 控制炮塔与火炮、空格开火，两套输入不共用同一批按键。\n- 一次开火事件撑起“炫技”：炮口光+火球+后坐+车体后仰+环形烟 sprite+相机震动，总时长约 1.4s；后处理只保留 SMAA + 轻 bloom，景深仅照片模式开。\n- 写真演出靠机位与光向：预置黄昏侧逆光/正午两套光照，照片模式给低机位仰拍、45° 侧逆光、俯视 3/4 三档，可隐藏 UI、可截图、可选自动运镜路径。\n- 最后收口：`BufferGeometryUtils.mergeGeometries` 合批静态件，目标 ≤150 draw calls、≤40 万三角面；低端设备自动降阴影到 1024 并关 bloom，UI 上加一个 FPS/档位显示。\n\n若你要指定具体型号与涂装（如 Leopard 2A6 / M1A2 / 99A、北约三色或沙漠单色），把差异全部收进 CONFIG 即可，无需改结构。"
+    },
+    {
+      "label": "inherit",
+      "runId": "aceabc76-9862-4a73-832e-b177f4506a86",
+      "callId": "6c0ee816-5560-46d4-b1a1-584502a98bc7",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "质疑当前最受信的解释：把「CFG 算术 delta=0（muzzleX−tailX=10.0000 对 overallLen=10）+ 11 项 builder 执行全 PASS + SELF_COUNTER_TRUSTWORTHY / SELF.fails=0」当作几何基础已验证、可以继续写 §03–§04 的依据。上述观察本身成立（同对象、同可观察），但四条支撑前提未证：\n\n1. **delta=0 被当作独立交叉验证**。若 muzzleX、tailX、overallLen 由同一构造关系派生，delta=0 是恒等式而非校验。对照观察：只把 overallLen 改成 9.9（不动 muzzleX/tailX）重跑 `cfg_exec.cjs`；delta 仍为 0 即推翻该前提，变为 0.1 则支持。\n2. **`INST.cur` 会被赋值为炮塔螺栓数组**。bolt() 刚改成 `instPush(INST.cur || INST.bolts, …)`，若全代码从无 `INST.cur = INST.boltsTurret` 的写入点，炮塔螺栓会静默落进车体合批——单个位置都对，分组全错，builder 级测试结构上无法覆盖。对照观察：搜 `INST.cur` 的写入点在其后是否出现；无写入即推翻。\n3. **vm 切片执行 ≡ 浏览器 module 执行**。E411（`(cond ? SELF.ok : SELF.no)(…)` 丢失 receiver 触发 `this` undefined）恰是「方法被取出 + 严格模式」才暴露的一类缺陷；vm/CommonJS 顶层严格性、THREE 与 DOM 的初始化顺序与 `<script type=\"module\">` 不同。对照观察：同一取出调用路径分别置于 sloppy 与 module 严格上下文，只在后者复现，则切片绿灯不能外推到页面。\n4. **数值合法 = 装配正确**。wheelY 0.520 / sprY 0.500 / idlY 0.460 只是打印，没有「轮半径 + 该 Y 与履带包络在公差内相切」的断言；「米」这一单位与 tailX 的参考系基准（相对车体原点还是绝对）同样未断言。对照观察：给 tailX 加 1m 偏移或改轮半径，看是否产生可检失败。\n\n另：E315（`cdn_verify.txt` not found）是旧的文件读取缺失，与当前几何解释无关，不应继续挂在这条链条上。E322/E387/E385/E411 属已归因项，本轮工具结果未附新的观察 ID，故不引用新 ID。"
+    },
+    {
+      "label": "inherit",
+      "runId": "f847b342-bbed-4451-b156-46ee98237062",
+      "callId": "405bef45-e9ee-4a9b-afa9-c7977e24ead7",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "**方法提要（供原工作模型判断是否采用）**\n\n**1. 当前解释的可证伪替代假设**\n现有 PASS 全部分布在分节内部（40-hull / 50-turret / 60-gun 各自自洽），尚没有任何观测指向**拼接后的单文件**。E322（`Unexpected token :`）与几何/材质无关，落在语法层。可证伪替代假设：**节边界断裂**——某节以未闭合的对象字面量、注释块或 `{`/`[` 结尾，下一节的声明在拼接处截断了前一个表达式。若该假设成立，同一 token 错误会在**不渲染的纯解析**下复现。\n\n**最小区分观察（同一对象＝拼接后的单文件；同一可观察结果＝解析是否成功）**：按 CONFIG→MATERIALS→BUILDERS→ASSEMBLE→RIG→FX→INPUT→LOOP 顺序拼接已写分节，只做解析、不执行渲染，观察是否在 E322 同一位置复现。若解析通过而交付物仍报错，则差异只能落在 HTML 包裹层（`<script type=\"module\">`、importmap、标签闭合）——这是**另一个受检对象**，不能用 JS 节的成败替代。\n\n**2. 拼接时并行核对的受影响接口**\n- 初始化顺序：`SELF` / `INST.cur` 必须在首次 `addMesh` 之前就绪；`TURRET_YAW` / `GUN_PITCH` 的父链在同一节内建立后再被后续节引用。\n- 参考系与单位：所有节共用 +X 车头 / +Y 上 / +Z 右 / 米制 / y=0 地面这一约定；节间若重复声明 `CFG` / `TANK` / `MAT`，会**同样**以解析错误形式出现，必须与\"节边界断裂\"用错误位置区分开。\n\n**3. E387 / E385 的处置**\n两者均为 edit 不匹配（old_string 未找到 / 无差异），属编辑工具层观测，**不构成成品缺陷证据**。但它提示一个真实风险：补丁式叠加可能留下**半更新文件**，而半更新恰好会制造 E322 式断裂。拼接前应确认每节文件是唯一真源，而非补丁堆叠的产物。\n\n**4. 缺失引用说明**\nE411（local-pass / global-crash）在上下文中被援引，但不在本次证据节选中，故此处不作为证据使用。若需以它支撑\"局部通过⇒全局失败\"的论证，应先取回其原始观察。"
+    },
+    {
+      "label": "inherit",
+      "runId": "0c2ab406-d5ae-474e-b620-966b85e03c1e",
+      "callId": "bdef2aff-6969-474d-a404-d3d7980a8251",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "下一步方法提要（供决定是否采用，不执行）\n\n**一、拼接语义本身是个二选一，失败模式截然不同，先固定它再测**\n\n已有的组装级建议（整体解析 + 重复声明枚举）在一个前提上分叉，而这个前提目前没被声明：拼接产物是**一个** `<script type=\"module\">` 还是**多个**。\n\n- 单模块：七节共享同一作用域 → 跨节引用（`50-turret` 用 `10-core` 的 `CFG`/`MAT`/`addMesh`）天然可见，但重复 `const` 是早期 SyntaxError，整体解析会直接失败。\n- 多模块：各节作用域隔离 → 重复 `const` 不再致命，但 `50-turret` 引用的 `CFG`/`MAT` 变成未定义/前向引用失败。\n\n这两种失败在同一个 `node --check` 下表现完全不同，不先固定就能把\"仪器选错了拼接方式\"误判成成品缺陷。**最小区分观察**：统计拼接产物里 `type=\"module\"` 的 script 标签数与各节实际跨节引用的名字集合——若单模块且引用名字全在 `10-core` 中先声明，则语法通过可外推；若多模块且存在跨节引用，则\"分段全 PASS ⇒ 组装可运行\"当即可证伪。\n\n**二、`node --check` 需按 module 模式校准，否则会把合法语法报成缺陷**\n\n顶层 `await`、`import` 语句在 `--check` 的非 module 模式下会被拒。抽出的节或拼接体若报语法错，先确认检查器用的是 module 口径（`.mjs` 或 `--input-type=module`）再归因，避免重复\"仪器误报被记作实现失败\"。同类先例是 E315：`cdn_verify.txt` not found 只说明该验证步骤没执行过，不能据此推断 CDN 不可用；对 CDN 的归因需要\"实际取回并解析成功\"这种直接反证，而这一反证已由 `BufferGeometryUtils` 的真实导出枚举独立给出（`mergeGeometries` 存在，`export_...=NO` 是 grep 机制误报）。\n\n**三、说明符—importmap 检查的覆盖缺口**\n\n上一轮 `bare specifiers` 与 importmap 全 PASS，但扫描范围是 `10-core / 20-materials / 30-geom / 40-hull` 四个文件；此后新写出的 `50-turret / 60-gun / 70-running` 未纳入同一检查。这是**同一对象、同一检查的覆盖缺口**，不是新要求。最小区分观察：把这三个节的 `from '...'` 全部并入同一集合再对 importmap 求差——若出现未映射的 addon 路径，则装配后会在解析期失败，而这在分节级各自 parse 时看不见。\n\n**四、E387 的处置仍缺同一对象对照**\n\n`old_string was not found in 10-core.js` 目前只有\"编辑未命中\"这一条观察。它是否仍影响当前目标，取决于那次编辑的锚点是否本就是旧文本：需要同一路径、同一锚点文本的定向读回，确认目标串当前是否存在，并与会话内写入记录比对。存在 → 属匹配机制；不存在 → 属内容状态，二者后续动作不同。在此之前不记为已闭合，也不据它推断 `10-core.js` 有问题。E385（新旧串相同）与 E315（文件不存在）同理，先确认观测对象是否仍在当前路径上，再决定处理或关闭。\n\n以上不改变既定技术路线，也不代表对成品的验收；装配层观察尚未取得前，分节级 PASS 不宜外推为交付物可运行。"
+    },
+    {
+      "label": "inherit",
+      "runId": "7e66d08f-cf53-4f20-a03b-6706b70fd73f",
+      "callId": "221b15c2-55fd-44de-a8c6-8002d7f0fb87",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "公开方法提要（供原工作模型决定是否采用）\n\n当前最受信的解释是\"各分节全部 PASS ⇒ 成品基本可用\"。它依赖一个尚未观察过的前提：拼接后的单 HTML 在**模块加载与顶层执行**层面成立，且各节共享的顶层符号（CFG/MAT/HP/INST 及 addMesh/node/bolt/hexa/mergeAll/extrudeProfile/bevelBox 等）在同一 module 作用域下唯一可见、无重复声明、顺序满足初始化依赖。各节单测通过并不排除该前提为假——测试脚本各自可自洽（历史中\"PIVOT_FAILS=0\"只证明脚本内重新声明的 CFG 副本自洽，就是同一类陷阱）。\n\n可证伪的替代假设：拼接产物在 parse 或顶层链接阶段失败（顶层符号重复声明、跨节引用未定义、importmap 未覆盖拼接后新增的 specifier），与\"每个分节文件单独 parse_rc=0、数值全部自洽\"并不矛盾。\n\n最小区分观察（无需浏览器，因而绕开已确认不可用的 headless Edge）：把最终 HTML 中 `<script type=\"module\">` 的内联正文抽出，做一次 (a) 模块解析检查、(b) 顶层声明集合与顶层引用集合的差集——即\"被引用但无唯一顶层定义\"与\"重复声明\"两项计数。结果为零才支持当前解释；非零即直接推翻它，且能与分节 PASS 并存而不冲突。注意这一步只覆盖\"能加载/能链接\"，不覆盖 WebGL 首帧与交互，后者仍是独立缺口。\n\n对历史 open 项在本任务中的处理建议：\n- E322 已归因于 payload 包装器内的 `${cl:-NONE}`（非任何分节文件），重跑已通过；不应再作为成品缺陷或新要求重复登记。\n- E387、E385 是编辑定位层面的失败（old_string 未匹配/相同），不是产物缺陷。若后续再改已落盘文件，先 read 回读实际内容再定位，避免再次依赖记忆中的字符串。\n- E315（cdn_verify.txt 缺失）已被 imports.txt / import_check.sh 这条替代观测路径覆盖，不再阻塞当前任务。\n\n引用说明：以上引用的观察 ID 为 E322、E387、E385、E315，均来自所给已报告证据节选。交付物层面的观察**没有 ID**——这正是当前缺口，不编造引用，也不以分节 PASS 冒充它。"
+    },
+    {
+      "label": "inherit",
+      "runId": "7e66d08f-cf53-4f20-a03b-6706b70fd73f",
+      "callId": "6d63375a-a2ed-4045-8ff6-cff757d4d124",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "**下一步唯一该闭合的对象：组装后的单文件 HTML。** 到目前为止所有 PASS 都活在“分节”上——每节单独可解析、命名导入存在、尺寸自洽——但交付物是拼装后的那一个 `.html`，它目前**零观测**。分节 PASS 不能推出组装件 PASS（作用域、声明顺序、重复顶层声明、节序都只在拼装后才暴露）。\n\n**可证伪的替代假设 + 最小区分观察**\n\n- **H-A：各节各自可解析，但拼接后链接失败**（顶层 `const`/`function` 重名、`CFG` 被重复声明、节序颠倒）。\n  - 区分观察：按文档顺序抽取组装件里**全部** `<script>` 块，拼成单一模块做一次 `node --check`；同时对顶层声明名做一次跨节重名枚举。两者同时通过才是否证，缺一不算。\n- **H-B：组装件里仍有未被 importmap 覆盖的裸标识符。**\n  - 已知 PASS（旧结论）：`importmap keys = [\"three\",\"three/addons/\"]`，11 个裸说明符全部被映射。注意这是对 4 个分节文件测的；要否证 H-B，必须在**组装后的完整 HTML** 上重跑同一枚举，不能沿用旧结论。\n- **H-C：首帧渲染失败。**\n  - 这条目前**没有观测 ID**——不能编造。唯一能区分的观察是浏览器首帧（截图 + console）。headless Edge 已证实不可用（带 `--user-data-dir` 即阻塞，裸调用 rc=21），因此**不得**用静态检查冒充它。拿不到就写“未观测”，不要写“通过”。\n\n**历史项判定（避免继续占用预算）**\n\n- **E322**：已归因为 payload wrapper 内的 `${`，readback 为 `has ${ : false` 且重跑成功——这是直接反证，与任何分节文件无关，可关闭。\n- **`export_mergeGeometries=NO`**：机制是 grep 正则漏掉了 `export { ... }` 列表形式；动态 import 枚举出 `mergeGeometries:function`（总导出 15 个）为直接反证——该判定作废，不记为缺陷，也不要用同类 grep 再测一遍。\n- **E387 / E385**：`edit` 工具报错，不是成品缺陷。区分观察是目标文件目标位置的**当前字节**（先 read 再改），以及确认 old/new 确实相异。\n- **E315**：`cdn_verify.txt` 不存在。若当前步骤不依赖它 → 与本任务无关，直接关闭；若它本是 CDN 可达性证据，替代观察是一次实际取回、字节数 > 0 的下载。\n\n**相关时检查的接口面**：`CFG` 的唯一真值来源应是 shipped 的 `10-core.js`，装配链路只引用它，不得在任何测试或后续节里重声明同名常量——上一轮 pivot 测试正是因为自己重声明了 `CFG`，所以 `PIVOT_FAILS=0` 只证明了那份副本自洽。单位统一为米；炮塔/火炮局部坐标 → 世界坐标那条链路应在**组装件**上重测一次，而不是在派生副本上。"
+    },
+    {
+      "label": "inherit",
+      "runId": "7e66d08f-cf53-4f20-a03b-6706b70fd73f",
+      "callId": "0c677780-02ea-48f0-b691-84a49b9eb142",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "**方向提要（供原模型决定是否采用）**\n\n核心可证伪假设：**“分节各自通过”不等于“拼接后的单 HTML 通过”**——即 §00–§09 分别 `node --check` 成功，但把全部脚本正文合成一个 `<script type=\"module\">` 后可能因顶层重名声明（重复 `const CFG`/`function wheelGeo`）或跨节作用域/初始化顺序而失败。当前所有 PASS（如 pivot/importmap/muzzle 交叉验证）都作用于分节文件对象，**对组装产物本身零观测**。\n\n最小区分观测（与现有分节检查机制不同）：\n1. 从拼好的单 HTML 中**抽取全部 `<script type=\"module\">` 的真实文本**，拼成一个临时模块整体做解析检查（而非逐节检查）。\n2. 枚举**该合成模块的顶层声明集合**，找重复绑定（重复 `const`/`let`/`class`/`function`）。\n3. 检查各节脚本间的**执行顺序与引用先后**：某节在定义前调用上一节的函数（检查语句只解析语法，不查这种跨节引用）。\n4. 记录所有 `import` 的裸说明符是否都被同一份 importmap 覆盖（现有 importmap 检查只覆盖了被点名的四个分节，未覆盖组装后的完整集合）。\n\n若上述整体检查通过而浏览器首帧仍缺证，那仍是**同一观测对象的独立缺口**，不能用分节 PASS 顶替；反之若整体检查暴露重名或跨节引用错，即证明是组装缺陷而非仪器误报。\n\n**仪器/实现区分**：E322 的 `Unexpected token ':'` 已归因为 **String.raw 载荷包装器**（工具侧转义），不是任何分节内容缺陷——这正是“仪器误报”需直接反证的样例；而上述“拼接后解析 + 顶层重名枚举”是同一可观察结果下能区分“分节缺陷”与“组装缺陷”的独立机制，不能用它单独否定或肯定浏览器运行时行为，也**不能因分节全 PASS 就关闭拼接产物的未观测缺口**。E387/E385/E315 是编辑/读数类操作错误，若其观测对象（`10-core.js` 内容、`cdn_verify.txt`）已不参与当前拼接验证，则不再影响本步，但也不等同于该对象已被确认正确。\n\n相关时一并核对：拼接产物内各节**初始化顺序**（CONFIG→MATERIALS→BUILDERS→ASSEMBLE→RIG→FX→INPUT→LOOP）、**单位与坐标系**仍是米与同一世界系、以及 INST.cur 桶在跨节调用前是否已切换到位。"
+    },
+    {
+      "label": "inherit",
+      "runId": "ebd6f2df-dad6-428f-88d7-bf99ffe4fbfb",
+      "callId": "74b71788-359f-44fb-97ec-5be457f319d9",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "## 下一步方法提要（供原工作模型取舍）\n\n**先质疑当前最受信的解释。** 目前所有 PASS 都落在\"组装后的 HTML 文本\"上：id 对齐、无重复顶层声明、importmap 覆盖、无本地文件引用、`NODE_CHECK_RC=0`。这组证据共同依赖一个未证前提——**文本/语法正确即等于运行期可执行**。该前提尚未被任何一次真实 JS 运行时观察触及，因此它现在是交付路径上唯一没有对照的环节。\n\n**可证伪的替代假设与最小区分观察**\n\n- H1：模块在真实引擎中执行时抛异常（非语法层面，如尽早求值的 `INIT`、THREE 构造参数、DOM 时序）。对照观察：在可执行 ES module 的环境（浏览器页面或 headless）加载成品，捕获 `pageerror` / `unhandledrejection` / `console.error`。\n- H2：不抛异常但渲染层空转（黑屏、模型不可见、相机或光照未初始化）。对照观察：首帧之后取 `renderer.info`（draw calls / triangles）与坦克根的 world bounding box，二者应非退化。\n- H3：失败源在 CDN 侧而非代码侧。对照观察：importmap 中 `three` 与其 `examples/jsm/*` 子路径是否锁定**同一版本**；断网/加载失败路径是否有可见回退提示。\n\n**受影响接口的初始化与顺序**（相关时逐一核对）：DOM 查询相对 `<script type=\"module\">` 的执行时机、`renderer.setPixelRatio` 与 `setSize` 的调用序、`outputColorSpace` / tone mapping 与后处理链的接入点、three 的 Y-up 与履带/炮管所用参考坐标系及单位（米）是否贯通。\n\n**关于已报告的 open 项**：E322、E387、E385、E315 的 criterion 文本都是**调用/编辑工具层**的报错，不是成品缺陷本身。E322 此前已被定位为出现在自建 payload 包装器内的 `${`，与任何 section 文件无关；E387/E385/E315 是 `old_string` 未命中、新旧串相同、读路径不存在。过去调用错误不构成用户新要求，也不构成整体产品失败。若要把它们关闭或驳回，需要**同一对象、同一可观察结果**的证据；归因工具误报同样需要直接反证，而不能因为另一项测试通过就顺带否定。\n\n**与当前任务的相关性判断**：E387/E385/E315 描述的是写入/读取路径问题，不影响 HTML 运行期是否正确，可暂不阻断下一步；E322 若已被 readback 确认在组装产物中不再出现，也只剩状态未闭合。真正影响当前任务的仍是 H1/H2/H3 那一条尚未取得对照的运行期观察。\n\n**引用说明**：以上引用的 E322、E387、E385、E315 均为历史条目中给出的真实 ID；本条未新增或推测任何 ID。"
+    },
+    {
+      "label": "inherit",
+      "runId": "dd461543-f990-4e48-a754-af77e3fa5a69",
+      "callId": "0d7e3b3e-42cc-42de-a2d0-7ea799753ae5",
+      "before": "direction-program",
+      "after": null,
+      "publicText": "核心方法提要（下一步）\n\n**先质疑当前最受信的解释**：现有\"stub 无异常 → 产物可运行\"这一结论，依赖一个未证前提——喂给 stub 的正文与最终 html 内正文是同一版本。观察已直接反驳它：`SAME VERSION = false`，长度差 1，`first differing index = 1`（`\\n\\n/*` vs `\\n/* `），且归一化后仍不等。因此目前那次 \"NO EXCEPTION\" 不能归因到最终产物。\n\n**最小区分观察（同一对象、同一可观察结果）**：不要读中间文件 `.mbtv/_check.mjs`，改为用同一个提取函数直接从最终 `mbt-ultra-photoreal.html` 取出 `<script type=\"module\">` 正文，原样写入 stub 入口再跑一次，输出正文 sha 与运行结果。若异常消失且 sha 与最终 html 一致，才可把\"无异常\"落到产物上；若仍不等，把差异区间打印出来判定是实质代码差异还是纯前导/空白。\n\n**受影响接口检查**：该模块正文是唯一运行时入口，版本漂移会同时影响初始化、装配顺序与单位（RNG 读数刚改过，注意炮膛线方向、`MUZZLE` 世界坐标与世界单位 m 的一致性）。\n\n**未闭合 issue 的处置判定（不可默认无效）**：\n- E322（Unexpected token `:`）需看它观测的是哪一版正文；若与当前最终 html 同版本，则是真语法缺陷，必须定位；若为旧中间产物，需同一对象同版本复现才能驳回。\n- E387 / E385 是编辑操作失败记录，属工具层，不一定构成产物缺陷，但需确认目标改动是否最终生效（可用最终 html 内 grep 目标片段反证）。\n- E315（`cdn_verify.txt` 不存在）仅在它被当成\"依赖已校验\"的依据时才影响当前任务；若未参与结论，可标注不影响并搁置。归因仪器/辅助文件误报须有直接反证，而非\"其他测试通过\"。\n\n一句话：先把 stub 输入改成从最终产物同源提取并复跑，再据此判定 E322 是否仍为活缺陷。"
+    }
+  ]
+}

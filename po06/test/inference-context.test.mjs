@@ -72,7 +72,7 @@ test('live observer through exact request bridge reaches the real generation eve
   const llm={resolveModelInfo:async()=>({reasoning:{efforts:[{id:'off'},{id:'max'}]}}),stream(o){requests.push(o);return(async function*(){const text=String(o.sessionId).includes('-po06-direction-')?'<｜｜DSML｜｜ invoke name="run_code">pretend</｜｜DSML｜｜ invoke>':'actual work after real observations';yield{type:'text-delta',index:0,text};yield{type:'finish',reason:{kind:'stop'}}})()}}
   const engine=createInferenceBoost({llm,trace,isWorkingRequest:o=>o===options,settingsFor:()=>policy,evidenceFor:o=>bridge.evidenceFor(o)})
   const output=[];for await(const c of engine.intercept(options,()=>{throw Error('cannot discard real evidence')}))output.push(c)
-  assert.equal(requests.length,3);assert.equal(trace.list('s')[0].directionObjective,'diagnose')
+  assert.equal(requests.length,4);assert.equal(trace.list('s')[0].directionObjective,'diagnose')
   assert.equal(trace.list('s')[0].iterationPlan.status,'evidence-only')
   const hint=requests.at(-1).messages.at(-1).content[0].text
   assert.match(hint,/E3/);assert.match(hint,/observable-spacing/);assert.match(hint,/artifact.txt/)

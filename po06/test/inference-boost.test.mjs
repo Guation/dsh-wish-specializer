@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {createInferenceBoost,effortPlan,inferencePlan,DIRECTION_MAX_TOKENS,DIRECTION_MAX_CHARS} from '../lib/inference-boost.js'
+import {createInferenceBoost,inferencePlan,DIRECTION_MAX_TOKENS,DIRECTION_MAX_CHARS} from '../lib/inference-boost.js'
 import {createInferenceTrace} from '../lib/inference-trace.js'
 import {normalizeSettings,mergeSettings} from '../lib/settings.js'
 import {effectiveSettings} from '../lib/policy.js'
@@ -10,7 +10,8 @@ async function* tool(id){yield{type:'block-start',index:0,blockType:'tool-call'}
 const request=()=>Object.freeze({provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'max',maxTokens:256000,sessionId:'sessionA',messages:Object.freeze([{role:'user',content:[{type:'text',text:'complete task'}]}]),tools:[{name:'write',parameters:{type:'object'}}]})
 const collect=async stream=>{const chunks=[];for await(const c of stream)chunks.push(c);return chunks}
 const isDirection=o=>String(o.sessionId).includes('-po06-direction-')
-const config={reasoningBoost:true,reasoningMode:'parallel',reasoningCandidates:2,reasoningRounds:1,reasoningPace:'fast'}
+const config={reasoningBoost:true,reasoningMode:'hybrid',reasoningCandidates:3,reasoningRounds:3,reasoningPace:'fast'}
+const reportedEvidence=()=>({version:1,requestId:'human:4',mode:'diagnose',openIssues:[{id:'E17',kind:'reported-failure',status:'open',label:'spacing varies',excerpt:'TRACE worldSpacing min=0.0003 | FAIL spacing varies | PASS no discontinuity',source:{id:'E17',seq:17},binding:{path:'artifact.html',sha256:'a'.repeat(64),versionStatus:'observed-fresh'}}],recentEvidence:[],limitations:[],completionClaimAllowed:false})
 function make(responder,settings=config,options={}){
  const trace=createInferenceTrace(),requests=[]
  const llm={resolveModelInfo:async()=>({reasoning:{efforts:[{id:'off'},{id:'low'},{id:'high'},{id:'max'}],defaultEffort:'high'}}),stream(o){requests.push(o);return responder(o,requests.length)}}
@@ -24,8 +25,8 @@ test('default off, session isolation and original settings remain intact',()=>{
  const raw=mergeSettings({},{bySession:{sessionA:{reasoningBoost:true,reasoningMode:'loop',reasoningRounds:2}}}).settings
  assert.equal(effectiveSettings(raw,'sessionA').reasoningBoost,true)
  assert.equal(effectiveSettings(raw,'sessionB').reasoningBoost,false)
- assert.equal(effectiveSettings(raw,'sessionA').reasoningRounds,2)
- assert.equal(normalizeSettings({reasoningCandidates:99}).settings.reasoningCandidates,2)
+ assert.equal(effectiveSettings(raw,'sessionA').reasoningRounds,3)
+ assert.equal(normalizeSettings({reasoningCandidates:99}).settings.reasoningCandidates,3)
 })
 
 test('all short directions reach the original worker; no independent selector or candidate implementation runs',async()=>{
@@ -33,7 +34,7 @@ test('all short directions reach the original worker; no independent selector or
  const h=make(o=>isDirection(o)?text('Approach '+(++n)+': use the existing mechanism and observe its premise.'):tool('worker-only'))
  const base=request(),snapshot=JSON.stringify(base)
  const out=await collect(h.boost.intercept(base,()=>{throw Error('unexpected fallback')}))
- assert.equal(h.requests.length,3)
+ assert.equal(h.requests.length,4)
  const directions=h.requests.filter(isDirection),main=h.requests.at(-1)
  for(const d of directions){assert.deepEqual(d.tools,[]);assert.ok(d.maxTokens<=DIRECTION_MAX_TOKENS);assert.notEqual(d.sessionId,base.sessionId);assert.equal(JSON.parse(d.messages[0].content[0].text).task,'complete task');assert.notStrictEqual(d.messages[0],base.messages[0]);assert.ok(d.system,'a dedicated direction system isolates the worker role')}
  assert.equal(main.sessionId,base.sessionId);assert.equal(main.provider,base.provider);assert.equal(main.model,base.model)
@@ -45,12 +46,12 @@ test('all short directions reach the original worker; no independent selector or
  assert.equal(out.filter(c=>c.block?.type==='tool-call').length,1)
  assert.equal(out.find(c=>c.block?.type==='tool-call').block.id,'worker-only')
  const row=h.trace.list('sessionA')[0]
- assert.deepEqual(row.calls.map(c=>c.kind),['direction','direction','working'])
- assert.equal(row.workflow,'directions-to-worker');assert.equal(row.iterationPlan.callsUsed,3)
- assert.equal(row.iterationPlan.extraCallsUsed,2);assert.equal(row.iterationPlan.workingCallsUsed,1)
+ assert.deepEqual(row.calls.map(c=>c.kind),['direction','direction','direction','working'])
+ assert.equal(row.workflow,'directions-to-worker');assert.equal(row.iterationPlan.callsUsed,4)
+ assert.equal(row.iterationPlan.extraCallsUsed,3);assert.equal(row.iterationPlan.workingCallsUsed,1)
  assert.equal(row.iterationPlan.status,'executed')
  const handoff=row.decisions.find(d=>d.kind==='direction-handoff')
- assert.equal(handoff.selection,'working-model');assert.equal(handoff.supplied.length,2)
+ assert.equal(handoff.selection,'working-model');assert.equal(handoff.supplied.length,3)
  assert.equal(handoff.selected,undefined,'the host never invents a winning direction')
  assert.equal(row.selectedCallId,row.calls.at(-1).callId)
 })
@@ -80,9 +81,9 @@ test('only direction text is handed over, never provider reasoning or native dir
 test('directions are concurrent and main output streams immediately with original chunks',async()=>{
  const ready=waitGate(),release=waitGate();let live=0,max=0,workerEnded=false
  const first={type:'text-delta',index:0,text:'LIVE'},last={type:'finish',reason:{kind:'stop'}}
- const h=make(o=>isDirection(o)?(async function*(){live++;max=Math.max(live,max);if(live===2)ready.resolve();await release.promise;live--;yield* text('Method '+o.sessionId)})():(async function*(){yield first;await releaseWorker.promise;workerEnded=true;yield last})())
+ const h=make(o=>isDirection(o)?(async function*(){live++;max=Math.max(live,max);if(live===3)ready.resolve();await release.promise;live--;yield* text('Method '+o.sessionId)})():(async function*(){yield first;await releaseWorker.promise;workerEnded=true;yield last})())
  const releaseWorker=waitGate(),stream=h.boost.intercept(request(),()=>text('ordinary'))[Symbol.asyncIterator](),pending=stream.next()
- await ready.promise;assert.equal(h.requests.length,2);assert.equal(max,2);release.resolve()
+ await ready.promise;assert.equal(h.requests.length,3);assert.equal(max,3);release.resolve()
  const got=await pending;assert.strictEqual(got.value,first);assert.equal(workerEnded,false,'never collect the real worker before forwarding')
  releaseWorker.resolve();assert.strictEqual((await stream.next()).value,last);assert.equal((await stream.next()).done,true)
 })
@@ -93,7 +94,7 @@ test('all unusable directions resume the untouched normal stream exactly once',a
   const h=make(o=>{assert.ok(isDirection(o));if(kind==='throw')throw Error('provider-down');if(kind==='tool')return tool('untrusted');if(kind==='code')return text(String.fromCharCode(96).repeat(3)+'js\nfull implementation');if(kind==='long')return text('x'.repeat(DIRECTION_MAX_CHARS+1));return(async function*(){if(kind!=='empty')yield{type:'text-delta',index:0,text:'partial direction'};yield finish(kind==='empty'?'stop':kind)})()})
   const real={type:'text-delta',index:0,text:'ordinary output'}
   const out=await collect(h.boost.intercept(request(),()=>{fallbacks++;return(async function*(){yield real;yield finish('stop')})()}))
-  assert.equal(fallbacks,1,kind);assert.equal(h.requests.length,2,kind);assert.strictEqual(out[0],real,kind)
+  assert.equal(fallbacks,1,kind);assert.equal(h.requests.length,3,kind);assert.strictEqual(out[0],real,kind)
   const row=h.trace.list('sessionA')[0]
   assert.equal(row.stage,'done',kind);assert.equal(row.iterationPlan.status,'degraded',kind);assert.equal(row.directionCallIds.length,0)
   assert.deepEqual(h.trace.get('sessionA',row.runId,row.calls.at(-1).callId,{input:true}).input.messages[0].content,request().messages[0].content)
@@ -104,7 +105,7 @@ test('a failed direction does not discard a different usable one or create a jud
  let n=0
  const h=make(o=>isDirection(o)?++n===1?(async function*(){yield finish('error')})():text('Only useful direction.'):text('Actual work'))
  await collect(h.boost.intercept(request(),()=>{throw Error('not ordinary')}))
- assert.equal(h.requests.length,3);const row=h.trace.list('sessionA')[0]
+ assert.equal(h.requests.length,4);const row=h.trace.list('sessionA')[0]
  assert.equal(row.directionCallIds.length,1);assert.ok(row.decisions.some(d=>d.kind==='direction-unavailable'))
  assert.match(h.requests.at(-1).messages.at(-1).content[0].text,/Only useful direction/)
 })
@@ -138,7 +139,7 @@ test('external cancellation during directions emits no output and starts no work
  const h=make(o=>(async function*(){gate.resolve();await new Promise(r=>{if(o.signal.aborted)r();else o.signal.addEventListener('abort',r,{once:true})});yield* text('late')})())
  const pending=collect(h.boost.intercept({...request(),signal:ac.signal},()=>{throw Error('fallback after parent abort')}))
  await gate.promise;ac.abort(Error('user-cancel'));assert.deepEqual(await pending,[])
- assert.equal(h.requests.length,2);assert.equal(h.trace.list('sessionA')[0].stage,'cancelled');assert.equal(h.boost.status().activeRuns,0)
+ assert.equal(h.requests.length,3);assert.equal(h.trace.list('sessionA')[0].stage,'cancelled');assert.equal(h.boost.status().activeRuns,0)
 })
 
 test('stopping only extra direction work resumes ordinary execution once',async()=>{
@@ -164,7 +165,7 @@ test('all plugin-created direction and working requests bypass recursive boost e
  const llm={stream(o){requests.push(o);return boost.intercept(o,()=>responder(o))}}
  boost=createInferenceBoost({llm,trace,isWorkingRequest:()=>true,settingsFor:()=>config})
  const out=await collect(boost.intercept(request(),()=>{throw Error('normal unexpected')}))
- assert.equal(requests.length,3);assert.equal(trace.list('sessionA').length,1)
+ assert.equal(requests.length,4);assert.equal(trace.list('sessionA').length,1)
  assert.equal(out.filter(c=>c.block?.type==='tool-call').length,1)
 })
 
@@ -181,11 +182,8 @@ test('short-direction effort is supported and the real worker retains its origin
  const h=make(o=>text(isDirection(o)?'Method '+(++n):'Actual result'))
  h.llm.resolveModelInfo=async()=>({reasoning:{efforts:[{id:'off'},{id:'low'},{id:'high'},{id:'max'}],defaultEffort:'high'}})
  await collect(h.boost.intercept(request(),()=>text('ordinary')))
- assert.deepEqual(h.requests.map(o=>o.reasoningEffort),['off','off','max'])
- assert.deepEqual(h.requests.map(o=>o.maxTokens),[DIRECTION_MAX_TOKENS,DIRECTION_MAX_TOKENS,256000])
- assert.equal(effortPlan(request(),'balanced',{reasoning:{efforts:[{id:'low'},{id:'high'}]}}).candidate,'high')
- assert.equal(effortPlan(request(),'inherit',{}).candidate,'max')
- assert.equal(effortPlan(request(),'fast',{}).candidate,'max')
+ assert.deepEqual(h.requests.map(o=>o.reasoningEffort),['off','off','off','max'])
+ assert.deepEqual(h.requests.map(o=>o.maxTokens),[DIRECTION_MAX_TOKENS,DIRECTION_MAX_TOKENS,DIRECTION_MAX_TOKENS,256000])
 })
 
 test('direction limits never raise a smaller original ceiling and do not force a final language policy',async()=>{
@@ -202,63 +200,8 @@ test('direction limits never raise a smaller original ceiling and do not force a
 test('whitespace-only duplicate directions are handed off once without another selection call',async()=>{
  let n=0;const h=make(o=>text(isDirection(o)?++n===1?'Same useful idea.':'  Same\n useful  idea.  ':'Actual work'))
  await collect(h.boost.intercept(request(),()=>text('ordinary')))
- const row=h.trace.list('sessionA')[0];assert.equal(row.directionCallIds.length,1);assert.equal(row.calls.length,3)
+ const row=h.trace.list('sessionA')[0];assert.equal(row.directionCallIds.length,1);assert.equal(row.calls.length,4)
  assert.ok(row.decisions.some(d=>d.kind==='direction-duplicate'))
-})
-
-test('hybrid refines only sketches before a single worker execution, never using a judge',async()=>{
- let n=0
- const h=make(o=>text(isDirection(o)?'Direction '+(++n):'Actual task'),{...config,reasoningMode:'hybrid',reasoningRounds:3,reasoningPace:'balanced'})
- await collect(h.boost.intercept(request(),()=>text('ordinary')))
- const row=h.trace.list('sessionA')[0]
- assert.deepEqual(row.calls.map(c=>c.kind),['direction','direction','direction-refinement','working'])
- assert.equal(row.iterationPlan.actualRounds,1);assert.equal(row.iterationPlan.maxCalls,4);assert.equal(row.directionCallIds.length,3)
- assert.equal(row.iterationPlan.callsUsed,4);assert.equal(h.requests.filter(o=>!isDirection(o)).length,1)
- assert.match(h.requests[2].system,/Direction 1/,'refinement references prior sketches in its isolated role')
- assert.match(h.requests.at(-1).messages.at(-1).content[0].text,/Direction 3/)
-})
-
-test('the direction plan separates extra work from one real model generation and clamps unsafe inputs',()=>{
- for(const mode of ['parallel','hybrid'])for(const pace of ['fast','balanced','inherit'])for(const count of [2,3])for(const rounds of [1,2,3]){
-  const p=inferencePlan({reasoningMode:mode,reasoningPace:pace,reasoningCandidates:count,reasoningRounds:rounds})
-  assert.equal(p.workflow,'directions-to-worker');assert.equal(p.maxCalls,p.maxExtraCalls+1)
-  assert.ok(p.effectiveRounds<=p.requestedRounds);assert.equal(p.effectiveCandidates,count)
- }
- assert.equal(inferencePlan({reasoningCandidates:999}).effectiveCandidates,3)
- assert.equal(inferencePlan({reasoningCandidates:-4}).effectiveCandidates,2)
- assert.equal(inferencePlan({reasoningMode:'loop',reasoningRounds:3,reasoningPace:'inherit'}).workflow,'reply-loop')
- assert.equal(inferencePlan({reasoningMode:'loop',reasoningRounds:3,reasoningPace:'inherit'}).effectiveRounds,3)
-})
-
-test('pure feedback loop still compares a complete revision with its original and preserves trace',async()=>{
- let n=0
- const h=make(o=>{
-  if(o.system?.includes('具体反馈者'))return text(JSON.stringify({revise:true,feedback:'fix a concrete error',summary:'one correction'}))
-  if(o.system?.includes('候选选择器')){const a=JSON.parse(o.messages[0].content[0].text);return text(JSON.stringify({selected:a.material.find(x=>x.text==='revision').id,reason:'real fix',summary:'improved'}))}
-  return text(++n===1?'original':'revision')
- },{...config,reasoningMode:'loop'})
- const result=await collect(h.boost.intercept(request(),()=>text('ordinary')))
- assert.ok(result.some(c=>c.text==='revision'))
- assert.deepEqual(h.trace.list('sessionA')[0].calls.map(c=>c.kind),['candidate','feedback','revision','selector'])
- assert.equal(h.trace.list('sessionA')[0].summary,'improved')
-})
-
-test('pure-loop unchanged revisions stop without another selector or feedback',async()=>{
- const h=make(o=>text(o.system?JSON.stringify({revise:true,feedback:'fix a concrete error',summary:'one correction'}):'same answer'),{...config,reasoningMode:'loop',reasoningRounds:3})
- await collect(h.boost.intercept(request(),()=>text('ordinary')))
- assert.deepEqual(h.trace.list('sessionA')[0].calls.map(c=>c.kind),['candidate','feedback','revision'])
- assert.ok(h.trace.list('sessionA')[0].decisions.some(d=>d.skipped))
-})
-
-test('pure-loop rejected revision keeps the original and stops further cycles',async()=>{
- let n=0
- const h=make(o=>{
-  if(o.system?.includes('具体反馈者'))return text(JSON.stringify({revise:true,feedback:'possible correction',summary:'review'}))
-  if(o.system){const a=JSON.parse(o.messages[0].content[0].text);return text(JSON.stringify({selected:a.material.find(c=>c.text==='original').id,reason:'keep original',summary:'keep'}))}
-  return text(++n===1?'original':'revised')
- },{...config,reasoningMode:'loop',reasoningRounds:3})
- const result=await collect(h.boost.intercept(request(),()=>text('ordinary')))
- assert.equal(h.requests.length,4);assert.ok(result.some(c=>c.text==='original'))
 })
 
 test('trace exposes reported reasoning separately and keeps session lookup isolated',()=>{
@@ -290,18 +233,6 @@ test('parent cancellation still cancels the actual worker after direction handof
  assert.equal(h.trace.list('sessionA')[0].stage,'cancelled');assert.equal(h.boost.status().activeRuns,0)
 })
 
-test('explicit hybrid full rounds spend only short direction calls before one worker',async()=>{
- let n=0
- const h=make(o=>text(isDirection(o)?'Useful idea '+(++n):'Actual work'),{...config,reasoningMode:'hybrid',reasoningRounds:3,reasoningPace:'inherit'})
- await collect(h.boost.intercept(request(),()=>text('ordinary')))
- const row=h.trace.list('sessionA')[0]
- assert.deepEqual(row.calls.map(c=>c.kind),['direction','direction','direction-refinement','direction-refinement','direction-refinement','working'])
- assert.equal(row.iterationPlan.extraCallsUsed,5);assert.equal(row.iterationPlan.workingCallsUsed,1)
- assert.equal(row.iterationPlan.callsUsed,row.iterationPlan.maxCalls)
-})
-
-
-const reportedEvidence=()=>({version:1,requestId:'human:4',mode:'diagnose',openIssues:[{id:'E17',kind:'reported-failure',status:'open',label:'spacing varies',excerpt:'TRACE worldSpacing min=0.0003 | FAIL spacing varies | PASS no discontinuity',source:{id:'E17',seq:17},binding:{path:'artifact.html',sha256:'a'.repeat(64),versionStatus:'observed-fresh'}}],recentEvidence:[],limitations:[],completionClaimAllowed:false})
 test('actual reported failures change the direction objective and reach the worker with their source and version',async()=>{
  let n=0,contexts=0
  const h=make(o=>text(isDirection(o)?'Compare the actual world-space gap with an independently sampled path '+(++n)+'.':'Actual work'),config,{evidenceFor:()=>{contexts++;return reportedEvidence()}})
@@ -319,23 +250,13 @@ test('all DSML directions are rejected, while real unresolved evidence still rea
  let working=0
  const h=make(o=>isDirection(o)?text(dsml):(working++,tool('only-actual-worker')),config,{evidenceFor:reportedEvidence})
  const out=await collect(h.boost.intercept(request(),()=>{throw Error('must preserve evidence even when sketches are all rejected')}))
- assert.equal(working,1);assert.equal(h.requests.length,3)
+ assert.equal(working,1);assert.equal(h.requests.length,4)
  const hint=h.requests.at(-1).messages.at(-1).content[0].text
  assert.doesNotMatch(hint,/DSML|await tools.write/);assert.match(hint,/E17/)
  assert.equal(out.filter(c=>c.block?.type==='tool-call').length,1)
  const row=h.trace.list('sessionA')[0]
- assert.equal(row.iterationPlan.validDirections,0);assert.equal(row.iterationPlan.rejectedDirections,2)
+ assert.equal(row.iterationPlan.validDirections,0);assert.equal(row.iterationPlan.rejectedDirections,3)
  assert.ok(row.decisions.filter(d=>d.kind==='direction-unavailable').every(d=>d.reason==='direction-tool-protocol'))
-})
-
-test('inherit controls requested rounds but direction effort never inherits max when light effort is supported',async()=>{
- let n=0
- const h=make(o=>text(isDirection(o)?'Different approach '+(++n):'Work'),{...config,reasoningMode:'hybrid',reasoningRounds:3,reasoningPace:'inherit'})
- await collect(h.boost.intercept(request(),()=>text('ordinary')))
- assert.ok(h.requests.filter(isDirection).every(o=>o.reasoningEffort==='low'&&o.maxTokens===4096))
- assert.equal(h.requests.at(-1).reasoningEffort,'max');assert.equal(h.requests.at(-1).maxTokens,256000)
- const row=h.trace.list('sessionA')[0]
- assert.equal(row.iterationPlan.actualRounds,3);assert.equal(row.directionPolicy,'direction-light-reasoning');assert.equal(row.directionMaxTokens,4096)
 })
 
 test('missing model metadata preserves the route with an explicit bounded limited policy',async()=>{
@@ -366,15 +287,6 @@ test('off requests never collect extra evidence and unavailable evidence does no
  assert.ok(h.trace.list('sessionA')[0].evidenceState.limitations.includes('evidence-context-unavailable'))
 })
 
-test('pure reply loop receives real unclosed observations without a new evidence judge call',async()=>{
- const h=make(o=>text(o.system?.includes('具体反馈者')?JSON.stringify({revise:false,feedback:'',summary:'retain'}):'Original reply'),{...config,reasoningMode:'loop'},{evidenceFor:reportedEvidence})
- await collect(h.boost.intercept(request(),()=>text('ordinary')))
- assert.equal(h.requests.length,2)
- assert.match(h.requests[0].messages.at(-1).content[0].text,/E17/)
- assert.deepEqual(h.trace.list('sessionA')[0].calls.map(c=>c.kind),['candidate','feedback'])
-})
-
-
 test('an extra direction deadline aborts only that role and preserves earlier ideas for a single real worker',async()=>{
  let n=0,workers=0
  const h=make(o=>{
@@ -389,7 +301,7 @@ test('an extra direction deadline aborts only that role and preserves earlier id
  assert.equal(row.timingPolicy.workingUnchanged,true)
 })
 
-test('total direction preparation stops extra rounds while retaining valid context and unchanged main generation',async()=>{
+test('total direction preparation bounds concurrent proposals without limiting main generation',async()=>{
  let n=0
  const h=make(o=>{
   if(!isDirection(o))return text('actual task')
@@ -401,4 +313,58 @@ test('total direction preparation stops extra rounds while retaining valid conte
  assert.equal(row.iterationPlan.validDirections,2);assert.equal(h.requests.filter(o=>!isDirection(o)).length,1)
  assert.ok(row.decisions.some(d=>d.reason==='direction-preparation-timeout'))
  assert.equal(h.requests.at(-1).reasoningEffort,'max');assert.equal(h.requests.at(-1).signal.aborted,false)
+})
+
+
+test('all legacy mode/pace/count choices run only the fixed fast profile, without a hidden selector or loop',async()=>{
+ for(const mode of ['parallel','loop','hybrid'])for(const pace of ['fast','balanced','inherit']){
+  let n=0
+  const h=make(o=>text(isDirection(o)?'Public method '+(++n):'Actual execution'),{...config,reasoningMode:mode,reasoningPace:pace,reasoningCandidates:2,reasoningRounds:1})
+  await collect(h.boost.intercept(request(),()=>{throw Error('not ordinary')}))
+  const row=h.trace.list('sessionA')[0]
+  assert.deepEqual(row.calls.map(c=>c.kind),['direction','direction','direction','working'])
+  assert.ok(h.requests.filter(isDirection).every(o=>o.reasoningEffort==='off'&&o.maxTokens===1024))
+  assert.equal(row.settings.reasoningPace,'fast');assert.equal(row.settings.reasoningCandidates,3);assert.equal(row.settings.reasoningRounds,3)
+  assert.equal(row.iterationPlan.actualRounds,0);assert.equal(row.iterationPlan.effectiveRounds,0);assert.equal(row.iterationPlan.maxCalls,4)
+  assert.equal(row.iterationPlan.profile,'fast-3x3');assert.equal(h.requests.at(-1).reasoningEffort,'max')
+ }
+})
+
+test('new invocation evidence is delivered once but remains recorded and a true product failure remains active',async()=>{
+ const invocation={kind:'invocation-failure',status:'open',key:'a'.repeat(64),operation:'b'.repeat(64),id:'E17',source:{id:'E17',seq:17,callId:'failed-command',tool:'bash',requestId:'human:4'},label:'Nonzero exit 2',excerpt:'[exit code: 2]'}
+ const product={...reportedEvidence().openIssues[0],id:'E19',source:{id:'E19',seq:19,callId:'product-check',tool:'test',requestId:'human:4'}}
+ const evidence={version:1,requestId:'human:4',openIssues:[invocation],recentEvidence:[{id:'E20',excerpt:'PASS unrelated smoke'}],mode:'diagnose',limitations:[],completionClaimAllowed:false}
+ const h=make(o=>text(isDirection(o)?'Use the latest actual observations.':'Continue real task'),config,{evidenceFor:()=>evidence})
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ let rows=h.trace.list('sessionA');assert.equal(rows[0].evidenceState.activeIssues.length,1);assert.equal(rows[0].focusDelivery.ok,true)
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ const firstId=rows[0].runId;rows=h.trace.list('sessionA');const latest=rows.find(r=>r.runId!==firstId)
+ assert.equal(latest.evidenceState.mode,'explore');assert.equal(latest.evidenceState.activeIssues.length,0)
+ assert.equal(latest.evidenceState.retainedIncidents.length,1);assert.equal(latest.evidenceState.openIssues[0].status,'open')
+ evidence.openIssues.push(product)
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ const final=h.trace.list('sessionA').find(r=>r.runId!==firstId&&r.runId!==latest.runId)
+ assert.equal(final.evidenceState.mode,'diagnose');assert.equal(final.evidenceState.activeIssues.length,1)
+ assert.equal(final.evidenceState.activeIssues[0].kind,'reported-failure');assert.equal(final.evidenceState.completionClaimAllowed,false)
+})
+
+test('a failed actual generation does not consume a new invocation-focus notification',async()=>{
+ let works=0
+ const evidence={version:1,requestId:'human:4',openIssues:[{id:'E17',kind:'invocation-failure',status:'open',source:{id:'E17',seq:17,callId:'command',tool:'bash',requestId:'human:4'},excerpt:'[exit code: 2]'}],recentEvidence:[],completionClaimAllowed:false}
+ const h=make(o=>isDirection(o)?text('A brief public idea.'):(++works===1?(async function*(){yield finish('error')})():text('actual task')),config,{evidenceFor:()=>evidence})
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ const first=h.trace.list('sessionA')[0]
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ const second=h.trace.list('sessionA').find(r=>r.runId!==first.runId)
+ assert.equal(first.stage,'failed');assert.equal(first.focusDelivery,null)
+ assert.equal(second.evidenceState.activeIssues.length,1);assert.equal(second.focusDelivery.ok,true)
+})
+
+
+test('an empty text block is not a successful evidence handoff',async()=>{
+ const evidence={version:1,requestId:'human:4',openIssues:[{id:'E17',kind:'invocation-failure',status:'open',source:{id:'E17',seq:17,callId:'command',tool:'bash',requestId:'human:4'},excerpt:'[exit code: 2]'}],recentEvidence:[],completionClaimAllowed:false}
+ const h=make(o=>isDirection(o)?text('A brief idea.'):(async function*(){yield{type:'block-end',index:0,block:{type:'text',text:'   '}};yield finish('stop')})(),config,{evidenceFor:()=>evidence})
+ await collect(h.boost.intercept(request(),()=>text('ordinary')))
+ const row=h.trace.list('sessionA')[0]
+ assert.equal(row.stage,'failed');assert.equal(row.reason,'empty-working-response');assert.equal(row.focusDelivery,null)
 })

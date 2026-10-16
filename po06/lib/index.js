@@ -52,6 +52,7 @@ import { createInferenceTrace } from './inference-trace.js'
 import { createInferenceBoost } from './inference-boost.js'
 import {createInferenceEvidence} from './inference-evidence.js'
 import {createInferenceEvidenceContext} from './inference-context.js'
+import {createInferenceFocus} from './inference-focus.js'
 import { createEnglishMode,protectEnglishLiterals,prepareEnglishInterpretation,finishEnglishInput,resolveEnglishInterpretation } from './english-mode.js'
 import { withAdvisorWorkflow } from './advisor-workflow.js'
 import { createAdvisorFeedback } from './advisor-context.js'
@@ -1966,6 +1967,7 @@ export function apply(ctx, config) {
       if(!loaded.ok || typeof loaded.mod?.isAgentLoopRequest!=='function'){inferenceProblem=loaded.reason || 'working-request-marker-unavailable';return}
       const engine=createInferenceBoost({llm:scope.llm,trace:inferenceTrace,isWorkingRequest:loaded.mod.isAgentLoopRequest,
         evidenceFor:options=>inferenceContext.evidenceFor(options),
+        focus:createInferenceFocus({home:DSH_HOME,namespace:PROFILE_DIR}),
         createNotice:(text,summary)=>loaded.mod.createUserMessage({content:[{type:'text',text}],source:{kind:'plugin:@dsh-external/dsh-arbiter-wf',form:'notice',summary}}),
         settingsFor:sid=>{const p=readPolicy({home:DSH_HOME,sessionId:sid});return {reasoningBoost:p.reasoningBoost,reasoningMode:p.reasoningMode,reasoningCandidates:p.reasoningCandidates,reasoningRounds:p.reasoningRounds,reasoningPace:p.reasoningPace,englishMode:p.englishMode}},log:appendWireLog})
       inferenceEngine=engine

@@ -851,8 +851,20 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       h('circle', { cx: 8.5, cy: 12, r: 1.5, fill: 'currentColor' }))
     }
 
-    const inferenceStageLabel=code=>({directions:L('生成思考方向','Direction sketches'),working:L('原模型取舍并执行','Working model'),candidates:L('并行候选（旧/循环）','Candidates (legacy/loop)'),selecting:L('比较修订（旧/循环）','Compare revisions (legacy/loop)'),feedback:L('反馈','Feedback'),refining:L('循环改进','Refining'),submitting:L('提交采用结果','Submitting'),done:L('完成','Done'),failed:L('失败','Failed'),cancelled:L('取消','Cancelled'),interrupted:L('已中断','Interrupted'),running:L('调用中','Running')}[code]||code)
-    const inferencePaceLabel=p=>({fast:L('快速','Fast'),balanced:L('均衡','Balanced'),inherit:L('完整轮数（工作档位保留）','Full rounds (working effort preserved)')}[p]||p)
+    const inferenceStageLabel=code=>({directions:L('生成思考方向','Direction sketches'),working:L('原模型取舍并执行','Working model'),candidates:L('并行候选（历史）','Candidates (legacy)'),selecting:L('比较修订（历史）','Compare revisions (legacy)'),feedback:L('反馈（历史）','Feedback (legacy)'),refining:L('循环改进（历史）','Refining (legacy)'),submitting:L('提交采用结果','Submitting'),done:L('完成','Done'),failed:L('失败','Failed'),cancelled:L('取消','Cancelled'),interrupted:L('已中断','Interrupted'),running:L('调用中','Running')}[code]||code)
+    const inferencePaceLabel=p=>({fast:L('快速','Fast'),balanced:L('均衡（历史配置）','Balanced (legacy setting)'),inherit:L('完整轮数 / 工作档位（历史配置）','Full rounds / working effort (legacy setting)')}[p]||p||L('未记录','Not recorded'))
+    function InferenceRecordedPlan({run={}}){
+      const plan=run.iterationPlan,effort=run.effortPlan,directional=run.workflow==='directions-to-worker'
+      const mode=run.settings?.reasoningMode??plan?.mode??run.mode
+      const pace=run.settings?.reasoningPace??plan?.pace??effort?.pace
+      const value=v=>v===undefined?L('未记录','Not recorded'):v===null?L('服务商默认','Provider default'):String(v)
+      return h(React.Fragment,null,
+        h('p',{'data-po06':'inference-effort-plan',style:S.muted},L('记录模式：','Recorded mode: ')+value(mode)+' · '+L('记录节奏：','Recorded pace: ')+value(pace)+(pace?' ('+inferencePaceLabel(pace)+')':'')+' · '+(effort?(directional?L('方向 ','Directions '):L('候选/修订 ','Candidates/revisions '))+value(directional?effort.direction:effort.candidate)+' · '+(directional?L('原模型 ','Working model '):L('择优/反馈 ','Selection/feedback '))+value(directional?effort.working:effort.review):L('旧版本未记录档位计划','No effort plan in the legacy record'))),
+        plan?h('p',{'data-po06':'inference-call-plan',style:S.muted},plan.profile==='fast-3x3'
+          ?L('固定 3+3 快速准备：','Fixed 3+3 fast preparation: ')+value(plan.effectiveCandidates)+L(' 条并行方向，无同一步串行精修；额外调用 ',' concurrent directions, no same-step serial refinements; extra calls ')+value(plan.extraCallsUsed??0)+'/'+value(plan.maxExtraCalls)+L('，原模型生成 ','; working generation ')+value(plan.workingCallsUsed??0)+L(' 次',' call')
+          :directional?L('记录的方向计划：','Recorded direction plan: ')+value(plan.effectiveCandidates)+L(' 份，最多 ',' sketches, up to ')+value(plan.effectiveRounds)+L(' 轮方向改进；额外调用 ',' direction refinement rounds; extra calls ')+value(plan.extraCallsUsed??0)+'/'+value(plan.maxExtraCalls)+L('，原模型生成 ','; working generation ')+value(plan.workingCallsUsed??0)+L(' 次',' call')
+          :L('记录的调用计划：','Recorded call plan: ')+value(plan.effectiveCandidates)+L(' 个候选，最多 ',' candidates, up to ')+value(plan.effectiveRounds)+L(' 轮修订；已用 ',' revision rounds; used ')+value(run.calls?.length??0)+'/'+value(plan.maxCalls)):null)
+    }
     const inferenceCallTime=c=>Math.max(0,((c.finishedAt||Date.now())-c.startedAt)/1000).toFixed(1)+'s'
     function outgoingUserText(hold){return hold?.englishMode&&typeof hold.outgoingText==='string'&&hold.outgoingText.trim()?hold.outgoingText:String(hold?.text||'')}
     function EnglishControls({settings={},save,ready,busy=false,failTick}){
@@ -870,38 +882,54 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         }))
     }
     function InferenceControls({settings={},save,ready,busy=false}){
-      const enabled=settings.reasoningBoost===true,mode=settings.reasoningMode||'parallel',paceKnown=typeof settings.reasoningPace==='string'
-      const row=(label,child)=>h('div',{style:{...S.optRow,gap:'8px'}},h('span',{style:S.optLabel},label),child)
-      const select=(key,values,labels)=>h('select',{'data-po06':key,value:String(settings[key]??(key==='reasoningCandidates'?2:1)),style:S.optSelect,disabled:busy||!enabled,onChange:e=>save({[key]:Number(e.target.value)})},values.map(v=>h('option',{key:v,value:v},labels?labels[v]:v)))
+      const enabled=settings.reasoningBoost===true,known=typeof settings.reasoningBoost==='boolean'
       return h('div',{'data-po06':'inference-controls',style:{borderTop:'1px solid '+T('line2'),paddingTop:'8px',marginTop:'8px'}},
-        row(L('推理增强','Reasoning boost'),h('button',{'data-po06':'reasoning-boost',type:'button',style:{...S.small,color:enabled?T('acc'):T('fg2')},disabled:busy||ready===false&&!enabled,'aria-pressed':enabled,onClick:()=>save({reasoningBoost:!enabled})},enabled?L('开启','On'):L('关闭','Off'))),
-        row(L('模式','Mode'),h('select',{'data-po06':'reasoning-mode',value:mode,style:S.optSelect,disabled:busy||!enabled,onChange:e=>save({reasoningMode:e.target.value})},h('option',{value:'parallel'},L('方向择优','Direction selection')),h('option',{value:'loop'},L('循环改进','Feedback loop')),h('option',{value:'hybrid'},L('多方向 + 方向改进','Directions + refinement')))),
-        row(L('增强节奏','Boost pace'),h('select',{'data-po06':'reasoning-pace',value:settings.reasoningPace||'inherit',style:S.optSelect,disabled:busy||!enabled||!paceKnown,onChange:e=>save({reasoningPace:e.target.value})},['fast','balanced','inherit'].map(p=>h('option',{key:p,value:p},inferencePaceLabel(p))))),
-        mode!=='loop'?row(L('方向数','Directions'),select('reasoningCandidates',[2,3])):null,
-        mode!=='parallel'?row(L('请求最多循环','Requested max rounds'),select('reasoningRounds',[1,2,3])):null,
-        !paceKnown?h('div',{style:S.muted},L('提速策略等待宿主加载；当前仍跟随工作档位。','Speed policy is awaiting host loading; current calls still follow working effort.')):null,
-        h('div',{style:{...S.muted,lineHeight:1.5}},ready===false?L('宿主尚未就绪，刷新后再查看。','Host is not ready; refresh and check again.'):L('方向择优只生成短思路，全部交给原工作模型自行取舍并继续执行，不调用择优裁判、不先写几份实现。方向独立选轻档（不继承 max），原模型档位与工具/输出上限不变。真实工具失败会带来源与版本转入反证方向。混合模式在执行前改进方向，纯循环仍是完整回复反馈。','Direction selection generates brief approach sketches and hands all usable directions to the original working model. No separate judge or multiple implementations. Directions independently use supported light effort, including when Follow is selected; the original working effort, tools and output ceiling are preserved. Actual tool-reported failures add source/version context for falsification. Hybrid refines sketches before execution; the feedback loop works on full responses.')),
+        h('div',{style:{...S.optRow,gap:'8px'}},h('span',{style:S.optLabel},L('快速增强','Quick enhancement')),
+          h('button',{'data-po06':'reasoning-boost',type:'button',style:{...S.small,color:enabled?T('acc'):T('fg2')},disabled:busy||!known||ready===false&&!enabled,'aria-pressed':enabled,onClick:()=>save({reasoningBoost:!enabled})},enabled?L('开启','On'):L('关闭','Off'))),
+        h('div',{'data-po06':'inference-profile',style:{...S.muted,lineHeight:1.5}},
+          L('固定 3+3 快速配置：先并发生成三条简短、公开的思考方向，再交给原工作模型正常执行。不做同一步串行精修，不调用择优裁判，也不先写几份实现；3+3 不表示实际执行了三轮修正。',
+            'Fixed 3+3 fast profile: three concurrent brief public directions, followed by normal execution by the original working model. No same-step serial refinements, separate judge or multiple implementations; 3+3 does not mean three correction loops ran.')),
+        h('div',{style:{...S.muted,lineHeight:1.5}},
+          L('方向独立选可用轻档，原模型档位、工具与输出上限不变。工具观测与既往调用事件分别记录，不把历史失败自动当成本次失败。',
+            'Directions independently use supported light effort; working effort, tools and output ceiling stay unchanged. Actual observations and prior-invocation incidents are recorded separately; past failures are not automatically current failures.')),
         h('div',{'data-po06':'experimental-warning',style:{...S.muted,lineHeight:1.5,color:T('warn')}},
-          L('目前无法确定它能否稳定提升模型能力；仍会增加方向准备时间。快速不再追加方向改进；均衡最多一轮，跟随档位保留请求轮数。完整回复循环仍可能大幅增加耗时，请用同一任务对照。',
-            'Direction preparation still adds latency; universal quality improvement is unproven. Fast adds no direction refinement; Balanced adds at most one round; Follow keeps requested rounds. The full-response feedback loop can still be slow; compare the same task.')),
-        h('div',{style:S.muted},L('与提示词辅助档位独立；关闭后后续生成恢复普通路径。择优是模型判断，不等于已验证。','Independent of prompt assistance. Turning off restores later generations. Selection is a model judgment, not verification.')))
+          L('目前无法确定它能否稳定提升模型能力；三条方向准备仍会增加调用与等待时间，请用同一任务对照。',
+            'Universal quality improvement is unproven. Preparing three directions still adds calls and latency; compare the same task.')),
+        !known||ready===false?h('div',{style:S.muted},L('尚未读到当前设置或宿主未就绪；不会自动修改配置。','Current settings are not loaded or the host is not ready; no automatic settings changes.')):null,
+        h('div',{style:S.muted},L('与提示词辅助档位、英文模式独立；默认关闭，关闭后后续生成恢复普通路径。方向建议不等于验证结果。','Independent of prompt assistance and English mode; off by default. Turning off restores later generations to the normal path. Direction suggestions are not verification.')))
     }
-    function InferenceEvidenceDetails({run}){
-      const plan=run.iterationPlan||{},state=run.evidenceState,issues=state?.openIssues||[],reasons={}
+    function InferenceEvidenceDetails({run={}}){
+      const plan=run.iterationPlan||{},state=run.evidenceState,reasons={}
+      const rows=value=>Array.isArray(value)?value:[]
+      const count=(value,fallback)=>Number.isSafeInteger(value)&&value>=0?value:Array.isArray(value)?value.length:Number.isSafeInteger(fallback)&&fallback>=0?fallback:0
+      const hasActive=state&&Object.prototype.hasOwnProperty.call(state,'activeIssues')
+      const active=rows(state?.activeIssues),retained=rows(state?.retainedIncidents),recent=rows(state?.recentEvidence)
+      const legacy=hasActive?[]:rows(state?.openIssues)
+      const activeCount=count(state?.activeIssues,state?.focusPolicy?.activeCount)
+      const retainedCount=count(state?.retainedIncidents,state?.focusPolicy?.retainedInvocationCount)
+      const focus=state?.mode||run.directionObjective
       for(const d of run.decisions||[])if(d.kind==='direction-unavailable')reasons[d.reason]=(reasons[d.reason]||0)+1
       const reasonLabel=reason=>({'direction-call-timeout':L('单次方向等待超时','Direction call timed out'),'direction-preparation-timeout':L('方向准备时间用尽','Direction preparation limit reached'),'direction-tool-protocol':L('伪工具协议','Simulated tool protocol'),'direction-structured-call':L('结构化工具调用','Structured tool call'),'direction-program':L('完整程序或实现','Program or implementation'),'direction-final-report':L('交付报告','Delivery report'),'direction-incomplete':L('输出中止','Incomplete output'),'direction-too-long':L('方向过长','Direction too long'),'direction-empty':L('没有正文','No public text'),'direction-fenced-code':L('代码围栏','Fenced code'),'direction-tool-call':L('工具提议','Tool proposal'),'generation-not-complete':L('生成未完成','Generation incomplete')})[reason]||reason
-      const statusLabel=value=>({'open':L('已报告，待核对','Reported, unclosed'),'changed-pending':L('对象已改变，待复测','Object changed; retest needed'),'recheck-pending':L('证据待核对','Evidence needs recheck')})[value]||value
+      const statusLabel=value=>({'open':L('已报告，待核对','Reported, unclosed'),'changed-pending':L('对象已改变，待复测','Object changed; retest needed'),'recheck-pending':L('证据待核对','Evidence needs recheck')})[value]||value||L('仅为记录','Recorded only')
+      const observations=(values,prefix)=>values.slice(0,20).map((issue,index)=>h('div',{key:prefix+'-'+index,style:{borderTop:'1px solid '+T('line2'),padding:'6px 0'}},
+        h('strong',null,(issue.source?.id||issue.id||L('省略记录','Omitted records'))+' · '+(issue.criterion||issue.label||issue.checkId||issue.kind||'')+' · '+statusLabel(issue.status||issue.outcome)),
+        h('div',{style:S.muted},(issue.path||issue.binding?.path||L('对象未确定','Object unbound'))+' · '+(issue.version||issue.binding?.sha256||L('版本未确认','Version unconfirmed'))),
+        h('pre',{style:{whiteSpace:'pre-wrap',overflowWrap:'anywhere',margin:'4px 0',fontFamily:'inherit'}},String(issue.excerpt||issue.reason||issue.summary||'').slice(0,1200))))
+      const section=(id,title,values,total,note)=>h('section',{'data-po06':id},h('strong',null,title+' · '+total),note?h('p',{style:S.muted},note):null,observations(values,id),total>values.slice(0,20).length?h('p',{style:S.muted},L('其余明细请查看导出记录。','See the exported trace for remaining details.')):null)
       return h('div',{'data-po06':'inference-effective-directions'},
         run.workflow==='directions-to-worker'?h('p',{style:S.muted},L('实际有效方向 ','Usable directions ')+String(plan.validDirections??run.directionCallIds?.length??0)+' · '+L('拒绝 ','Rejected ')+String(plan.rejectedDirections??0)+' · '+L('重复 ','Duplicates ')+String(plan.duplicateDirections??0)+(run.directionMaxTokens?' · '+L('方向输出预算 ','Direction output budget ')+run.directionMaxTokens:'')):null,
-        Object.keys(reasons).length?h('div',{'data-po06':'inference-direction-rejections',style:{...S.muted,color:T('warn')}},Object.entries(reasons).map(([reason,count])=>reasonLabel(reason)+' × '+count).join(' · ')):null,
+        Object.keys(reasons).length?h('div',{'data-po06':'inference-direction-rejections',style:{...S.muted,color:T('warn')}},Object.entries(reasons).map(([reason,total])=>reasonLabel(reason)+' × '+total).join(' · ')):null,
         run.timingPolicy?h('p',{style:S.muted},L('方向准备上限 ','Direction preparation limit ')+run.timingPolicy.preparationTimeoutMs/1000+L(' 秒；单次 ',' s; per call ')+run.timingPolicy.directionTimeoutMs/1000+L(' 秒。保留有效方向继续主任务；主生成不受此限制。',' s. Keep valid directions and continue the task; working generation has no such limit.')):null,
-        state?h('details',{'data-po06':'inference-evidence',open:issues.length>0},
-          h('summary',null,L('待核对工具观测 ','Unclosed tool observations ')+issues.length+' · '+(run.directionObjective==='diagnose'?L('反证方向','Falsification focus'):L('方案方向','Approach focus'))),
+        state?h('details',{'data-po06':'inference-evidence',open:activeCount>0||legacy.length>0},
+          h('summary',null,L('工具观测记录','Tool observation records')+' · '+(focus==='diagnose'?L('诊断 / 反证方向','Diagnose / falsification focus'):focus==='explore'?L('探索方向','Explore focus'):L('记录的方向','Recorded focus'))),
           h('p',{style:S.muted},L('仅记录真实工具报告的现象，不自动判断整个作品失败或验收通过。新一条无关 PASS 不会清掉旧失败。','These are actual tool-reported observations, not whole-product failure or acceptance. An unrelated PASS does not clear a reported failure.')),
-          issues.slice(0,20).map((issue,index)=>h('div',{key:String(issue.id||'issue')+'-'+index,style:{borderTop:'1px solid '+T('line2'),padding:'6px 0'}},h('strong',null,(issue.source?.id||issue.id||L('省略记录','Omitted records'))+' · '+(issue.criterion||issue.label||issue.checkId||issue.kind||'')+' · '+statusLabel(issue.status)),h('div',{style:S.muted},(issue.path||issue.binding?.path||L('对象未确定','Object unbound'))+' · '+(issue.version||issue.binding?.sha256||L('版本未确认','Version unconfirmed'))),h('pre',{style:{whiteSpace:'pre-wrap',overflowWrap:'anywhere',margin:'4px 0',fontFamily:'inherit'}},String(issue.excerpt||issue.reason||'').slice(0,1200)))),
-          issues.length>20?h('p',{style:S.muted},L('另有 ','Another ')+(issues.length-20)+L(' 项保留在导出记录中。',' items remain in the exported trace.')):null,
+          state.completionClaimAllowed===false?h('p',{'data-po06':'inference-completion-boundary',style:S.muted},L('这份证据快照不授权宣称完成；方向建议也不等于验收结果。','This evidence snapshot does not authorize a completion claim; direction suggestions are not acceptance.')):null,
+          state.recentEvidence!==undefined?section('inference-recent-evidence',L('近期实际结果（新到旧）','Recent actual results (newest first)'),recent,count(state.recentEvidence),null):null,
+          hasActive?section('inference-active-issues',L('本次相关问题','Issues active for this invocation'),active,activeCount,L('依据本次焦点快照列出，不等于整个作品失败。','Listed by this invocation’s focus snapshot, not a whole-product failure verdict.')):null,
+          state.retainedIncidents!==undefined?section('inference-retained-incidents',L('既往调用留存事件','Retained prior-invocation incidents'),retained,retainedCount,L('保留用于追溯，不代表当前仍失败，也不表示已经修复。','Retained for audit: neither a current-failure claim nor a claim that the incident was fixed.')):null,
+          legacy.length?section('inference-recorded-issues',L('旧记录中的未闭合观测','Unclosed observations in the legacy record'),legacy,legacy.length,L('旧快照没有本次/既往分类；以下仅按当时记录展示。','The old snapshot has no active/prior classification; these entries are shown as recorded.')):null,
           state.omitted?.openIssues?h('p',{style:{color:T('warn')}},L('内存上限省略的失败明细：','Failure details omitted by the memory limit: ')+state.omitted.openIssues):null,
-          state.limitations?.length?h('div',{style:S.muted},state.limitations.join(' · ')):null):null)
+          state.limitations?.length?h('div',{style:S.muted},state.limitations.map(String).join(' · ')):null):null)
     }
     function InferenceMonitor({sessionId}){
       useLocaleLive();useThemeLive()
@@ -956,9 +984,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           h('select',{'data-po06':'inference-run-choice',style:{...S.optSelect,marginTop:'10px'},value:runId,onChange:e=>{setRunId(e.target.value);setCallId('')}},h('option',{value:''},L('跟随最新生成','Follow latest generation')),runs.map(r=>h('option',{key:r.runId,value:r.runId},new Date(r.startedAt).toLocaleTimeString()+' · '+inferenceStageLabel(r.stage)+' · '+r.calls.length+L(' 次调用',' calls')))),
           !run?h('p',{style:S.muted},L('在优化选项里开启“推理增强”，再发送任务。短方向、交接和原模型实际输出分别留在这里；旧记录保持原来的候选/反馈信息。','Enable Reasoning boost in Options and send a task. Direction sketches, handoff and actual working output appear separately; older records keep their candidate/feedback details.')):h(React.Fragment,null,
             h('p',{style:S.muted},(route.provider+' / '+route.model)+' · '+(route.reasoningEffort||L('服务商默认档位','Provider default'))+' · '+L('输出上限','Output ceiling')+' '+(route.maxTokens??L('模型默认','Model default'))),
-            h('p',{'data-po06':'inference-effort-plan',style:S.muted},L('增强节奏：','Boost pace: ')+inferencePaceLabel(run.settings?.reasoningPace||'inherit')+' · '+(run.effortPlan?(run.workflow==='directions-to-worker'?L('方向 ','Directions '):L('候选/修订 ','Candidates/revisions '))+((run.workflow==='directions-to-worker'?run.effortPlan.direction:run.effortPlan.candidate)??L('默认','default'))+' · '+(run.workflow==='directions-to-worker'?L('原模型 ','Working model '):L('择优/反馈 ','Selection/feedback '))+((run.workflow==='directions-to-worker'?run.effortPlan.working:run.effortPlan.review)??L('默认','default')):L('旧版本记录','Legacy record'))),
+            h(InferenceRecordedPlan,{run}),
             run.effortPlan?.note?h('div',{style:S.muted},L(run.effortPlan.note,run.effortPlan.noteEn||run.effortPlan.note)):null,
-            run.iterationPlan ? h('p',{'data-po06':'inference-call-plan',style:S.muted},run.workflow==='directions-to-worker' ? L('方向准备：','Direction preparation: ')+String(run.iterationPlan.effectiveCandidates)+L(' 份，最多 ',' sketches, up to ')+String(run.iterationPlan.effectiveRounds)+L(' 轮方向改进；额外调用 ',' direction refinement rounds; extra calls ')+String(run.iterationPlan.extraCallsUsed??0)+'/'+String(run.iterationPlan.maxExtraCalls)+L('，原模型生成 ','; working generation ')+String(run.iterationPlan.workingCallsUsed??0)+L(' 次',' call') : L('调用计划：','Call plan: ')+String(run.iterationPlan.effectiveCandidates)+L(' 个候选，最多 ',' candidates, up to ')+String(run.iterationPlan.effectiveRounds)+L(' 轮修订；已用 ',' revision rounds; used ')+String(run.calls.length)+'/'+String(run.iterationPlan.maxCalls)) : null,
+
             h(InferenceEvidenceDetails,{run}),
             h('p',{'data-po06':'inference-total-usage',style:S.muted},L('全部调用累计（服务商报告）：','All calls (provider-reported): ')+run.calls.reduce((n,c)=>n+Number(c.usage?.totalTokens||0),0).toLocaleString()+' token'),
             h('div',{'data-po06':'inference-summary',style:{padding:'8px 0',whiteSpace:'pre-wrap'}},run.summary||L('等待选择与总结…','Waiting for selection and summary…')),
@@ -3913,7 +3941,7 @@ const react = require("react")
         locale: () => LOCALE,
         detectLocale,
         // 主题调色板（单测拿它算对比度：浅色模式"看不清"这类问题要能被机器挡住，不能只靠肉眼）
-        EnglishControls,outgoingUserText, Segmented, InferenceControls, InferenceMonitor, InferenceEvidenceDetails, inferenceStageLabel, inferencePaceLabel, InterceptPanel, InterceptDraftBody, interceptDraftOutput, advisorValueOf, advisorArgsOf, advisorDraftReply, advisorProgressPct, AdvisorToolRow, AdvisorMaterials, useAdvisorRun, slashReviewAllowed, usageText, normalizeUsage,
+        EnglishControls,outgoingUserText, Segmented, InferenceControls, InferenceMonitor, InferenceEvidenceDetails, InferenceRecordedPlan, inferenceStageLabel, inferencePaceLabel, InterceptPanel, InterceptDraftBody, interceptDraftOutput, advisorValueOf, advisorArgsOf, advisorDraftReply, advisorProgressPct, AdvisorToolRow, AdvisorMaterials, useAdvisorRun, slashReviewAllowed, usageText, normalizeUsage,
         overlayZIndex: OV_Z,
         composerRegion, clampOvPos, clampOvSize, defaultOvPos, defaultBallPos,
         ovReflowWatch, ovReflowAll, EDITABLE_SEL,
