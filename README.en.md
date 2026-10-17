@@ -6,7 +6,7 @@ PTC is the best choice!
 
 Effect demo — all captured on Windows + DSH + PTC, in one shot.
 (the plugin tier was set to "Heavy")
-With DeepSeek-V4.1-Flash
+With DeepSeek-V4.1-Flash(0910)
 ![](./docs/image/contrast_small.png)
 Prompt: Do not preview any other files in the folder. Build a single-HTML program whose subject is an
 extremely detailed modern main battle tank model — previewable, controllable, realistic, striking, and
