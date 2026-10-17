@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync, spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { splitStages, chainFinding, heavyFindings, costNote, usageNote, beginInvocation, endInvocation } from '../lib/bash/bash-diagnostics.mjs'
+import { splitStages, chainFinding, noMatchFinding, heavyFindings, costNote, usageNote, beginInvocation, endInvocation } from '../lib/bash/bash-diagnostics.mjs'
 
 function fixture(t) {
   const home = mkdtempSync(join(tmpdir(), 'bash-diagnostics-'))
@@ -53,12 +53,15 @@ test('nested code, heredocs and incomplete syntax remain opaque', () => {
 test('chain findings express risk rather than absolute failure claims', () => {
   assert.equal(chainFinding('a && b && c'), '')
   assert.equal(chainFinding('a; b'), '')
-  for (const command of ['a; b | c', 'set -e; a; b', 'set -o pipefail; a | b']) {
-    const note = chainFinding(command)
-    assert.match(note, /风险/)
-    assert.match(note, /pipefail、set -e/)
-    assert.doesNotMatch(note, /会\*\*吞掉失败|都看不出来|只有分开跑/)
-  }
+  // 真机实测：`grep -c . f; head -20 f; echo x; grep -A6 y f` 全用分号，退出码来自最后一段，
+  // 旧规则却提示「中间失败被覆盖」——纯噪声。分号/与/或链都不掩盖状态，必须不发提示。
+  assert.equal(chainFinding('grep -c . f; head -20 f; echo x; grep -A6 y f'), '')
+  assert.equal(chainFinding('set -e; a; b'), '', 'set -e 也不会掩盖状态')
+  assert.equal(chainFinding('set -o pipefail; a | b'), '', '已经显式 pipefail，不必再提醒')
+  const note = chainFinding('a; b | c')
+  assert.match(note, /管道/)
+  assert.match(note, /只反映最后一段/)
+  assert.doesNotMatch(note, /会\*\*吞掉失败|只有分开跑/)
 })
 
 test('heavyFindings keeps array return and relevant alternatives', () => {
@@ -188,4 +191,13 @@ test('missing session, malformed tokens and storage errors fail closed', t => {
   assert.equal(unwritable.path, null)
   assert.equal(unwritable.note, '')
   assert.ok(unwritable.storageError)
+})
+
+test('a normal no-match exit is explained as a result, not as a failure', () => {
+  const note = noMatchFinding('grep -c . f; head -20 f; grep -A6 y f')
+  assert.match(note, /退出码 1 通常表示没有匹配/)
+  assert.match(note, /不代表命令出错/)
+  assert.equal(noMatchFinding('grep x f | head'), '', '管道场景由管道提示负责')
+  assert.equal(noMatchFinding('head -20 f; echo done'), '')
+  assert.match(noMatchFinding('diff a b'), /存在差异/, 'diff 的退出码 1 也是正常结果')
 })
