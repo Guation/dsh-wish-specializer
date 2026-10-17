@@ -217,7 +217,14 @@ export function parseAdvisorReport(text, evidenceIds, mode, resultIds = evidence
   const verdicts = mode === 'improve_result' ? ['suggestion','keep','unverified','need_user']
     : mode === 'develop_approach' ? ['suggestion','unverified','need_user']
     : mode === 'review_result' ? ['pass', 'gaps', 'unverified', 'need_user'] : ['continue', 'narrow', 'change', 'need_user', 'unverified']
-  if (!report || !verdicts.includes(report.verdict) || !['summary', 'nextStep', 'stopCondition'].every(k => typeof report[k] === 'string' && report[k].trim()) || !Array.isArray(report.findings) || !Array.isArray(report.checks)) return { ok: false, reason: 'advisor-invalid-report' }
+  // 只拒「无法理解」的报告（没有对象 / verdict 不合法 / 没有 summary）。
+  // 缺 nextStep、stopCondition 或数组字段属于格式不齐：补齐并记账，让答复仍然到达调用方。
+  if (!report || typeof report !== 'object' || !verdicts.includes(report.verdict) || typeof report.summary !== 'string' || !report.summary.trim()) return { ok: false, reason: 'advisor-invalid-report' }
+  const shapeIssues = []
+  for (const k of ['nextStep', 'stopCondition']) if (typeof report[k] !== 'string' || !report[k].trim()) { report[k] = '(not provided)'; shapeIssues.push(k) }
+  if (!Array.isArray(report.findings)) { report.findings = []; shapeIssues.push('findings') }
+  if (!Array.isArray(report.checks)) { report.checks = []; shapeIssues.push('checks') }
+  if (shapeIssues.length) report.shapeIssues = shapeIssues
   if(isContributionMode(mode)) {
     if(report.checks.length || (report.verdict==='suggestion' && (typeof report.contribution!=='string' || !report.contribution.trim())))return {ok:false,reason:'advisor-invalid-approach'}
     if(report.contribution!==undefined && typeof report.contribution!=='string')return {ok:false,reason:'advisor-invalid-approach'}
@@ -243,49 +250,50 @@ export function parseAdvisorReport(text, evidenceIds, mode, resultIds = evidence
   const resultReadPaths=[...resultIds].filter(id=>String(id).startsWith('read:')).map(id=>normRef(String(id).slice(5)))
   const resultRefOk = (ref) => resultIds.has(ref) || (typeof ref==='string' && ref.startsWith('read:') && resultReadPaths.some(got=>got===normRef(ref.slice(5))))
   const refsValid = (refs) => Array.isArray(refs) && refs.every(refOk)
-  if (!report.findings.every(f => typeof f?.text === 'string' && refsValid(f.evidenceRefs))) {
-    // 与 checks 同口径：拒了要说清是哪一条、引了什么、有哪些可用，否则下次还得靠猜。
-    const bad = report.findings.find((x) => !(typeof x?.text === 'string' && refsValid(x.evidenceRefs)))
-    return { ok: false, reason: 'advisor-invalid-citation',
-      detail: bad ? { text: String(bad.text || '').slice(0, 200), refs: bad.evidenceRefs } : null,
-      known: [...evidenceIds].slice(0, 24) }
-  }
-  if (mode === 'improve_result' && ['suggestion','keep'].includes(report.verdict)
-    && !report.findings.some(f => f.evidenceRefs.some(resultRefOk))) {
-    return { ok: false, reason: 'advisor-improvement-without-material-evidence' }
-  }
-  // 只有「满足」才需要**结果类**证据（tool/result，或实读到的 read:/产物 F 编号）；
-  // failed / unverified 不设这一条。真机实测（2026-09-30）：顾问判了一条 failed 并引用本次咨询的
-  // tool/call 事件，被「一律要求结果证据」的过严规则整份否掉（advisor-invalid-check）。
-  // 这条防线要防的是「没有证据却声称满足」，不是防「指出失败」。
-  // No cited deviation is an evidence gap, not an established failure. Keep the useful report.
-  const evidenceIssues=[]
-  report.checks=report.checks.map(c=>{
-    if(c?.status==='failed' && Array.isArray(c.evidenceRefs) && c.evidenceRefs.length===0){
-      evidenceIssues.push({criterion:c.criterion,reason:'failure-without-evidence'})
-      return {...c,status:'unverified'}
-    }
-    return c
-  })
-  if(evidenceIssues.length)report.evidenceIssues=evidenceIssues
-  const checkOk = (c) => typeof c?.criterion === 'string'
-    && ['satisfied', 'failed', 'unverified'].includes(c.status)
-    && refsValid(c.evidenceRefs)
-    && (c.status !== 'satisfied' || (c.evidenceRefs.length > 0 && c.evidenceRefs.some(resultRefOk)))
-  if (!report.checks.every(checkOk)) {
-    // 失败要可归因（本项目的老毛病：只报一个码，下次还得靠猜）。
-    const bad = report.checks.find((c) => !checkOk(c))
-    return { ok: false, reason: 'advisor-invalid-check',
-      detail: bad ? { criterion: bad.criterion, status: bad.status, refs: bad.evidenceRefs } : null,
-      known: [...evidenceIds].slice(0, 24) }
-  }
-  // 「通过」的判据只看**验收项**（2026-09-30 修）：原先还要求 findings 为空，于是「判通过 + 顺手记两条
-  //   观察」（例如文案口径不一致、但不影响该事实成立）被当成自相矛盾整份拒掉——实测踩到。
-  //   findings 是观察记录；**阻塞项必须写成 status=failed 的 check**，这道防线才落在对的地方。
-  if (report.verdict === 'pass' && (!report.checks.length || report.checks.some((c) => c.status !== 'satisfied'))) {
-    return { ok: false, reason: 'advisor-pass-without-evidence',
-      detail: { checks: report.checks.map((c) => ({ criterion: c.criterion, status: c.status })) } }
-  }
+ // 证据不足时的总原则：**拒绝结论，不拒绝答复**。顾问的思考已经花掉了，
+ // 缺证据就把语气降下来并记账，而不是让整次咨询作废（用户实测：一次格式瑕疵 = 全部白跑）。
+ const evidenceIssues = []
+ report.findings = report.findings.map(f => {
+   if (typeof f?.text !== 'string') { evidenceIssues.push({ reason: 'finding-without-text' }); return null }
+   const refs = Array.isArray(f.evidenceRefs) ? f.evidenceRefs : []
+   if (refs.every(refOk)) return { ...f, evidenceRefs: refs }
+   const dropped = refs.filter(r => !refOk(r))
+   evidenceIssues.push({ finding: String(f.text).slice(0, 120), reason: 'citation-not-found', dropped: dropped.slice(0, 8) })
+   return { ...f, evidenceRefs: refs.filter(refOk) }
+ }).filter(Boolean)
+ if (mode === 'improve_result' && ['suggestion','keep'].includes(report.verdict)
+   && !report.findings.some(f => f.evidenceRefs.some(resultRefOk))) {
+   // 没有材料证据就不该用「已确认」的语气：降级保留正文，而不是作废。
+   evidenceIssues.push({ reason: 'improvement-without-material-evidence', from: report.verdict, to: 'unverified' })
+   report.verdict = 'unverified'
+ }
+ // 只有「满足」才需要**结果类**证据（tool/result，或实读到的 read:/产物 F 编号）；
+ // failed / unverified 不设这一条。真机实测（2026-09-30）：顾问判了一条 failed 并引用本次咨询的
+ // tool/call 事件，被「一律要求结果证据」的过严规则整份否掉。
+ report.checks = report.checks.map(c => {
+   if (c?.status === 'failed' && Array.isArray(c.evidenceRefs) && c.evidenceRefs.length === 0) {
+     evidenceIssues.push({ criterion: c.criterion, reason: 'failure-without-evidence' })
+     return { ...c, status: 'unverified' }
+   }
+   return c
+ })
+ const checkOk = (c) => typeof c?.criterion === 'string'
+   && ['satisfied', 'failed', 'unverified'].includes(c.status)
+   && refsValid(c.evidenceRefs)
+   && (c.status !== 'satisfied' || (c.evidenceRefs.length > 0 && c.evidenceRefs.some(resultRefOk)))
+ // 单条验收项不成立：丢掉这一条并记账，其他条目与正文照常返回。
+ const keptChecks = report.checks.filter(c => checkOk(c))
+ if (keptChecks.length !== report.checks.length) {
+   for (const c of report.checks) if (!checkOk(c)) evidenceIssues.push({ criterion: c?.criterion, reason: 'invalid-check', status: c?.status })
+   report.checks = keptChecks
+ }
+ // 「通过」必须由 satisfied 的验收项支撑；撑不住就降级成 gaps/unverified，而不是整份拒掉。
+ if (report.verdict === 'pass' && (!report.checks.length || report.checks.some(c => c.status !== 'satisfied'))) {
+   const to = report.checks.some(c => c.status === 'failed') ? 'gaps' : 'unverified'
+   evidenceIssues.push({ reason: 'pass-without-evidence', from: 'pass', to })
+   report.verdict = verdicts.includes(to) ? to : 'unverified'
+ }
+ if (evidenceIssues.length) report.evidenceIssues = evidenceIssues
   return { ok: true, report,...(formatRecovery?{formatRecovery}: {}) }
 }
 

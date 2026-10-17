@@ -14,7 +14,11 @@ test('valid responses stay strict and review_result never gets advisory recovery
  const valid=parseAdvisorReport(JSON.stringify(v),new Set(['R0']),'improve_result');assert.equal(valid.ok,true);assert.equal(valid.formatRecovery,undefined)
 })
 test('invalid references, statuses and missing content remain rejected after syntax removal',()=>{
- const bad=value();bad.findings[0].evidenceRefs=['FAKE'];assert.equal(parseAdvisorReport(broken(bad),new Set(['R0']),'improve_result').reason,'advisor-invalid-citation')
+ const bad=value();bad.findings[0].evidenceRefs=['FAKE']
+ const degraded=parseAdvisorReport(broken(bad),new Set(['R0']),'improve_result')
+ assert.equal(degraded.ok,true,'伪引用不再整份作废')
+ assert.deepEqual(degraded.report.findings[0].evidenceRefs,[],'无效引用必须被丢掉')
+ assert.ok(degraded.report.evidenceIssues.some(i=>i.reason==='citation-not-found'))
  const status=value();status.verdict='pass';assert.equal(parseAdvisorReport(broken(status),new Set(['R0']),'improve_result').ok,false)
  const missing=value();missing.contribution='';assert.equal(parseAdvisorReport(broken(missing),new Set(['R0']),'improve_result').ok,false)
 })

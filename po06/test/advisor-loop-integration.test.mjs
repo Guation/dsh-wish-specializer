@@ -95,7 +95,7 @@ test('a complete stream with malformed advice JSON stays diagnostic and never re
 })
 
 test('nonempty invalid support retains frozen visible defects in direct and staged state without accepting the call',async()=>{
- const root=fixture();try{for(const staged of [false,true])for(const bad of ['{broken',JSON.stringify({not:'a report'}),JSON.stringify(report('satisfied',['FAKE']))]){
+ const root=fixture();try{for(const staged of [false,true])for(const bad of ['{broken',JSON.stringify({not:'a report'})]){
   const stages=staged?createAdvisorStages():null
   let stageArgs={}
   if(stages){const task=stages.startTask({sessionId:'loop-s',title:'Actual object',sourceRequestId:'human:1',sourceText:'Original required object and actual quality.'});const stage=stages.defineStage({sessionId:'loop-s',taskId:task.taskId,scope:'geometry',focus:args.focus,criteria:['Actual object relationship'],subjectPaths:['source.txt']});stageArgs={taskId:task.taskId,stageId:stage.stage.id}}
@@ -127,5 +127,17 @@ test('a thrown support adapter retains the first independent visible defect and 
  const root=fixture();try{const observed=report('failed',['I0']);observed.findings=[{text:'Visible intersection.',evidenceRefs:['I0'],needsSource:true}]
  const invoke=createAdvisor({resolveRuntime:async()=>runtime(root,{stream:()=>stream(observed)}),runLoop:async()=>{throw Error('support-adapter-threw')}})
  const out=await invoke(args,exec);assert.equal(out.ok,false);assert.equal(out.visualObservation.checks[0].status,'failed');assert.ok(out.openIssues.some(c=>c.status==='failed'));assert.equal(out.usage.totalTokens,5);assert.equal(out.usageComplete,false);assert.equal(out.usageKnownCalls,1);assert.equal(out.usageUnknownCalls,1)
+ }finally{rmSync(root,{recursive:true,force:true})}
+})
+
+test('a report that cites unverifiable support is degraded, not discarded',async()=>{
+ const root=fixture();try{
+  const bad=JSON.stringify(report('satisfied',['FAKE']))
+  const invoke=createAdvisor({resolveRuntime:async()=>runtime(root,{stream:()=>stream(report('failed',['I0']))}),runLoop:async()=>({text:bad,trace:[],usageSum:{totalTokens:7}})})
+  const out=await invoke({...args},exec)
+  assert.equal(out.ok,true,'答复必须到达调用方（这是本次要修的）')
+  assert.equal(out.reviewPassed,false,'撑不住的 satisfied 绝不许过')
+  assert.ok(!JSON.stringify(out.report??{}).includes('FAKE'),'无效引用必须从返回的报告里消失')
+  assert.equal(out.usage.totalTokens,5)
  }finally{rmSync(root,{recursive:true,force:true})}
 })

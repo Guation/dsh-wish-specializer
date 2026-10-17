@@ -169,7 +169,8 @@ test('missing-file read cannot support satisfied and fabricated read citation st
   for(const ref of ['read:missing.js','read:invented.js']) {
    const invoke=createAdvisor({stages:x.stages,resolveRuntime:async()=>({ok:true,cwd:x.root,readTools:true,cfg:{provider:'p',model:'m'},llm:{}}),runLoop:async()=>({text:JSON.stringify({verdict:'pass',summary:'bad',findings:[],checks:[{checkId:stage.stage.checks[0].id,criterion:'source',status:'satisfied',evidenceRefs:[ref]}],nextStep:'done',stopCondition:'stop'}),trace:[{tool:'read',args:{path:'missing.js'},ok:true,resultAvailable:false}]})})
    const out=await invoke({mode:'review_result',taskId:task.taskId,stageId:stage.stage.id,question:'check',files:[]},x.exec)
-   assert.equal(out.reason,'advisor-invalid-check');assert.equal(out.reviewPassed,false)
+   assert.equal(out.ok,true);assert.equal(out.reviewPassed,false,'编造的引用不能支撑通过')
+   assert.ok((out.report.evidenceIssues??[]).some(i=>['invalid-check','citation-not-found'].includes(i.reason)))
   }
  }finally{x.cleanup()}
 })

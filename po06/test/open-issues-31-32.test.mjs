@@ -72,9 +72,10 @@ test('#32 读不到的材料必须能当证据引用：报告不再因为"说了
       checks:[{criterion:'材料是否可读',status:'satisfied',evidenceRefs:['F0']}],nextStep:'n',stopCondition:'x'})
     const second=createAdvisor({resolveRuntime:async()=>({ok:true,cwd:root,readTools:false,cfg:{provider:'p',model:'m'},llm:{stream:()=>(async function*(){yield{type:'text-delta',text:overclaim}})()}})})
     const refused=await second({mode:'review_result',scope:'general',focus:'材料可读性',question:'这个文件能读到吗',files:[{path:'present.md',purpose:'待复核'}]},exec)
-    assert.equal(refused.ok,false)
-    assert.equal(refused.reason,'advisor-invalid-check','没有结果证据的 satisfied 仍然不许过——这条防线不许松')
-    assert.equal(refused.reviewPassed,false)
+    // 新契约：答复照常返回，但那句没有结果证据的 satisfied 不许生效。
+    assert.equal(refused.ok,true)
+    assert.equal(refused.reviewPassed,false,'没有结果证据的 satisfied 仍然不许过——这条防线不许松')
+    assert.ok((refused.report.evidenceIssues??[]).some(i=>i.reason==='invalid-check'))
   }finally{rmSync(root,{recursive:true,force:true})}
 })
 

@@ -31,8 +31,10 @@ test('伪引用、空验收、未验证通过、矛盾结论必须拒绝', () =>
   const ids = new Set(['E2'])
   assert.equal(parseAdvisorReport(JSON.stringify(report()),ids,'review_result').ok,true)
   for (const over of [ { checks: [] }, { checks: [{ criterion:'运行',status:'unverified',evidenceRefs:[] }] }, { checks: [{criterion:'运行',status:'satisfied',evidenceRefs:['fake']}] }, { checks: [{criterion:'运行',status:'failed',evidenceRefs:['E2']}] } ]) {
-    // 最后一条：判通过却有 failed 的验收项 ⇒ 仍然必须拒（真相撞车）
-    assert.equal(parseAdvisorReport(JSON.stringify(report(over)),ids,'review_result').ok,false)
+    // 新契约：报告不再整份作废，但这四种内容一律不能维持 pass（最后一条是「判通过却有 failed 验收项」的真相撞车）。
+    const out = parseAdvisorReport(JSON.stringify(report(over)), ids, 'review_result')
+    assert.equal(out.ok, true, JSON.stringify(over))
+    assert.notEqual(out.report.verdict, 'pass', JSON.stringify(over))
   }
   assert.equal(parseAdvisorReport('not json',ids,'review_result').ok,false)
   // 判通过 + 只有观察性 findings（无 failed 验收项）⇒ **应当接受**（2026-09-30 真机：这类报告被误拒过）
@@ -40,7 +42,10 @@ test('伪引用、空验收、未验证通过、矛盾结论必须拒绝', () =>
 })
 
 test('调用记录不能单独支持成果通过，材料截断不能整体通过', async () => {
-  assert.equal(parseAdvisorReport(JSON.stringify(report({checks:[{criterion:'运行',status:'satisfied',evidenceRefs:['E1']}]})),new Set(['E1']),'review_result',new Set()).ok,false)
+  const callOnly=parseAdvisorReport(JSON.stringify(report({checks:[{criterion:'运行',status:'satisfied',evidenceRefs:['E1']}]})),new Set(['E1']),'review_result',new Set())
+ assert.equal(callOnly.ok,true,'答复照常返回')
+ assert.notEqual(callOnly.report.verdict,'pass','调用记录不能单独支撑通过')
+ assert.equal(callOnly.report.checks.length,0,'撑不住的验收项被丢掉')
   const longSession = { id:'long', snapshotEvents:()=>[human('目标'.repeat(10000)),call('a'),result('a','passed')] }
   const invoke=createAdvisor({resolveRuntime:async()=>runtime})
   const out=await invoke({mode:'review_result',question:'复核'},{agent:{session:longSession}})
@@ -63,7 +68,12 @@ test('failed/unverified 可用调用类证据；只有 satisfied 必须有结果
   assert.equal(parseAdvisorReport(live, ids, 'diagnose_failure', resultIds).ok, true, '这次的现场必须被接受')
   // 反过来：声称 “满足” 却只有调用类证据 ⇒ 仍然拒绝（这条防线不许松）
   const bad = mk([{ criterion: '跑通了', status: 'satisfied', evidenceRefs: ['E17246'] }])
-  assert.equal(parseAdvisorReport(bad, ids, 'diagnose_failure', resultIds).reason, 'advisor-invalid-check')
+  // 新的契约：不整份作废，但也绝不让它「通过」——丢掉那条没有结果证据的 satisfied 并记账。
+  const degraded = parseAdvisorReport(bad, ids, 'diagnose_failure', resultIds)
+  assert.equal(degraded.ok, true, '答复仍要到达调用方')
+  assert.notEqual(degraded.report.verdict, 'pass')
+  assert.equal(degraded.report.checks.length, 0, '撑不住的验收项被丢掉')
+  assert.ok(degraded.report.evidenceIssues.some((i) => i.reason === 'invalid-check'))
   // 有结果类证据的 satisfied 照常通过
   const good = mk([{ criterion: '真的读到了', status: 'satisfied', evidenceRefs: ['read:AGENTS.md'] }])
   assert.equal(parseAdvisorReport(good, ids, 'diagnose_failure', resultIds).ok, true)
