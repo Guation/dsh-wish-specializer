@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSH 仲裁者插件 · 它是怎么运作的</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#151922; --panel2:#1b2130; --line:#2a3040; --line2:#222836;
+    --fg:#e7eaf3; --fg2:#aab3c5; --fg3:#7b849a; --accent:#6ea8fe; --accent2:#8f7bff;
+    --ok:#4bbf7a; --warn:#e0b050; --err:#e06c6c; --code:#0b0e13; --shadow:0 11px 30px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f6f7fa; --panel:#ffffff; --panel2:#f1f3f8; --line:#dfe3ec; --line2:#e9ecf3;
+      --fg:#1b2130; --fg2:#4a5468; --fg3:#7b849a; --accent:#2f6fdc; --accent2:#6a4fe0;
+      --ok:#1f8f52; --warn:#a5720a; --err:#b43b3b; --code:#f3f5fa; --shadow:0 11px 30px rgba(20,30,60,.12);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--fg);font:14px/1.65 "Segoe UI",system-ui,-apple-system,"Microsoft YaHei",sans-serif}
+  a{color:var(--accent)}
+  code,kbd{font-family:ui-monospace,SFMono-Regular,Consolas,"Cascadia Mono",monospace}
+
+  header{padding:22px 24px 10px;max-width:1120px;margin:0 auto}
+  h1{margin:0 0 4px;font-size:20px;letter-spacing:.2px}
+  .sub{color:var(--fg2);margin:0 0 12px;max-width:72ch}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+  .chip{font-size:12px;color:var(--fg2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:var(--panel)}
+  .chip b{color:var(--fg);font-weight:600}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 16px}
+  .tabs{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+  .tabs button{border:0;background:transparent;color:var(--fg2);padding:7px 14px;font:inherit;cursor:pointer}
+  .tabs button[aria-selected="true"]{background:var(--panel2);color:var(--fg);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent)}
+  input[type=search]{background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--fg);
+    padding:7px 11px;font:inherit;min-width:210px;flex:1 1 220px}
+  .btn{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--fg2);
+    padding:6px 11px;font:inherit;font-size:12.5px;cursor:pointer}
+  .btn:hover{border-color:var(--accent);color:var(--fg)}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px;color:var(--fg3);font-size:12px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+
+  main{max-width:1120px;margin:0 auto;padding:0 24px 40px}
+  .intro{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:12px 14px;margin:0 0 16px;color:var(--fg2);max-width:72ch}
+  .intro b{color:var(--fg)}
+  .pipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 16px}
+  .pipe .step{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:5px 10px;
+    font:inherit;font-size:12.5px;color:var(--fg2);cursor:pointer}
+  .pipe .step:hover{border-color:var(--accent);color:var(--fg)}
+  .pipe .arrow{color:var(--fg3);font-size:12px}
+
+  /* ── 树 ─────────────────────────────────────────── */
+  .tree,.tree ul{list-style:none;margin:0;padding:0}
+  .tree ul{margin-left:17px;padding-left:15px;border-left:1px solid var(--line2)}
+  .tree li{position:relative;margin:7px 0}
+  .tree ul>li::before{content:"";position:absolute;left:-15px;top:17px;width:13px;height:1px;background:var(--line2)}
+  .node{border:1px solid var(--line);border-radius:11px;background:var(--panel);overflow:hidden}
+  .node[open]{border-color:var(--accent)}
+  .node>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:8px 11px;background:transparent}
+  .node>summary::-webkit-details-marker{display:none}
+  .node>summary::before{content:"▸";color:var(--fg3);font-size:11px;width:10px;flex:0 0 10px;transition:transform .15s}
+  .node[open]>summary::before{transform:rotate(90deg)}
+  .node.kind-trigger{border-left:3px solid #5aa2ff}
+  .node.kind-stage{border-left:3px solid #8f7bff}
+  .node.kind-event{border-left:3px solid #e0b050}
+  .node.kind-ui{border-left:3px solid #4bbf7a}
+  .node.kind-fallback{border-left:3px solid #b07fe0}
+  .node.kind-diag{border-left:3px solid #66c2c2}
+  .node.kind-constraint{border-left:3px solid #e06c6c}
+  .node.kind-module{border-left:3px solid #7b849a}
+  .node.kind-field{border-left:3px solid #b8a15a}
+  .node.kind-test{border-left:3px solid #4c9c6a}
+  .node.kind-file{border-left:3px solid #7b849a}
+  .node.kind-dir{border-left:3px solid #9aa4bc}
+  .badge{flex:0 0 auto;font-size:10.5px;letter-spacing:.3px;padding:1px 6px;border-radius:5px;
+    border:1px solid var(--line);color:var(--fg3);background:var(--panel2);white-space:nowrap}
+  .title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .title code{font-size:12px;color:var(--fg2)}
+  .hint{color:var(--fg3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
+  .warn-chip{font-size:10.5px;color:var(--warn);border:1px dashed var(--warn);border-radius:5px;padding:0 5px;white-space:nowrap}
+  .body{padding:2px 13px 12px;border-top:1px solid var(--line2)}
+  .body p{margin:8px 0;color:var(--fg2);max-width:72ch}
+  .facts{margin:8px 0 0;padding-left:18px;color:var(--fg2)}
+  .facts li{margin:3px 0}
+  .codeblock{margin:10px 0 2px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--code)}
+  .codehead{display:flex;align-items:center;gap:8px;padding:5px 9px;border-bottom:1px solid var(--line2);font-size:11.5px;color:var(--fg2)}
+  .codehead .path{font-family:ui-monospace,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .codehead .lines{color:var(--fg3);white-space:nowrap}
+  .codehead button{margin-left:auto;background:transparent;border:1px solid var(--line);border-radius:6px;color:var(--fg3);
+    font:inherit;font-size:11px;padding:1px 7px;cursor:pointer}
+  .codeblock pre{margin:0;padding:9px 11px;overflow:auto;font-size:12.2px;line-height:1.55;color:var(--fg)}
+  .refs{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .ref{background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--accent);
+    font:inherit;font-size:11.5px;padding:2px 8px;cursor:pointer}
+  .ref:hover{border-color:var(--accent)}
+  .more{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0 4px}
+  .more .ref{color:var(--fg2)}
+  .acts{display:flex;gap:6px;margin-top:8px}
+  .hidden{display:none}
+  .hit>.node{border-color:var(--accent);box-shadow:0 0 0 2px rgba(110,168,254,.18)}
+  .flash>.node{animation:flash 1.2s ease-out 1}
+  @keyframes flash{0%{box-shadow:0 0 0 3px rgba(110,168,254,.55)}100%{box-shadow:0 0 0 0 rgba(110,168,254,0)}}
+
+  /* ── 抽屉 ───────────────────────────────────────── */
+  #drawer{position:fixed;top:0;right:0;height:100%;width:min(480px,94vw);background:var(--panel);
+    border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(102%);transition:transform .18s ease;
+    overflow:auto;z-index:50;padding:18px 18px 40px}
+  #drawer.open{transform:none}
+  #drawer h2{margin:0 0 6px;font-size:16px}
+  #drawer .close{position:absolute;top:12px;right:14px;background:transparent;border:1px solid var(--line);
+    border-radius:8px;color:var(--fg3);width:28px;height:28px;cursor:pointer}
+  #drawer .meta{color:var(--fg3);font-size:12px;margin:0 0 10px}
+  #drawer .body{padding:0;border-top:0}
+
+  footer{max-width:1120px;margin:0 auto;padding:0 24px 50px;color:var(--fg3);font-size:12px}
+  footer code{color:var(--fg2)}
+  .k-trigger{color:#5aa2ff} .k-stage{color:#8f7bff} .k-event{color:#e0b050} .k-ui{color:#4bbf7a}
+  .k-module,.k-file{color:#9aa4bc} .k-field{color:#b8a15a} .k-fallback{color:#b07fe0}
+  .k-diag{color:#66c2c2} .k-constraint{color:#e06c6c} .k-test{color:#4c9c6a} .k-dir{color:#9aa4bc}
+
+  /* ── 实物演示 ───────────────────────────────────── */
+  .demo{margin:10px 0 4px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:10px}
+  .demo .cap{font-size:11px;color:var(--fg3);margin-bottom:7px;letter-spacing:.3px}
+  .demo-card{border:1px solid var(--line2);border-radius:10px;background:var(--panel);overflow:hidden}
+  .demo-head{display:flex;align-items:center;gap:7px;width:100%;padding:6px 10px;border:0;background:transparent;
+    color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+  .demo-head .ic{font-size:11px;color:var(--accent)}
+  .demo-head .n{color:var(--fg3);font-size:11.5px}
+  .demo-head .caret{margin-left:auto;color:var(--fg3);font-size:10px}
+  .demo-body{padding:0 10px 10px;border-top:1px solid var(--line2)}
+  .demo-body pre{margin:8px 0 0;white-space:pre-wrap;font-size:12.4px;line-height:1.65;color:var(--fg2);max-height:190px;overflow:auto}
+  .demo-note{font-size:11px;color:var(--fg3);margin-top:7px}
+  .payload{margin:0;padding:10px 11px;background:var(--code);border:1px solid var(--line);border-radius:9px;
+    font-size:12.3px;line-height:1.8;white-space:pre-wrap;word-break:break-all}
+  .payload .key{background:transparent;border:0;border-bottom:1px dashed var(--accent);color:var(--accent);
+    font:inherit;padding:0;cursor:pointer}
+  .wire{margin:0;padding:10px 11px;background:var(--code);border:1px solid var(--line);border-radius:9px;
+    font-size:12.1px;white-space:pre-wrap;word-break:break-all;color:var(--fg2)}
+  .wire .ok{color:var(--ok)}
+  mark{background:rgba(224,176,80,.28);color:inherit;border-radius:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>DSH 仲裁者插件 · 它是怎么运作的</h1>
+  <p class="sub">一眼看流程，点开看细节。每个节点都能展开；带 <span class="badge">▣</span> 的节点里放着实物（真实 payload、可点开的卡片、真实诊断记录）。右栏抽屉是“再深一层”——树里最多嵌三层，再往里点就进抽屉。</p>
+  <div class="chips" id="metaChips"></div>
+  <div class="toolbar">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-flow" aria-selected="true">运行流程</button>
+      <button role="tab" id="tab-tree" aria-selected="false">仓库结构</button>
+    </div>
+    <input type="search" id="q" placeholder="搜：卡片 / interpret / po06/injection / 4000 …">
+    <button class="btn" id="expandAll">全部展开</button>
+    <button class="btn" id="collapseAll">全部折叠</button>
+  </div>
+  <div class="legend" id="legend"></div>
+</header>
+
+<main>
+  <div class="intro" id="intro"></div>
+  <div class="pipe" id="pipeline"></div>
+  <div id="tree"></div>
+</main>
+
+<aside id="drawer" aria-hidden="true">
+  <button class="close" id="drawerClose" title="关闭（Esc）">×</button>
+  <h2 id="drawerTitle"></h2>
+  <p class="meta" id="drawerMeta"></p>
+  <div class="body" id="drawerBody"></div>
+</aside>
+
+<footer>
+  <p>这页是静态快照：<code id="footMeta"></code>。代码改了记得重新生成，否则图和代码会分叉。</p>
+  <p>自检命令：<code>node po06/test/how-it-works.test.mjs</code>（校验节点引用与文件路径都还存在）。</p>
+</footer>
+
+<script id="graph-data">
+/* ── 数据：只写读过的代码与真实跑过的结果；没读过的节点一律标待核 ───────── */
+const GRAPH = {
+  meta: {
+    name: "DSH 仲裁者（@dsh-external/dsh-arbiter-wf）",
+    version: "0.8.4-stable",
+    commit: "e67b0d9",
+    date: "2026-10-18",
+    suites: 111,
+    assertions: 1269,
+    note: "代码基线 = 卡片只显示注入文那一版。110/111 套件全绿；verifier-html 需要浏览器，在本机挂死。"
+  },
+  views: {
+    flow: {
+      label: "运行流程",
+      intro: "一次发送的全部路径：<b>拦下 → 解释 → 组装 → 放行 → 注入 → 写事件 → 画卡片</b>。右边两条是旁路（顾问、内置 Bash），不在这条主链上。",
+      root: {
+        id: "flow.root", kind: "dir", title: "一次消息的生命周期",
+        children: [
+          {
+            id: "flow.trigger", kind: "trigger", title: "① 你按下发送",
+            summary: "消息还没离开输入框，插件先把它拦下来；拦不拦取决于它有没有拿到放行通道。",
+            facts: [
+              "拿不到 inputActions 就**绝不拦截**——拦下却没有放行通道，等于吞消息。",
+              "同一次发送可能同时命中 Enter 与点击，插件按 ref 去重，只拦一次。",
+              "被拦下的原文会先写回草稿再放行：发的必须是你按下发送时的那一条。"
+            ],
+            code: { path: "po06/lib/client.js", lines: [2355, 2400], text: [
+              "const beginHold = (text, via) => {",
+              "  if (holdRef.current) return          // 去重：同一次发送只拦一次",
+              "  const h = { text, via, phase: 'optimizing', packet: '', chars: 0 }",
+              "  holdRef.current = h; setHold(h)",
+              "  apiPost('/interpret', { sessionId, text }).then((r) => { ... })",
+              "}"
+            ] },
+            refs: ["tree.client", "flow.hold"]
+          },
+          {
+            id: "flow.hold", kind: "stage", title: "拦截态 hold",
+            summary: "一个四段小状态机：优化中 → 审查 → 已发送 / 跳过 / 失败。",
+            facts: [
+              "审查态下你能改注入文、回退上一版、或“按原文发出”。",
+              "切到别的会话再回来，拦截态靠 window.__PO06_HOLD__ 桥恢复（否则面板会凭空消失）。"
+            ],
+            code: { path: "po06/lib/client.js", lines: [2316, 2352], text: [
+              "const releaseHold = (text, h, mark) => {",
+              "  inputActions.setDraft(outgoing)",
+              "  inputActions.submit()",
+              "  setHold({ ...h, phase: mark || 'sent' })",
+              "  clearHoldSoon()          // 1.6s 后收起成悬浮球",
+              "}"
+            ] }
+          },
+          {
+            id: "flow.interpret", kind: "stage", title: "② 解释层 interpret（服务端）",
+            summary: "把你这句人话编译成一份“意图包”：要做什么、按什么标准验收、哪里还没定。",
+            facts: [
+              "入口是 POST /po06/api/interpret（control-api.js），真正干活的是 index.js 的 interpret。",
+              "它只产出**包**，不改你的原话。",
+              "这一步会花模型调用；耗时从几秒到两分钟不等（真机见过 113 秒）。"
+            ],
+            code: { path: "po06/lib/index.js", lines: [983, 1010], text: [
+              "interpret: async ({ userText, state, sessionId, messageId, observations }) => {",
+              "  // 档位 → 预算 → 解释器系统提示 → 调模型 → 解析补丁",
+              "  // 结果写进 adapter.intentBySession，后续由 getWorkingText 组装",
+              "}"
+            ] },
+            refs: ["tree.index", "tree.api", "flow.policy", "flow.llm", "flow.packet"]
+          },
+          {
+            id: "flow.policy", kind: "module", title: "档位与预算",
+            summary: "轻度 / 标准 / 重度 / 关闭；重度 = 包预算 2000 字、提问 3 条。",
+            facts: [
+              "默认新装是重度、只读开、上下文 10 回合、内置 bash 开（Windows）。",
+              "关档是硬短路：注入钩子连缓存都不看，直接返回空。"
+            ],
+            code: { path: "po06/lib/settings.js", lines: [82, 130], text: [
+              "tier: 'heavy',",
+              "detail: 'detailed', packetBudget: 'generous',",
+              "readTools: true, turns: 10"
+            ] }
+          },
+          {
+            id: "flow.llm", kind: "module", title: "优化模型调用",
+            summary: "默认跟随会话模型，也可以钉死某个；只读工具开着时会先读几个项目文件再写包。",
+            facts: [
+              "模型路由会如实回报：跟随 / 钉死 / 兜底（兜底会在门上明说）。",
+              "只读工具只读结构，不把整份工程塞进上下文。"
+            ],
+            code: { path: "po06/lib/pipeline.js", lines: [1, 40], text: [
+              "// 解释流水线：系统提示 → 模型 → 解析 → 补丁",
+              "// 解析失败会重试一次，仍坏则回一条如实说明的兜底条目"
+            ] }
+          },
+          {
+            id: "flow.packet", kind: "module", title: "意图包（intent packet）",
+            summary: "结构化的 intent / clarify / add / ask，写进会话内存态 intentBySession。",
+            facts: [
+              "机器编的要求会被计数（unsourced）；界面上“无出处”不是一个假数。",
+              "包是**每会话**的，切会话不串味。"
+            ],
+            code: { path: "po06/lib/index.js", lines: [1386, 1402], text: [
+              "const packet = adapter.getWorkingText(sid) || ''",
+              "const noAddition = (understood || !!englishToken) && packet.length === 0",
+              "return { ok: packet.length > 0 || understood, sessionId: sid, packet, chars: packet.length }"
+            ] }
+          },
+          {
+            id: "flow.render", kind: "stage", title: "③ 组装注入文",
+            summary: "注入文 = 意图包 + 顾问流程契约 + 工作流程说明。你最后看到的那段就是它。",
+            facts: [
+              "entry 是 capability.render()，外面包一层 getWorkingText()。",
+              "英文模式会换成英文契约（默认关，开了每轮多一次翻译调用）。",
+              "用户手动改过包时，注入文以改后的为准。"
+            ],
+            code: { path: "po06/lib/index.js", lines: [1772, 1776], text: [
+              "getWorkingText(sessionId, feedback = '') {",
+              "  const packet = this.getIntentText(sessionId)",
+              "  return this.reviewedPackets.has(String(sessionId))",
+              "    ? [packet, feedback].filter(Boolean).join('\n\n')",
+              "    : this.capability.render(String(sessionId), packet, feedback, lang)",
+              "}"
+            ] },
+            refs: ["tree.capability", "flow.review"]
+          },
+          {
+            id: "flow.review", kind: "stage", title: "④ 审查 / 自动",
+            summary: "审查模式先给你看；自动模式产出即放行。",
+            facts: [
+              "审查面板里能直接改注入文——改完写回服务端，注入的就是改后的。",
+              "“按原文发出”会清空本轮包 ⇒ 这一轮没有注入、也不会有卡片。"
+            ],
+            code: { path: "po06/lib/client.js", lines: [2440, 2480], text: [
+              "const confirmHold = async () => {",
+              "  if (edited !== h.packet) await apiPost('/packet', { sessionId, text: edited })",
+              "  releaseHold(outgoingUserText(submitted), { ...submitted, phase: 'sent' }, 'sent')",
+              "}"
+            ] }
+          },
+          {
+            id: "flow.release", kind: "stage", title: "⑤ 放行",
+            summary: "调宿主的 submit，把你那句原文原样发出去。插件从头到尾不改你的话。",
+            facts: [
+              "放行成功后才记注入快照；放行抛错就什么都不记（不许伪成功）。",
+              "之后宿主追加 user/message 事件，模型开始思考。"
+            ],
+            code: { path: "po06/lib/client.js", lines: [2316, 2340], text: [
+              "if (typeof inputActions.setDraft === 'function') inputActions.setDraft(outgoing)",
+              "inputActions.submit()",
+              "const card = injectionCardModel(h)   // 只有真的注入了才有快照",
+              "if (card) { setInject(card); setInjectOpen(false) }"
+            ] },
+            refs: ["flow.inject", "flow.event"]
+          },
+          {
+            id: "flow.inject", kind: "stage", title: "⑥ 注入进请求",
+            summary: "宿主每次装配请求时问一句：“这轮有没有系统上下文？”插件把注入文递过去。",
+            facts: [
+              "挂在 systemPrompt.context 钩子上，按会话解析；取不到会话就返回空。",
+              "启用闸门与档位闸门都在这里硬短路——关档之后不会偷偷继续注入。"
+            ],
+            code: { path: "po06/lib/index.js", lines: [1783, 1795], text: [
+              "ctx.inject(['systemPrompt'], (scope) => {",
+              "  this.contextDisposer = scope.systemPrompt.context({",
+              "    name: CONTEXT_NAME, order: CONTEXT_ORDER,",
+              "    text: (assemblyCtx) => { /* 取会话 id，返回该会话的注入文 */ }",
+              "  })",
+              "})"
+            ] },
+            refs: ["tree.index"]
+          },
+          {
+            id: "flow.event", kind: "event", title: "⑦ 写会话事件 po06/injection",
+            summary: "放行时若这一轮确实有包，就补写一条会话事件——卡片靠它存在。",
+            facts: [
+              "**延后一抽**再写：回调运行在 user/message 的 append 边界内，同步写会以 cannot reenter 失败。",
+              "anchorSeq 取**这条用户消息的 seq**：事件写得晚，但排序在消息正下方、首个思考之前。",
+              "payload 只有四个字段，每轮上限 4KB：超过 4000 字只存前 4000 并标 truncated。",
+              "包为空（跳过 / 按原文发出 / 解释失败）⇒ 不写事件、不出卡片。"
+            ],
+            code: { path: "po06/lib/index.js", lines: [2453, 2485], text: [
+              "const working = adapter.getWorkingText(sid) || ''",
+              "if (working.trim()) {",
+              "  const payload = { anchorSeq, chars: working.length,",
+              "    injected: working.slice(0, 4000), truncated: working.length > 4000 }",
+              "  setTimeout(() => session.append('po06/injection', payload), 0)",
+              "}"
+            ] },
+            widget: "payload",
+            refs: ["flow.field-anchor", "flow.field-chars", "flow.field-injected", "flow.field-truncated"]
+          },
+          {
+            id: "flow.field-anchor", kind: "field", title: "anchorSeq",
+            summary: "这条用户消息的 seq —— 卡片的排序位置就是它。",
+            facts: [
+              "事件本身写得更晚（日志里在 step/start 之后），但排序按 anchorSeq，所以视觉上仍在消息下方。",
+              "缺了它就退回事件自己的 seq，卡片会跑到思考后面去。"
+            ]
+          },
+          {
+            id: "flow.field-chars", kind: "field", title: "chars",
+            summary: "注入文的**完整长度**（不是截断后的长度）。",
+            facts: ["卡片头上显示的就是它；正文可能只有前 4000 字。"]
+          },
+          {
+            id: "flow.field-injected", kind: "field", title: "injected",
+            summary: "注入文本体（最多 4000 字）。",
+            facts: ["这就是模型真正在 system 里读到的那段。"]
+          },
+          {
+            id: "flow.field-truncated", kind: "field", title: "truncated",
+            summary: "布尔值：注入文是否超过 4000 字、被截断后才存进来。",
+            facts: ["为真时卡片底下会多一行“这里显示前 4000 字”。"]
+          },
+          {
+            id: "flow.card", kind: "ui", title: "⑧ 对话流里的卡片",
+            summary: "一条默认收起的小条，点开只显示实际注入文。",
+            facts: [
+              "宿主官方机制：事件定义（kind=po06-injection）+ conversation.chat.node 按 kind 注册视图。",
+              "不点开时连正文 DOM 都不生成。",
+              "这条卡片是我们唯一能落在“消息之后、思考之前”的位置。"
+            ],
+            code: { path: "po06/lib/client.js", lines: [2022, 2065], text: [
+              "const INJECTION_DEFINITION = {",
+              "  kind: 'po06-injection', target: 'chat',",
+              "  match: (event) => event.type === 'po06/injection'",
+              "    ? { id: String(event.seq), role: 'start' } : null,",
+              "  buildViewNode: (context) => ({ kind: 'po06-injection', anchorSeq, data })",
+              "}"
+            ] },
+            widget: "card",
+            refs: ["tree.client", "flow.event", "flow.fallback"]
+          },
+          {
+            id: "flow.fallback", kind: "fallback", title: "降级：输入栏胶囊",
+            summary: "宿主没有 uiConversation 服务时，卡片挂不上，就用输入栏那颗胶囊。",
+            facts: [
+              "同样只显示注入文；不点开也只是一行字。",
+              "它只活在当前页面内存里，刷新就没了——卡片能活，因为事实写在会话事件里。"
+            ],
+            code: { path: "po06/lib/client.js", lines: [3988, 4000], text: [
+              "mount('conversation.input.left', 'prompt-optimizer', 20, ControlBar)",
+              "mountKeyed('conversation.chat.node', INJECTION_KIND, InjectionChatRow)",
+              "// 拿不到 uiConversation 时，只有上面这条 list 挂载仍然有效"
+            ] }
+          },
+          {
+            id: "flow.noevent", kind: "constraint", title: "三条不写事件的路",
+            summary: "跳过、按原文发出、解释失败——都是“没有注入”，所以都没有卡片。",
+            facts: [
+              "跳过和按原文发出会显式标 injectCard:false。",
+              "解释失败的 fail-open 也标 false。",
+              "宁可没有卡片，也不替一次空注入作证——这是这个项目最忌讳的伪成功。"
+            ],
+            code: { path: "po06/lib/client.js", lines: [1988, 2010], text: [
+              "function injectionCardModel(h) {",
+              "  if (h.injectCard === false) return null",
+              "  const injected = typeof h.packet === 'string' ? h.packet : ''",
+              "  if (!injected.trim()) return null",
+              "  return { injected, chars }",
+              "}"
+            ] }
+          },
+          {
+            id: "flow.diag", kind: "diag", title: "诊断：po06-wire.jsonl",
+            summary: "每一轮都在这里留痕。卡片有没有写、为什么没写，一眼能查。",
+            facts: [
+              "成功：trigger=inject-card, ok=true, chars, anchorSeq。",
+              "失败：ok=false + 原因（例如 session append cannot reenter）。",
+              "这个文件是 append-only JSONL，别删，出问题就靠它。"
+            ],
+            widget: "wire",
+            code: { path: "po06/lib/index.js", lines: [2477, 2484], text: [
+              "setTimeout(() => {",
+              "  try { session.append('po06/injection', payload) }",
+              "  catch (e) { appendWireLog({ trigger: 'inject-card', ok: false, reason: String(e.message) }) }",
+              "}, 0)"
+            ] }
+          },
+          {
+            id: "flow.advisor", kind: "stage", title: "旁路：顾问",
+            summary: "工作模型自己决定要不要请一个只读的独立复核；它不改你的东西，也不替你验收。",
+            facts: [
+              "工具是 consult_task 与 advisor_stage，由模型自主调用。",
+              "顾问只看材料：文件、截图、日志；结论分 pass / suggestion / keep / gaps。",
+              "它不登记验收通过——通过与否仍由证据说话。"
+            ],
+            code: { path: "po06/lib/advisor.js", lines: [1, 30], text: [
+              "// 独立复核：读取材料 → 结论 → 与证据/检查项对齐",
+              "// 结论里的每条主张只对它实际引用的材料负责"
+            ] },
+            refs: ["tree.advisor"]
+          },
+          {
+            id: "flow.bash", kind: "module", title: "旁路：内置 Bash",
+            summary: "Windows 上随包带一套 MSYS2，让模型用 bash 而不是 pwsh；关了自动退回系统默认。",
+            facts: [
+              "工具面是 posix / bash 两个；卡片按 wire 工具名分发。",
+              "运行时在 po06/runtime，约 45MB，随 git 走，新机器不用另外装。"
+            ],
+            code: { path: "po06/lib/bash/index.js", lines: [1, 30], text: [
+              "// 内置 bash：解析 → 沙箱 → 执行 → 输出治理",
+              "// 关闭开关后完全不接管，交还宿主默认工具"
+            ] },
+            refs: ["tree.bash", "tree.runtime"]
+          },
+          {
+            id: "flow.tests", kind: "test", title: "验证",
+            summary: "110 个套件；本轮为卡片新增的断言直接钉住“只画注入文”。",
+            facts: [
+              "全量 110/111 绿、1269 条断言；verifier-html 需要浏览器，本机挂死。",
+              "新增断言：卡片正文不许出现“你的原话 / 优化后的意图包”；事件 payload 不许有 original/optimized；接口不再透传 intent。",
+              "这张可视化页也有一个套件校验：引用能解析、路径存在。"
+            ],
+            code: { path: "po06/test/client-injection-card.test.mjs", lines: [1, 30], text: [
+              "// 钉五件事：没注入不出卡；只画注入文；默认收起；",
+              "// anchorSeq 排序；宿主侧延后一抽、空包不写"
+            ] }
+          }
+        ]
+      }
+    },
+
+    tree: {
+      label: "仓库结构",
+      intro: "左边是仓库根（<code>plugins/dsh-prompt-optimizer</code>）。点任意文件节点看它在流程里对应哪一步；反过来，流程里点文件名也会跳到这里。",
+      root: {
+        id: "tree.root", kind: "dir", title: "dsh-prompt-optimizer/",
+        summary: "插件本体：一个 cordis 插件包（服务端 index.js + 客户端 client.js + 内置运行时）。",
+        children: [
+          {
+            id: "tree.po06", kind: "dir", title: "po06/", summary: "代码与文档都在这一层之下。",
+            children: [
+              {
+                id: "tree.lib", kind: "dir", title: "lib/ · 68 个 .js",
+                summary: "服务端入口、客户端 UI、HTTP 控制面、解释流水线、顾问、bash。",
+                children: [
+                  {
+                    id: "tree.index", kind: "file", title: "lib/index.js",
+                    summary: "主机侧入口。注册 systemPrompt 上下文、会话事件钩子、工具、控制 API。",
+                    facts: [
+                      "interpret 在这里（≈983），注入钩子在 1783，写卡片事件在 2453-2485。",
+                      "还负责顾问工具注册、启用闸门、诊断日志。"
+                    ],
+                    refs: ["flow.interpret", "flow.inject", "flow.event"]
+                  },
+                  {
+                    id: "tree.client", kind: "file", title: "lib/client.js",
+                    summary: "浏览器/桌面端 UI：输入栏控件、拦截面板、卡片、设置页。",
+                    facts: [
+                      "挂在四个座位：conversation.input.left、shell.overlay、settings.plugins.tab、conversation.chat.node。",
+                      "卡片组件在 2022，事件定义在 2054，座位注册在 3995。"
+                    ],
+                    refs: ["flow.card", "flow.trigger", "flow.fallback"]
+                  },
+                  {
+                    id: "tree.api", kind: "file", title: "lib/control-api.js",
+                    summary: "HTTP 控制面：/po06/api/*，带 Host/Origin 校验与写操作自定义头。",
+                    facts: [
+                      "/interpret 526、/packet 590、/status 378、/rollback 657。",
+                      "只回 JSON；写操作必须带 x-po06 头（挡 CSRF）。"
+                    ],
+                    refs: ["flow.interpret", "flow.review"]
+                  },
+                  {
+                    id: "tree.pipeline", kind: "file", title: "lib/pipeline.js · interpreter.js",
+                    summary: "解释流水线：系统提示 → 模型 → 解析 → 补丁。",
+                    facts: ["解析失败会重试一次；仍坏就回兜底条目并如实说明。", "协议版本 v3 写在 optimizer-protocol.js。"]
+                  },
+                  {
+                    id: "tree.capability", kind: "file", title: "lib/capability.js",
+                    summary: "注入文组装：意图包 + 顾问契约 + 工作流程，另有英文版渲染。",
+                    facts: ["render(sid, packet, feedback, language) 是唯一出口。"],
+                    refs: ["flow.render"]
+                  },
+                  {
+                    id: "tree.settings", kind: "file", title: "lib/settings.js · policy.js",
+                    summary: "设置的读写与归一化；档位预设、会话级覆盖、注入闸门。",
+                    facts: ["默认值变化会连带一整排契约测试，改之前先想清楚。"],
+                    refs: ["flow.policy"]
+                  },
+                  {
+                    id: "tree.advisor", kind: "dir", title: "lib/advisor*.js · 26 个文件",
+                    summary: "独立复核：材料准备、证据分级、阶段契约、覆盖核对、流式进度。",
+                    facts: ["顾问是只读的旁路；结论必须挂证据，不能自报通过。"],
+                    refs: ["flow.advisor"]
+                  },
+                  {
+                    id: "tree.bash", kind: "dir", title: "lib/bash/ · 10 个文件",
+                    summary: "内置 bash：能力探测、输出治理、进程治理、运行时完整性校验。",
+                    facts: ["运行时本体在 po06/runtime（MSYS2）。"],
+                    refs: ["flow.bash"]
+                  }
+                ]
+              },
+              {
+                id: "tree.test", kind: "dir", title: "test/ · 110 个 .test.mjs",
+                summary: "每个套件自己打印 JSON 汇总；run-suites.mjs 逐字调用它们。",
+                facts: ["全量 110 绿；verifier-html 需要浏览器，在本机挂死。", "本轮新增 client-injection-card.test.mjs 与 how-it-works.test.mjs。"],
+                refs: ["flow.tests"]
+              },
+              {
+                id: "tree.scripts", kind: "dir", title: "scripts/ · 20 个",
+                summary: "发版与自检：run-suites、check-install、verify-artifact、check-docs、release。",
+                facts: ["发版门与 CI 跑的是同一个入口，避免“本地绿、CI 红”。"]
+              },
+              {
+                id: "tree.presets", kind: "file", title: "presets/wish.patch.yml",
+                summary: "实验用的预设：PTC + 去掉技能目录 + 缩短工具输出的记忆。",
+                facts: ["默认不生效，要显式装到 profile 才出现。"]
+              },
+              {
+                id: "tree.patch", kind: "file", title: "cordis.patch.yml",
+                summary: "装配补丁：插件装进宿主时要改哪些线。",
+                facts: ["package.json 的 dsh.bundle.patch 指向它。"]
+              },
+              {
+                id: "tree.pkg", kind: "file", title: "package.json",
+                summary: "包名、版本、dsh.client 声明、exports（. / ./client / ./check）。",
+                facts: ["版本 0.8.4-stable；exports 少了 ./client 会让界面静默消失。"]
+              },
+              {
+                id: "tree.runtime", kind: "dir", title: "runtime/ · MSYS2",
+                summary: "随包带的 Windows bash 运行时（约 45MB，已在 git 里）。",
+                facts: ["新机器 clone 即可用，不必另装 WSL。"]
+              },
+              {
+                id: "tree.doc", kind: "file", title: "doc/how-it-works.html",
+                summary: "就是你现在看的这一页。",
+                facts: ["不打包进 Release（files 白名单里没有 doc/）。"]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+};
+</script>
+
+<script>
+(function () {
+  "use strict";
+  const KINDS = {
+    trigger: "触发", stage: "阶段", event: "事件", field: "字段", module: "模块",
+    file: "文件", dir: "目录", ui: "界面", fallback: "降级", diag: "诊断",
+    constraint: "约束", test: "验证"
+  };
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const badge = (kind) => {
+    const b = el("span", "badge k-" + kind, KINDS[kind] || kind);
+    b.title = KINDS[kind] || kind;
+    return b;
+  };
+
+  const INDEX = new Map();   // id -> { node, view, parent, depth }
+  function indexView(viewKey, node, parent, depth) {
+    INDEX.set(node.id, { node, view: viewKey, parent, depth });
+    (node.children || []).forEach((c) => indexView(viewKey, c, node, depth + 1));
+  }
+  Object.keys(GRAPH.views).forEach((v) => indexView(v, GRAPH.views[v].root, null, 0));
+
+  const state = { view: "flow", query: "", open: new Set(), drawer: null, silentHash: false, seeded: {} };
+
+  // 首屏展开策略（每个视图只做一次）：流程展开第一层，结构只展开第一项
+  function seedOpen(view) {
+    if (state.seeded[state.view]) return;
+    state.seeded[state.view] = true;
+    const kids = view.root.children || [];
+    // 打开所有节点会把 22 条正文一次铺满；首屏只展开前两步，其余留折叠（点一下就有）
+    if (state.view === "flow") kids.slice(0, 2).forEach((n) => state.open.add(n.id));
+    else if (kids[0]) state.open.add(kids[0].id);
+  }
+
+  /* ── 头部 ───────────────────────────────────── */
+  const m = GRAPH.meta;
+  const chips = document.getElementById("metaChips");
+  [
+    ["版本", m.version], ["代码基线", m.commit], ["日期", m.date],
+    ["套件", m.suites + " 个"], ["断言", m.assertions + " 条"]
+  ].forEach(([k, v]) => {
+    const c = el("span", "chip"); c.appendChild(document.createTextNode(k + " "));
+    const b = el("b", null, v); c.appendChild(b); chips.appendChild(c);
+  });
+  document.getElementById("footMeta").textContent =
+    m.name + " · " + m.version + " · " + m.commit + " · " + m.date;
+
+  const legend = document.getElementById("legend");
+  Object.keys(KINDS).forEach((k) => {
+    const s = el("span"); s.appendChild(badge(k)); s.appendChild(document.createTextNode(KINDS[k]));
+    legend.appendChild(s);
+  });
+
+  /* ── 渲染树 ─────────────────────────────────── */
+  const panel = document.getElementById("tree");
+  const intro = document.getElementById("intro");
+
+  function hitIn(node) {
+    const q = state.query;
+    if (!q) return true;
+    const hay = [node.title, node.summary, (node.facts || []).join(" ")].join(" ").toLowerCase();
+    return hay.includes(q);
+  }
+  function subtreeHit(node) {
+    if (hitIn(node)) return true;
+    return (node.children || []).some(subtreeHit);
+  }
+
+  function codeBlock(code) {
+    const wrap = el("div", "codeblock");
+    const head = el("div", "codehead");
+    head.appendChild(el("span", "path", code.path));
+    head.appendChild(el("span", "lines", code.lines ? "L" + code.lines[0] + "–" + code.lines[1] : ""));
+    const copy = el("button", null, "复制路径");
+    copy.onclick = () => {
+      const text = code.path + (code.lines ? ":" + code.lines[0] : "");
+      const done = () => { copy.textContent = "已复制"; setTimeout(() => { copy.textContent = "复制路径"; }, 1200); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done);
+      else {
+        const ta = el("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        ta.remove(); done();
+      }
+    };
+    head.appendChild(copy);
+    wrap.appendChild(head);
+    if (code.text && code.text.length) {
+      const pre = el("pre");
+      pre.textContent = code.text.join("\n");
+      wrap.appendChild(pre);
+    }
+    return wrap;
+  }
+
+  function facts(node) {
+    if (!node.facts || !node.facts.length) return null;
+    const ul = el("ul", "facts");
+    node.facts.forEach((f) => {
+      const li = el("li");
+      li.innerHTML = f.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  function refRow(node) {
+    if (!node.refs || !node.refs.length) return null;
+    const row = el("div", "refs");
+    node.refs.forEach((id) => {
+      const rec = INDEX.get(id);
+      if (!rec) return;
+      const b = el("button", "ref", "→ " + rec.node.title);
+      b.title = "跳到 " + id;
+      b.onclick = (e) => { e.preventDefault(); jumpTo(id); };
+      row.appendChild(b);
+    });
+    return row;
+  }
+
+  /* ── 实物：payload / 卡片 / 诊断 ─────────────── */
+  function widget(kind) {
+    if (kind === "payload") return payloadWidget();
+    if (kind === "card") return cardWidget();
+    if (kind === "wire") return wireWidget();
+    return null;
+  }
+
+  function payloadWidget() {
+    const d = el("div", "demo");
+    d.appendChild(el("div", "cap", "实物 · 真实 payload 的形状（键可点，跳到字段说明）"));
+    const pre = el("pre", "payload");
+    const k = (name, target) => {
+      const b = el("button", "key", name);
+      b.onclick = () => jumpTo(target);
+      return b;
+    };
+    pre.appendChild(document.createTextNode("{\n  "));
+    pre.appendChild(k("anchorSeq", "flow.field-anchor")); pre.appendChild(document.createTextNode(": 1821,\n  "));
+    pre.appendChild(k("chars", "flow.field-chars")); pre.appendChild(document.createTextNode(": 3493,\n  "));
+    pre.appendChild(k("injected", "flow.field-injected")); pre.appendChild(document.createTextNode(": \"（注入文本体，最多 4000 字）…\",\n  "));
+    pre.appendChild(k("truncated", "flow.field-truncated")); pre.appendChild(document.createTextNode(": false\n}"));
+    d.appendChild(pre);
+    return d;
+  }
+
+  function cardWidget() {
+    const d = el("div", "demo");
+    d.appendChild(el("div", "cap", "实物 · 卡片复刻（点一下展开）"));
+    const card = el("div", "demo-card");
+    const head = el("button", "demo-head");
+    head.appendChild(el("span", "ic", "▣"));
+    head.appendChild(el("span", null, "本次注入"));
+    head.appendChild(el("span", "n", "· 3493 字"));
+    const caret = el("span", "caret", "▾");
+    head.appendChild(caret);
+    const body = el("div", "demo-body");
+    body.hidden = true;
+    const pre = el("pre");
+    pre.textContent = "【本轮注入】\n你要做的是：一个单文件黑洞可视化…\n验收口径：能预览、能操控、物理近似正确…\n\n（以下是顾问流程契约与工作流程说明，模型每次请求都会读到）\n…";
+    body.appendChild(pre);
+    body.appendChild(el("div", "demo-note", "超过 4000 字时，这里只显示前 4000 字，并多一行说明。"));
+    head.onclick = () => { body.hidden = !body.hidden; caret.textContent = body.hidden ? "▾" : "▴"; };
+    card.appendChild(head); card.appendChild(body);
+    d.appendChild(card);
+    return d;
+  }
+
+  function wireWidget() {
+    const d = el("div", "demo");
+    d.appendChild(el("div", "cap", "实物 · po06-wire.jsonl 里的一条记录"));
+    const pre = el("pre", "wire");
+    pre.appendChild(document.createTextNode('{"at":"2026-10-18T14:13:30.279Z","sessionId":"session-…","trigger":"'));
+    const t = el("span", "ok", "inject-card"); pre.appendChild(t);
+    pre.appendChild(document.createTextNode('","ok":true,"chars":3493,"anchorSeq":1821}'));
+    d.appendChild(pre);
+    d.appendChild(el("div", "demo-note", "失败时同一个 trigger 会是 ok:false + reason（例如 session append cannot reenter）。"));
+    return d;
+  }
+
+  function renderNode(viewKey, node, depth) {
+    const li = el("li");
+    li.dataset.id = node.id;
+    li.__node = node;
+
+    const det = el("details", "node kind-" + node.kind);
+    det.open = state.open.has(node.id) || (state.query !== "" && subtreeHit(node));
+    det.addEventListener("toggle", () => {
+      if (det.open) state.open.add(node.id); else state.open.delete(node.id);
+    });
+
+    const sum = el("summary");
+    sum.appendChild(badge(node.kind));
+    const title = el("span", "title", node.title);
+    title.title = node.title;
+    sum.appendChild(title);
+    if (node.summary) {
+      const hint = el("span", "hint", node.summary);
+      hint.title = node.summary;
+      sum.appendChild(hint);
+    }
+    det.appendChild(sum);
+
+    const body = el("div", "body");
+    if (node.summary) body.appendChild(el("p", null, node.summary));
+    if (node.code) body.appendChild(codeBlock(node.code));
+    const f = facts(node); if (f) body.appendChild(f);
+    const w = node.widget ? widget(node.widget) : null; if (w) body.appendChild(w);
+    const rr = refRow(node); if (rr) body.appendChild(rr);
+    det.appendChild(body);
+
+    li.appendChild(det);
+
+    const kids = node.children || [];
+    if (kids.length && depth < 3) {
+      const ul = el("ul", "tree");
+      kids.forEach((c) => ul.appendChild(renderNode(viewKey, c, depth + 1)));
+      det.appendChild(ul);
+    } else if (kids.length) {
+      const more = el("div", "more");
+      kids.forEach((c) => {
+        const b = el("button", "ref", (KINDS[c.kind] || c.kind) + " · " + c.title);
+        b.onclick = () => jumpTo(c.id);
+        more.appendChild(b);
+      });
+      det.appendChild(more);
+    }
+    return li;
+  }
+
+  const PIPE = [
+    ["flow.trigger", "① 发送"], ["flow.interpret", "② 解释"], ["flow.render", "③ 组装"],
+    ["flow.review", "④ 审查"], ["flow.release", "⑤ 放行"], ["flow.inject", "⑥ 注入"],
+    ["flow.event", "⑦ 写事件"], ["flow.card", "⑧ 卡片"]
+  ];
+  function renderPipe() {
+    const host = document.getElementById("pipeline");
+    host.innerHTML = "";
+    if (state.view !== "flow") { host.hidden = true; return; }
+    host.hidden = false;
+    PIPE.forEach(([id, label], i) => {
+      if (i) host.appendChild(el("span", "arrow", "→"));
+      const b = el("button", "step", label);
+      b.title = "跳到 " + id;
+      b.onclick = () => jumpTo(id);
+      host.appendChild(b);
+    });
+  }
+
+  function render() {
+    const view = GRAPH.views[state.view];
+    intro.innerHTML = view.intro;
+    seedOpen(view);
+    renderPipe();
+    panel.innerHTML = "";
+    const ul = el("ul", "tree");
+    (view.root.children || []).forEach((n) => ul.appendChild(renderNode(state.view, n, 1)));
+    panel.appendChild(ul);
+    applyFilter();
+    document.getElementById("tab-flow").setAttribute("aria-selected", String(state.view === "flow"));
+    document.getElementById("tab-tree").setAttribute("aria-selected", String(state.view === "tree"));
+  }
+
+  function applyFilter() {
+    const q = state.query;
+    const nodes = panel.querySelectorAll("li[data-id]");
+    nodes.forEach((li) => {
+      const node = li.__node;
+      if (!q) { li.classList.remove("hidden"); li.classList.remove("hit"); return; }
+      const self = hitIn(node);
+      const any = subtreeHit(node);
+      li.classList.toggle("hidden", !any);
+      li.classList.toggle("hit", self);
+      if (any) li.querySelectorAll(":scope > details").forEach((d) => { d.open = true; });
+    });
+  }
+
+  /* ── 跳转 / 抽屉 ────────────────────────────── */
+  function ancestors(id) {
+    const out = [];
+    let rec = INDEX.get(id);
+    while (rec && rec.parent) { out.push(rec.parent.id); rec = INDEX.get(rec.parent.id); }
+    return out;
+  }
+
+  function locate(id) {
+    const rec = INDEX.get(id);
+    if (!rec) return false;
+    if (rec.view !== state.view) switchView(rec.view, true);
+    ancestors(id).forEach((a) => state.open.add(a));
+    state.open.add(id);
+    render();
+    const li = panel.querySelector('li[data-id="' + id + '"]');
+    if (li) {
+      const det = li.querySelector(":scope > details");
+      if (det) det.open = true;
+      li.scrollIntoView({ block: "center", behavior: "smooth" });
+      li.classList.add("flash");
+      setTimeout(() => li.classList.remove("flash"), 1300);
+    }
+    return true;
+  }
+
+  function jumpTo(id) {
+    state.silentHash = true;
+    const rec = INDEX.get(id);
+    if (rec) location.hash = "#/" + rec.view + "/" + id;
+    state.silentHash = false;
+    locate(id);
+    showDrawer(id);
+  }
+
+  function switchView(v, keepHash) {
+    state.view = v;
+    state.query = "";
+    const q = document.getElementById("q"); if (q) q.value = "";
+    render();
+    if (!keepHash) {
+      state.silentHash = true;
+      location.hash = "#/" + v;
+      state.silentHash = false;
+    }
+  }
+
+  const drawer = document.getElementById("drawer");
+  function showDrawer(id) {
+    const rec = INDEX.get(id);
+    if (!rec) return;
+    const n = rec.node;
+    state.drawer = id;
+    drawer.querySelector("#drawerTitle").textContent = n.title;
+    const meta = drawer.querySelector("#drawerMeta");
+    meta.textContent = (KINDS[n.kind] || n.kind) + " · " + n.id;
+    const body = drawer.querySelector("#drawerBody");
+    body.innerHTML = "";
+    if (n.summary) body.appendChild(el("p", null, n.summary));
+    const f = facts(n); if (f) body.appendChild(f);
+    if (n.code) body.appendChild(codeBlock(n.code));
+    const w = n.widget ? widget(n.widget) : null; if (w) body.appendChild(w);
+    const rr = refRow(n); if (rr) body.appendChild(rr);
+    if (n.children && n.children.length) {
+      const h = el("p", null, "下一层：");
+      body.appendChild(h);
+      const row = el("div", "refs");
+      n.children.forEach((c) => {
+        const b = el("button", "ref", (KINDS[c.kind] || c.kind) + " · " + c.title);
+        b.onclick = () => jumpTo(c.id);
+        row.appendChild(b);
+      });
+      body.appendChild(row);
+    }
+    drawer.classList.add("open");
+    drawer.setAttribute("aria-hidden", "false");
+  }
+  function closeDrawer() {
+    drawer.classList.remove("open");
+    drawer.setAttribute("aria-hidden", "true");
+    state.drawer = null;
+  }
+  document.getElementById("drawerClose").onclick = closeDrawer;
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+
+  /* ── 搜索 / 工具 / 路由 ─────────────────────── */
+  document.getElementById("q").addEventListener("input", (e) => {
+    state.query = String(e.target.value || "").trim().toLowerCase();
+    render();
+  });
+  document.getElementById("expandAll").onclick = () => {
+    INDEX.forEach((rec, id) => { if (rec.view === state.view) state.open.add(id); });
+    render();
+  };
+  document.getElementById("collapseAll").onclick = () => {
+    state.open.clear();
+    render();
+  };
+  document.getElementById("tab-flow").onclick = () => switchView("flow");
+  document.getElementById("tab-tree").onclick = () => switchView("tree");
+
+  function onHash() {
+    if (state.silentHash) return;
+    const h = location.hash || "";
+    const m2 = /^#\/(flow|tree)(?:\/([A-Za-z0-9._-]+))?$/.exec(h);
+    if (!m2) return;
+    const view = m2[1], id = m2[2];
+    if (view !== state.view) switchView(view, true);
+    if (id) { locate(id); showDrawer(id); }
+  }
+  window.addEventListener("hashchange", onHash);
+
+  render();
+  onHash();
+})();
+</script>
+</body>
+</html>
