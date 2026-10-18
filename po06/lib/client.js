@@ -3770,7 +3770,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       mount('shell.overlay', NS + '-panel', 40, () => null)   // 面板本体在控件栏里渲染；这一条保证浮层槽可用
       mount('settings.plugins.tab', NS, 40, SettingsTab)
       // 独立 list 项：不覆盖宿主文件卡片，也不接管 assistant 文本或停止边界。
-      mount('conversation.chat.turnTail', NS + '-advisor-delivery', 10, AdvisorDeliveryTail)
+      // 2026-10-18 用户指定：回复尾部不再挂复核旁注卡。
+      void AdvisorDeliveryTail
       // ④ 虚拟 POSIX 工具在对话流里的**专属卡片**（用户 2026-09-24 要求：要能一眼看出用的是虚拟工具，
       //    而不是和 pwsh 一样的"运行命令"）。keyed 座位按 wire 工具名分发，我们只占 `posix`。
       // ── 内置 Bash 的专属卡片（0.7.3）──────────────────────────────────────
