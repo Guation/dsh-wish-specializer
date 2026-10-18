@@ -63,14 +63,14 @@ test('每个 code.path 都是仓库里真实存在的文件', () => {
   assert.deepEqual(missing, [], '图上引用了不存在的文件：' + missing.join(','))
 })
 
-test('流程说清了这一版的关键事实：卡片只显示注入文、延后一抽、anchorSeq 排序', () => {
+test('流程说清了这一版的关键事实：只画注入文、写插件内存、不写会话事件', () => {
   const g = loadGraph()
   const texts = []
   for (const v of Object.values(g.views)) {
     walk(v.root, (n) => texts.push(JSON.stringify(n)))
   }
   const blob = texts.join('\n')
-  for (const must of ['anchorSeq', 'cannot reenter', '只显示实际注入文', 'po06/injection']) {
+  for (const must of ['anchorSeq', 'noteInjection', '只显示实际注入文', 'po06/injection']) {
     assert.ok(blob.toLowerCase().includes(must.toLowerCase()) || blob.includes(must), '图上缺关键事实：' + must)
   }
 })

@@ -1490,6 +1490,10 @@ class DshAdapter {
     // 最近一次 consult_task 的 directive 会随注入文一起进上下文（有 TTL），
     // 于是它对模型的分量从"工具结果里的一段话"变成"系统上下文里的一条要求"。
     this.advisorDirectives = new Map()
+    // 「本次注入」记录：**只存在插件自己的内存里**，绝不写会话日志（见 productionTrigger 里的
+    // P0 事故注释：自定义事件类型会让宿主的读取器拒绝整条会话）。
+    // 只保留每会话最近一条；客户端通过 /po06/api/injection 取回，刷新/重开还能看见。
+    this.injections = new Map()
     // 意图状态的**权威**在本插件手里（内存 + 自己的存储），不再经会话日志/投影（EV-0081）。
     this.stateBySession = new Map()
     this.stateStore = null
@@ -1779,6 +1783,26 @@ class DshAdapter {
       : this.capability.render(String(sessionId),packet,feedback,this.policyNow(sessionId)?.englishMode?'en':null)
     const directive = this.activeAdvisorDirective(sessionId)
     return directive ? [base, directive].filter(Boolean).join('\n\n') : base
+  }
+
+  /** 记下最近一次注入（每会话一条；**不落会话日志**）。 */
+  noteInjection(sessionId, row) {
+    const sid = String(sessionId == null ? '' : sessionId)
+    if (!sid || !row || typeof row.injected !== 'string' || !row.injected.trim()) return
+    this.injections.set(sid, {
+      anchorSeq: Number.isFinite(row.anchorSeq) ? row.anchorSeq : null,
+      chars: Number.isFinite(row.chars) ? row.chars : row.injected.length,
+      injected: row.injected.slice(0, 4000),
+      truncated: row.truncated === true,
+      at: Number.isFinite(row.at) ? row.at : Date.now(),
+    })
+  }
+
+  /** 取最近一次注入记录（给 /po06/api/injection）。 */
+  getInjection(sessionId) {
+    const sid = String(sessionId == null ? '' : sessionId)
+    const row = this.injections.get(sid)
+    return row ? { ...row } : null
   }
 
   /** 记下最近一次顾问指令（有 TTL；新的覆盖旧的）。 */
@@ -2225,6 +2249,7 @@ export function apply(ctx, config) {
           },
           // P11：读回"这一轮注入的包"（回退后把新正文读回界面）
           getPacket: (p) => adapter.getIntentText(p && p.sessionId),
+        getInjection: (p) => adapter.getInjection(p && p.sessionId),
           // P11：包级回退（宿主侧保存了每会话最近 10 版非空包）
           rollbackPacket: (p) => {
             const r = adapter.rollbackPacket(p && p.sessionId)
@@ -2483,37 +2508,29 @@ export function apply(ctx, config) {
           const nearInTime = hitFresh && hitAge < 15000
           if (sameText || nearInTime) {
             interceptedText.delete(sid)
-            // 第 5 项（2026-10-18 用户明确要"卡片"）：这一轮**真的注入了**就写一条会话事件，
-            // 客户端据此在对话流里画「本次注入」卡片——位置落在本条用户消息之后、首个思考之前。
-            // 两个必须的细节：
-            //   ① **延后一抽**：本回调运行在 user/message 的 append 边界内，同步 append 会以
-            //      "session append cannot reenter" 失败；
-            //   ② **anchorSeq = 本条消息的 seq**：事件虽然晚一点写进日志，但排序按 anchorSeq，
-            //      所以卡片仍然排在这条消息正下方，而不是跑到思考后面去。
-            // 包为空（按原文发出 / 没产出）⇒ 不写事件、不出卡片，免得替一次空注入作证。
+            // ⚠ 2026-10-19 事故修复（P0）：**绝不能往会话日志里写自定义事件类型**。
+            // 宿主读取器对未知类型是 fail-closed 的：信封上没有 `ignorable: true` 就整条会话
+            // 拒绝解释（SessionFormatUnsupportedError），用户重启后打不开会话。
+            // 而 `Session.append()` 的信封只接受 surfaceOp / sourceEventSeqs，**插件无法设置
+            // ignorable** —— 宿主自己的插件指南写得很清楚："Do not append session events with a
+            // new type … the Session would refuse to reopen"。
+            // 我们曾用它画「本次注入」卡片（po06/injection），代价是会话损坏 + 外部工具修复。
+            // 现在改为：注入记录写进**插件自己的内存态**，客户端用 /po06/api/injection 取回；
+            // 会话日志一个字节都不碰。
             try {
               const working = adapter.getWorkingText(sid) || ''
-              // 用户 2026-10-18：卡片只显示**实际注入文**——原话与意图包都不再画，也不再写进事件。
-              if (working.trim()) {
-                const CAP = 4000
+              if (working.trim() && typeof adapter.noteInjection === 'function') {
                 const anchorSeq = Number(event.seq)
-                const payload = {
+                adapter.noteInjection(sid, {
                   anchorSeq,
                   chars: working.length,
-                  injected: working.slice(0, CAP),
-                  truncated: working.length > CAP,
-                }
-                setTimeout(() => {
-                  try {
-                    session.append('po06/injection', payload)
-                    appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: true, chars: payload.chars, anchorSeq })
-                  } catch (e) {
-                    // 写不进日志 ⇒ 退回"没有卡片"，不重试、不打断会话
-                    appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: false, reason: String((e && e.message) || e) })
-                  }
-                }, 0)
+                  injected: working.slice(0, 4000),
+                  truncated: working.length > 4000,
+                  at: Date.now(),
+                })
+                appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: true, chars: working.length, anchorSeq })
               }
-            } catch { /* 卡片是旁路，绝不打断会话 */ }
+            } catch { /* 记录是旁路，绝不打断会话 */ }
             appendWireLog({ sessionId: sid, trigger: 'user-message', ok: true, skipped: sameText ? 'intercepted-already' : 'intercepted-recently', chars: text.length })
             return
           }

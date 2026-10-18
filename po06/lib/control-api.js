@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -649,6 +649,14 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         if (typeof getPacket !== 'function') return send(501, { ok: false, reason: 'not-implemented', note: '本 profile 未接上 pipeline' })
         const text = String(getPacket({ sessionId: sid }) || '')
         return send(200, { ok: true, chars: text.length, packet: text })
+      }
+      if (method === 'GET' && path === API_PREFIX + '/injection') {
+        // 「本次注入」记录：**来自插件自己的内存**，不读会话日志（日志里不允许出现自定义事件）。
+        // 刷新页面/重开会话后客户端靠它把胶囊恢复出来。
+        const sid = String(query.get('session') || '').trim()
+        if (!sid) return send(400, { ok: false, reason: 'session-required' })
+        const row = typeof getInjection === 'function' ? getInjection({ sessionId: sid }) : null
+        return send(200, { ok: true, injection: row || null })
       }
       if (method === 'POST' && path === API_PREFIX + '/rollback') {
         const body = await readBody(req)

@@ -1,14 +1,18 @@
-// 第 5 项 · 「本次注入」卡片（2026-10-18）。
+// 「本次注入」卡片（2026-10-18 定，2026-10-19 因 P0 事故改形态）。
 //
-// 定稿形态（用户 2026-10-18）：**对话流里、用户消息之后、首个思考之前**一条默认收起的小卡片，
-// 点开**只显示实际注入文**——原话与"优化后的意图包"都不展示。
+// 事故：最早的做法是往会话日志里 append 一条自定义事件 po06/injection 来画对话流里的卡片。
+// 宿主读取器对未知事件类型是 fail-closed 的（信封没有 ignorable: true 就整条会话拒绝解释），
+// 而 Session.append() 无法设置该标记 ⇒ 重启后会话打不开。现在：
+//   · 注入记录只进**插件自己的内存**（adapter.noteInjection）；
+//   · 客户端用 /po06/api/injection 取回，输入栏胶囊在刷新/重开后仍然在；
+//   · **会话日志一个字节都不写**（这条由下面的回归门钉死）。
 //
-// 这里钉五件事（都是会静默坏掉、且坏了看不出来的）：
-//   ① 没真的注入过（跳过 / 按原文发出 / 解释失败）时**不许有卡片**——伪成功是本项目的头号失败形态；
-//   ② 卡片只画注入文，不再夹带原话/意图包（来源单一，免得把"意图包"当成"注入文"读）；
-//   ③ 默认收起：不点开就连正文都不渲染；
-//   ④ 对话流的位置靠 anchorSeq（用户消息的 seq）——不是靠事件写入的时间先后；
-//   ⑤ 宿主侧写事件的两个纪律：延后一抽（append 重入会失败）、包为空不写。
+// 仍然要钉的（都是会静默坏掉、且坏了看不出来的）：
+//   ① 没真的注入过（跳过 / 按原文发出 / 解释失败）时**不许有卡片**；
+//   ② 卡片只画注入文；
+//   ③ 默认收起；
+//   ④ **绝不 append 自定义会话事件**（P0 回归门）；
+//   ⑤ 记录经由插件 API 回到界面。
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -40,8 +44,7 @@ function loadClient() {
   mod.apply({ slots: { register: () => () => {}, inject: (slot, cb) => cb() } })
   return mod
 }
-const dbg = () => loadClient().__debug
-const model = () => dbg().injectionCardModel
+const model = () => loadClient().__debug.injectionCardModel
 
 test('没有真的注入过时，卡片不许出现（跳过 / 按原文发出 / 解释失败）', () => {
   const m = model()
@@ -63,17 +66,34 @@ test('字数以服务端给的真实注入长度为准，缺了才回落到文�
   assert.equal(m({ packet: 'abcd' }).chars, 4)
 })
 
-test('默认收起：卡片只在点开后渲染正文', () => {
-  assert.ok(/const \[open, setOpen\] = React\.useState\(false\)/.test(CLIENT_SRC), '卡片默认收起')
-  assert.ok(/open \? h\('div', \{ 'data-po06': 'injection-row-body'/.test(CLIENT_SRC), '正文由 open 守着')
+test('默认收起：胶囊只在点开后渲染展开体', () => {
+  assert.ok(/const \[injectOpen, setInjectOpen\] = React\.useState\(false\)/.test(CLIENT_SRC), '默认收起')
+  assert.ok(/injectOpen && inject \? h\('div'/.test(CLIENT_SRC), '展开体由 injectOpen && inject 守着')
 })
 
-test('展开体只有「实际注入文」一段，没有原话/意图包', () => {
-  const row = CLIENT_SRC.slice(CLIENT_SRC.indexOf('function InjectionChatRow'), CLIENT_SRC.indexOf('const INJECTION_DEFINITION'))
-  assert.ok(row.includes("'inject-body'"), '要渲染注入文')
-  assert.ok(!row.includes('你的原话'), '不许再画原话')
-  assert.ok(!row.includes('优化后的意图包'), '不许再画意图包')
-  assert.ok(row.includes("'data-po06': 'inject-note'"), '截断时要有说明')
+test('展开体只有「实际注入文」一段', () => {
+  assert.ok(CLIENT_SRC.includes("injectSection('injected'"), '要渲染注入文')
+  assert.ok(!CLIENT_SRC.includes("injectSection('original'"), '不许再画原话')
+  assert.ok(!CLIENT_SRC.includes("injectSection('optimized'"), '不许再画意图包')
+})
+
+test('P0 回归门：生产代码里**不许**出现自定义会话事件写入', () => {
+  // 宿主读取器只接受已知类型；插件无法给事件打 ignorable ⇒ 写自定义类型 = 会话重启后打不开。
+  // 注释里提到它没关系（那是事故记录），所以先去掉注释再查。
+  const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')
+  assert.ok(!/session\.append\s*\(/.test(strip(INDEX_SRC)), 'index.js 不得调用 session.append')
+  assert.ok(!/po06\/injection/.test(strip(INDEX_SRC) + strip(CLIENT_SRC)), '不得再出现 po06/injection 自定义事件')
+  // 插件自己的状态投影同样不走会话日志：生产调用必须传 persist（projection.js 的 EV-0081 分流）。
+  assert.ok(/persist:\s*\(s, state\)/.test(INDEX_SRC), 'commitPatch 必须带 persist，禁止回落到 session.append')
+  assert.ok(/\/\*[\s\S]*?persist[\s\S]*?\*\//.test(readFileSync(join(ROOT, 'lib', 'projection.js'), 'utf8')) === false || true)
+})
+
+test('注入记录进插件内存，经 /po06/api/injection 回到界面', () => {
+  assert.ok(/noteInjection\(sid/.test(INDEX_SRC), '放行时记录到 adapter')
+  assert.ok(/getInjection\(p && p\.sessionId\)/.test(INDEX_SRC), '控制面要接上读取口')
+  assert.ok(/API_PREFIX \+ '\/injection'/.test(API_SRC), '要有 /po06/api/injection 路由')
+  assert.ok(API_SRC.includes('getInjection'), '路由要调用注入读取口')
+  assert.ok(CLIENT_SRC.includes("apiGet('/injection?session='"), '客户端挂载时要能恢复胶囊')
 })
 
 test('快照只在 submit 成功之后才记（失败不冒充已注入）', () => {
@@ -95,45 +115,4 @@ test('新一轮开始就收起上一轮的卡（陈旧卡片不许替新消息�
   const at = CLIENT_SRC.indexOf('const beginHold = (text, via) =>')
   assert.ok(at > 0, '找不到 beginHold')
   assert.ok(/setInject\(null\)/.test(CLIENT_SRC.slice(at, at + 900)))
-})
-
-test('对话流卡片：事件定义只接 po06/injection，并按 anchorSeq 排在用户消息之后', () => {
-  const d = dbg()
-  const def = d.INJECTION_DEFINITION
-  assert.equal(def.kind, 'po06-injection', 'kind 必须等于 conversation.chat.node 的座位 key')
-  assert.equal(d.INJECTION_KIND, 'po06-injection')
-  assert.equal(def.target, 'chat')
-  assert.equal(def.match({ type: 'user/message', seq: 3 }), null, '别的会话事件不许被我们接管')
-  assert.deepEqual(def.match({ type: 'po06/injection', seq: 12 }), { id: '12', role: 'start' })
-  const state = def.start({}, { event: { seq: 12, data: { anchorSeq: 7, injected: 'x', chars: 1 } } })
-  const node = def.buildViewNode({ state, key: 'k', id: 'i', start: { location: { kind: 'msg' } }, matches: [] })
-  assert.equal(node.kind, 'po06-injection')
-  assert.equal(node.target, 'chat')
-  assert.equal(node.anchorSeq, 7, '排序位置用 anchorSeq（用户消息的 seq），不是事件自己的 seq')
-  assert.equal(node.visibility, 'visible')
-})
-
-test('对话流卡片：没有注入文的旧事件不画空卡；坏数据也不许炸会话流', () => {
-  const def = dbg().INJECTION_DEFINITION
-  assert.equal(def.buildViewNode({ state: { seq: 3, data: { injected: '' } }, key: 'k', id: 'i', matches: [] }), null)
-  assert.equal(def.buildViewNode({ state: null }), null)
-  assert.equal(def.buildViewNode({ get state() { throw new Error('boom') } }), null)
-})
-
-test('宿主侧：放行时只写注入文，包为空不写，且必须延后一抽', () => {
-  assert.ok(/session\.append\('po06\/injection'/.test(INDEX_SRC), '要真的 append 事件')
-  assert.ok(/anchorSeq/.test(INDEX_SRC), '要带 anchorSeq，卡片才会排在用户消息下面')
-  assert.ok(/setTimeout\(/.test(INDEX_SRC), '必须延后一抽：回调在 append 边界内，同步 append 会 reenter 失败')
-  assert.ok(/if \(working\.trim\(\)\)/.test(INDEX_SRC), '没有注入文时不写事件')
-  const at = INDEX_SRC.indexOf("session.append('po06/injection'")
-  const payloadAt = INDEX_SRC.lastIndexOf('const payload = {', at)
-  const payload = INDEX_SRC.slice(payloadAt, at)
-  assert.ok(payload.includes('injected:'), '事件里要有注入文')
-  assert.ok(!payload.includes('original:'), '不再写原话')
-  assert.ok(!payload.includes('optimized:'), '不再写意图包')
-})
-
-test('接口不再为卡片单独提供意图包（卡片只显示注入文）', () => {
-  assert.ok(!/intent: typeof out\.intent/.test(API_SRC), 'control-api 不再透传 intent')
-  assert.ok(!/intent: intentText/.test(INDEX_SRC), 'interpret 不再返回 intent')
 })

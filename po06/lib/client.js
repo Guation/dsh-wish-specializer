@@ -2006,74 +2006,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     }
 
 
-    /**
-     * 第 5 项 · 对话流里的「本次注入」卡片。
-     *
-     * 为什么必须走宿主的 chat row 机制（而不是输入栏那颗胶囊）：用户要的是"发布之后、
-     * 首个思考之前"的那张卡，而这个位置**只有会话事件**能占——输入栏再显眼也在对话流之外。
-     * 宿主对此有正式通道：注册事件定义（`ctx.uiConversation.events.register`）+ 在
-     * `conversation.chat.node` 下按 `kind` 注册视图。事件由宿主侧在放行时写入
-     * （`session.append('po06/injection', …)`），所以**刷新/重开会话后卡片仍在**。
-     *
-     * 默认收起；点开是三段，来源各自独立、不许互相冒充：
-     *   original = 用户原话；optimized = 优化后的意图包；injected = 实际注入文。
-     */
-    const INJECTION_KIND = 'po06-injection'
-    function InjectionChatRow(props) {
-      const node = (props && props.node) || null
-      const d = (node && node.data) || null
-      const [open, setOpen] = React.useState(false)
-      useLocaleLive()
-      useThemeLive()
-      if (!d || typeof d.injected !== 'string' || !d.injected.trim()) return null
-      const chars = Number.isFinite(d.chars) ? d.chars : d.injected.length
-      const section = (key, title, body) => h('section', { 'data-po06': 'inject-section', 'data-section': key },
-        h('div', { style: S.ovPaneTitle }, title),
-        h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '240px', overflow: 'auto', fontFamily: 'inherit' } },
-          body || L('（空）', '(empty)')))
-      return h('div', { 'data-po06': 'injection-row', style: S.injRow },
-        h('button', {
-          type: 'button', 'data-po06': 'injection-row-head', 'data-open': open ? '1' : '0',
-          'aria-expanded': open ? 'true' : 'false',
-          title: L('看看这一轮到底往上下文里塞了什么（点开）', 'See exactly what this round put into the context (click)'),
-          style: S.injHead, onClick: () => setOpen((v) => !v),
-        },
-          h(InjectIcon),
-          h('span', { 'data-po06': 'injection-row-title', style: S.optBtnText }, L('本次注入', 'Injected')),
-          h('span', { 'data-po06': 'injection-row-chars', style: S.optSummary }, String(chars) + L(' 字', ' chars')),
-          h('span', { 'aria-hidden': 'true', style: S.optCaret }, open ? '▴' : '▾')),
-        open ? h('div', { 'data-po06': 'injection-row-body', style: S.injBody },
-          h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '320px', overflow: 'auto', fontFamily: 'inherit' } },
-            d.injected),
-          d.truncated ? h('div', { 'data-po06': 'inject-note', style: S.ovHintQuiet },
-            L('这里显示前 4000 字；完整内容就是模型实际收到的那段。', 'First 4000 characters; this is what the model actually received.')) : null,
-        ) : null)
-    }
-
-    /** 「po06/injection」事件 → 对话流里的一行。宿主按 `kind` 把视图分发到上面的组件。 */
-    const INJECTION_DEFINITION = {
-      kind: INJECTION_KIND,
-      target: 'chat',
-      match: (event) => (event && event.type === 'po06/injection') ? { id: String(event.seq), role: 'start' } : null,
-      start: (_context, match) => ({ seq: match.event.seq, data: (match.event && match.event.data) || {} }),
-      update: (context) => context.state,
-      buildViewNode: (context) => {
-        // 这一层必须自己吞错：任何异常都不许把会话流搞崩（卡片是旁路）
-        try {
-          const state = context && context.state
-          if (!state) return null
-          const d = state.data || {}
-          if (typeof d.injected !== 'string' || !d.injected.trim()) return null
-          const anchor = Number.isFinite(d.anchorSeq) ? d.anchorSeq : state.seq
-          const loc = (context.start && context.start.location)
-            || (context.matches && context.matches[0] && context.matches[0].location)
-            || { kind: 'unresolved' }
-          return { key: context.key, kind: INJECTION_KIND, id: context.id, target: 'chat',
-            anchorSeq: anchor, location: loc, visibility: 'visible', data: d }
-        } catch (e) { return null }
-      },
-    }
-
     // ── ① 输入区左侧的控件栏（0.5 的操作形态）─────────────────────────
     // 为什么把"小胶囊"换成一排控件（用户实测反馈「不适应 0.6 的操控/检测模式」）：
     // 胶囊只回答"它在不在"，而人要的是**随手拨**——档位、权限、上下文、读不读项目文件、用哪个模型。
@@ -2156,6 +2088,19 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [injectPos, setInjectPos] = React.useState(null)
       const injectBtnRef = React.useRef(null)
       const injectCardRef = React.useRef(null)
+      // 2026-10-19：卡片数据不再写会话事件（宿主会因此拒绝整条会话），改由插件自己的
+      // /po06/api/injection 提供。挂载时拉一次 ⇒ 刷新/重开会话后胶囊还在。
+      React.useEffect(() => {
+        if (!sessionId) return undefined
+        let alive = true
+        apiGet('/injection?session=' + encodeURIComponent(sessionId)).then((r) => {
+          if (!alive || !r || r.ok !== true || !r.injection) return
+          const row = r.injection
+          if (!row || typeof row.injected !== 'string' || !row.injected.trim()) return
+          setInject({ injected: row.injected, chars: Number(row.chars) > 0 ? row.chars : row.injected.length })
+        }, () => { /* 读不到就不显示，不打扰 */ })
+        return () => { alive = false }
+      }, [sessionId])
       /** 第 5 项：把展开体摆到胶囊旁边（fixed + 实测坐标，右缘收进会话窗——issue #18）。 */
       const placeInject = () => {
         const el = injectBtnRef.current
@@ -3988,21 +3933,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       mount('conversation.input.left', 'prompt-optimizer', 20, ControlBar)
       mount('shell.overlay', NS + '-panel', 40, () => null)   // 面板本体在控件栏里渲染；这一条保证浮层槽可用
       mount('settings.plugins.tab', NS, 40, SettingsTab)
-      // ⑤ 第 5 项：对话流里的「本次注入」卡片。视图挂在宿主官方的 chat row 座位上
-      //    （按 kind 分发），事件定义通过 uiConversation 服务注册——**这是唯一能落在
-      //    "用户消息之后、首个思考之前"的位置**。拿不到该服务的宿主上，这一条静默跳过，
-      //    输入栏的胶囊仍然可用（能力降级，不报错、不白屏）。
-      mountKeyed('conversation.chat.node', INJECTION_KIND, InjectionChatRow)
-      try {
-        own(ctx.inject(['uiConversation'], (scope) => {
-          try {
-            const svc = scope && scope.uiConversation
-            if (!svc || !svc.events || typeof svc.events.register !== 'function') return
-            const off = svc.events.register(INJECTION_DEFINITION)
-            if (typeof off === 'function') own(off)
-          } catch (e) { try { console.warn('[po06] injection row definition failed:', e) } catch (err) { /* noop */ } }
-        }))
-      } catch (e) { /* 没有 uiConversation 的宿主：卡片不出现，胶囊仍在 */ }
+      // ⚠ 「本次注入」卡片**不再**挂在 conversation.chat.node 上（2026-10-19 事故后移除）。
+      // 宿主渲染对话流里的行需要一条**会话事件**，而插件的 Session.append() 无法给事件打
+      // ignorable 标记 ⇒ 写自定义类型会让整条会话重启后打不开。现在卡片回到输入栏胶囊，
+      // 数据从 /po06/api/injection 恢复（见 ControlBar 的 mount effect）。
       // 独立 list 项：不覆盖宿主文件卡片，也不接管 assistant 文本或停止边界。
       // 2026-10-18 用户指定：回复尾部不再挂复核旁注卡。
       void AdvisorDeliveryTail
@@ -4178,7 +4112,7 @@ const react = require("react")
         ADVISOR_POLL_MS, ADVISOR_POLL_ERROR_MS, ADVISOR_POLL_IDLE_MS, ADVISOR_POLL_FULL_MS, ADVISOR_REQUEST_TIMEOUT_MS,
         advisorMergeProgress, advisorProgressKey, advisorNextDelayMs, advisorDeltaMiss,
         holdBridgeRead, holdBridgeWrite, holdBridgeOn,
-        INJECTION_KIND, INJECTION_DEFINITION, InjectionChatRow,
+
         advisorDeliveryKey, advisorDeliveryBinding, advisorDeliveryValue, advisorDeliveryLabel, useAdvisorDelivery, AdvisorDeliveryTail, ADVISOR_DELIVERY_TIMEOUT_MS,
         themeTokens: THEME_TOKENS,
         tokenVars: TOKEN_VARS,
