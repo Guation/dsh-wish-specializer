@@ -566,6 +566,8 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         return send(out.ok === true ? 200 : 400, {
           ok: out.ok === true, reason: out.reason || null,
           packet: typeof out.packet === 'string' ? out.packet : '',
+          // 2026-10-18：第 5 项（注入折叠卡片）的数据出口。真实注入文由 interpret 提供，缺省为 null。
+          injected: typeof out.injected === 'string' ? out.injected.slice(0, 4000) : null,
            englishMode:out.englishMode===true,outgoingText:typeof out.outgoingText==='string'?out.outgoingText:null,translation:out.translation||null,
           understood: out.understood === true, noAddition: out.noAddition === true,
           understanding: out.understanding || null, support: out.support || null,
