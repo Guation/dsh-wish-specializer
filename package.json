@@ -12,6 +12,9 @@
     "./client": {
       "default": "./po06/lib/client.js"
     },
+    "./check": {
+      "default": "./po06/lib/wish-check.js"
+    },
     "./cordis.patch.yml": "./po06/cordis.patch.yml",
     "./package.json": "./package.json"
   },

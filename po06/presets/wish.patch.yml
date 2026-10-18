@@ -134,6 +134,8 @@
                 config:
                   subagentProvider: spawn
                   maxRounds: 64
+          - id: tool-wish-check
+            name: '@dsh-external/dsh-arbiter-wf/check'
           - id: tool-ask-user
             name: '@deepseek-ai/dsh-tool-ask-user'
           - id: tool-todo
