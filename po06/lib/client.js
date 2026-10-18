@@ -1986,23 +1986,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      * 第 5 项：本轮注入卡片的**数据模型**（纯函数——单测直接调用，不依赖 DOM）。
      *
      * 只认**已经发布出去**的那一轮：没有注入文就返回 null（界面据此不画卡片，
-     * 而不是画一张空卡片）。三段来源各不相同，不能互相冒充：
-     *   original = 用户原话（客户端自己发出去的）
-     *   optimized = 优化后的意图包（`/interpret` 的 `intent`）
-     *   injected  = 实际注入文（`packet` = getWorkingText：意图包 + 顾问契约 + 工作流程）
+     * 而不是画一张空卡片）。用户 2026-10-18 定稿：**只显示实际注入文**——
+     * 原话与"优化后的意图包"都不再展示（注入文本身已经含意图包 + 顾问契约 + 工作流程）。
      */
     function injectionCardModel(h) {
       if (!h || typeof h !== 'object') return null
       if (h.injectCard === false) return null
       const injected = typeof h.packet === 'string' ? h.packet : ''
       if (!injected.trim()) return null
-      const original = typeof h.text === 'string' ? h.text : ''
-      const optimized = typeof h.intent === 'string' ? h.intent.trim() : ''
       const chars = (typeof h.chars === 'number' && h.chars > 0) ? h.chars : injected.length
-      const english = (h.englishMode === true && typeof h.outgoingText === 'string' && h.outgoingText.trim())
-        ? h.outgoingText : ''
-      const truncated = h.intentTruncated === true
-      return { original, optimized, injected, chars, english, truncated }
+      return { injected, chars }
     }
 
     /** 「本次注入」那颗小胶囊的图标：一张卡片 + 一支进入的箭头（注入 = 进到上下文里）。 */
@@ -2050,10 +2043,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           h('span', { 'data-po06': 'injection-row-chars', style: S.optSummary }, String(chars) + L(' 字', ' chars')),
           h('span', { 'aria-hidden': 'true', style: S.optCaret }, open ? '▴' : '▾')),
         open ? h('div', { 'data-po06': 'injection-row-body', style: S.injBody },
-          section('original', L('你的原话', 'Your words'), d.original),
-          (typeof d.optimized === 'string' && d.optimized.trim())
-            ? section('optimized', L('优化后的意图包', 'Optimized intent'), d.optimized) : null,
-          section('injected', L('实际注入文', 'Injected text'), d.injected),
+          h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '320px', overflow: 'auto', fontFamily: 'inherit' } },
+            d.injected),
+          d.truncated ? h('div', { 'data-po06': 'inject-note', style: S.ovHintQuiet },
+            L('这里显示前 4000 字；完整内容就是模型实际收到的那段。', 'First 4000 characters; this is what the model actually received.')) : null,
         ) : null)
     }
 
@@ -2383,7 +2376,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if(englishRef.current!==h.englishMode){settleFailure(text,h,L('英文模式已改变，请重试或按原文发送','English mode changed; retry or send the original'));return}
           // P11 修复（2026-09-26）：token 用量挂在**结果**上。
           // 进度面（prog）在离开 optimizing 那一刻就被清空，用量若只存那里，界面永远读不到。
-          const done = { ...h, phase: 'review', englishMode:r.englishMode===true,outgoingText:r.outgoingText||text,translation:r.translation||null,noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null, packet: r.packet || '', intent: typeof r.intent === 'string' ? r.intent : '', intentTruncated: r.intentTruncated === true, chars: r.chars || 0, ms: r.ms || null, unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null, edited: r.packet || '', usage: r.usage || null, usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null }
+          const done = { ...h, phase: 'review', englishMode:r.englishMode===true,outgoingText:r.outgoingText||text,translation:r.translation||null,noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null, packet: r.packet || '', chars: r.chars || 0, ms: r.ms || null, unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null, edited: r.packet || '', usage: r.usage || null, usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null }
           holdRef.current = done; setHold(done)
           // 「自动」= 完成即发；「审查」= 等用户确认（0.5 §5 的权限语义）
           if (permissionRef.current !== 'review') releaseHold(outgoingUserText(done), done, 'sent')
@@ -2896,13 +2889,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               h('span', {}, L('本次注入了什么', 'What this round injected')),
               h('span', { 'data-po06': 'inject-card-chars', style: { ...S.optSummary, marginLeft: 'auto' } },
                 String(inject.chars) + L(' 字', ' chars'))),
-            injectSection('original', L('你的原话', 'Your words'), inject.original),
-            inject.optimized
-              ? injectSection('optimized', L('优化后的意图包', 'Optimized intent'), inject.optimized,
-                inject.truncated ? L('这段只显示前 4000 字（完整内容在注入文里）。', 'Showing the first 4000 characters; the full text is in the injected section.') : null)
-              : null,
             injectSection('injected', L('实际注入文', 'Injected text'), inject.injected),
-            inject.english ? injectSection('english', L('实际发送的英文任务', 'English task sent'), inject.english) : null,
             h('div', { 'data-po06': 'inject-foot', style: S.ovHintQuiet },
               L('这一轮已经发布出去了：上面就是它真正带走的全部内容。', 'This round is already published; the above is exactly what went out.')),
           ) : null,

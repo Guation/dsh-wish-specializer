@@ -1384,11 +1384,6 @@ async function runInterceptInput(ctx, payload) {
     interceptedText.set(sid,{text:translation.text,originalText:text,at:Date.now()})
   }
   const packet = adapter.getWorkingText(sid) || ''
-  // 2026-10-18 第 5 项：把「优化后的意图包」与「实际注入文」分开送出去。
-  // packet 已经是 getWorkingText 的结果（意图包 + 顾问契约 + 工作流程），
-  // 所以卡片要展示「原话 → 优化后的包 → 注入文」就必须单独取一次意图包本身。
-  let intentText = ''
-  try { intentText = adapter.getIntentText(sid) || '' } catch { intentText = '' }
   const understood = !!produced?.understanding && ['understood','committed','noop'].includes(produced.outcome)
   const noAddition = (understood||!!englishToken) && packet.length === 0
   progressSet(sid, { stage: packet.length ? 'done' : 'noop', startedAt: t0 })
@@ -1405,7 +1400,7 @@ async function runInterceptInput(ctx, payload) {
     englishMode:!!englishToken,outgoingText:translation?.text||text,translation:translation?{...translation,originalText:text}:null,
     understood, noAddition, understanding: produced?.understanding || null, support: produced?.support || null,
     reason: (packet.length || understood || englishToken) ? null : (gate && gate.enabled !== true ? 'gate:' + (gate.code || 'disabled') : (route.ok ? 'no-packet' : 'route:' + route.reason)),
-    sessionId: sid, packet, intent: intentText, chars: packet.length, ms: Date.now() - t0, unsourced,
+    sessionId: sid, packet, chars: packet.length, ms: Date.now() - t0, unsourced,
     gate: gate && gate.code ? gate.code : null,
     route: route.source || null,
     routePicked: route.picked || null,
@@ -2462,17 +2457,15 @@ export function apply(ctx, config) {
             // 包为空（按原文发出 / 没产出）⇒ 不写事件、不出卡片，免得替一次空注入作证。
             try {
               const working = adapter.getWorkingText(sid) || ''
-              const intent = adapter.getIntentText(sid) || ''
+              // 用户 2026-10-18：卡片只显示**实际注入文**——原话与意图包都不再画，也不再写进事件。
               if (working.trim()) {
                 const CAP = 4000
                 const anchorSeq = Number(event.seq)
                 const payload = {
                   anchorSeq,
                   chars: working.length,
-                  original: String(text || '').slice(0, CAP),
-                  optimized: intent.slice(0, CAP),
                   injected: working.slice(0, CAP),
-                  truncated: working.length > CAP || intent.length > CAP,
+                  truncated: working.length > CAP,
                 }
                 setTimeout(() => {
                   try {
