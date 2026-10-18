@@ -80,9 +80,10 @@ export const REASONING_KEYS = Object.freeze(['reasoningBoost', 'reasoningMode', 
 
 /** 默认值：字段**缺失**时用它。字段**写错**时也用它，但会记一条 `problems`（见文件头 ①）。 */
 export const DEFAULT_SETTINGS = Object.freeze({
+  // 2026-10-18 用户指定：新装默认「重度」（detail=detailed / budget=generous）。
   assist: 'auto',
-  detail: 'standard',
-  budget: 'standard',
+  detail: 'detailed',
+  budget: 'generous',
   model: null,          // null = 跟随会话模型（0.6 现状）；{ provider, model } = 固定解释层模型
   // 0.7.5：**思考档位，按模型各配各的**（用户 2026-09-26 反馈：一直用 max 档，思考仍时有时无）。
   // 为什么必须是映射而不是一个全局值：档位是**每个 provider/model 路由**自己的划分
@@ -112,11 +113,11 @@ export const DEFAULT_SETTINGS = Object.freeze({
   englishMode: false,
   permission: 'auto',   // P10
   historyMode: 'turns', // P10
-  turns: 6,             // P10：回合模式的窗口
+  turns: 10,            // 2026-10-18 用户指定：默认读最近 10 回合
   // ⚠ 读项目文件默认 **关**：它会给每轮加上"只读工具轮次"（时间与 token 都要花），
   // 而计划的不变量是"不得悄悄放大成本/自主权"。0.5 那边默认是开——要完全照搬的话
   // 把这一行改成 true 即可，属于一行决定，已在此写明以免下次又被当成"忘了"。
-  readTools: false,     // P10
+  readTools: true,      // 2026-10-18 用户指定：默认开只读工具
   // 0.7.1：内置 Bash（随本插件装配即提供）。默认 **开**——它是"内置功能"，
   // 关掉＝不把 bash 工具注册给模型（模型看不到它），不是在工具内部做软拦截。
   bash: true,

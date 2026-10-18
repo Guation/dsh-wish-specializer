@@ -29,8 +29,8 @@ test('会话档位真的改变生效行为，且不影响其它会话与全局',
   const a = effectiveSettings(raw, A)
   assert.equal(tierOf(a), 'heavy', 'A 的推导档位应是 heavy')
   assert.equal(a.detail, 'detailed')
-  assert.equal(tierOf(effectiveSettings(raw, B)), 'standard', 'B 不该被 A 的覆盖影响')
-  assert.ok(policyFor(raw, A).packetBudgetChars > policyFor(raw, B).packetBudgetChars,
+  assert.equal(tierOf(effectiveSettings(raw, B)), 'heavy', 'B 用默认档 heavy（2026-10-18 起）')
+  assert.ok(policyFor({ bySession: { [A]: { tier: 'light' } } }, A).packetBudgetChars < policyFor(raw, B).packetBudgetChars,
     '档位必须体现到产出预算上，而不只是显示')
 })
 

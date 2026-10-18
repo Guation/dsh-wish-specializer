@@ -24,15 +24,15 @@ const DIRS = []
 process.on('exit', () => { for (const d of DIRS) { try { rmSync(d, { recursive: true, force: true }) } catch { /* best effort */ } } })
 
 // ── ① 默认 = 今天的行为（这一条最要紧：没设置不该改变任何东西）────────────
-t('默认政策 = 现有行为：预算 1200（与 compiler 默认同值）、一批 2 个问题、注入开启', () => {
+t('默认政策随新装默认（重度）：预算 2000、一批 3 个问题、注入开启', () => {
   const p = policyFor({})
   eq(p.injectPacket, true, '默认要注入（用户显式启用 0.6 才会走到这里）')
   eq(p.assist, DEFAULT_ASSIST, '默认自动辅助')
-  eq(p.detail, DEFAULT_DETAIL, '默认档位')
-  eq(p.budget, DEFAULT_BUDGET, '默认预算档')
-  eq(p.packetBudgetChars, COMPILER_DEFAULT_BUDGET, '包预算必须与 compiler 的默认**同值**（否则"没设置"就变了行为）')
-  eq(p.packetBudgetChars, 1200, '字面值也钉住：改它必须是有意识的动作')
-  eq(p.maxQuestions, 2, '提问配额默认 2（与 clarifier 默认一致）')
+  eq(p.detail, 'detailed', '默认档位（2026-10-18 起默认重度）')
+  eq(p.budget, 'generous', '默认预算档（2026-10-18 起默认重度）')
+  eq(p.packetBudgetChars, DETAIL_BUDGET.detailed, '包预算 = detailed（2026-10-18 起默认重度）')
+  eq(p.packetBudgetChars, 2000, '字面值也钉住：改它必须是有意识的动作')
+  eq(p.maxQuestions, 3, '提问配额默认 3（generous，2026-10-18 起）')
 })
 
 // ── ② 每个档位都有可测的行为对应 ─────────────────────────────────────
@@ -49,14 +49,14 @@ t('detail 三档 → 三档预算，且单调（minimal < standard < detailed）
   const c = policyFor({ detail: 'detailed' }).packetBudgetChars
   ok(a < b && b < c, '必须单调递增：' + [a, b, c].join(' < '))
   eq(a, DETAIL_BUDGET.minimal, 'minimal 值')
-  eq(policyFor({ detail: 'nonsense' }).packetBudgetChars, b, '非法值 ⇒ 回落 standard')
+  eq(policyFor({ detail: 'nonsense' }).packetBudgetChars, c, '非法值 ⇒ 回落默认（detailed）')
 })
 
 t('budget 三档 → 提问配额 1/2/3', () => {
   eq(policyFor({ budget: 'minimal' }).maxQuestions, BUDGET_QUESTIONS.minimal, 'minimal ⇒ 1')
   eq(policyFor({ budget: 'standard' }).maxQuestions, 2, 'standard ⇒ 2')
   eq(policyFor({ budget: 'generous' }).maxQuestions, BUDGET_QUESTIONS.generous, 'generous ⇒ 3')
-  eq(policyFor({ budget: 'x' }).maxQuestions, 2, '非法值 ⇒ 回落 2')
+  eq(policyFor({ budget: 'x' }).maxQuestions, 3, '非法值 ⇒ 回落默认（generous ⇒ 3）')
 })
 
 // ── ③ 读配置：坏文件/缺文件都要能给出**默认政策**，不抛 ──────────────────
@@ -65,11 +65,11 @@ t('readPolicy：缺文件/坏 JSON/字段乱写 ⇒ 一律默认政策（绝不�
   const home = dir
   const p0 = readPolicy({ home })
   eq(p0.source, 'default', '没有配置文件 ⇒ 来源是 default')
-  eq(p0.packetBudgetChars, COMPILER_DEFAULT_BUDGET, '默认预算')
+  eq(p0.packetBudgetChars, 2000, '默认预算（重度）')
 
   writeFileSync(join(home, 'po06.json'), '{ 坏的', 'utf8')
   const p1 = readPolicy({ home })
-  eq(p1.packetBudgetChars, COMPILER_DEFAULT_BUDGET, '坏 JSON ⇒ 默认（不猜、不放宽）')
+  eq(p1.packetBudgetChars, 2000, '坏 JSON ⇒ 默认（不猜、不放宽）')
 
   writeFileSync(join(home, 'po06.json'), JSON.stringify({ settingsVersion: 1, enabled: true, detail: 'detailed', budget: 'minimal', assist: 'off' }), 'utf8')
   const p2 = readPolicy({ home })
