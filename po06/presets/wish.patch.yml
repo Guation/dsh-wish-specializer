@@ -7,7 +7,7 @@
       config:
         id: wish
         name: Wish
-        description: 许愿模式：同样是 PTC，但只留最少工具（无技能目录、无目标轮次、无联网），先验证工具面是不是漂移的来源
+        description: 许愿模式：PTC + 更少的常驻目录（关技能目录）+ 更短的旧工具输出记忆
         order: 5
         plugins:
           - id: persona
@@ -41,10 +41,8 @@
             disabled: true
           - id: command-goal
             name: '@deepseek-ai/dsh-command-goal'
-            disabled: true
           - id: tool-goal
             name: '@deepseek-ai/dsh-tool-goal'
-            disabled: true
           - id: planning
             name: cordis:group
             group: true
@@ -80,9 +78,9 @@
               - id: tool-result-pruner
                 name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
                 config:
-                  thresholdChars: 8192
-                  headChars: 4096
-                  tailChars: 1024
+                  thresholdChars: 2048
+                  headChars: 1024
+                  tailChars: 256
           - id: delegation
             name: cordis:group
             group: true
@@ -144,7 +142,6 @@
               allowParallelInProgress: true
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
-            disabled: true
             config:
               fetch: true
               searchTimeoutMs: 60000

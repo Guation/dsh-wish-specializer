@@ -14,8 +14,16 @@ test('it stays a PTC preset',()=>{
  assert.match(text,/- id: tool-presentation[\s\S]{0,120}mode: ptc/,'PTC 的呈现方式必须保留，否则测的就不是"工具面"')
 })
 test('the narrowed surface is exactly the declared set',()=>{
- const expected=['skill-filesystem','tool-skill','command-goal','tool-goal','tool-web','tool-subagent-codex','tool-subagent-claude-code','workflow-ptc','tool-workflow','tool-ralph','tool-plugin-manager']
+ const expected=['skill-filesystem','tool-skill','tool-subagent-codex','tool-subagent-claude-code','workflow-ptc','tool-workflow','tool-ralph','tool-plugin-manager']
  assert.deepEqual(disabled.slice().sort(),expected.slice().sort())
+})
+test('goals and web stay available — they are not the experiment',()=>{
+ for(const id of ['command-goal','tool-goal','tool-web'])assert.ok(!disabled.includes(id),id+' 不能被关掉')
+})
+test('the experiment is shorter tool-result memory, not fewer capabilities',()=>{
+ assert.match(text,/thresholdChars: 2048/)
+ assert.match(text,/headChars: 1024/)
+ assert.match(text,/tailChars: 256/)
 })
 test('nothing is deleted from the composition, only disabled',()=>{
  const ids=[...text.matchAll(/- id: (\S+)/g)].map(m=>m[1]).filter(id=>!id.startsWith('preset-'))
