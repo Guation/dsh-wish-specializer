@@ -1486,6 +1486,10 @@ class DshAdapter {
     this.capability = createCapability({ home: DSH_HOME, namespace: process.env.DSH_PROFILE_DIR || process.env.DSH_PROFILE || 'default' })
     /** P11 包级回退：每会话最近 10 版**非空**包（旧到新）。 */
     this.packetHistory = new Map()
+    // 第 5 项之后的新增（2026-10-18 用户要求）：顾问不该只是个摆设。
+    // 最近一次 consult_task 的 directive 会随注入文一起进上下文（有 TTL），
+    // 于是它对模型的分量从"工具结果里的一段话"变成"系统上下文里的一条要求"。
+    this.advisorDirectives = new Map()
     // 意图状态的**权威**在本插件手里（内存 + 自己的存储），不再经会话日志/投影（EV-0081）。
     this.stateBySession = new Map()
     this.stateStore = null
@@ -1771,8 +1775,27 @@ class DshAdapter {
 
   getWorkingText(sessionId, feedback = '') {
     const packet=this.getIntentText(sessionId)
-    return this.reviewedPackets.has(String(sessionId)) ? [packet,feedback].filter(Boolean).join('\n\n')
+    const base = this.reviewedPackets.has(String(sessionId)) ? [packet,feedback].filter(Boolean).join('\n\n')
       : this.capability.render(String(sessionId),packet,feedback,this.policyNow(sessionId)?.englishMode?'en':null)
+    const directive = this.activeAdvisorDirective(sessionId)
+    return directive ? [base, directive].filter(Boolean).join('\n\n') : base
+  }
+
+  /** 记下最近一次顾问指令（有 TTL；新的覆盖旧的）。 */
+  noteAdvisorDirective(sessionId, text) {
+    const sid = String(sessionId == null ? '' : sessionId)
+    const body = String(text == null ? '' : text).trim()
+    if (!sid || !body) return
+    this.advisorDirectives.set(sid, { text: body.slice(0, 1600), at: Date.now() })
+  }
+
+  /** 取当前仍然有效的顾问指令（20 分钟内；不消费，读多少次都一样）。 */
+  activeAdvisorDirective(sessionId) {
+    const sid = String(sessionId == null ? '' : sessionId)
+    const row = this.advisorDirectives.get(sid)
+    if (!row) return ''
+    if (Date.now() - row.at > 20 * 60 * 1000) { this.advisorDirectives.delete(sid); return '' }
+    return row.text
   }
 
   /** 当前有意图包的会话数（诊断用）。 */
@@ -2036,8 +2059,21 @@ export function apply(ctx, config) {
           cwd: resolveSessionCwd(session), readTools: pol.readTools === true }
       },
     })
+    // 顾问的 directive 不只是返回值：记进 adapter，随后随注入文进系统上下文（20 分钟 TTL）。
+    // 用户 2026-10-18 的要求是"让顾问真正有作用"，这一步把它的分量从工具结果提到上下文层。
+    const executeWithDirective = async (...args) => {
+      const out = await execute(...args)
+      try {
+        const sid = String(args && args[1] && args[1].agent && args[1].agent.session && args[1].agent.session.id || '')
+        if (sid && out && out.ok === true && typeof out.directive === 'string' && out.directive.trim()) {
+          adapter.noteAdvisorDirective(sid, out.directive)
+        }
+      } catch { /* 记不上也不影响这次答复 */ }
+      return out
+    }
+    try { if (typeof execute.dispose === 'function') executeWithDirective.dispose = execute.dispose } catch { /* 只读就算了 */ }
     scope.effect(() => {
-      const dispose = registerAdvisorTool(scope, execute)
+      const dispose = registerAdvisorTool(scope, executeWithDirective)
       const stageDispose = registerAdvisorStageTool(scope, advisorStages, {
         resolveAccess: async session => {
           const sid=String(session.id); const pol=readPolicy({home:DSH_HOME,sessionId:sid})

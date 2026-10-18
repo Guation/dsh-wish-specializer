@@ -26,7 +26,10 @@ t('系统提示词包含关键约束条款', () => {
   ok(SYSTEM_PROMPT.includes('不扭曲用户原意'), 'original intent remains authoritative')
   ok(SYSTEM_PROMPT.includes('否定') && SYSTEM_PROMPT.includes('明确决定'), 'preserve restrictions and decisions')
   ok(SYSTEM_PROMPT.includes('解释与建议不是用户要求'), 'interpretations cannot claim user authority')
-  ok(SYSTEM_PROMPT.includes('构造、推导') && SYSTEM_PROMPT.includes('反例与前提'), 'allow useful expansion with visible tradeoffs')
+  // 2026-10-18 口径改变：优化产出的是**方向性补充**，不是替工作模型写实现。
+  ok(SYSTEM_PROMPT.includes('不给代码') && SYSTEM_PROMPT.includes('不写实现步骤'), 'no implementation work')
+  ok(SYSTEM_PROMPT.includes('反例与前提'), 'check tradeoffs before recommending')
+  ok(SYSTEM_PROMPT.includes('方向'), 'adds direction rather than instructions')
   ok(!SYSTEM_PROMPT.includes('sourceRefs'), 'host mechanics stay outside the model prompt')
   ok(INTERPRETER_VERSION.length > 0, 'versioned')
 })

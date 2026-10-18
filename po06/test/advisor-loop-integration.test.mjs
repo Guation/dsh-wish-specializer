@@ -91,7 +91,13 @@ test('read rounds preserve exact native blocks and replay state on the same conf
 test('a complete stream with malformed advice JSON stays diagnostic and never records usable advice',async()=>{
  const invoke=createAdvisor({resolveRuntime:async()=>({ok:true,readTools:false,cfg:{provider:'offline',model:'m'},llm:{stream:()=>stream({not:'the-report'})}})})
  const out=await invoke({mode:'improve_result',question:'Improve actual current text',currentResult:'Actual current text'},exec)
- assert.equal(out.ok,false);assert.equal(out.diagnosticOnly,true);assert.equal(out.adviceReady,false);assert.equal(out.improvementAvailable,false);assert.equal(out.contributionRecord?.ok,false);assert.ok(out.raw)
+ // 2026-10-18 新契约：格式坏了也把正文送回去（降级采纳），但绝不冒充改进或验收。
+ assert.equal(out.ok,true,'格式坏了也要有答复')
+ assert.equal(out.degraded,true)
+ assert.equal(out.adviceReady,true)
+ assert.equal(out.improvementAvailable,false,'降级答复不得冒充改进')
+ assert.equal(out.reviewPassed,false)
+ assert.ok(out.raw)
 })
 
 test('nonempty invalid support retains frozen visible defects in direct and staged state without accepting the call',async()=>{
@@ -102,7 +108,8 @@ test('nonempty invalid support retains frozen visible defects in direct and stag
   const observed=report('failed',['I0']);observed.findings=[{text:'A visible overlapping part.',evidenceRefs:['I0'],needsSource:true}]
   const invoke=createAdvisor({stages,resolveRuntime:async()=>runtime(root,{stream:()=>stream(observed)}),runLoop:async()=>({text:bad,trace:[],usageSum:{totalTokens:7}})})
   const out=await invoke({...args,...stageArgs},exec)
-  assert.equal(out.ok,false);assert.equal(out.partial,true);assert.equal(out.visualObservation.checks[0].status,'failed');assert.equal(out.reviewPassed,false);assert.equal(out.usage.totalTokens,12)
+  // 第二阶段报告坏了：正文降级采纳，但冻结的视觉失败保留，整次仍标 partial、不可验收。
+  assert.equal(out.ok,true);assert.equal(out.degraded,true);assert.equal(out.partial,true);assert.equal(out.visualObservation.checks[0].status,'failed');assert.equal(out.reviewPassed,false);assert.equal(out.usage.totalTokens,12)
   assert.ok(out.openIssues.some(c=>c.status==='failed'),'first independent visible failure remains an open issue')
   if(staged){assert.equal(out.stageState.stage.checks[0].status,'failed');assert.equal(out.stageState.advanceAllowed,false)}
  }}finally{rmSync(root,{recursive:true,force:true})}

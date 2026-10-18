@@ -81,9 +81,10 @@ t('档位策略是"唯一真相来源"：非法档位不猜，落回默认并如
 t('策略指令随档位变化，且**不设输出上限**（ADR-0085）', () => {
   const light = strategyInstructions(strategyForTier('light')).join('\n')
   const heavy = strategyInstructions(strategyForTier('heavy')).join('\n')
-  ok(/表达说得更清楚/.test(light), 'light focuses on faithful clarification')
-  ok(/关键机会/.test(heavy) && /筛选贡献/.test(heavy), 'historical heavy explores and selects useful constructions')
-  ok(/反问/.test(light), 'light names consequential questions; the historical shared core applies to every tier')
+  // 2026-10-18：档位也改成"愿望扩充"口径——轻=只补最要命的方向，重=覆盖全部维度并提示分阶段。
+  ok(/方向要求/.test(light), 'light adds only the most consequential directional requirements')
+  ok(/阶段拆分/.test(heavy) && /不写代码/.test(heavy), 'heavy covers all dimensions and stages the work, without implementation')
+  ok(/不做实现指导/.test(light), 'light refuses implementation guidance')
   ok(!/maxTokens|max_tokens|maxOutputTokens/.test(light + heavy), '**不许**出现输出 token 上限（ADR-0085）')
   ok(!/条目上限|最多.*条/.test(light + heavy), 'new tier text has no content quotas')
 })

@@ -59,9 +59,14 @@ test('unseen results and invalid mode/stage usage do not start the quality model
 
 test('quality parser rejects unsupported verdicts, fake evidence and keep-with-changes', () => {
  const check = over => parseAdvisorReport(JSON.stringify(report(over)), new Set(['R0']), 'improve_result')
- assert.equal(check({}).ok, true); assert.equal(check({ verdict: 'pass' }).ok, false)
- assert.equal(check({ checks: [{ criterion: '新验收', status: 'failed', evidenceRefs: ['R0'] }] }).ok, false)
- assert.equal(check({ contribution: '' }).ok, false)
+ assert.equal(check({}).ok, true)
+ // 2026-10-18 新契约：格式不齐不再作废整份，而是就地降级并记账（顾问的思考已经花掉了）。
+ const pass = check({ verdict: 'pass' })
+ assert.equal(pass.ok, true); assert.equal(pass.report.verdict, 'unverified', 'pass 不能带进建议模式')
+ const extraChecks = check({ checks: [{ criterion: '新验收', status: 'failed', evidenceRefs: ['R0'] }] })
+ assert.equal(extraChecks.ok, true); assert.equal(extraChecks.report.checks.length, 0, '建议模式不产出验收项')
+ const noContribution = check({ contribution: '' })
+ assert.equal(noContribution.ok, true); assert.equal(noContribution.report.verdict, 'unverified', 'suggestion 没有内容就降级')
  // 证据不足：降级保留正文，而不是整次作废。
  const thin = check({ findings: [] })
  assert.equal(thin.ok, true); assert.equal(thin.report.verdict, 'unverified')
@@ -69,7 +74,9 @@ test('quality parser rejects unsupported verdicts, fake evidence and keep-with-c
  const fake = check({ findings: [{ text: '伪证据', evidenceRefs: ['Rfake'] }] })
  assert.equal(fake.ok, true); assert.deepEqual(fake.report.findings[0].evidenceRefs, [])
  assert.ok(fake.report.evidenceIssues.some(i => i.reason === 'citation-not-found'))
- assert.equal(check({ verdict: 'keep' }).reason, 'advisor-keep-with-changes')
+ // keep 却带了要实施的改动 ⇒ 改判 suggestion（保留那句改动，而不是整份拒掉）
+ const keepWithChanges = check({ verdict: 'keep' })
+ assert.equal(keepWithChanges.ok, true); assert.equal(keepWithChanges.report.verdict, 'suggestion')
  assert.equal(check({ verdict: 'unverified', contribution: '', findings: [] }).ok, true)
 })
 
@@ -112,7 +119,7 @@ test('optimizer has one compact contract, preserves tier purposes and never forc
   assert.ok(r.text.includes(OPTIMIZER_TIERS[language][tier]))
   assert.doesNotMatch(r.text, /MAX_ITEMS|sourceRefs|最多.*条|At most.*items/)
  }
- assert.match(OPTIMIZER_CORE.zh, /可直接采用/); assert.match(OPTIMIZER_TIERS.zh.light, /表达/)
+ assert.match(OPTIMIZER_CORE.zh, /方向性要求/); assert.match(OPTIMIZER_TIERS.zh.light, /方向要求/)
  const previous = ['你是提示词优化助手。结合用户原话与相关上下文，帮助工作 AI 更准确、更完整地满足用户期待，给出本轮真正有价值的澄清、补充与建议。','“不扭曲用户原意”是权威。保留用户的目标、否定、强调、偏好和已明确决定；你的解释与建议不能冒充用户要求。可以推断、补充与发挥，但要说明与原意的关系，把未确定前提和实质取舍显露出来。','按所选档位主动寻找增益，补充力度随任务调整。只把会改变结果、且需要用户回答的分歧列为反问；能从上下文解决、查明或合理决定的，不转嫁给用户。未查明的项目情况保持待核。','交付有用的结论和必要理由，篇幅与任务相称。理解本轮追问和纠正，更新当前意图；未被用户采纳的旧建议不成为要求。重复已有信息通常不增加价值，没有值得补充的内容时可以为空。'].join('\n')
  assert.equal(resolvePrompt({ home: '/unused', readFile: () => previous }).text, OPTIMIZER_CORE.zh)
  assert.equal(resolvePrompt({ home: '/unused', readFile: () => previous + '\n我自己的改动' }).source, 'file')

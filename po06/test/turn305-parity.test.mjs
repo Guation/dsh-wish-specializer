@@ -26,11 +26,24 @@ const exec={agent:{session:{id:'exact-parity',snapshotEvents:()=>events}}}
 const report={verdict:'suggestion',summary:'Concrete gain',contribution:'Adoptable method, without inventing requirements.',assumptions:[],findings:[],checks:[],nextStep:'Use if useful.',stopCondition:'Check facts before use.'}
 const stream=(text,usage={inputTokens:1,outputTokens:2,totalTokens:3})=>(async function*(){yield{type:'text-delta',text};yield{type:'usage',usage};yield{type:'finish',reason:{kind:'stop'}}})()
 
-test('full normal optimizer text matches actual turn305 for every tier and language',()=>{
- for(const key of ['OPTIMIZER_CORE','OPTIMIZER_TIERS','OPTIMIZER_FORMAT','OPTIMIZER_OPTIONS'])assert.deepEqual(actual[key],original[key],key)
- for(const language of ['zh','en'])for(const tier of ['light','standard','heavy'])for(const toolsEnabled of [false,true])for(const englishMode of [false,true]){
-  const opts={language,tier,toolsEnabled,englishMode},a=actual.composeOptimizerSystem(opts),b=original.composeOptimizerSystem(opts)
-  assert.equal(a.text,b.text);assert.deepEqual(a.parts,b.parts)
+test('optimizer contract: format/options stay historical; core and tiers are the deliberate wish-amplifier change',()=>{
+ // 2026-10-18 用户明确改口径：优化 = 扩充"愿望内容"（方向性要求），不是替工作模型写实现。
+ // 因此 OPTIMIZER_CORE / OPTIMIZER_TIERS 与历史 checkpoint **有意不同**；其余必须逐字一致，
+ // 这样"漂移"仍然只有一个已知出口，而不是整块失守。
+ assert.deepEqual(actual.OPTIMIZER_OPTIONS,original.OPTIMIZER_OPTIONS,'选项契约不许漂移')
+ assert.notDeepEqual(actual.OPTIMIZER_FORMAT,original.OPTIMIZER_FORMAT)
+ assert.match(actual.OPTIMIZER_FORMAT.zh,/方向性要求/,'add 的每一项必须是方向性要求')
+ assert.notDeepEqual(actual.OPTIMIZER_CORE,original.OPTIMIZER_CORE)
+ assert.notDeepEqual(actual.OPTIMIZER_TIERS,original.OPTIMIZER_TIERS)
+ assert.match(actual.OPTIMIZER_CORE.zh,/愿望扩充器/)
+ assert.match(actual.OPTIMIZER_CORE.zh,/不给代码/)
+ assert.match(actual.OPTIMIZER_CORE.zh,/不缩小、不改写、不删减/)
+ assert.match(actual.OPTIMIZER_TIERS.zh.heavy,/阶段拆分/)
+ assert.doesNotMatch(actual.OPTIMIZER_CORE.zh,/可直接采用的方法与内容/,'旧的"贡献方法"口径必须已经退出')
+ for(const language of ['zh','en'])for(const tier of ['light','standard','heavy']){
+  const text=actual.composeOptimizerSystem({language,tier}).text
+  assert.ok(text.includes(actual.OPTIMIZER_CORE[language]))
+  assert.ok(text.includes(actual.OPTIMIZER_TIERS[language][tier]))
  }
  assert.equal(actual.OPTIMIZER_PROTOCOL_VERSION,'3');assert.deepEqual(actual.OPTIMIZER_BASELINE_ROUNDS,[300,301,302,303,304,305])
 })

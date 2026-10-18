@@ -92,7 +92,10 @@ test('新解题顾问走真实执行与投影出口，但不能计入成果通�
  assert.equal(meta.contribution,r.contribution);assert.match(definition.presentResult({},{meta}).content[0].text,/先解决阻塞条件/)
  assert.match(acceptanceBanner(out),/不是验收结果/)
  assert.ok(definition.parameters.properties.mode.enum.includes('develop_approach'))
- assert.equal(parseAdvisorReport(JSON.stringify({...r,verdict:'pass'}),new Set(),'develop_approach').ok,false)
- assert.equal(parseAdvisorReport(JSON.stringify({...r,contribution:''}),new Set(),'develop_approach').ok,false)
+ // 2026-10-18 新契约：格式问题就地降级，不再作废整次答复；但错误结论不会被带进去。
+ const badVerdict=parseAdvisorReport(JSON.stringify({...r,verdict:'pass'}),new Set(),'develop_approach')
+ assert.equal(badVerdict.ok,true);assert.equal(badVerdict.report.verdict,'unverified')
+ const noContribution=parseAdvisorReport(JSON.stringify({...r,contribution:''}),new Set(),'develop_approach')
+ assert.equal(noContribution.ok,true);assert.equal(noContribution.report.verdict,'unverified')
 })
 

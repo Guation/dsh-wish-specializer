@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { advisorSnapshot, parseAdvisorReport, createAdvisor, registerAdvisorTool } from '../lib/advisor.js'
+import { advisorSnapshot, parseAdvisorReport, advisorDirective, ADVISOR_SYSTEM, createAdvisor, registerAdvisorTool } from '../lib/advisor.js'
 
 const human = text => ({ type: 'user/message', data: { source: { kind: 'user' }, content: [{ type: 'text', text }] } })
 const call = (id, name='bash') => ({ type: 'tool/call', data: { callId: id, name, arguments: '{"command":"test"}' } })
@@ -36,7 +36,14 @@ test('伪引用、空验收、未验证通过、矛盾结论必须拒绝', () =>
     assert.equal(out.ok, true, JSON.stringify(over))
     assert.notEqual(out.report.verdict, 'pass', JSON.stringify(over))
   }
-  assert.equal(parseAdvisorReport('not json',ids,'review_result').ok,false)
+  // 2026-10-18 新契约：**格式坏了也必须有答复**。正文被当成摘要、verdict 降为 unverified，
+  // 既不作废一次已经花掉的思考，也不冒充任何证据或通过。
+  const prose = parseAdvisorReport('画面发灰，阴影边缘有锯齿。建议先查色调映射。', ids, 'review_result')
+  assert.equal(prose.ok, true, '非 JSON 也要有答复')
+  assert.equal(prose.degraded, true)
+  assert.equal(prose.report.verdict, 'unverified', '救回的报告不能冒充通过')
+  assert.ok(prose.report.summary.includes('画面发灰'), '正文要原样回到调用方')
+  assert.deepEqual(prose.report.checks, [], '救回模式不得虚构验收项')
   // 判通过 + 只有观察性 findings（无 failed 验收项）⇒ **应当接受**（2026-09-30 真机：这类报告被误拒过）
   assert.equal(parseAdvisorReport(JSON.stringify(report({ findings:[{ text:'文案口径不一致，不影响该事实', evidenceRefs:['E2'] }] })),ids,'review_result').ok,true)
 })
@@ -199,4 +206,29 @@ test('预先取消不调用模型，卸载会取消在途顾问', async () => {
   const pending=active({mode:'review_result',question:'审查'},exec)
   await started;active.dispose()
   assert.equal((await pending).reason,'advisor-cancelled')
+})
+test('顾问指令：把报告压成可执行的要求，而不是一段"仅供参考"', () => {
+  const directive = advisorDirective({
+    verdict: 'gaps',
+    summary: '两处阴影偏差尚未修复。',
+    checks: [{ criterion: '车身曲面连续', status: 'failed', evidenceRefs: ['F0'] }],
+    findings: [{ text: '车门接缝处有明显硬边', evidenceRefs: ['F0'] }],
+    nextStep: '先修曲面连续性，再拍同角度截图对比',
+    stopCondition: '同角度前后对比无硬边',
+  }, 'review_result')
+  assert.ok(directive.includes('必须修：车身曲面连续'), '未通过的验收项要变成"必须修"')
+  assert.ok(directive.includes('注意：车门接缝处有明显硬边'), '观察项要进指令')
+  assert.ok(directive.includes('下一步：先修曲面连续性'), '下一步要进指令')
+  assert.ok(directive.includes('停止条件：'), '停止条件要进指令')
+  assert.ok(directive.includes('不是“仅供参考”'), '要明确它不是摆设')
+  // 降级报告：注记格式不完整，但不冒充通过
+  const degraded = advisorDirective({ verdict: 'unverified', summary: '画面发灰。', degraded: true, checks: [], findings: [] }, 'review_result')
+  assert.ok(degraded.includes('已降级采纳'))
+  assert.ok(!degraded.includes('必须修'))
+})
+
+test('顾问提示词必须让顾问分清「用户原话」与「执行者提问」', () => {
+  assert.ok(ADVISOR_SYSTEM.includes('用户原话'), '要写明用户原话是目标依据')
+  assert.ok(ADVISOR_SYSTEM.includes('执行者的提问'), '要写明 question 只是执行者的问题')
+  assert.ok(ADVISOR_SYSTEM.includes('冲突时以用户原话为准'), '冲突裁决要写死')
 })
