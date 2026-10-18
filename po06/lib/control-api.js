@@ -568,6 +568,10 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
           packet: typeof out.packet === 'string' ? out.packet : '',
           // 2026-10-18：第 5 项（注入折叠卡片）的数据出口。真实注入文由 interpret 提供，缺省为 null。
           injected: typeof out.injected === 'string' ? out.injected.slice(0, 4000) : null,
+          // 卡片要展示的「优化后的意图包」（与 packet=注入文分开；缺省 null，界面据此少画一段）。
+          intent: typeof out.intent === 'string' ? out.intent.slice(0, 4000) : null,
+          // 截断要如实标出来：一段被截到 4000 的意图包看起来仍然"完整"，那是另一种伪成功。
+          intentTruncated: typeof out.intent === 'string' && out.intent.length > 4000,
            englishMode:out.englishMode===true,outgoingText:typeof out.outgoingText==='string'?out.outgoingText:null,translation:out.translation||null,
           understood: out.understood === true, noAddition: out.noAddition === true,
           understanding: out.understanding || null, support: out.support || null,

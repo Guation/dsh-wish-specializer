@@ -1976,6 +1976,36 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       return true
     }
 
+    /**
+     * 第 5 项：本轮注入卡片的**数据模型**（纯函数——单测直接调用，不依赖 DOM）。
+     *
+     * 只认**已经发布出去**的那一轮：没有注入文就返回 null（界面据此不画卡片，
+     * 而不是画一张空卡片）。三段来源各不相同，不能互相冒充：
+     *   original = 用户原话（客户端自己发出去的）
+     *   optimized = 优化后的意图包（`/interpret` 的 `intent`）
+     *   injected  = 实际注入文（`packet` = getWorkingText：意图包 + 顾问契约 + 工作流程）
+     */
+    function injectionCardModel(h) {
+      if (!h || typeof h !== 'object') return null
+      if (h.injectCard === false) return null
+      const injected = typeof h.packet === 'string' ? h.packet : ''
+      if (!injected.trim()) return null
+      const original = typeof h.text === 'string' ? h.text : ''
+      const optimized = typeof h.intent === 'string' ? h.intent.trim() : ''
+      const chars = (typeof h.chars === 'number' && h.chars > 0) ? h.chars : injected.length
+      const english = (h.englishMode === true && typeof h.outgoingText === 'string' && h.outgoingText.trim())
+        ? h.outgoingText : ''
+      const truncated = h.intentTruncated === true
+      return { original, optimized, injected, chars, english, truncated }
+    }
+
+    /** 「本次注入」那颗小胶囊的图标：一张卡片 + 一支进入的箭头（注入 = 进到上下文里）。 */
+    function InjectIcon() {
+      return h('svg', { width: 12, height: 12, viewBox: '0 0 12 12', 'aria-hidden': 'true', focusable: 'false', style: { flex: '0 0 auto' } },
+        h('rect', { x: 1, y: 1.6, width: 10, height: 8.8, rx: 2, fill: 'none', stroke: 'currentColor', strokeWidth: 1.15, opacity: .55 }),
+        h('path', { d: 'M6 3.1v5.1M4.1 6.4 6 8.3l1.9-1.9', fill: 'none', stroke: 'currentColor', strokeWidth: 1.15, strokeLinecap: 'round', strokeLinejoin: 'round' }))
+    }
+
     // ── ① 输入区左侧的控件栏（0.5 的操作形态）─────────────────────────
     // 为什么把"小胶囊"换成一排控件（用户实测反馈「不适应 0.6 的操控/检测模式」）：
     // 胶囊只回答"它在不在"，而人要的是**随手拨**——档位、权限、上下文、读不读项目文件、用哪个模型。
@@ -2051,6 +2081,60 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [ovBall, setOvBall] = React.useState(null)  // {visible, pos, sent, phase}
       const [ovLast, setOvLast] = React.useState(null)  // 最近一次**已终结**的拦截（0.5 球里存的那份 run）
       const ovLastRef = React.useRef(null)
+      // 第 5 项：**发布完成之后**留在输入栏上的一颗小卡片——点开看这一轮注入了什么。
+      // 默认收起；只存"最近一次真的发出去了"的那一轮（跳过/按原文发出不产生快照）。
+      const [inject, setInject] = React.useState(null)
+      const [injectOpen, setInjectOpen] = React.useState(false)
+      const [injectPos, setInjectPos] = React.useState(null)
+      const injectBtnRef = React.useRef(null)
+      const injectCardRef = React.useRef(null)
+      /** 第 5 项：把展开体摆到胶囊旁边（fixed + 实测坐标，右缘收进会话窗——issue #18）。 */
+      const placeInject = () => {
+        const el = injectBtnRef.current
+        const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null
+        if (!r) return
+        const vh = (typeof window !== 'undefined' && window.innerHeight) || 600
+        const rg = composerRegion(el)
+        const popW = Math.min(460, Math.max(240, rg.w - 16))
+        setInjectPos({
+          left: Math.min(Math.max(rg.left + 8, Math.round(r.left)), Math.max(rg.left + 8, rg.right - popW - 8)),
+          bottom: Math.max(8, Math.round(vh - r.top + 6)),
+          width: popW,
+        })
+      }
+      // 第 5 项：卡片的外点 / Esc / 窗口变化。
+      // 外点**只豁免胶囊与卡片本体**（不是整条控件栏）：否则点同排的「优化选项」不关卡片，
+      // 两块 fixed 浮层会叠在一起。滚动 / 缩放时重算位置，否则输入框一长高卡片就和胶囊脱位。
+      React.useEffect(() => {
+        if (!injectOpen) return undefined
+        placeInject()
+        const onDown = (e) => {
+          const card = injectCardRef.current
+          if (card && card.contains && card.contains(e.target)) return
+          const btn = injectBtnRef.current
+          if (btn && btn.contains && btn.contains(e.target)) return
+          setInjectOpen(false)
+        }
+        const onKey = (e) => {
+          if (!e || e.key !== 'Escape') return
+          if (e.isComposing || e.keyCode === 229) return
+          // 键盘用户：关掉之后焦点回胶囊，不落到 body
+          try { if (injectBtnRef.current && injectBtnRef.current.focus) injectBtnRef.current.focus() } catch { /* 无焦点能力 */ }
+          setInjectOpen(false)
+        }
+        const onReflow = () => placeInject()
+        document.addEventListener('pointerdown', onDown, true)
+        document.addEventListener('keydown', onKey, true)
+        window.addEventListener('resize', onReflow)
+        window.addEventListener('scroll', onReflow, true)
+        return () => {
+          document.removeEventListener('pointerdown', onDown, true)
+          document.removeEventListener('keydown', onKey, true)
+          window.removeEventListener('resize', onReflow)
+          window.removeEventListener('scroll', onReflow, true)
+        }
+      }, [injectOpen])
+
       const rootRef = React.useRef(null)
       const holdRef = React.useRef(null)               // 去重要用 ref（同一个事件循环里 state 还没生效）
       // P11：**在飞请求的世代号**。跳过 / 取消 / 重新生成都会推进它，
@@ -2102,6 +2186,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         setHold(null)
         setProg(null)
         setOvOpen(false)
+        setInject(null)
+        setInjectOpen(false)
       }, [tierOff, englishOn,sessionId])
       const permission = s.permission === 'review' ? 'review' : 'auto'
       const historyMode = s.historyMode === 'full' ? 'full' : 'turns'
@@ -2170,6 +2256,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if (typeof inputActions.setDraft === 'function') inputActions.setDraft(outgoing)
           inputActions.submit()
           setHold({ ...(h || {}), phase: mark || 'sent' })
+          // 第 5 项：**发布成功之后**才留快照。提交抛错时什么都不记——
+          // 没发出去却显示"已注入"，正是本项目最忌的伪成功。
+          const card = injectionCardModel(h)
+          if (card) { setInject(card); setInjectOpen(false) }
           clearHoldSoon()
         } catch (e) {
           // 连放行都失败 ⇒ 必须说出来（用户至少知道消息没发出去，可以手动再按一次）
@@ -2190,7 +2280,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           holdRef.current = failed; setHold(failed)          // 面板停在 error 态：重试 / 按原文发出
           return
         }
-        releaseHold(text, { ...h, reason: why }, 'sent')
+        // 解释失败后的 fail-open：这一轮没有注入（包没产出来），卡片不该给它作证
+        releaseHold(text, { ...h, reason: why, injectCard: false }, 'sent')
       }
 
       const beginHold = (text, via) => {
@@ -2199,6 +2290,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // 见 0.5:443-453 的 `coalesced`）。放在事件处理函数里会让同一次发送**记两次**，
         // "本会话已拦截 N 次"就变成了一个虚高的数字——界面上的数字不允许这样。
         setInterceptCount((n) => n + 1)
+        // 第 5 项：新一轮开始 ⇒ 上一轮的注入卡收起（陈旧卡片不能替新消息作证）
+        setInject(null)
+        setInjectOpen(false)
         const my = ++holdSeq.current                        // 这一轮的世代号
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 上一轮先断掉 */ }
         const ac = (typeof AbortController === 'function') ? new AbortController() : null
@@ -2214,7 +2308,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if(englishRef.current!==h.englishMode){settleFailure(text,h,L('英文模式已改变，请重试或按原文发送','English mode changed; retry or send the original'));return}
           // P11 修复（2026-09-26）：token 用量挂在**结果**上。
           // 进度面（prog）在离开 optimizing 那一刻就被清空，用量若只存那里，界面永远读不到。
-          const done = { ...h, phase: 'review', englishMode:r.englishMode===true,outgoingText:r.outgoingText||text,translation:r.translation||null,noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null, packet: r.packet || '', chars: r.chars || 0, ms: r.ms || null, unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null, edited: r.packet || '', usage: r.usage || null, usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null }
+          const done = { ...h, phase: 'review', englishMode:r.englishMode===true,outgoingText:r.outgoingText||text,translation:r.translation||null,noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null, packet: r.packet || '', intent: typeof r.intent === 'string' ? r.intent : '', intentTruncated: r.intentTruncated === true, chars: r.chars || 0, ms: r.ms || null, unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null, edited: r.packet || '', usage: r.usage || null, usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null }
           holdRef.current = done; setHold(done)
           // 「自动」= 完成即发；「审查」= 等用户确认（0.5 §5 的权限语义）
           if (permissionRef.current !== 'review') releaseHold(outgoingUserText(done), done, 'sent')
@@ -2271,7 +2365,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 同上 */ }
         abortRef.current = null
         setProg(null)                                        // 立刻收掉"还在跑"的观感（不再等下一次刷新）
-        releaseHold(h.text, { ...h, phase: 'sent' }, 'skipped')
+        // 跳过 = 这一轮**没有注入**任何包 ⇒ 不留注入快照（否则卡片会替一次空注入作证）
+        releaseHold(h.text, { ...h, phase: 'sent', injectCard: false }, 'skipped')
       }
       /** 审查确认：用户改过正文 ⇒ 先把改动写进"本轮注入的包"，再放行。 */
       const confirmHold = async () => {
@@ -2301,7 +2396,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           setHold({ ...h, phase: 'review', reason: L('这一轮的包没能清掉：', 'Could not clear this round packet: ') + reasonText(r && r.reason) })
           return
         }
-        releaseHold(h.text, { ...h, phase: 'sent' }, 'sent')
+        // 「按原文发出」已经清掉了本轮包 ⇒ 没有注入，不留快照
+        releaseHold(h.text, { ...h, phase: 'sent', injectCard: false }, 'sent')
       }
       const regenHold = () => {
         const h = holdRef.current || hold
@@ -2614,6 +2710,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 展开由两条时序负责（见下面的 effect ②）：拦截开始/需要人决策 ⇒ 自动展开；
       // hold 被清掉之后面板还开着 ⇒ 显示最后那份快照（只读回看，0.5 的球展开就是这个语义）。
       const shown = ovOpen ? (hold || ovLast) : null
+
+      // 第 5 项：注入卡片里的三段（默认收起时它们都不渲染）。
+      // 每段都**自带标题**，因为「意图包」与「注入文」只差几个字很容易被看错——
+      // 卡片存在的意义就是让人能分辨这两件事，而不是把它们混成一段。
+      const injectSection = (key, title, body, note) => h('section', { 'data-po06': 'inject-section', 'data-section': key },
+        h('div', { style: S.ovPaneTitle }, title),
+        h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '180px', overflow: 'auto', fontFamily: 'inherit' } },
+          body || L('（空）', '(empty)')),
+        note ? h('div', { 'data-po06': 'inject-note', style: S.ovHintQuiet }, note) : null)
       const statusLabel = !data ? L('0.6 ?', '0.6 ?')
         : (data.enabled ? (on ? L('0.6 自动', '0.6 auto') : L('0.6 只记录', '0.6 record')) : L('0.6 未启用', '0.6 off'))
       const offTip = L('档位为「关闭」时不生效', 'Has no effect while the tier is Off')
@@ -2667,6 +2772,23 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   + (rtKnown && readTools ? ' · ' + L('工具开', 'tools on') : '')),
               h('span', { 'aria-hidden': 'true', style: S.optCaret }, optOpen ? '▴' : '▾'),
             ),
+            // ②b 第 5 项：**发布完成之后**那一颗小卡片（默认收起，点开才看三段）。
+            //    它只在这台会话真的注入过东西时出现；跳过 / 按原文发出 / 解释失败都不会有它。
+            inject ? h('button', {
+              type: 'button', 'data-po06': 'inject-pill', 'data-po06-open': injectOpen ? '1' : '0',
+              ref: injectBtnRef,
+              style: { ...S.optBtn, ...(injectOpen ? S.optBtnOn : null) },
+              title: L('本次注入了什么：你的原话 / 优化后的意图包 / 实际注入文（点开）',
+                'What this round injected: your words / optimized intent / the injected text (click to open)'),
+              'aria-expanded': injectOpen ? 'true' : 'false',
+              'aria-controls': 'po06-inject-card',
+              onClick: () => setInjectOpen((v) => !v),   // 摆位由 placeInject()（effect 里，含滚动/缩放重算）负责
+            },
+              h(InjectIcon),
+              h('span', { 'data-po06': 'inject-pill-title', style: S.optBtnText }, L('本次注入', 'Injected')),
+              h('span', { 'data-po06': 'inject-pill-chars', style: S.optSummary }, String(inject.chars) + L(' 字', ' chars')),
+              h('span', { 'aria-hidden': 'true', style: S.optCaret }, injectOpen ? '▴' : '▾'),
+            ) : null,
             // ② 「?」帮助（0.5 的形态：文字就是一个 ASCII `?`）；正文见 HELP-0.6.md（要求②）
             h('button', {
               type: 'button', 'data-po06': 'help-btn', 'data-po06-open': helpOpen ? '1' : '0',
@@ -2687,6 +2809,28 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             msg && msg.kind === 'err' ? h('span', { 'data-po06': 'error', style: { ...S.muted, color: T('err') } }, msg.text) : null,
             msg && msg.kind !== 'err' ? h('span', { 'data-po06': 'saved', style: { ...S.muted, color: msg.kind === 'warn' ? T('warn') : T('ok') } }, msg.text) : null,
           ),
+          // 第 5 项的展开体：**只在点开后渲染**（默认收起 = 连 DOM 都不生成）。
+          // 三段各自独立滚动，避免注入文那一段把整块撑爆。
+          injectOpen && inject ? h('div', { ...themeAttrs(), 'data-po06': 'inject-card', id: 'po06-inject-card',
+            role: 'region', 'aria-label': L('本次注入了什么', 'What this round injected'), ref: injectCardRef,
+            style: { ...S.optPop, width: 'auto', gap: '10px', maxHeight: 'min(70vh, 560px)', ...(injectPos
+              ? { left: injectPos.left + 'px', bottom: injectPos.bottom + 'px', width: injectPos.width + 'px' }
+              : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(460, Math.max(240, region.w - 16)) + 'px' } : null) }) } },
+            h('div', { style: S.optPopHead },
+              h(InjectIcon),
+              h('span', {}, L('本次注入了什么', 'What this round injected')),
+              h('span', { 'data-po06': 'inject-card-chars', style: { ...S.optSummary, marginLeft: 'auto' } },
+                String(inject.chars) + L(' 字', ' chars'))),
+            injectSection('original', L('你的原话', 'Your words'), inject.original),
+            inject.optimized
+              ? injectSection('optimized', L('优化后的意图包', 'Optimized intent'), inject.optimized,
+                inject.truncated ? L('这段只显示前 4000 字（完整内容在注入文里）。', 'Showing the first 4000 characters; the full text is in the injected section.') : null)
+              : null,
+            injectSection('injected', L('实际注入文', 'Injected text'), inject.injected),
+            inject.english ? injectSection('english', L('实际发送的英文任务', 'English task sent'), inject.english) : null,
+            h('div', { 'data-po06': 'inject-foot', style: S.ovHintQuiet },
+              L('这一轮已经发布出去了：上面就是它真正带走的全部内容。', 'This round is already published; the above is exactly what went out.')),
+          ) : null,
           // ── 第二行 = **弹出面板**（点「优化选项」才展开）：设定类 + 范围类都收在这里 ──────
           //    只有打开时才渲染 ⇒ 关闭时控件栏就是**一行**（用户要的"更简洁"）。
           optOpen ? h('div', { 'data-po06': 'bar-row-2', style: { position: 'relative' } },
@@ -3950,7 +4094,7 @@ const react = require("react")
         locale: () => LOCALE,
         detectLocale,
         // 主题调色板（单测拿它算对比度：浅色模式"看不清"这类问题要能被机器挡住，不能只靠肉眼）
-        AdvisorControls,EnglishControls,outgoingUserText, Segmented, InferenceControls, InferenceMonitor, InferenceEvidenceDetails, InferenceRecordedPlan, inferenceStageLabel, inferencePaceLabel, InterceptPanel, InterceptDraftBody, interceptDraftOutput, advisorValueOf, advisorArgsOf, advisorDraftReply, advisorProgressPct, AdvisorToolRow, AdvisorMaterials, useAdvisorRun, slashReviewAllowed, usageText, normalizeUsage,
+        AdvisorControls,EnglishControls,outgoingUserText,injectionCardModel, InjectIcon, Segmented, InferenceControls, InferenceMonitor, InferenceEvidenceDetails, InferenceRecordedPlan, inferenceStageLabel, inferencePaceLabel, InterceptPanel, InterceptDraftBody, interceptDraftOutput, advisorValueOf, advisorArgsOf, advisorDraftReply, advisorProgressPct, AdvisorToolRow, AdvisorMaterials, useAdvisorRun, slashReviewAllowed, usageText, normalizeUsage,
         overlayZIndex: OV_Z,
         composerRegion, clampOvPos, clampOvSize, defaultOvPos, defaultBallPos,
         ovReflowWatch, ovReflowAll, EDITABLE_SEL,
