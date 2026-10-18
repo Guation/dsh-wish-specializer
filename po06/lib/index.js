@@ -2452,6 +2452,39 @@ export function apply(ctx, config) {
           const nearInTime = hitFresh && hitAge < 15000
           if (sameText || nearInTime) {
             interceptedText.delete(sid)
+            // 第 5 项（2026-10-18 用户明确要"卡片"）：这一轮**真的注入了**就写一条会话事件，
+            // 客户端据此在对话流里画「本次注入」卡片——位置落在本条用户消息之后、首个思考之前。
+            // 两个必须的细节：
+            //   ① **延后一抽**：本回调运行在 user/message 的 append 边界内，同步 append 会以
+            //      "session append cannot reenter" 失败；
+            //   ② **anchorSeq = 本条消息的 seq**：事件虽然晚一点写进日志，但排序按 anchorSeq，
+            //      所以卡片仍然排在这条消息正下方，而不是跑到思考后面去。
+            // 包为空（按原文发出 / 没产出）⇒ 不写事件、不出卡片，免得替一次空注入作证。
+            try {
+              const working = adapter.getWorkingText(sid) || ''
+              const intent = adapter.getIntentText(sid) || ''
+              if (working.trim()) {
+                const CAP = 4000
+                const anchorSeq = Number(event.seq)
+                const payload = {
+                  anchorSeq,
+                  chars: working.length,
+                  original: String(text || '').slice(0, CAP),
+                  optimized: intent.slice(0, CAP),
+                  injected: working.slice(0, CAP),
+                  truncated: working.length > CAP || intent.length > CAP,
+                }
+                setTimeout(() => {
+                  try {
+                    session.append('po06/injection', payload)
+                    appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: true, chars: payload.chars, anchorSeq })
+                  } catch (e) {
+                    // 写不进日志 ⇒ 退回"没有卡片"，不重试、不打断会话
+                    appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: false, reason: String((e && e.message) || e) })
+                  }
+                }, 0)
+              }
+            } catch { /* 卡片是旁路，绝不打断会话 */ }
             appendWireLog({ sessionId: sid, trigger: 'user-message', ok: true, skipped: sameText ? 'intercepted-already' : 'intercepted-recently', chars: text.length })
             return
           }

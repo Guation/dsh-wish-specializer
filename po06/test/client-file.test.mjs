@@ -97,9 +97,9 @@ t('功能：更新实例抢走 token 后，旧实例的**重挂**不再注册（
   const first = loadClientModule(win)       // 第一个实例（模拟 HMR 前的旧实例）
   // P10：挂载点从 `conversation.input.dock` **搬到** `conversation.input.left`（原来是"新增一个"，
   // 现在是"换过去"，所以总数仍是 3：input.left + shell.overlay + settings.plugins.tab）
-  eq(first.calls.filter((c) => c.def).length, 6, '第一个实例先注册了 6 个')
+  eq(first.calls.filter((c) => c.def).length, 7, '第一个实例先注册了 7 个')
   const second = loadClientModule(win)      // 第二个实例抢注 token
-  eq(second.calls.filter((c) => c.def).length, 6, '第二个实例也注册 6 个（最新获胜）')
+  eq(second.calls.filter((c) => c.def).length, 7, '第二个实例也注册 7 个（最新获胜）')
   // 旧实例的"自愈重挂"再跑一次：因为 token 已被第二个实例抢走，**不得**再注册
   const remount = first.mod.__debug && first.mod.__debug.remount
   eq(typeof remount, 'function', '要有可驱动的重挂钩子（__debug.remount）')
@@ -417,11 +417,17 @@ t('崩溃回归①：客户端读过的每个服务都必须在 exports.inject �
   const declared = /exports\.inject\s*=\s*\[([^\]]*)\]/.exec(src)
   ok(declared, '找不到 exports.inject')
   const list = declared[1].split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean)
-  // 只统计"代码里的服务读取"：去掉注释行与行内注释
-  const code = src.split('\n').map((l) => l.replace(/^\s*\/\/.*$/, '').replace(/\/\/.*$/, '')).join('\n')
+  // 只统计"代码里的服务读取"：块注释（含 JSDoc）与行内注释整段去掉——
+  // 否则注释里提到的 `ctx.xxx` 会被当成真实读取（第一版就这么误报过一次）。
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')
   const used = new Set()
   for (const m of code.matchAll(/ctx\.([A-Za-z_]\w*)/g)) used.add(m[1])
-  for (const name of used) ok(list.includes(name), `读服务 ctx.${name} 但没在 exports.inject 里声明（真机会抛 cannot get property "${name}" without inject）`)
+  // cordis 的**方法**不是服务：`ctx.inject(['x'], cb)` 本身就是声明依赖的通道。
+  const NOT_SERVICES = new Set(['inject', 'on', 'effect', 'get', 'set', 'provide', 'emit'])
+  for (const name of used) {
+    if (NOT_SERVICES.has(name)) continue
+    ok(list.includes(name), `读服务 ctx.${name} 但没在 exports.inject 里声明（真机会抛 cannot get property "${name}" without inject）`)
+  }
   ok(list.includes('slots'), 'slots 必须声明')
   ok(list.includes('locale'), 'locale 必须声明（英文适配要读它）')
 })
@@ -448,7 +454,7 @@ t('崩溃回归②：没有 locale 服务时（访问即抛）apply 仍要成功
   const calls = []
   const ctx = cordisLikeCtx({}, calls)          // 只提供 slots；其它服务读取即抛（真机就是这样）
   const { mod } = loadClientModule(undefined, undefined, undefined, ctx)
-  eq(calls.filter((c) => c.def).length, 6, '座位仍要注册上（移除尾部复核卡后）')
+  eq(calls.filter((c) => c.def).length, 7, '座位仍要注册上（移除尾部复核卡后）')
   eq(mod.__debug.locale(), 'zh', '拿不到语言服务 ⇒ 中文兜底（不是崩、也不是空白）')
 })
 
@@ -461,18 +467,20 @@ t('崩溃回归③：有 locale 服务时按它定语言，并订阅切换', () 
   }
   const ctx = cordisLikeCtx({ locale: face }, calls)
   const { mod } = loadClientModule(undefined, undefined, undefined, ctx)
-  eq(calls.filter((c) => c.def).length, 6, '座位仍要注册上（移除尾部复核卡后）')
+  eq(calls.filter((c) => c.def).length, 7, '座位仍要注册上（移除尾部复核卡后）')
   eq(mod.__debug.locale(), 'en', 'DSH 语言为 en ⇒ 界面语言 en')
 })
 
-t('功能：apply 真的注册了五个座位（3 个 list 插槽 + 2 个 keyed 工具视图），且释放函数真的能摘掉它们', () => {
+t('功能：apply 真的注册了七个座位（4 个 list 插槽 + 3 个 keyed 视图），且释放函数真的能摘掉它们', () => {
   const { calls, dispose, fakeWindow } = loadClientModule()
   const registered = calls.filter((c) => c.def).map((c) => c.def.name)
   // P10：控件从 `conversation.input.dock` 搬到 `conversation.input.left`（挂载点换了，数量不变）
   // 2026-09-24：**多了一个 keyed 座位** `tool.call.toolview`（key=`posix`）——
   // 用户要求"要能一眼看出用的是虚拟工具"，而宿主把 terminal 卡统一渲染成"运行命令"。
-  eq(registered, ['conversation.input.left', 'shell.overlay', 'settings.plugins.tab', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview'],
-    '五个座位都必须被真的注册')
+  // 2026-10-18：**多了一个 keyed 座位** `conversation.chat.node`（key=`po06-injection`）——
+  // 用户要的"本次注入"卡片必须落在对话流里（首个思考之前），输入栏的胶囊只是降级方案。
+  eq(registered, ['conversation.input.left', 'shell.overlay', 'settings.plugins.tab', 'conversation.chat.node', 'tool.call.toolview', 'tool.call.toolview', 'tool.call.toolview'],
+    '七个座位都必须被真的注册')
   const bar = calls.filter((c) => c.def && c.def.name === 'conversation.input.left')[0]
   eq([bar.def.id, bar.def.order], ['prompt-optimizer', 20], "控件栏必须是 id='prompt-optimizer' / order=20")
   const keyed = calls.filter((c) => c.def && c.def.name === 'tool.call.toolview')[0]
@@ -485,7 +493,7 @@ t('功能：apply 真的注册了五个座位（3 个 list 插槽 + 2 个 keyed 
   // 两条注册契约不同：list 座位要唯一 id；keyed 座位要 key（**没有 id**）。
   ok(calls.every((c) => c.def && (typeof c.def.id === 'string' && c.def.id.length > 0
     || typeof c.def.key === 'string' && c.def.key.length > 0)), '每个注册都要带唯一 id（list）或 key（keyed）')
-  eq(calls.filter((c) => c.Comp !== undefined && c.Comp !== null).length, 6, '每个座位都要带组件（不能是 undefined）')
+  eq(calls.filter((c) => c.Comp !== undefined && c.Comp !== null).length, 7, '每个座位都要带组件（不能是 undefined）')
   eq(typeof dispose, 'function', 'apply 必须返回释放函数')
   const before = calls.length
   dispose()

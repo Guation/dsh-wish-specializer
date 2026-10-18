@@ -439,6 +439,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         color: 'inherit', cursor: 'pointer', fontSize: '12px', lineHeight: '18px' },
       optBtnOn: { background: T('hover'), borderColor: OVS.acc },
       optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
+      // 对话流里的「本次注入」卡片（宿主 chat row）：一条克制的横条，点开才是三段
+      injRow: { border: '1px solid ' + OVS.lineSoft, borderRadius: '10px', background: 'transparent', overflow: 'hidden' },
+      injHead: { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box',
+        padding: '5px 10px', border: 'none', background: 'transparent', color: 'inherit', font: 'inherit',
+        fontSize: '12px', lineHeight: '18px', textAlign: 'left', cursor: 'pointer' },
+      injBody: { display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 10px 10px', borderTop: '1px solid ' + OVS.line2 },
       // ⚠ 用**颜色**压暗，不用 opacity：浅色底上 `opacity:.65` 会变成看不清的浅灰细字（用户截图）。
       optSummary: { color: OVS.fg3, fontSize: '11px', whiteSpace: 'nowrap' },
       optCaret: { color: OVS.fg3, fontSize: '10px', lineHeight: 1 },
@@ -2004,6 +2010,75 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       return h('svg', { width: 12, height: 12, viewBox: '0 0 12 12', 'aria-hidden': 'true', focusable: 'false', style: { flex: '0 0 auto' } },
         h('rect', { x: 1, y: 1.6, width: 10, height: 8.8, rx: 2, fill: 'none', stroke: 'currentColor', strokeWidth: 1.15, opacity: .55 }),
         h('path', { d: 'M6 3.1v5.1M4.1 6.4 6 8.3l1.9-1.9', fill: 'none', stroke: 'currentColor', strokeWidth: 1.15, strokeLinecap: 'round', strokeLinejoin: 'round' }))
+    }
+
+
+    /**
+     * 第 5 项 · 对话流里的「本次注入」卡片。
+     *
+     * 为什么必须走宿主的 chat row 机制（而不是输入栏那颗胶囊）：用户要的是"发布之后、
+     * 首个思考之前"的那张卡，而这个位置**只有会话事件**能占——输入栏再显眼也在对话流之外。
+     * 宿主对此有正式通道：注册事件定义（`ctx.uiConversation.events.register`）+ 在
+     * `conversation.chat.node` 下按 `kind` 注册视图。事件由宿主侧在放行时写入
+     * （`session.append('po06/injection', …)`），所以**刷新/重开会话后卡片仍在**。
+     *
+     * 默认收起；点开是三段，来源各自独立、不许互相冒充：
+     *   original = 用户原话；optimized = 优化后的意图包；injected = 实际注入文。
+     */
+    const INJECTION_KIND = 'po06-injection'
+    function InjectionChatRow(props) {
+      const node = (props && props.node) || null
+      const d = (node && node.data) || null
+      const [open, setOpen] = React.useState(false)
+      useLocaleLive()
+      useThemeLive()
+      if (!d || typeof d.injected !== 'string' || !d.injected.trim()) return null
+      const chars = Number.isFinite(d.chars) ? d.chars : d.injected.length
+      const section = (key, title, body) => h('section', { 'data-po06': 'inject-section', 'data-section': key },
+        h('div', { style: S.ovPaneTitle }, title),
+        h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '240px', overflow: 'auto', fontFamily: 'inherit' } },
+          body || L('（空）', '(empty)')))
+      return h('div', { 'data-po06': 'injection-row', style: S.injRow },
+        h('button', {
+          type: 'button', 'data-po06': 'injection-row-head', 'data-open': open ? '1' : '0',
+          'aria-expanded': open ? 'true' : 'false',
+          title: L('看看这一轮到底往上下文里塞了什么（点开）', 'See exactly what this round put into the context (click)'),
+          style: S.injHead, onClick: () => setOpen((v) => !v),
+        },
+          h(InjectIcon),
+          h('span', { 'data-po06': 'injection-row-title', style: S.optBtnText }, L('本次注入', 'Injected')),
+          h('span', { 'data-po06': 'injection-row-chars', style: S.optSummary }, String(chars) + L(' 字', ' chars')),
+          h('span', { 'aria-hidden': 'true', style: S.optCaret }, open ? '▴' : '▾')),
+        open ? h('div', { 'data-po06': 'injection-row-body', style: S.injBody },
+          section('original', L('你的原话', 'Your words'), d.original),
+          (typeof d.optimized === 'string' && d.optimized.trim())
+            ? section('optimized', L('优化后的意图包', 'Optimized intent'), d.optimized) : null,
+          section('injected', L('实际注入文', 'Injected text'), d.injected),
+        ) : null)
+    }
+
+    /** 「po06/injection」事件 → 对话流里的一行。宿主按 `kind` 把视图分发到上面的组件。 */
+    const INJECTION_DEFINITION = {
+      kind: INJECTION_KIND,
+      target: 'chat',
+      match: (event) => (event && event.type === 'po06/injection') ? { id: String(event.seq), role: 'start' } : null,
+      start: (_context, match) => ({ seq: match.event.seq, data: (match.event && match.event.data) || {} }),
+      update: (context) => context.state,
+      buildViewNode: (context) => {
+        // 这一层必须自己吞错：任何异常都不许把会话流搞崩（卡片是旁路）
+        try {
+          const state = context && context.state
+          if (!state) return null
+          const d = state.data || {}
+          if (typeof d.injected !== 'string' || !d.injected.trim()) return null
+          const anchor = Number.isFinite(d.anchorSeq) ? d.anchorSeq : state.seq
+          const loc = (context.start && context.start.location)
+            || (context.matches && context.matches[0] && context.matches[0].location)
+            || { kind: 'unresolved' }
+          return { key: context.key, kind: INJECTION_KIND, id: context.id, target: 'chat',
+            anchorSeq: anchor, location: loc, visibility: 'visible', data: d }
+        } catch (e) { return null }
+      },
     }
 
     // ── ① 输入区左侧的控件栏（0.5 的操作形态）─────────────────────────
@@ -3926,6 +4001,21 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       mount('conversation.input.left', 'prompt-optimizer', 20, ControlBar)
       mount('shell.overlay', NS + '-panel', 40, () => null)   // 面板本体在控件栏里渲染；这一条保证浮层槽可用
       mount('settings.plugins.tab', NS, 40, SettingsTab)
+      // ⑤ 第 5 项：对话流里的「本次注入」卡片。视图挂在宿主官方的 chat row 座位上
+      //    （按 kind 分发），事件定义通过 uiConversation 服务注册——**这是唯一能落在
+      //    "用户消息之后、首个思考之前"的位置**。拿不到该服务的宿主上，这一条静默跳过，
+      //    输入栏的胶囊仍然可用（能力降级，不报错、不白屏）。
+      mountKeyed('conversation.chat.node', INJECTION_KIND, InjectionChatRow)
+      try {
+        own(ctx.inject(['uiConversation'], (scope) => {
+          try {
+            const svc = scope && scope.uiConversation
+            if (!svc || !svc.events || typeof svc.events.register !== 'function') return
+            const off = svc.events.register(INJECTION_DEFINITION)
+            if (typeof off === 'function') own(off)
+          } catch (e) { try { console.warn('[po06] injection row definition failed:', e) } catch (err) { /* noop */ } }
+        }))
+      } catch (e) { /* 没有 uiConversation 的宿主：卡片不出现，胶囊仍在 */ }
       // 独立 list 项：不覆盖宿主文件卡片，也不接管 assistant 文本或停止边界。
       // 2026-10-18 用户指定：回复尾部不再挂复核旁注卡。
       void AdvisorDeliveryTail
@@ -4101,6 +4191,7 @@ const react = require("react")
         ADVISOR_POLL_MS, ADVISOR_POLL_ERROR_MS, ADVISOR_POLL_IDLE_MS, ADVISOR_POLL_FULL_MS, ADVISOR_REQUEST_TIMEOUT_MS,
         advisorMergeProgress, advisorProgressKey, advisorNextDelayMs, advisorDeltaMiss,
         holdBridgeRead, holdBridgeWrite, holdBridgeOn,
+        INJECTION_KIND, INJECTION_DEFINITION, InjectionChatRow,
         advisorDeliveryKey, advisorDeliveryBinding, advisorDeliveryValue, advisorDeliveryLabel, useAdvisorDelivery, AdvisorDeliveryTail, ADVISOR_DELIVERY_TIMEOUT_MS,
         themeTokens: THEME_TOKENS,
         tokenVars: TOKEN_VARS,

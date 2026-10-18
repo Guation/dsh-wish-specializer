@@ -139,3 +139,34 @@ test('外点只豁免胶囊与卡片本体，不豁免整条控件栏（避免�
   assert.ok(/addEventListener\('resize'/.test(body) && /addEventListener\('scroll'/.test(body),
     '打开期间要在滚动/缩放时重算位置')
 })
+
+test('对话流卡片：事件定义只接 po06/injection，并按 anchorSeq 排在用户消息之后', () => {
+  const dbg = loadClient().__debug
+  const def = dbg.INJECTION_DEFINITION
+  assert.equal(def.kind, 'po06-injection', 'kind 必须等于 conversation.chat.node 的座位 key')
+  assert.equal(dbg.INJECTION_KIND, 'po06-injection')
+  assert.equal(def.target, 'chat')
+  assert.equal(def.match({ type: 'user/message', seq: 3 }), null, '别的会话事件不许被我们接管')
+  assert.deepEqual(def.match({ type: 'po06/injection', seq: 12 }), { id: '12', role: 'start' })
+  const state = def.start({}, { event: { seq: 12, data: { anchorSeq: 7, injected: 'x', chars: 1 } } })
+  const node = def.buildViewNode({ state, key: 'k', id: 'i', start: { location: { kind: 'msg' } }, matches: [] })
+  assert.equal(node.kind, 'po06-injection')
+  assert.equal(node.target, 'chat')
+  assert.equal(node.anchorSeq, 7, '排序位置用 anchorSeq（用户消息的 seq），不是事件自己的 seq')
+  assert.equal(node.visibility, 'visible')
+})
+
+test('对话流卡片：没有注入文的旧事件不画空卡；坏数据也不许炸会话流', () => {
+  const dbg = loadClient().__debug
+  const def = dbg.INJECTION_DEFINITION
+  assert.equal(def.buildViewNode({ state: { seq: 3, data: { injected: '' } }, key: 'k', id: 'i', matches: [] }), null)
+  assert.equal(def.buildViewNode({ state: null }), null)
+  assert.equal(def.buildViewNode({ get state() { throw new Error('boom') } }), null, '异常要吞掉，不能让整条会话流崩')
+})
+
+test('宿主侧：放行时写一条 po06/injection 事件（包为空就不写）', () => {
+  assert.ok(/session\.append\('po06\/injection'/.test(INDEX_SRC), '要真的 appende 事件')
+  assert.ok(/anchorSeq/.test(INDEX_SRC), '要带 anchorSeq，卡片才会排在用户消息下面')
+  assert.ok(/setTimeout\(/.test(INDEX_SRC), '必须延后一抽：回调在 append 边界内，同步 append 会 reenter 失败')
+  assert.ok(/if \(working\.trim\(\)\)/.test(INDEX_SRC), '没有注入文时不写事件')
+})
