@@ -2821,13 +2821,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               h('span', { 'data-po06': 'state-dot', 'data-po06-value': statusLabel, style: S.dot(on) }),
               h('span', {}, L('详情', 'Details')),
             ),
-            // ── 实验性功能（用户 2026-10-06 要求放在最底部并单独分界）─────────────
-            // 为什么写这么重的提示：这几项会成倍增加模型的调用次数与等待时间，
-            // 而"是否稳定提升能力"目前没有可复现的证据。把它们伪装成常规设置等于骗人。
-            h('div', { 'data-po06': 'experimental-divider', style: S.optDivider },
-              h('span', {}, L('实验性功能', 'Experimental')),
-              h('span', { style: { flex: '1 1 auto', height: '1px', background: OVS.line } })),
-            h(InferenceControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.inference?.ready===true,busy,failTick}),
+            // 2026-10-18 用户指定：隐藏实验性功能（「快速增强」= 固定 3+3 循环推理/择优）。
+            // 判定不变：它成倍增加调用与等待，且没有可复现的提升证据。代码保留，入口不再渲染。Tick}),
             ),
           ) : null,
         ),

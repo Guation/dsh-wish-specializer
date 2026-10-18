@@ -155,7 +155,8 @@ test('slash commands stay literal and allowlisted commands remain interceptable 
  const restored=restoreEnglishTranslation(prepared,english)
  assert.ok(restored.text.includes('/vmake'),'恢复后命令名与参数原样')
  const source=readFileSync(new URL('../lib/client.js',import.meta.url),'utf8')
- assert.ok(source.includes("data-po06': 'experimental-divider'"),'推理增强必须单独分界为实验性功能')
+ // 2026-10-18 用户指定：实验性功能（快速增强）入口已从界面移除，这条分界断言作废。
+ assert.ok(!source.includes("'data-po06': 'experimental-divider'"),'实验性分界不再渲染')
  assert.match(source,/无法确定它能否稳定提升模型能力/,'必须写清能力提升不确定')
  assert.match(source,/增加调用与等待时间/,'快速开关仍须写清额外调用与等待代价')
  assert.ok(source.includes('reasoningOn?h(InferenceMonitor'),'推理过程入口必须跟随推理增强开关')
