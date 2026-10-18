@@ -867,6 +867,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     }
     const inferenceCallTime=c=>Math.max(0,((c.finishedAt||Date.now())-c.startedAt)/1000).toFixed(1)+'s'
     function outgoingUserText(hold){return hold?.englishMode&&typeof hold.outgoingText==='string'&&hold.outgoingText.trim()?hold.outgoingText:String(hold?.text||'')}
+    function AdvisorControls({settings={},save,ready,busy=false,failTick}){
+      const known=typeof settings.advisor==='boolean',on=settings.advisor===true
+      // 2026-10-18 用户指定：顾问开关，放在英文模式上方，两档，默认开。
+      return h('div',{style:S.optRow},h('span',{style:S.optLabel},L('顾问','Advisor')),
+        h(Segmented,{ name:'advisor', value:on?'on':'off', options:['off','on'], failTick,
+          disabled:busy||!known||ready===false,
+          label:k=>k==='on'?L('开启','On'):L('关闭','Off'),
+          title:!known?L('顾问：还没读到当前设置，这次不会发送这个字段','Advisor: current setting not read yet')
+            :L('顾问：开启后可调用 consult_task / advisor_stage 做独立解题与复核；关闭后这两个工具直接拒绝，不发起任何模型调用。','Advisor: consult_task and advisor_stage are available when on; when off they refuse without any model call.'),
+          onPick:v=>save({advisor:v==='on'}) }))
+    }
     function EnglishControls({settings={},save,ready,busy=false,failTick}){
       const known=typeof settings.englishMode==='boolean',on=settings.englishMode===true
       // 与「权限」同款两档滑档；默认关闭。读不到设置时禁用并说明，绝不猜测当前值。
@@ -1059,6 +1070,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             onChange: (v) => { const r = routes.find((x) => modelKey(x) === v); save({ model: r ? { provider: r.provider, model: r.model } : null }) },
           }),
         ),
+        h(AdvisorControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
         h(EnglishControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
         h(InferenceControls,{settings:eff,save:saveTier,ready:status?.inference?.ready===true,busy}),
         (catalog.problems || []).length ? h('div', { style: S.muted }, L('部分模型不可用：','Some models unavailable: ') + catalog.problems.join('；')) : null,
@@ -2699,6 +2711,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   //   表现为"点了档位但档位不变"（用户实测 2026-09-27）。
                   onPick: (v) => save({ bySession: replaceTier(v) }),
                 })),
+              h(AdvisorControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick}),
               h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick}),
               // ①b 协作基调（0.7.8）：与档位正交，按会话存。语域本身就是效果来源（见 framing.js）。
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('协作基调', 'Tone')),
@@ -3937,7 +3950,7 @@ const react = require("react")
         locale: () => LOCALE,
         detectLocale,
         // 主题调色板（单测拿它算对比度：浅色模式"看不清"这类问题要能被机器挡住，不能只靠肉眼）
-        EnglishControls,outgoingUserText, Segmented, InferenceControls, InferenceMonitor, InferenceEvidenceDetails, InferenceRecordedPlan, inferenceStageLabel, inferencePaceLabel, InterceptPanel, InterceptDraftBody, interceptDraftOutput, advisorValueOf, advisorArgsOf, advisorDraftReply, advisorProgressPct, AdvisorToolRow, AdvisorMaterials, useAdvisorRun, slashReviewAllowed, usageText, normalizeUsage,
+        AdvisorControls,EnglishControls,outgoingUserText, Segmented, InferenceControls, InferenceMonitor, InferenceEvidenceDetails, InferenceRecordedPlan, inferenceStageLabel, inferencePaceLabel, InterceptPanel, InterceptDraftBody, interceptDraftOutput, advisorValueOf, advisorArgsOf, advisorDraftReply, advisorProgressPct, AdvisorToolRow, AdvisorMaterials, useAdvisorRun, slashReviewAllowed, usageText, normalizeUsage,
         overlayZIndex: OV_Z,
         composerRegion, clampOvPos, clampOvSize, defaultOvPos, defaultBallPos,
         ovReflowWatch, ovReflowAll, EDITABLE_SEL,

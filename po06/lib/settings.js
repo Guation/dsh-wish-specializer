@@ -145,6 +145,7 @@ export const SETTINGS_KEYS = Object.freeze([
   'slashReview',
   ...REASONING_KEYS,
   'englishMode',
+  'advisor',
 ])
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -281,6 +282,7 @@ export function normalizeSettings(raw) {
     reasoningRounds: pickReasoning('reasoningRounds'),
     reasoningPace: pickReasoning('reasoningPace'),
     englishMode: pickBool('englishMode', DEFAULT_SETTINGS.englishMode),
+    advisor: pickBool('advisor', DEFAULT_SETTINGS.advisor),
     permission: pick('permission', PERMISSIONS, DEFAULT_SETTINGS.permission),
     historyMode: pick('historyMode', HISTORY_MODES, DEFAULT_SETTINGS.historyMode),
     turns: pickInt('turns', TURNS_MIN, TURNS_MAX, DEFAULT_SETTINGS.turns),

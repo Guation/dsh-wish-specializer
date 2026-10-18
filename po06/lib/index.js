@@ -2018,6 +2018,7 @@ export function apply(ctx, config) {
         const sid = String(session.id)
         const pol = readPolicy({ home: DSH_HOME, sessionId: sid })
         if (!pol.injectPacket) return { ok: false, reason: 'assist-off' }
+        if (pol.advisor === false) return { ok: false, reason: 'advisor-off' }
         const gate = await awaitGateDecision(sid)
         if (gate?.enabled !== true) return { ok: false, reason: 'advisor-gate-disabled:' + String(gate?.code || 'pending') }
         await ensureModelRoute(scope, sid)
@@ -2041,6 +2042,7 @@ export function apply(ctx, config) {
         resolveAccess: async session => {
           const sid=String(session.id); const pol=readPolicy({home:DSH_HOME,sessionId:sid})
           if(!pol.injectPacket)return {ok:false,reason:'assist-off'}
+          if(pol.advisor===false)return {ok:false,reason:'advisor-off'}
           const gate=await awaitGateDecision(sid); if(gate?.enabled!==true)return {ok:false,reason:'advisor-gate-disabled'}
           return {ok:true,readTools:pol.readTools===true}
         },

@@ -70,7 +70,7 @@ t('未知字段：**只报告，不采纳**（白名单之外的东西不该被�
   ok(!('tier' in r.settings) && !('enabled' in r.settings) && !('rollout' in r.settings), '白名单外的不得进入 settings')
   const kinds = r.problems.map((x) => x.key + ':' + x.kind).sort()
   eq(kinds, ['enabled:unknown-field', 'rollout:unknown-field', 'tier:not-in-domain'], '不认识 vs 值不在域内，必须分开报')
-  eq(SETTINGS_KEYS, ['assist', 'detail', 'budget', 'model', 'permission', 'historyMode', 'turns', 'readTools', 'bash', 'effortByModel', 'bySession', 'framing', 'slashReview', 'reasoningBoost', 'reasoningMode', 'reasoningCandidates', 'reasoningRounds', 'reasoningPace', 'englishMode'],
+  eq(SETTINGS_KEYS, ['assist', 'detail', 'budget', 'model', 'permission', 'historyMode', 'turns', 'readTools', 'bash', 'effortByModel', 'bySession', 'framing', 'slashReview', 'reasoningBoost', 'reasoningMode', 'reasoningCandidates', 'reasoningRounds', 'reasoningPace', 'englishMode', 'advisor'],
     '白名单：P10 四项 + 0.7.2 的 bash + 0.8 的 slashReview（斜杠命令名单，默认空）')
   eq([ASSIST_MODES, DETAIL_LEVELS, BUDGET_LEVELS].map((x) => x.length), [2, 3, 3], '值域长度（界面上的选项数）')
   eq(TIER_LEVELS, ['off', 'light', 'standard', 'heavy'], '档位就是四个：关闭/轻度/标准/重度')
