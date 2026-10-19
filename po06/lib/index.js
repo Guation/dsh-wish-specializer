@@ -285,6 +285,23 @@ function resolveSessionCwd(session) {
   } catch { return null }
 }
 
+/**
+ * 这个会话是不是**子代理**（delegation）。
+ *
+ * 2026-10-19 用户提出：子代理也会跑这套「解释 + 注入」，通常没必要（白花 token）。
+ * 判据取会话头里宿主自己写的字段（不猜）：origin=subagent / delegationDepth>0 / 有 parentSession。
+ * 默认**不应用**（settings.applyToSubagents=false）；要开就在「详情」里打开。
+ */
+function isSubagentSession(session) {
+  try {
+    const h = session && session.header
+    if (!h || typeof h !== 'object') return false
+    if (h.origin === 'subagent') return true
+    if (Number.isFinite(Number(h.delegationDepth)) && Number(h.delegationDepth) > 0) return true
+    return !!h.parentSession
+  } catch { return false }
+}
+
 /** `readTools` 该不该真的派工具。**纯函数**（便于定点核对"关掉开关时零工具调用"）。 */
 export function readToolsFor({ readTools, cwd } = {}) {
   if (readTools !== true) return { enabled: false, reason: readTools === false ? 'setting-off' : 'setting-not-true' }
@@ -1897,6 +1914,8 @@ class DshAdapter {
                 // 这里是硬短路：读到"不注入"就连缓存都不看。
                 const pol = adapter.policyNow ? adapter.policyNow(sid) : null
                 if (pol && pol.injectPacket !== true) return ''
+                // 子代理默认不注入（2026-10-19）：它们的任务是父代理派下来的，再叠一层优化通常只是白花 token。
+                if (isSubagentSession(session) && pol && pol.applyToSubagents !== true) return ''
                 // Tool presence alone did not cause a review in the tank test. Keep the working
                 // workflow available even when the interpreter has no new intent items.
                 this.capability.seed(session)
@@ -2108,6 +2127,8 @@ export function apply(ctx, config) {
         const pol = readPolicy({ home: DSH_HOME, sessionId: sid })
         if (!pol.injectPacket) return { ok: false, reason: 'assist-off' }
         if (pol.advisor === false) return { ok: false, reason: 'advisor-off' }
+        // 子代理默认不提供顾问（同一开关）：它们的调用不注入，再请顾问也没有闭环。
+        if (isSubagentSession(session) && pol.applyToSubagents !== true) return { ok: false, reason: 'subagent-skip' }
         const gate = await awaitGateDecision(sid)
         if (gate?.enabled !== true) return { ok: false, reason: 'advisor-gate-disabled:' + String(gate?.code || 'pending') }
         await ensureModelRoute(scope, sid)
@@ -2501,6 +2522,13 @@ export function apply(ctx, config) {
       const off = ctx.on('session/event', (session, event) => {
         try {
           const sid = session && session.id !== undefined ? String(session.id) : ''
+          // 子代理默认不解释（2026-10-19）：父代理派下来的任务再来一轮「解释 → 注入」通常只是白花 token。
+          // 判定用会话头（宿主写的字段），并在同一个位置短路，避免它的 user/message 还去触发一次解释。
+          if (sid && isSubagentSession(session)) {
+            let sub = null
+            try { sub = readPolicy({ home: DSH_HOME, sessionId: sid }) } catch { sub = null }
+            if (!sub || sub.applyToSubagents !== true) return
+          }
           inferenceContext.observe(session,event)
           // ── P10 步骤 2：先喂上下文累加器（**只观测，不做任何判定**）──────────
           // 放在最前面：`extractObservedModel` 命中时会 `return`，那个时候

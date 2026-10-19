@@ -756,7 +756,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
     // ── 控制表单（浮层与设置页共用）──────────────────────────────────
     const DETAIL_LABELS = { minimal: L('最少补充','Minimal'), standard: L('标准补充','Standard'), detailed: L('尽量补全','Thorough') }
-    const BUDGET_LABELS = { minimal: L('只做必要的','Essential only'), standard: '标准', generous: L('允许更多自主处理','More autonomy') }
+    const BUDGET_LABELS = { minimal: L('只做必要的','Essential only'), standard: L('标准','Standard'), generous: L('允许更多自主处理','More autonomy') }
     const ASSIST_LABELS = { off: L('只记录、不补充','Record only'), auto: L('自动辅助','Assist automatically') }
 
     /**
@@ -1074,6 +1074,14 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             value: s.model ? modelKey(s.model) : 'inherit',
             options: ['inherit', ...routes.map(modelKey)], labels: modelLabels,
             onChange: (v) => { const r = routes.find((x) => modelKey(x) === v); save({ model: r ? { provider: r.provider, model: r.model } : null }) },
+          }),
+        ),
+        h('div', { style: S.row },
+          h('span', { style: S.label }, L('子代理','Subagents')),
+          h(Options, {
+            value: eff.applyToSubagents === true ? 'on' : 'off', options: ['off', 'on'],
+            labels: { off: L('不解释、不注入','skip'), on: L('同样应用','apply') },
+            onChange: (v) => saveTier({ applyToSubagents: v === 'on' }),
           }),
         ),
         h(AdvisorControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
@@ -3955,8 +3963,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const refused = !running && out.trim().startsWith('拒绝')
         const isError = !!(props && props.block && props.block.isError)
         const head = h('div', { style: POSIX_CARD_STYLE.head },
-          h('span', { style: POSIX_CARD_STYLE.icon, title: '虚拟 POSIX（插件内执行）' }, '$_'),
-          h('span', { style: POSIX_CARD_STYLE.pill, title: '由插件用纯 JS 执行：不经过 PowerShell、不依赖系统命令、只读' }, L('虚拟', 'Virtual')),
+          h('span', { style: POSIX_CARD_STYLE.icon, title: L('虚拟 POSIX（插件内执行）','Virtual POSIX (runs inside the plugin)') }, '$_'),
+          h('span', { style: POSIX_CARD_STYLE.pill, title: L('由插件用纯 JS 执行：不经过 PowerShell、不依赖系统命令、只读','Runs inside the plugin in plain JS: no PowerShell, no system commands, read-only') }, L('虚拟', 'Virtual')),
           h('span', { style: POSIX_CARD_STYLE.cmd, title: cmd || '' }, cmd || L('（命令读取中…）', '(reading command…)')),
           h('span', { style: POSIX_CARD_STYLE.note },
             running ? L('执行中…', 'running…')
@@ -4107,20 +4115,22 @@ const react = require("react")
       // 而解析不到标记通常只是本工具没写标记，不代表命令没有退出码。
       return { exitCode: undefined, output: out || "" }
     }
+    // 2026-10-19：这些标签以前是**写死的中文**，DSH 切英文后整张 bash 卡片还是中文。
+    // 现在全部走 L(zh, en)：语言只管一个来源（DSH 的 locale 服务）。
     const LABELS = {
-      signal: (s) => "信号 " + s,
-      exitCode: (c) => "退出码 " + c,
-      noExitCode: "无退出码",
-      running: "运行中",
-      failed: "失败",
-      done: "完成",
-      copy: "复制",
-      copied: "已复制",
-      noOutput: "（无输出）",
-      collapseAria: "收起输出",
-      collapse: "收起",
-      expandAria: (n) => "展开剩余 " + n + " 行",
-      expand: (n) => "展开剩余 " + n + " 行",
+      signal: (s) => L("信号 " + s, "signal " + s),
+      exitCode: (c) => L("退出码 " + c, "exit " + c),
+      noExitCode: L("无退出码", "no exit code"),
+      running: L("运行中", "running"),
+      failed: L("失败", "failed"),
+      done: L("完成", "done"),
+      copy: L("复制", "copy"),
+      copied: L("已复制", "copied"),
+      noOutput: L("（无输出）", "(no output)"),
+      collapseAria: L("收起输出", "Collapse output"),
+      collapse: L("收起", "Collapse"),
+      expandAria: (n) => L("展开剩余 " + n + " 行", "Show remaining " + n + " lines"),
+      expand: (n) => L("展开剩余 " + n + " 行", "Show remaining " + n + " lines"),
     }
 
     function BashRow(props) {
@@ -4143,10 +4153,10 @@ const react = require("react")
         onKeyDown: (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); setOpen((v) => !v) } },
         "aria-expanded": open,
       },
-        e("span", { style: failed ? { ...S.icon, color: C.err } : S.icon, title: "内置 Bash（插件自带 GNU bash/MSYS2 运行时：无需 WSL、不经过 PowerShell）" }, "$_"),
-        e("span", { style: S.title }, "运行命令"),
+        e("span", { style: failed ? { ...S.icon, color: C.err } : S.icon, title: L("内置 Bash（插件自带 GNU bash/MSYS2 运行时：无需 WSL、不经过 PowerShell）", "Built-in Bash (bundled GNU bash/MSYS2 runtime: no WSL, no PowerShell)") }, "$_"),
+        e("span", { style: S.title }, L("运行命令", "Run command")),
         e("span", { style: S.sep }, "·"),
-        e("span", { style: S.cmd, title: cmd || "" }, cmd || (running ? "（读取参数…）" : "（未读到命令）")),
+        e("span", { style: S.cmd, title: cmd || "" }, cmd || (running ? L("（读取参数…）", "(reading arguments…)") : L("（未读到命令）", "(command unavailable)"))),
         e("span", { style: S.caret }, open ? "▾" : "▸"),
       )
 
@@ -4157,7 +4167,7 @@ const react = require("react")
       // 看起来像"命令是空的"故障。参数就绪后会自动进入正常渲染。
       if (!cmd && running) {
         return e("div", null, head, e("div", { style: S.body },
-          e("div", { style: { fontSize: "11px", color: C.dim } }, "正在接收命令参数…")))
+          e("div", { style: { fontSize: "11px", color: C.dim } }, L("正在接收命令参数…", "Receiving command arguments…"))))
       }
 
       const P = primitives()
@@ -4174,7 +4184,7 @@ const react = require("react")
             labels: LABELS,
           })
         : e("pre", { style: S.fallback },
-            "$ " + (cmd || "") + "\n" + (running ? "" : (settled.output || "（无输出）")) +
+            "$ " + (cmd || "") + "\n" + (running ? "" : (settled.output || L("（无输出）", "(no output)"))) +
             (running ? "" : (settled.exitCode !== undefined ? "\n[exit code: " + settled.exitCode + "]" : "")))
 
       return e("div", null, head, e("div", { style: S.body }, body))
@@ -4183,7 +4193,7 @@ const react = require("react")
     function Safe(fn) {
       return function (props) {
         try { return fn(props) } catch (err) {
-          return e("div", { style: { fontSize: "11px", color: C.dim }, title: String(err) }, "（bash 卡片渲染降级）")
+          return e("div", { style: { fontSize: "11px", color: C.dim }, title: String(err) }, L("（bash 卡片渲染降级）", "(bash card degraded)"))
         }
       }
     }

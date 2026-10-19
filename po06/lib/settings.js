@@ -125,6 +125,9 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // 开着时：第一次 Enter 正常拦截并开始解释；600ms 内再按一次 Enter ⇒ 放弃本轮解释、
   // 按原文立即发出（与面板上的「跳过」同一语义：不发包、不出注入卡片）。
   doubleEnterSkip: false,
+  // 2026-10-19 用户提出：子代理也会跑这套解释/注入，通常没必要（白花 token）。
+  // 默认 **不应用**；要的话在「详情」里打开。
+  applyToSubagents: false,
   // 0.8：**斜杠命令允许列表**（命令名不带斜杠）。
   // 默认空 = 所有斜杠命令照旧交还宿主（与改动前完全一致）。
   // 为什么不直接放开斜杠：宿主自己的 /clear、/model、/compact 一旦被审查浮层接管，
@@ -144,6 +147,7 @@ export const SETTINGS_KEYS = Object.freeze([
   'permission', 'historyMode', 'turns', 'readTools',
   'bash',
   'doubleEnterSkip',
+  'applyToSubagents',
   'effortByModel',
   'bySession',
   'framing',
@@ -294,6 +298,7 @@ export function normalizeSettings(raw) {
     readTools: pickBool('readTools', DEFAULT_SETTINGS.readTools),
     bash: pickBool('bash', DEFAULT_SETTINGS.bash),
     doubleEnterSkip: pickBool('doubleEnterSkip', DEFAULT_SETTINGS.doubleEnterSkip),
+    applyToSubagents: pickBool('applyToSubagents', DEFAULT_SETTINGS.applyToSubagents),
     slashReview: pickSlashReview(),
   }
   // model：null / 缺省 = 跟随会话；给了就必须是 { provider, model } 两个非空字符串
@@ -519,5 +524,7 @@ export function describeSettings(settings) {
     readToolsLabel: s.readTools ? '开（会读项目文件后再写要求）' : '关（只依据你的话与上下文）',
     doubleEnterSkip: s.doubleEnterSkip,
     doubleEnterSkipLabel: s.doubleEnterSkip ? '开（600ms 内再按回车＝跳过本轮优化）' : '关',
+    applyToSubagents: s.applyToSubagents,
+    applyToSubagentsLabel: s.applyToSubagents ? '开（子代理也用这套解释与注入）' : '关（子代理不解释、不注入）',
   }
 }
