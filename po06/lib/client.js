@@ -2612,10 +2612,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           h('span', { 'data-po06': 'injection-row-chars', style: S.optSummary }, String(chars) + L(' 字', ' chars')),
           h('span', { 'aria-hidden': 'true', style: S.optCaret }, open ? '▴' : '▾')),
         body.mounted ? h('div', { 'data-po06': 'injection-row-body', style: S.injBody, 'data-po06-closing': body.closing ? '1' : '0' },
-          h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '320px', overflow: 'auto', fontFamily: 'inherit' } },
+          h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: 'min(60vh, 520px)', overflow: 'auto', fontFamily: 'inherit' } },
             rec.injected),
           rec.truncated ? h('div', { 'data-po06': 'inject-note', style: S.ovHintQuiet },
-            L('这里显示前 4000 字；完整内容就是模型实际收到的那段。', 'First 4000 characters; this is what the model actually received.')) : null,
+            L('这条是旧记录，当时只存了前 4000 字。', 'This is an old record that only kept the first 4000 characters.')) : null,
         ) : null)
     }
 

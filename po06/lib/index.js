@@ -1938,7 +1938,7 @@ class DshAdapter {
       id,
       anchorSeq: Number.isFinite(row.anchorSeq) ? row.anchorSeq : null,
       chars: Number.isFinite(row.chars) ? row.chars : row.injected.length,
-      injected: row.injected.slice(0, 4000),
+      injected: row.injected,               // 读的时候也不截断（历史记录里的旧文本照原样给出）
       truncated: row.truncated === true,
       at: Number.isFinite(row.at) ? row.at : Date.now(),
     }
@@ -2818,8 +2818,9 @@ export function apply(ctx, config) {
                 const id = adapter.noteInjection(sid, {
                   anchorSeq,
                   chars: working.length,
-                  injected: working.slice(0, 4000),
-                  truncated: working.length > 4000,
+                  // 不截断（用户 2026-10-19）：卡片要能看到**完整**注入文，不再只给前 4000 字。
+                  injected: working,
+                  truncated: false,
                   at: Date.now(),
                 })
                 if (id) {
