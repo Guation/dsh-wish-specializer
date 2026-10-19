@@ -675,10 +675,12 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         // 宿主这边优先问 sessionController 拿会话头（最新、最准），拿不到再用事件里记下的。
         const sid = String(query.get('session') || '').trim()
         if (!sid) return send(400, { ok: false, reason: 'session-required' })
+        // light=1（客户端 0.5s 的探针）：跳过会话 inspect，只用事件表/pending 判"预设变了没有"，成本极低
+        const lightProbe = String(query.get('light') || '') === '1'
         let headerPreset = null
         let debug = null
         try {
-          if (typeof inspectPreset === 'function') {
+          if (!lightProbe && typeof inspectPreset === 'function') {
             const r = await inspectPreset(sid)
             // 新契约 { preset, debug }；老契约直接给字符串（兼容）
             if (r && typeof r === 'object' && 'preset' in r) { headerPreset = r.preset || null; debug = r.debug || null }

@@ -28,7 +28,8 @@ test('触发：一次 DSH 运行进程最多提示一次（不再判断预设）
   assert.equal(CLIENT_SRC.includes("apiGet('/preset?via=enter"), false, '发送路径不再被预设闸门拦住')
   assert.equal(CLIENT_SRC.includes('presetLabelIn'), false, '不再读按钮文案')
   // 第二个触发：新会话里把预设切到非 PTC/Wish ⇒ 也要弹（只认 presetAt 变化，首帧不弹）
-  assert.ok(CLIENT_SRC.includes("apiGet('/preset?via=watch&session='"), '预设变化的轻查询')
+  assert.ok(CLIENT_SRC.includes("apiGet('/preset?via=watch&light=1&session='"), '预设变化的轻查询（light=1 跳过 inspect）')
+  assert.ok(CLIENT_SRC.includes('setInterval(tick, 500)'), '0.5s 一次（用户要求切完就弹）')
   assert.ok(CLIENT_SRC.includes('const seen = { armed: false, at: null }'), '自己维护基线')
   assert.ok(CLIENT_SRC.includes('if (!at || at === seen.at) return'), '只有真的变了才动')
   assert.ok(CLIENT_SRC.includes('if (r.notice && !(s && s.presetNoticeDismissed === true)) setNotice(r.notice)'), '变了且非推荐预设才弹')

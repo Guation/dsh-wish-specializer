@@ -2859,7 +2859,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         let stopped = false
         const seen = { armed: false, at: null }
         const tick = () => {
-          apiGet('/preset?via=watch&session=' + encodeURIComponent(sessionId)).then((r) => {
+          apiGet('/preset?via=watch&light=1&session=' + encodeURIComponent(sessionId)).then((r) => {
             if (stopped || !r || r.ok !== true) return
             const at = r.presetAt || null
             if (!seen.armed) { seen.armed = true; seen.at = at; return }
@@ -2869,7 +2869,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           }).catch(() => {})
         }
         tick()
-        const timer = setInterval(tick, 2500)
+        // 用户 2026-10-19：切预设后要快——0.5s 一次（探针很轻：带 light=1，宿主不再做会话 inspect）
+        const timer = setInterval(tick, 500)
         return () => { stopped = true; clearInterval(timer) }
       }, [sessionId, s && s.presetNoticeDismissed])
       const d = (data && data.described) || null
