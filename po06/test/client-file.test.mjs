@@ -130,10 +130,16 @@ t('界面锚点：关键节点带 data-po06 标记（真机验证靠它，不靠
   // 要求②（2026-09-21）：`?` 帮助按钮与弹层也要有锚点（help-btn / help-pop / help-body / help-close）
   // ⚠ `items` 锚点已按用户要求撤掉（详情面板不再有"它在替我做什么"板块）；
   //    "无出处"这条诚实信号挪到拦截审查面板（intercept-unsourced），下面的诚实性断言仍然钉着它。
+  // 2026-10-19：自绘控件把锚点写在 name 上（Segmented/Options 运行时拼出 data-po06=<name>），
+  // 所以"有这个锚点"现在有两条成立方式：字面量，或某个控件的 name 就是它。
+  const hasAnchor = (a) => src.includes("'data-po06': '" + a + "'")
+    || src.includes('"data-po06": "' + a + '"')
+    || src.includes("name: '" + a + "'")
+    || src.includes('anchor: "' + a + '"')
+    || src.includes("anchor: '" + a + "'")
   for (const anchor of ['bar', 'ctx', 'ctx-mode', 'readtools', 'model', 'help-btn', 'help-pop', 'help-close',
     'panel', 'controls', 'turns', 'prompt', 'settings']) {
-    ok(src.includes("'data-po06': '" + anchor + "'") || src.includes('"data-po06": "' + anchor + '"'),
-      '缺少界面锚点 data-po06=' + anchor)
+    ok(hasAnchor(anchor), '缺少界面锚点 data-po06=' + anchor)
   }
   // 用户 2026-09-21 的三条界面要求，逐条钉住
   // （判据钉"有没有这个板块/组件"，不钉字面量——注释里提它的来历是允许的。）
@@ -141,10 +147,11 @@ t('界面锚点：关键节点带 data-po06 标记（真机验证靠它，不靠
   ok(!/h\(ItemsList/.test(src), 'ItemsList 已删（不留死代码）')
   ok(/h\('span', \{\}, L\('详情', 'Details'\)\)/.test(src), '入口按钮文字必须是「详情」')
   ok(/'data-po06': 'state-dot'/.test(src), '「详情」必须保留灰绿状态灯（state-dot）')
-  ok(/mode: historyMode/.test(src), '上下文滑块必须知道自己是"回合"还是"全文"模式')
-  ok(/'data-po06-value': on \? 'on' : 'off', 'data-po06-mode': 'full'/.test(src),
-    '全文模式的滑块只有关/开两格')
-  // 控件栏两层化（要求①）：两行的锚点都在，且外层是 column（不是一条直线）
+  // 2026-10-19：上下文重做——模式用分段控件（ctx-mode），回合数用自绘滑杆（ctx）。
+  // 旧断言钉的是"一个 range 伪装两种模式"，那正是这次要拆掉的东西。
+  ok(/name: 'ctx-mode'/.test(src), '上下文模式必须是分段控件（data-po06=ctx-mode）')
+  ok(/historyMode === 'full'/.test(src), '全文模式要给静态说明，而不是假装有 0~10 量程')
+  ok(/'data-po06': 'ctx-fill'/.test(src) && /'data-po06': 'ctx-thumb'/.test(src), '滑杆是自绘的（已选段 + 滑块）')
   ok(/'data-po06': 'bar-row-1'/.test(src), '第一层锚点 bar-row-1')
   ok(/'data-po06': 'bar-row-2'/.test(src), '第二层锚点 bar-row-2')
   ok(/flexDirection: 'column'/.test(src), '控件栏外层必须竖排两层（否则会被发送按钮顶上去）')

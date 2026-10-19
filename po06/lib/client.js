@@ -705,6 +705,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       optSelect: { width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '8px',
         border: '1px solid ' + OVS.lineSoft, background: OVS.bg1, color: OVS.fg,
         font: 'inherit', fontSize: '12px', cursor: 'pointer' },
+      // ③b 下拉选择（自绘，替掉原生 select）：触发器 + 浮层菜单
+      picker: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%',
+        boxSizing: 'border-box', padding: '5px 10px', borderRadius: '8px', border: '1px solid ' + OVS.lineSoft,
+        background: OVS.bg1, color: OVS.fg, font: 'inherit', fontSize: '12px', cursor: 'pointer',
+        textAlign: 'left', minHeight: '28px' },
+      pickerOpen: { borderColor: OVS.acc, boxShadow: '0 0 0 3px ' + OVS.acc12 },
+      pickerText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+      pickerCaret: { flex: '0 0 auto', color: OVS.fg3, fontSize: '9px' },
+      pickerMenu: { position: 'fixed', zIndex: OV_Z.pop + 1, maxHeight: '260px', overflowY: 'auto',
+        display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px',
+        background: OVS.surface, border: '1px solid ' + OVS.lineSoft, borderRadius: '10px', boxShadow: SHADOW.float },
+      pickerItem: { display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', padding: '6px 8px',
+        borderRadius: '6px', border: '1px solid transparent', background: 'transparent', color: OVS.fg2,
+        font: 'inherit', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+      pickerItemOn: { background: OVS.acc12, color: OVS.acc, fontWeight: 600 },
+      pickerItemActive: { background: T('hover') },
       // ③ 分段控件：选中 = 实心主题色；其余安静
       // 分段控件（2026-10-19 重设计）：整条是一条**内嵌轨道**，选中项是轨道里的一颗实心药丸。
       seg: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'stretch',
@@ -797,9 +813,89 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
     const PROV_TEXT = { user: L('你说过','you said'), machine: L('机器补充','machine-added'), unsourced: L('无出处','unsourced') }
 
-    function Options({ value, onChange, options, labels }) {
-      return h('select', { style: S.select, value: value || '', onChange: (e) => onChange(e.target.value) },
-        options.map((o) => h('option', { key: o, value: o }, labels ? labels[o] : o)))
+    /**
+     * 下拉选择（2026-10-19 重做）：原生 <select> 的展开面板由系统绘制，跟插件的设计语言完全不搭
+     * （截图：黑底 + 系统蓝高亮）。这里换成自己的触发器 + 面板，键鼠都能用。
+     */
+    function Options({ value, onChange, options, labels, disabled, anchor }) {
+      const [open, setOpen] = React.useState(false)
+      const [pos, setPos] = React.useState(null)
+      const [active, setActive] = React.useState(-1)
+      const btnRef = React.useRef(null)
+      const wrapRef = React.useRef(null)
+      const idx = Math.max(0, options.indexOf(value))
+      const label = (k) => (labels && labels[k]) || k
+      const place = () => {
+        const el = btnRef.current
+        if (!el || typeof el.getBoundingClientRect !== 'function') return
+        const r = el.getBoundingClientRect()
+        const vh = (typeof window !== 'undefined' && window.innerHeight) || 600
+        const below = vh - r.bottom > 240
+        setPos({
+          left: Math.round(r.left), width: Math.max(120, Math.round(r.width)),
+          ...(below ? { top: Math.round(r.bottom + 4) } : { bottom: Math.round(vh - r.top + 4) }),
+        })
+      }
+      React.useEffect(() => {
+        if (!open) return undefined
+        place()
+        setActive(idx)
+        const onDoc = (e) => { try { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false) } catch { setOpen(false) } }
+        const onKey = (e) => { if (e && e.key === 'Escape') setOpen(false) }
+        const onReflow = () => place()
+        document.addEventListener('pointerdown', onDoc, true)
+        document.addEventListener('keydown', onKey, true)
+        window.addEventListener('resize', onReflow)
+        window.addEventListener('scroll', onReflow, true)
+        return () => {
+          document.removeEventListener('pointerdown', onDoc, true)
+          document.removeEventListener('keydown', onKey, true)
+          window.removeEventListener('resize', onReflow)
+          window.removeEventListener('scroll', onReflow, true)
+        }
+      }, [open])
+      const choose = (k) => { setOpen(false); if (k !== value) onChange(k) }
+      const onKeyDown = (e) => {
+        if (disabled) return
+        const cur = active < 0 ? idx : active
+        if (!open) {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            setOpen(true)
+          }
+          return
+        }
+        if (e.key === 'Escape') { e.preventDefault(); setOpen(false); return }
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(options.length - 1, cur + 1)); return }
+        if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(0, cur - 1)); return }
+        if (e.key === 'Home') { e.preventDefault(); setActive(0); return }
+        if (e.key === 'End') { e.preventDefault(); setActive(options.length - 1); return }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(options[Math.max(0, Math.min(options.length - 1, cur))]) }
+      }
+      return h('div', { ref: wrapRef, 'data-po06': 'picker', 'data-open': open ? '1' : '0',
+        style: { position: 'relative', flex: 1, minWidth: 0, display: 'flex' } },
+        h('button', {
+          ref: btnRef, type: 'button', 'data-po06': anchor || 'picker-btn',
+          'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
+          disabled: disabled === true,
+          style: { ...S.picker, ...(open ? S.pickerOpen : null), ...(disabled ? S.dis : null) },
+          onClick: () => { if (!disabled) setOpen((v) => !v) },
+          onKeyDown,
+        },
+          h('span', { style: S.pickerText }, label(value)),
+          h('span', { 'aria-hidden': 'true', style: S.pickerCaret }, open ? '▴' : '▾')),
+        open && pos ? h('div', {
+          ...themeAttrs(), 'data-po06': 'picker-menu', role: 'listbox',
+          style: { ...S.pickerMenu, left: pos.left + 'px', width: pos.width + 'px',
+            ...(pos.top !== undefined ? { top: pos.top + 'px' } : { bottom: pos.bottom + 'px' }) },
+        },
+          options.map((k, i) => h('button', {
+            key: k, type: 'button', role: 'option', 'aria-selected': k === value ? 'true' : 'false',
+            'data-po06': 'picker-item', 'data-on': k === value ? '1' : '0', 'data-active': i === active ? '1' : '0',
+            style: { ...S.pickerItem, ...(k === value ? S.pickerItemOn : null), ...(i === active ? S.pickerItemActive : null) },
+            onMouseEnter: () => setActive(i),
+            onClick: () => choose(k),
+          }, label(k)))) : null)
     }
 
     /**
@@ -1000,53 +1096,82 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      * 做法：本地先跟手（乐观显示），松手/失焦/停 400ms 才提交；**保存失败就退回真值**
      * （`failTick` 变化 ⇒ 丢掉草稿），不许让界面继续显示一个没写进去的数字。
      */
-    function TurnsRange({ value, disabled, disabledTip, title, onCommit, failTick, mode }) {
+    /**
+     * 上下文「回合数」滑杆（2026-10-19 重做）：原生 input[type=range] 的轨道/滑块由系统绘制，
+     * 和自绘的分段控件完全不是一套语言。这里做成：
+     *   · 4px 轨道 + 主题色已选段 + 14px 圆形滑块（带一圈 surface 描边，压在轨道上才不糊）；
+     *   · 拖动只改本地预览，**松手才提交**（和分段控件同一条性能纪律）；
+     *   · 拖动期间缓存轨道矩形，不在 pointermove 里反复 getBoundingClientRect。
+     */
+    function TurnsRange({ value, disabled, disabledTip, title, onCommit, failTick }) {
+      const trackRef = React.useRef(null)
+      const rectRef = React.useRef(null)
       const [draft, setDraft] = React.useState(null)
+      const [dragging, setDragging] = React.useState(false)
       const shown = draft == null ? value : draft
-      // 「全文」模式下只有**关 / 开**两格（用户 2026-09-21 要求；0.5 也是这个形态）：
-      // 全文模式读的是"我手上保留的全部回合"，再给 0~10 的量程是**假的精度**——
-      // 所以这里只暴露"读不读"，但**底层仍然用 `turns` 保存**（关=0，开=上次的正数值），
-      // 切回「回合」模式时用户原来的量程不会被抹掉。
-      const full = mode === 'full'
-      const lastPos = React.useRef(value > 0 ? value : DEFAULT_TURNS)
-      if (value > 0) lastPos.current = value
-      const commit = (v) => {
-        if (disabled) return                                    // 处理函数里也挡一道（见 ctx-mode 的注释）
-        const n = Math.max(TURNS_MIN, Math.min(TURNS_MAX, Math.round(Number(v))))
-        if (Number.isFinite(n) && n !== value) onCommit(n)
-      }
+      const pct = Math.max(0, Math.min(1, (shown - TURNS_MIN) / (TURNS_MAX - TURNS_MIN)))
       React.useEffect(() => { if (draft != null && draft === value) setDraft(null) }, [value, draft])
       React.useEffect(() => { setDraft(null) }, [failTick])
-      React.useEffect(() => {
-        if (draft == null) return undefined
-        const t = window.setTimeout(() => { commit(draft) }, 400)
-        return () => { window.clearTimeout(t) }
-      }, [draft, value])
-      if (full) {
-        const on = shown > 0
-        return h('input', {
-          type: 'range', min: 0, max: 1, step: 1, value: on ? 1 : 0,
-          'data-po06': 'ctx', 'data-po06-value': on ? 'on' : 'off', 'data-po06-mode': 'full',
-          disabled: !!disabled, title: disabled ? disabledTip : title,
-          'aria-label': 'context-full',
-          style: { width: '86px', ...(disabled ? S.dis : null) },
-          onChange: (e) => { if (disabled) return; setDraft(Number(e.target.value) ? lastPos.current : 0) },
-          onPointerUp: () => { if (draft != null) commit(draft) },
-          onKeyUp: () => { if (draft != null) commit(draft) },
-          onBlur: () => { if (draft != null) commit(draft) },
-        })
+      const commit = (n) => {
+        if (disabled) return
+        const v = Math.max(TURNS_MIN, Math.min(TURNS_MAX, Math.round(Number(n))))
+        if (Number.isFinite(v) && v !== value) onCommit(v)
       }
-      return h('input', {
-        type: 'range', min: TURNS_MIN, max: TURNS_MAX, step: 1, value: shown,
+      const valueAt = (clientX) => {
+        const r = rectRef.current || (trackRef.current && trackRef.current.getBoundingClientRect && trackRef.current.getBoundingClientRect())
+        if (!r || !r.width) return shown
+        const t = (clientX - r.left) / r.width
+        return Math.round(TURNS_MIN + Math.max(0, Math.min(1, t)) * (TURNS_MAX - TURNS_MIN))
+      }
+      const onKeyDown = (e) => {
+        if (disabled) return
+        let next = null
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = shown - 1
+        else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = shown + 1
+        else if (e.key === 'Home') next = TURNS_MIN
+        else if (e.key === 'End') next = TURNS_MAX
+        if (next === null) return
+        e.preventDefault()
+        const v = Math.max(TURNS_MIN, Math.min(TURNS_MAX, next))
+        setDraft(v)
+        commit(v)
+      }
+      return h('div', {
+        ref: trackRef, role: 'slider', tabIndex: disabled ? -1 : 0,
         'data-po06': 'ctx', 'data-po06-value': String(shown), 'data-po06-mode': 'turns',
-        disabled: !!disabled, title: disabled ? disabledTip : title,
-        'aria-label': 'context-turns',
-        style: { width: '86px', ...(disabled ? S.dis : null) },
-        onChange: (e) => { if (disabled) return; setDraft(Math.max(TURNS_MIN, Math.min(TURNS_MAX, Math.round(Number(e.target.value))))) },
-        onPointerUp: () => { if (draft != null) commit(draft) },
-        onKeyUp: () => { if (draft != null) commit(draft) },
-        onBlur: () => { if (draft != null) commit(draft) },
-      })
+        'aria-label': 'context-turns', 'aria-valuemin': TURNS_MIN, 'aria-valuemax': TURNS_MAX, 'aria-valuenow': shown,
+        'aria-disabled': disabled ? 'true' : 'false',
+        title: disabled ? disabledTip : title,
+        style: { position: 'relative', flex: '1 1 auto', minWidth: '70px', height: '18px', display: 'flex',
+          alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', outline: 'none',
+          ...(disabled ? { opacity: .5 } : null) },
+        onKeyDown,
+        onPointerDown: (e) => {
+          if (disabled) return
+          try { rectRef.current = trackRef.current.getBoundingClientRect() } catch { rectRef.current = null }
+          setDragging(true)
+          setDraft(valueAt(e.clientX))
+          try { if (e.currentTarget.setPointerCapture && e.pointerId != null) e.currentTarget.setPointerCapture(e.pointerId) } catch { /* 忽略 */ }
+        },
+        onPointerMove: (e) => { if (!disabled && dragging) setDraft(valueAt(e.clientX)) },
+        onPointerUp: () => {
+          const v = draft
+          rectRef.current = null
+          setDragging(false)
+          setDraft(null)
+          if (v != null) commit(v)
+        },
+        onPointerCancel: () => { rectRef.current = null; setDragging(false); setDraft(null) },
+      },
+        h('span', { 'aria-hidden': 'true', style: { position: 'absolute', left: 0, right: 0, height: '4px',
+          borderRadius: '999px', background: OVS.line2 } }),
+        h('span', { 'aria-hidden': 'true', 'data-po06': 'ctx-fill', style: { position: 'absolute', left: 0,
+          width: (pct * 100) + '%', height: '4px', borderRadius: '999px',
+          background: disabled ? OVS.fg3 : OVS.acc, transition: dragging ? 'none' : 'width .16s ease' } }),
+        h('span', { 'aria-hidden': 'true', 'data-po06': 'ctx-thumb', style: { position: 'absolute',
+          left: 'calc(' + (pct * 100) + '% - 7px)', width: '14px', height: '14px', borderRadius: '50%',
+          background: disabled ? OVS.fg3 : OVS.acc, border: '2px solid ' + OVS.surface,
+          boxShadow: '0 1px 3px rgba(0,0,0,.3)', transition: dragging ? 'none' : 'left .16s ease' } }))
     }
 
     // ── 控制表单（浮层与设置页共用）──────────────────────────────────
@@ -1379,7 +1504,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             onChange: (v) => saveTier({ applyToSubagents: v === 'on' }),
           }),
         ),
-        h(AdvisorControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
+        // ⚠ 2026-10-19 修：顾问的就绪状态**不能**借用 english.ready（那会让英文没就绪时顾问开关被禁用）。
+        h(AdvisorControls,{settings:eff,save:saveTier,ready:true,busy}),
         h(EnglishControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
         // 2026-10-19 用户要求：**详情面板里的「快速增强」也隐藏**（与设置页一致，默认关闭、不再给入口）。
         // 组件与后端代码都保留；要恢复只把下面这一行放回来。
@@ -3007,14 +3133,14 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (!effortKey) return null
         const map = (s.effortByModel && typeof s.effortByModel === 'object') ? s.effortByModel : {}
         const curEffort = (typeof map[effortKey] === 'string') ? map[effortKey] : ''
-        const onPick = (e) => {
+        const onPick = (v) => {
           const next = { ...map }
-          if (e.target.value) next[effortKey] = e.target.value
+          if (v) next[effortKey] = v
           else delete next[effortKey]
           save({ effortByModel: next })
         }
-        const opts = [h('option', { key: '__default', value: '' }, L('默认（不指定）', 'Default (unspecified)'))]
-        for (const e of efforts) opts.push(h('option', { key: e.id, value: e.id }, e.name || e.id))
+        const effortLabels = { '': L('默认（不指定）', 'Default (unspecified)') }
+        for (const e of efforts) effortLabels[e.id] = e.name || e.id
         const title = efforts.length
           ? L('只作用于这个解释层模型；下列档位就是它自己支持的那一套',
             'Applies only to this explainer model; the levels listed are its own')
@@ -3026,12 +3152,14 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         //   用户点它当然没反应，观感就是"档位点了不动"。真实原因只是**这个模型没有档位**。
         //   所以：禁用 + 就地写明原因（不能只放在 title 里——没人会去悬停）。
         const noEfforts = efforts.length === 0
-        const sel = h('select', {
-          'data-po06': 'effort', 'data-po06-value': curEffort, value: curEffort,
-          style: { ...S.optSelect, colorScheme: themeIsDark() ? 'dark' : 'light',
-            ...(noEfforts ? { opacity: .5, cursor: 'default' } : null) },
-          title, onChange: onPick, disabled: noEfforts,
-        }, opts)
+        const sel = h(Options, {
+          anchor: 'effort',
+          value: curEffort,
+          options: ['', ...efforts.map((e) => e.id)],
+          labels: effortLabels,
+          disabled: noEfforts,
+          onChange: onPick,
+        })
         return h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('思考档位', 'Thinking effort')),
           noEfforts
             ? h('span', { 'data-po06': 'effort-none', style: S.muted },
@@ -3171,7 +3299,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   //   表现为"点了档位但档位不变"（用户实测 2026-09-27）。
                   onPick: (v) => save({ bySession: replaceTier(v) }),
                 })),
-              h(AdvisorControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick}),
+              h(AdvisorControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:true,busy,failTick}),
               h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick}),
               // ①b 协作基调（0.7.8）：与档位正交，按会话存。语域本身就是效果来源（见 framing.js）。
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('协作基调', 'Tone')),
@@ -3196,49 +3324,49 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 })),
               // ③ 模型：下拉（跟随会话模型 = null）
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('模型', 'Model')),
-                h('select', {
-                  'data-po06': 'model', 'data-po06-value': curKey, value: curKey,
-                  // 底色/文字显式指定 + `color-scheme` 跟主题走 ⇒ 原生下拉面板不再白底白字
-                  style: { ...S.optSelect, colorScheme: themeIsDark() ? 'dark' : 'light' },
-                  title: L('解释层模型：跟随会话模型，或固定某一个', 'Explainer model: follow the session model, or pin one'),
-                  onChange: (e) => {
-                    const v = e.target.value
+                // 2026-10-19：原生 select 换成自绘下拉（系统面板和插件设计语言不搭）
+                h(Options, {
+                  anchor: 'model',
+                  value: curKey,
+                  options: ['inherit', ...routes.map(mkey)],
+                  labels: (() => {
+                    const m = { inherit: L('跟随会话模型', 'Follow session model') }
+                    routes.forEach((r) => { m[mkey(r)] = r.label || (r.provider + ' / ' + r.model) })
+                    return m
+                  })(),
+                  onChange: (v) => {
                     if (v === 'inherit') { save({ model: null }); return }
                     const r = routes.find((x) => mkey(x) === v)
                     if (r) save({ model: { provider: r.provider, model: r.model } })
                   },
-                },
-                  h('option', { value: 'inherit' }, L('跟随会话模型', 'Follow session model')),
-                  groups.map((g) => h('optgroup', { key: g.provider, label: g.provider },
-                    g.items.map((r) => h('option', { key: mkey(r), value: mkey(r) }, r.label || (r.provider + ' / ' + r.model))))),
-                )),
+                })),
               effortRow,            // ④⑤⑥ 范围类：上下文 / 只读工具 / 详情 —— 沿用原来的控件，只是现在住在面板里
-            // ③ 上下文：回合数量程 0–10 + 回合/全文切换，档位 off 时都禁用
-            h('span', { 'data-po06': 'ctx-wrap', style: { ...S.grp, ...(tierOff ? S.dis : null) } },
-              h('span', { style: { opacity: .7 } }, L('上下文', 'Context')),
-              h(TurnsRange, {
-                value: turns, disabled: tierOff, failTick, mode: historyMode,
-                disabledTip: L('上下文：' + offTip, 'Context: ' + offTip),
-                title: historyMode === 'full'
-                  ? L('上下文（全文）：开 = 读入我手上保留的全部回合；关 = 完全不读', 'Context (full): On = read every turn I still hold; Off = read nothing')
-                  : L('上下文：只读最近几回合（0–10），拖动滑杆或按方向键调整', 'Context: read only the last N turns (0–10); drag the slider or use arrow keys'),
-                onCommit: (n) => save({ turns: n }),
-              }),
-              // 全文模式显示"关/开"（那里没有 0~10 的量程可言），回合模式显示裸数字
-              h('span', { 'data-po06': 'ctx-num', style: { minWidth: '16px', textAlign: 'center', opacity: .85 } },
-                historyMode === 'full' ? (turns > 0 ? L('开', 'On') : L('关', 'Off')) : String(turns)),
-              h('button', {
-                type: 'button', disabled: tierOff, 'data-po06': 'ctx-mode', 'data-po06-value': historyMode,
-                style: { ...S.small, ...(tierOff ? S.dis : null) },
-                title: tierOff
-                  ? L('上下文模式：回合 / 全文 —— ' + offTip, 'Context mode: Turns / Full — ' + offTip)
-                  : L('上下文模式：回合 = 只读最近几回合；全文 = 与工作 AI 看到的一致',
-                    'Context mode: Turns = only the last few turns; Full = the same as the working AI sees'),
-                // ⚠ 处理函数里也要挡一道：`disabled` 属性只管"浏览器不发事件"，
-                // 挡不住程序化派发的事件（真机上还有别的插件在派发/合成事件）。禁用就是**不发请求**。
-                onClick: () => { if (tierOff) return; save({ historyMode: historyMode === 'full' ? 'turns' : 'full' }) },
-              }, historyMode === 'full' ? L('全文', 'Full') : L('回合', 'Turns')),
-            ),
+            // ③ 上下文（2026-10-19 重做）：模式用分段控件；回合数用自绘滑杆
+            h('div', { 'data-po06': 'ctx-wrap', style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
+              h('div', { style: S.optRow },
+                h('span', { style: S.optLabel }, L('上下文', 'Context')),
+                h(Segmented, {
+                  name: 'ctx-mode', value: historyMode, options: ['turns', 'full'], disabled: tierOff,
+                  label: (k) => (k === 'full' ? L('全文', 'Full') : L('回合', 'Turns')),
+                  title: tierOff
+                    ? L('上下文模式：回合 / 全文 —— ' + offTip, 'Context mode: Turns / Full — ' + offTip)
+                    : L('上下文模式：回合 = 只读最近几回合；全文 = 与工作 AI 看到的一致',
+                      'Context mode: Turns = only the last few turns; Full = the same as the working AI sees'),
+                  onPick: (v) => { if (tierOff) return; save({ historyMode: v }) },
+                })),
+              historyMode === 'full'
+                ? h('div', { 'data-po06': 'ctx-hint', style: { ...S.muted, paddingLeft: '2px' } },
+                  L('读入我手上保留的全部回合', 'Read every turn still held'))
+                : h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '2px' } },
+                  h(TurnsRange, {
+                    value: turns, disabled: tierOff, failTick,
+                    disabledTip: L('上下文：' + offTip, 'Context: ' + offTip),
+                    title: L('上下文：只读最近几回合（0–10），拖动滑杆或按方向键调整',
+                      'Context: read only the last N turns (0–10); drag the slider or use arrow keys'),
+                    onCommit: (n) => save({ turns: n }),
+                  }),
+                  h('span', { 'data-po06': 'ctx-num', style: { minWidth: '34px', textAlign: 'right', color: OVS.acc, fontSize: '12px', fontWeight: 650 } },
+                    String(turns) + L(' 回合', ' turns')))),
             h('div', { style: S.divider }),
             // ⑤ 读项目文件：**永远可用**（不受档位影响）；三态纪律见上面的注释
             h('button', {
