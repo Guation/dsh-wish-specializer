@@ -31,6 +31,6 @@ jobs:
         with:
           name: suite-report-node${{ matrix.node }}
           path: |
-            po06/release-suites.json
-            po06/release-check.json
+            po06/eval/release-suites.json
+            po06/eval/release-check.json
           if-no-files-found: ignore

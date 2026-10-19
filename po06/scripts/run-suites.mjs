@@ -101,4 +101,13 @@ const summary = {
 writeFileSync(join(ROOT, 'eval', 'release-suites.json'), JSON.stringify({ at: new Date().toISOString(), summary, results, failed }, null, 2) + '\n', 'utf8')
 if (asJson) console.log(JSON.stringify(summary, null, 2))
 else console.log('SUITES ' + summary.suites + ' · passed ' + summary.passed + ' · failed ' + summary.failed + ' · assertions ' + summary.passTotal)
+// CI 里没有凭证也能看到"哪几个套件红了"：GitHub 会把 ::error:: 转成 run annotations，
+// 用公开 API /check-runs/{id}/annotations 就能读（日志下载要 admin 权限）。
+if (failed.length) {
+  console.log('::error title=PO06 suites failed::' + summary.failing.join(', '))
+  for (const f of failed.slice(0, 3)) {
+    const tail = (f.tail || []).slice(-3).join(' | ').replace(/\r?\n/g, ' ')
+    console.log('::error title=' + f.file + '::' + tail.slice(0, 900))
+  }
+}
 process.exit(failed.length === 0 ? 0 : 1)
