@@ -2461,6 +2461,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   // 可编辑（0.5:1582-1588 的 textarea）：改完点「确认提交」就是本轮注入的内容
                   ? h('textarea', {
                     'data-po06': 'intercept-text', style: S.ovReviewText, value: packet, spellCheck: false,
+                    // tabIndex=-1：不让它进入"顺序焦点"。面板一出现时浏览器/输入法会把焦点甩到
+                    // 第一个可聚焦控件上，回车就被这个编辑框吃掉（用户 2026-10-19 真机）。
+                    // 想编辑仍然可以**点一下**再输入——不影响功能，只是不再抢焦点。
+                    tabIndex: -1,
                     onChange: props.onEdit,
                   })
                   // 只读视图（自动档 / 放行之后 / 优化失败）：0.5 的 `.dpo-pane-body`（pre-wrap）
