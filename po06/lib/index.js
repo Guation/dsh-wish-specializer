@@ -2361,17 +2361,34 @@ export function apply(ctx, config) {
     // 回车前的预设闸门（2026-10-19）：优先问 sessionController 的会话头，其次用事件里记下的。
     getPreset: (sid) => adapter.presetOf(sid),
     inspectPreset: async (sid) => {
+      // 返回 { preset, debug }：debug 只在 ?debug=1 时透出（真机上"为什么没弹窗"必须能查）。
+      // ⚠ 不同版本/不同入口的 inspect 结果形状不一样（header / meta / session.header …），
+      //   2026-10-19 真机就是只读了 meta.agentPreset ⇒ 永远 null ⇒ 弹窗永远不出现。
+      const out = { preset: null, debug: { inspect: 'ok', candidates: null, keys: null } }
       const sc = adapter.services && adapter.services.sessionController
-      if (!sc || typeof sc.inspect !== 'function') return null
-      try {
-        const info = await sc.inspect(sid)
-        const preset = info && info.meta && info.meta.agentPreset
-        if (typeof preset === 'string' && preset) {
-          adapter.notePreset(sid, preset)
-          return preset
-        }
-      } catch { /* 读不到就当不知道 */ }
-      return null
+      if (!sc || typeof sc.inspect !== 'function') { out.debug.inspect = 'no-inspect'; return out }
+      let info = null
+      try { info = await sc.inspect(sid) } catch (e) {
+        out.debug.inspect = 'threw:' + String((e && e.message) || e)
+        return out
+      }
+      const pick = (v) => (typeof v === 'string' && v ? v : null)
+      const cands = {
+        'info.agentPreset': pick(info && info.agentPreset),
+        'info.header.agentPreset': pick(info && info.header && info.header.agentPreset),
+        'info.meta.agentPreset': pick(info && info.meta && info.meta.agentPreset),
+        'info.session.header.agentPreset': pick(info && info.session && info.session.header && info.session.header.agentPreset),
+        'info.session.meta.agentPreset': pick(info && info.session && info.session.meta && info.session.meta.agentPreset),
+      }
+      out.debug.candidates = cands
+      out.debug.keys = info && typeof info === 'object' ? Object.keys(info).slice(0, 24) : null
+      const hit = Object.keys(cands).find((k) => cands[k])
+      if (hit) {
+        out.preset = cands[hit]
+        out.debug.from = hit
+        adapter.notePreset(sid, out.preset)
+      }
+      return out
     },
     presetDismissed: () => {
       try {

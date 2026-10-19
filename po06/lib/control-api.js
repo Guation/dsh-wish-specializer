@@ -666,13 +666,24 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         const sid = String(query.get('session') || '').trim()
         if (!sid) return send(400, { ok: false, reason: 'session-required' })
         let preset = null
+        let debug = null
         try {
-          if (typeof inspectPreset === 'function') preset = await inspectPreset(sid)
+          if (typeof inspectPreset === 'function') {
+            const r = await inspectPreset(sid)
+            // 新契约 { preset, debug }；老契约直接给字符串（兼容）
+            if (r && typeof r === 'object' && 'preset' in r) { preset = r.preset || null; debug = r.debug || null }
+            else preset = r || null
+          }
         } catch { preset = null }
         if (!preset && typeof getPreset === 'function') preset = getPreset(sid)
         const dismissed = typeof presetDismissed === 'function' ? presetDismissed() === true : false
         const notice = preset && preset !== 'wish' && preset !== 'ptc' && !dismissed ? { preset } : null
-        return send(200, { ok: true, preset: preset || null, notice })
+        const payload = { ok: true, preset: preset || null, notice }
+        // ?debug=1 ⇒ 透出"宿主到底看到了什么"（真机上判断为什么没弹窗）
+        if (String(query.get('debug') || '') === '1') {
+          payload.debug = { inspect: debug, events: typeof getPreset === 'function' ? (getPreset(sid) || null) : null, dismissed }
+        }
+        return send(200, payload)
       }
       if (method === 'GET' && path === API_PREFIX + '/notice') {
         // 预设提示（2026-10-19）：非 Wish / PTC 预设时给客户端一条提示。
