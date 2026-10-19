@@ -2984,6 +2984,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       //   ③ 同一次发送可能同时命中 Enter 与 click（0.5 的 `coalesced`）⇒ 用 ref 去重，不能靠 state。
       const permissionRef = React.useRef(permission)
       permissionRef.current = permission
+      // 当前"哪个会话正挂在这个面板上"：切走之后回来的结果不能写进别人的会话
+      const liveSidRef = React.useRef(sessionId)
+      liveSidRef.current = sessionId
       const englishRef=React.useRef(englishOn)
       englishRef.current=englishOn
       const canArm = !!(inputActions && typeof inputActions.submit === 'function' && sessionId)
@@ -3052,6 +3055,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 上一轮先断掉 */ }
         const ac = (typeof AbortController === 'function') ? new AbortController() : null
         abortRef.current = ac
+        const startSid = sessionId                       // 这一轮属于哪个会话（切走也要认账）
         const h = { text, via,englishMode:englishOn, t0: Date.now(), phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
         holdRef.current = h; setHold(h)
         apiPost('/interpret', { sessionId, text }, ac ? { signal: ac.signal } : undefined).then((r) => {
@@ -3063,6 +3067,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if(englishRef.current!==h.englishMode){settleFailure(text,h,L('英文模式已改变，请重试或按原文发送','English mode changed; retry or send the original'));return}
           // P11 修复（2026-09-26）：token 用量挂在**结果**上。
           // 进度面（prog）在离开 optimizing 那一刻就被清空，用量若只存那里，界面永远读不到。
+          // 用户已经切到别的会话：结果写回**发起那一轮**的桥，别写进当前会话；
+          // 自动模式下也**不能**在这里提交（会把别的会话的草稿发出去）——回到该会话时再补发。
+          if (startSid !== liveSidRef.current) {
+            holdBridgeWrite(startSid, { ...h, phase: 'review', outgoingText: r.outgoingText || text,
+              done: true, pendingAuto: permissionRef.current !== 'review', englishMode: r.englishMode === true })
+            return
+          }
           const done = { ...h, phase: 'review', englishMode:r.englishMode===true,outgoingText:r.outgoingText||text,translation:r.translation||null,noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null, packet: r.packet || '', chars: r.chars || 0, ms: r.ms || null, unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null, edited: r.packet || '', usage: r.usage || null, usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null }
           holdRef.current = done; setHold(done)
           // 「自动」= 完成即发；「审查」= 等用户确认（0.5 §5 的权限语义）
@@ -3222,6 +3233,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       React.useEffect(() => {
         const saved = holdBridgeRead(sessionId)
         if (saved && !holdRef.current) holdRef.current = saved
+        // 切走期间跑完、且是「自动」权限 ⇒ 回到这个会话时把这一轮补发出去（不许悄悄消失）
+        if (saved && saved.pendingAuto === true && saved.phase === 'review') {
+          const text = outgoingUserText(saved)
+          const next = { ...saved, phase: 'sent', pendingAuto: false, sentAt: Date.now() }
+          try { inputActions.setDraft(text); inputActions.submit() } catch { /* 发不出去也要留痕 */ }
+          holdRef.current = next
+          _setHold(next)
+          holdBridgeWrite(sessionId, next)
+          try { clearHoldSoon() } catch { /* 忽略 */ }
+        }
         return holdBridgeOn(sessionId, (value) => {
           holdRef.current = value
           _setHold(value)
