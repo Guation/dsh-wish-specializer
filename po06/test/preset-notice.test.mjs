@@ -30,6 +30,14 @@ test('宿主：只在非 wish/ptc 时记录，且尊重"以后不再显示"', ()
   assert.ok(/agentPreset/.test(ctx), '预设要从会话头读（宿主字段，不猜）')
 })
 
+test('pending 只对本会话/近期无会话的选择生效（否则所有会话都被判成同一个预设）', () => {
+  // 2026-10-19 真机：pending 无条件优先 ⇒ 每个会话都判成 standard，疯狂弹窗
+  assert.ok(API_SRC.includes('pendingForMe'), '要有归属判定')
+  assert.ok(API_SRC.includes('!pending.sid || String(pending.sid) === sid'), '同一会话或"还没会话"才算')
+  assert.ok(API_SRC.includes('90 * 1000'), '近期选择才有效')
+  assert.ok(API_SRC.includes('clearPresetPending'), '用一次就消费掉')
+})
+
 test('控制面：GET /notice 与 POST /notice（forever 写设置）', () => {
   assert.ok(API_SRC.includes("API_PREFIX + '/notice'"), '要有 /notice 路由')
   assert.ok(/getNotice\s*=\s*null/.test(API_SRC) && /clearNotice\s*=\s*null/.test(API_SRC) && /clearNotices\s*=\s*null/.test(API_SRC), '三个注入点都在')

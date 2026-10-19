@@ -1848,6 +1848,11 @@ class DshAdapter {
     try { writeFileSync(join(DSH_HOME, 'po06-preset-pending.json'), JSON.stringify(this.presetPending), 'utf8') } catch { /* 旁路 */ }
   }
 
+  clearPresetPending() {
+    this.presetPending = null
+    try { writeFileSync(join(DSH_HOME, 'po06-preset-pending.json'), '{}', 'utf8') } catch { /* 旁路 */ }
+  }
+
   pendingPreset() {
     const row = this.presetPending || (() => {
       // 惰性读盘：进程刚起来时也要能记得"重启前刚拨过的预设"
@@ -2404,6 +2409,7 @@ export function apply(ctx, config) {
     // 回车前的预设闸门（2026-10-19）：优先问 sessionController 的会话头，其次用事件里记下的。
     getPreset: (sid) => adapter.presetOf(sid),
     getPresetPending: () => adapter.pendingPreset(),
+    clearPresetPending: () => adapter.clearPresetPending(),
     getPresetAt: (sid) => adapter.presetAtOf(sid),
     inspectPreset: async (sid) => {
       // 返回 { preset, debug }：debug 只在 ?debug=1 时透出（真机上"为什么没弹窗"必须能查）。

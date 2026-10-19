@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -680,9 +680,18 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         // 2026-10-19 真机：会话头往往是创建时的默认值（ptc），而用户是在开始会话**之前**拨的预设。
         const eventPreset = typeof getPreset === 'function' ? (getPreset(sid) || null) : null
         const pending = typeof getPresetPending === 'function' ? getPresetPending() : null
-        const pendingPreset = pending && pending.preset ? String(pending.preset) : null
+        // ⚠ 2026-10-19 真机：pending 是"全局最近一次选择"，之前无条件优先 ⇒ **所有会话**都被判成 standard，疯狂弹窗。
+        // 现在只在这两种情况下算数：
+        //   ① 就是在这个会话里选的（pending.sid === sid）；
+        //   ② 选的时候还没有会话（pending.sid 为空），且是 90 秒内的近期选择——并且用一次就消费掉，不会漏到别的会话。
+        const recent = !!(pending && (Date.now() - Number(pending.at || 0) < 90 * 1000))
+        const pendingForMe = recent && pending && (!pending.sid || String(pending.sid) === sid)
+        const pendingPreset = pendingForMe && pending.preset ? String(pending.preset) : null
         const preset = eventPreset || pendingPreset || headerPreset
         const presetSource = eventPreset ? 'event' : (pendingPreset ? 'pending' : (headerPreset ? 'header' : 'unknown'))
+        if (pendingPreset && !pending.sid && typeof clearPresetPending === 'function') {
+          try { clearPresetPending() } catch { /* 消费失败就当没消费 */ }
+        }
         // 这次"预设真的变了"的时间：客户端用它去重，避免自己维护基线（挂载时机不同会漏事件）
         const eventAt = typeof getPresetAt === 'function' ? getPresetAt(sid) : null
         const presetAt = eventAt || (pending && pending.at) || null
@@ -702,7 +711,9 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         const payload = { ok: true, preset: preset || null, notice, source: presetSource, presetAt }
         // ?debug=1 ⇒ 透出"宿主到底看到了什么"（真机上判断为什么没弹窗）
         if (String(query.get('debug') || '') === '1') {
-          payload.debug = { inspect: debug, header: headerPreset, events: eventPreset, pending: pendingPreset, source: presetSource, dismissed }
+          payload.debug = { inspect: debug, header: headerPreset, events: eventPreset, pending: pendingPreset,
+            pendingRaw: pending ? { preset: pending.preset, sid: pending.sid || '', at: pending.at } : null,
+            source: presetSource, dismissed }
         }
         return send(200, payload)
       }
