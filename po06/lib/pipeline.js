@@ -166,7 +166,7 @@ export async function handleUserInput(adapter, session, input) {
   // 4) 无操作：理解可以完成而无需新增条目。
   if (!parsed.patch) {
     planAndRecordClarification(adapter, session, trace, input)
-    return finish(trace, base, null, parsed.understanding ? 'understood' : 'noop', adapter, session)
+    return finish(trace, base, null, parsed.understanding ? 'understood' : 'noop', adapter, session, text)
   }
 
   // 5) **重新读取当前状态**再校验。
@@ -229,17 +229,18 @@ export async function handleUserInput(adapter, session, input) {
   if (!committed.ok) return finish(trace, current, null, 'commit-rejected', adapter, session)
 
   planAndRecordClarification(adapter, session, trace, input)
-  return finish(trace, committed.state, null, 'committed', adapter, session)
+  return finish(trace, committed.state, null, 'committed', adapter, session, text)
 }
 
 /** 收尾：编译 + 写入动态上下文，并汇总结果。 */
-function finish(trace, state, _unused, outcome, adapter, session) {
+function finish(trace, state, _unused, outcome, adapter, session, userText = '') {
   let packet = null
   if (adapter && session) {
     const cur = adapter.intentStateOf(session)
     if (cur && adapter.collaboration?.optimizer && ['committed', 'understood', 'noop'].includes(outcome)) {
       const optimizer = adapter.collaboration.optimizer
-      const text = renderOptimizerPacket(optimizer, adapter.language)
+      // 原话逐字置顶（2026-10-19）：渲染需要的用户原话由调用方带进来（finish 的第 7 个参数）。
+      const text = renderOptimizerPacket(optimizer, adapter.language, { userText })
       packet = { ok: true, text, chars: text.length, sections: [], dropped: [], problems: [], overBudget: false, overBy: 0, budget: null, protocolVersion: optimizer.version }
       adapter.setIntentText(session.id, text)
       trace.push({ step: 'setContext', sessionId: String(session.id), chars: text.length, dropped: 0, protocolVersion: optimizer.version })

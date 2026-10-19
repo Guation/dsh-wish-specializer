@@ -8,20 +8,20 @@ export const ADVISOR_LOOP_REVISION = 'claim-contribution-delivery-1'
 export const OPTIMIZER_BASELINE_ROUNDS = Object.freeze([300,301,302,303,304,305])
 
 export const OPTIMIZER_CORE = Object.freeze({
-  "zh": "你是工作 AI 的**愿望扩充器**，不是替他干活的工程师：用户用一句话说出想要的东西，你补上他自己没说、但会决定成品水平的方向性要求。\n原话是唯一权威：不缩小、不改写、不删减，也不扭曲用户原意；保留目标、否定、强调、偏好与明确决定；解释与建议不是用户要求，不增加授权或替用户拍板。补充与原话同时发出，权重低于原话。\n补“要往哪个方向做好”——审美基调、光影与材质、构图与层次、场景与氛围、交互与体验、物理可信度的方向、验收口径；不补“具体怎么做”：不给代码、不给具体数值或参数、不写实现步骤，也不替工作模型选技术路线。\n每条一两句、直接可执行；先检验反例与前提，宁少而准；不要通用套话、复述原话或凑篇幅。只有会改变结果、且必须用户拍板的分歧才反问。\n反例：用户要“精细的跑车”，却给出具体数值、代码或建模步骤——那是工作模型该干的事。正例：补“流线型构型要一眼看上去优雅”“金属漆面在展厅冷光下的反射层次”“内饰材质与缝线的质感方向”“可驾驶室外场景与真实物理反馈”“整体优先于局部，按阶段推进”。",
-  "en": "You are the working AI's **wish amplifier**, not an engineer doing its job: the user states a one-line wish, and you add the directional requirements they did not spell out but that decide the quality of the result.\nThe user's own words are the only authority: do not shrink, rewrite, trim or distort them; keep goals, negation, emphasis, preferences and explicit decisions; interpretations and advice are not user requirements, and you add no authorization and make no decisions for the user. Your additions ship alongside the original and carry less weight.\nAdd *which direction to aim for* — aesthetic register, light and material, composition and depth layering, setting and atmosphere, interaction and experience, the direction of physical credibility, and the bar for acceptance. Do not add *how to build it*: no code, no concrete numeric parameters, no implementation steps, and do not pick the technical route for the working model.\nOne or two sentences each, directly actionable. Check counterexamples and premises first; prefer few and precise over generic reminders, restating the request or padding. Ask only when a consequential choice genuinely needs the user.\nAnti-pattern: the user asks for a detailed sports car and you hand over numbers, code or modelling steps — that is the working model's job. Good: “the silhouette must read as elegant at a glance”, “paint reflections layered under cool showroom light”, “a direction for cabin materials and stitching”, “a drivable outdoor scene with believable physics”, “whole first, staged delivery”."
+  "zh": "你是工作 AI 的**愿望扩充器**，不是替他干活的工程师：用户用一句话说出想要的东西，你补上他自己没说、但会决定成品水平的方向性要求。\n原话是唯一权威：不缩小、不改写、不删减，也不扭曲用户原意；保留目标、否定、强调、偏好与明确决定；解释与建议不是用户要求，不增加授权或替用户拍板。补充与原话同时发出，权重低于原话。\n补“要往哪个方向做好”——审美基调、光影与材质、构图与层次、场景与氛围、交互与体验、物理可信度的方向、验收口径；不补“具体怎么做”：不给代码、不给具体数值或参数、不写实现步骤，也不替工作模型选技术路线。\n每条一两句、直接可执行；先检验反例与前提，宁少而准；不要通用套话、复述原话或凑篇幅。只有会改变结果、且必须用户拍板的分歧才反问。\n反例：用户要“精细的跑车”，却给出具体数值、代码或建模步骤——那是工作模型该干的事。正例：补“流线型构型要一眼看上去优雅”“金属漆面在展厅冷光下的反射层次”“内饰材质与缝线的质感方向”“可驾驶室外场景与真实物理反馈”“整体优先于局部，按阶段推进”。\n**不写教条**：不要套一份固定的维度清单，也不要每个维度都占一条；只写这一轮真正决定成败的核心要求，能合并就合并，每条一句话、直击本质。**按重要性排序**：最决定成败的放第一条，其余依次支撑。禁止技术手段名词（ambient occlusion、roughness、LOD、PBR、shader 之类）——要的是效果，不是做法。",
+  "en": "You are the working AI's **wish amplifier**, not an engineer doing its job: the user states a one-line wish, and you add the directional requirements they did not spell out but that decide the quality of the result.\nThe user's own words are the only authority: do not shrink, rewrite, trim or distort them; keep goals, negation, emphasis, preferences and explicit decisions; interpretations and advice are not user requirements, and you add no authorization and make no decisions for the user. Your additions ship alongside the original and carry less weight.\nAdd *which direction to aim for* — aesthetic register, light and material, composition and depth layering, setting and atmosphere, interaction and experience, the direction of physical credibility, and the bar for acceptance. Do not add *how to build it*: no code, no concrete numeric parameters, no implementation steps, and do not pick the technical route for the working model.\nOne or two sentences each, directly actionable. Check counterexamples and premises first; prefer few and precise over generic reminders, restating the request or padding. Ask only when a consequential choice genuinely needs the user.\nAnti-pattern: the user asks for a detailed sports car and you hand over numbers, code or modelling steps — that is the working model's job. Good: “the silhouette must read as elegant at a glance”, “paint reflections layered under cool showroom light”, “a direction for cabin materials and stitching”, “a drivable outdoor scene with believable physics”, “whole first, staged delivery”.\n**No dogma**: never walk a fixed dimension checklist and never give each dimension its own line; write only the few core demands that actually decide this result, merge overlapping ones, one line each, straight to the essence. **Order by importance** — the single most decisive demand first. No technique names (ambient occlusion, roughness, LOD, PBR, shader): we want the effect, not the method."
 })
 
 export const OPTIMIZER_TIERS = Object.freeze({
   "zh": {
     "light": "轻度：只补 2–3 条最影响成品观感或可用性的方向要求（例如质感、光影、结构比例），保持简洁；不做实现指导，也不重复原话。",
     "standard": "标准：4–6 条，覆盖审美基调、光影与材质、构图与层次、场景与交互的关键方向，并给一句验收口径；具体怎么实现交给工作模型。",
-    "heavy": "重度：尽量补齐所有会决定成品水平的维度（审美、光影、材质、构图、场景、交互、物理与性能取舍），再加一条阶段拆分建议，提醒别在局部过度打磨；仍然不写代码、不写数值参数、不写实现步骤，也不靠堆字数。",
+    "heavy": "重度：把最决定成败的几条写透（不凑维度、不逐项罗列），再加一条阶段拆分建议，提醒别在局部过度打磨；仍然不写代码、不写数值参数、不写实现步骤，也不靠堆字数。",
   },
   "en": {
     "light": "Light: add only the 2–3 directional requirements that most affect how the result looks or works (texture, light, proportion). Keep it short; no implementation guidance, no restating.",
     "standard": "Standard: 4–6 items covering aesthetic register, light and material, composition and depth, setting and interaction, plus one line defining the acceptance bar. Leave implementation to the working model.",
-    "heavy": "Heavy: cover every dimension that decides quality — aesthetic, light, material, composition, setting, interaction, physical credibility and performance tradeoffs — and add one note to stage the work so no single detail is over-polished. Still no code, no numeric parameters, no implementation steps, and no padding.",
+    "heavy": "Heavy: write the few decisive demands in depth (no dimension checklist, no one-line-per-dimension) and add one note to stage the work so no single detail is over-polished. Still no code, no numeric parameters, no implementation steps, and no padding.",
   }
 })
 
@@ -119,14 +119,61 @@ export function parseOptimizerValue(value, { sessionId, messageId, baseRevision,
     patch: ops.length ? { causeId: String(causeId || 'interpret'), baseRevision, baseInputRevision, sessionId, ops } : null }
 }
 
-export function renderOptimizerPacket(optimizer, language = 'zh') {
-  if (!optimizer || !['clarify', 'add', 'ask'].some(k => optimizer[k]?.length)) return ''
+// ── 机器条目的"净化"（2026-10-19）────────────────────────────────
+// 只用于**机器生成**的文本；用户原话永远原样。两件事：
+//   ① 英文模式下剥掉混进来的中文（实测：一条英文里夹着「技术展示式的打光」）；
+//   ② 技术手段名词降级成效果词（technical names 会让模型按"做法清单"干活，而不是按"要什么效果"）。
+// 宁可留一点别扭，也不改用户说过的词——所以这里只处理 add/clarify/intent。
+const CJK_RUN = /[\u4e00-\u9fff][\u4e00-\u9fff，。、；：""''（）《》！？…—]*/g
+const TECH_EN = [
+  [/\bambient occlusion\b/gi, 'depth in the light'], [/\bAO\b/g, 'depth in the light'],
+  [/\broughness\b/gi, 'surface feel'], [/\bmetallic\b/gi, 'metal feel'], [/\bPBR\b/g, 'material feel'],
+  [/\bshaders?\b/gi, 'rendering'], [/\bLODs?\b/g, 'detail levels'], [/\bUVs?\b/g, 'texture mapping'],
+  [/\bbump\s*maps?\b/gi, 'surface relief'], [/\bnormal\s*maps?\b/gi, 'surface relief'],
+]
+const TECH_ZH = [
+  [/\bambient occlusion\b/gi, '光影层次'], [/\bAO\b/g, '光影层次'],
+  [/\broughness\b/gi, '表面质感'], [/\bmetallic\b/gi, '金属感'], [/\bPBR\b/g, '材质质感'],
+  [/\bshaders?\b/gi, '渲染方式'], [/\bLODs?\b/g, '细节层次'], [/\bUVs?\b/g, '贴图展开'],
+  [/\bbump\s*maps?\b/gi, '表面凹凸'], [/\bnormal\s*maps?\b/gi, '表面起伏'],
+]
+export function sanitizeMachineText(text, language = 'zh') {
+  let s = String(text == null ? '' : text)
+  if (language === 'en') s = s.replace(CJK_RUN, ' ')
+  for (const [re, to] of (language === 'en' ? TECH_EN : TECH_ZH)) s = s.replace(re, to)
+  return s
+    .replace(/\s*\(\s*\)/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/\s+([，。；：！？])/g, '$1')
+    // 中文之间残留的空格（技术名词被替换后留下的）收掉：宁可紧一点，也别让中文句子断成词。
+    .replace(/([\u4e00-\u9fff，。；：！？])\s+(?=[\u4e00-\u9fff])/g, '$1')
+    .trim()
+}
+const quoteVerbatim = (text) => String(text).trim().split(/\r?\n/).map((l) => '> ' + l.trim()).join('\n')
+
+export function renderOptimizerPacket(optimizer, language = 'zh', opts = {}) {
+  if (!optimizer) return ''
   const en = language === 'en'
+  const hasBody = ['clarify', 'add'].some((k) => optimizer[k]?.length)
+  const userText = typeof opts.userText === 'string' ? opts.userText.trim() : ''
+  // 没有机器内容就不发包（原话由宿主自己带着，不需要我们重复）；有内容时原话才逐字置顶。
+  if (!hasBody) return ''
   const lines = [en ? '[Prompt assistance: machine interpretation and advice; the original user text remains authoritative.]'
     : '【提示词辅助 · 机器解释与建议，以完整用户原话为准】']
-  if (optimizer.intent?.text) lines.push((en ? 'Current intent: ' : '本轮理解：') + optimizer.intent.text)
-  const titles = en ? { clarify: 'Clarification', add: 'Positive additions and suggestions', ask: 'Questions to consider' }
-    : { clarify: '表达澄清', add: '正向补充与建议', ask: '需要反问的点' }
-  for (const key of ['clarify', 'add', 'ask']) if (optimizer[key]?.length) lines.push(titles[key] + '\n' + optimizer[key].map(s => '- ' + s).join('\n'))
+  // 原话逐字置顶（2026-10-19）：第一行声明"以原话为准"，那就得让模型真的看见原话，而不是机器摘要。
+  if (userText) lines.push((en ? 'Original request (verbatim, never rewritten):\n' : '原话（逐字引用，不可改写）：\n') + quoteVerbatim(userText))
+  const intent = sanitizeMachineText(optimizer.intent?.text || '', language)
+  if (intent) lines.push((en ? 'Machine understanding: ' : '机器理解（不是用户的话）：') + intent)
+  const titles = en ? { clarify: 'Clarification', add: 'Additions (ordered by importance)' }
+    : { clarify: '表达澄清', add: '正向补充（按重要性排序）' }
+  for (const key of ['clarify', 'add']) {
+    const list = (optimizer[key] || []).map((s) => sanitizeMachineText(s, language)).filter(Boolean)
+    if (!list.length) continue
+    const body = key === 'add' ? list.map((s, i) => (i + 1) + '. ' + s).join('\n') : list.map((s) => '- ' + s).join('\n')
+    lines.push(titles[key] + '\n' + body)
+  }
+  // ask（需要反问的点）**不再进注入文**：机器提的问题混在上下文里，模型容易自问自答。
+  // 它们仍在 patch 的 add_question 里，由界面提问。
   return lines.join('\n\n')
 }

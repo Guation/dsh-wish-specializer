@@ -55,8 +55,13 @@ test('optimizer contract: format/options stay historical; core and tiers are the
 test('normal packet and source message are historical, without later consult-opportunity policy', { skip: SKIP },()=>{
  for(const language of ['zh','en']){
   const value={intent:{text:language==='zh'?'原任务，不强化否定。':'Original task, no stronger negation.',relation:'continue'},clarify:[],add:[language==='zh'?'实际构造。':'Actual useful construction.'],ask:[],consult:{mode:'develop_approach',focus:'Later invented opportunity',reason:'Not part of turn305'}}
-  assert.equal(actual.renderOptimizerPacket(value,language),original.renderOptimizerPacket(value,language))
-  assert.equal(actual.renderOptimizerPacket(value,language).includes('Later invented opportunity'),false)
+  // 2026-10-19 用户要求：注入文改口径——原话逐字置顶、补充按重要性编号、反问移出注入、技术名词降级。
+  // 所以它**有意**不再与历史逐字一致；条目内容本身仍在（只是换了排版），历史里的 consult 泄漏仍不许出现。
+  const now=actual.renderOptimizerPacket(value,language)
+  assert.notEqual(now,original.renderOptimizerPacket(value,language))
+  assert.ok(now.includes(value.add[0]),'补充条目内容要原样保留')
+  assert.equal(now.includes('Later invented opportunity'),false)
+  assert.equal(now.includes('问题'),false,'反问不注入')
  }
  const source={userText:'Explicit original task.',context:'Permitted context.',observations:[],retryEmpty:false,englishMode:false}
  assert.equal(actual.buildOptimizerUserMessage(source),original.buildOptimizerUserMessage(source))
