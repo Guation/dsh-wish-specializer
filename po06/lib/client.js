@@ -1078,7 +1078,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         ),
         h(AdvisorControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
         h(EnglishControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
-        h(InferenceControls,{settings:eff,save:saveTier,ready:status?.inference?.ready===true,busy}),
+        // 2026-10-19 用户要求：**详情面板里的「快速增强」也隐藏**（与设置页一致，默认关闭、不再给入口）。
+        // 组件与后端代码都保留；要恢复只把下面这一行放回来。
+        // h(InferenceControls,{settings:eff,save:saveTier,ready:status?.inference?.ready===true,busy}),
         (catalog.problems || []).length ? h('div', { style: S.muted }, L('部分模型不可用：','Some models unavailable: ') + catalog.problems.join('；')) : null,
         busy ? h('div', { style: S.muted }, L('保存中…','Saving…')) : null,
         msg ? h('div', { 'data-po06': 'msg', style: { ...S.muted, color: msg.kind === 'err' ? T('err') : (msg.kind === 'warn' ? T('warn') : T('ok')) } }, msg.text) : null,

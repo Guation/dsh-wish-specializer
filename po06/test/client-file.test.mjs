@@ -820,6 +820,16 @@ t('bash 卡片归属：keyed 注册必须带胜出的 priority（不能靠默认
   }
 })
 
+// ── 实验性「快速增强」：入口全关（2026-10-18 设置页、2026-10-19 详情面板）──────────
+// 它与当前主线（愿望扩充 + 顾问）无关，成倍增加调用与等待，且没有可复现的提升证据。
+// 组件与后端代码保留；要恢复只需把被注释掉的那一行放回来。
+t('实验性「快速增强」在设置页与详情面板都不再渲染（默认关闭、无入口）', () => {
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')
+  ok(!/h\(InferenceControls/.test(code), '不得再渲染 InferenceControls（设置页与详情面板共用同一个表单）')
+  ok(/function InferenceControls/.test(src), '组件代码保留（恢复只需放回一行）')
+  ok(/data-po06':\s*'inference-controls'/.test(src), '组件内部标记仍在，便于将来核对')
+})
+
 const total = pass + failures.length
 console.log(JSON.stringify({
   suite: 'po06-client-file', phase: 'P9', total, pass, fail: failures.length, failures,
