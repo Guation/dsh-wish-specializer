@@ -25,7 +25,9 @@ const waitGate=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{p
 // （CI 实测 "# cancelled 6"，Node 24 上不出现）。测试里用一个**被引用**的心跳托住事件循环，
 // 不改生产语义、也不改断言语义。
 const __po06KeepAlive = setInterval(() => {}, 1000)
-// 必须显式清掉：被引用的定时器会一直托住进程，node:test 就永远不退出（实测把套件挂住）。
+// 必须能自己过期：被引用的定时器会一直托住进程，node:test 就永远不退出（实测把套件挂住）。
+// after() 正常会清；这条 60s 兜底保证即使 after 没跑到（被取消/变异版代码抛错）也不会永久托住。
+setTimeout(() => clearInterval(__po06KeepAlive), 60000).unref()
 after(() => clearInterval(__po06KeepAlive))
 
 test('default off, session isolation and original settings remain intact',()=>{

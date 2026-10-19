@@ -2133,7 +2133,9 @@ function parseSuiteSummary(text) {
 }
 
 function runSuite(testRel) {
-  const r = spawnSync(process.execPath, [path.join(ROOT, testRel)], { encoding: 'utf8' })
+  // ⚠ 必须带超时：变异本身可能让被测套件**挂住**（真机每次挂 40 分钟以上就是这么来的），
+// 没有超时的话门禁会一直等，CI 永远不结束。超时按"没通过"计（变异被捕获），并写入 note。
+  const r = spawnSync(process.execPath, [path.join(ROOT, testRel)], { encoding: 'utf8', timeout: 120000, killSignal: 'SIGKILL' })
   const j = parseSuiteSummary(r.stdout)
   if (!j) {
     return { parseError: true, stdout: String(r.stdout).slice(0, 160), stderr: String(r.stderr).split('\n').slice(0, 3).join(' | ') }
