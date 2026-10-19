@@ -138,7 +138,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 22:50'
+    const CLIENT_BUILD = '10-19 21:56'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
