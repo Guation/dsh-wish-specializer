@@ -33,9 +33,11 @@ test('宿主：只在非 wish/ptc 时记录，且尊重"以后不再显示"', ()
 test('pending 只对本会话/近期无会话的选择生效（否则所有会话都被判成同一个预设）', () => {
   // 2026-10-19 真机：pending 无条件优先 ⇒ 每个会话都判成 standard，疯狂弹窗
   assert.ok(API_SRC.includes('pendingForMe'), '要有归属判定')
-  assert.ok(API_SRC.includes('!pending.sid || String(pending.sid) === sid'), '同一会话或"还没会话"才算')
-  assert.ok(API_SRC.includes('90 * 1000'), '近期选择才有效')
-  assert.ok(API_SRC.includes('clearPresetPending'), '用一次就消费掉')
+  assert.ok(API_SRC.includes("String(pending.sid || '') === sid"), '同一会话里选的才算')
+  assert.ok(API_SRC.includes('recent10'), '只认 10 分钟内的选择')
+  assert.ok(API_SRC.includes('sessionFirstSeen'), '新会话要靠"首次出现时间晚于选择"认出来')
+  assert.ok(/seenAt\) > Number\(pending\.at/.test(API_SRC), '比较的是时间先后')
+  assert.ok(API_SRC.includes('clearPresetPending'), '消费口仍然保留（无会话时的那条路径）')
 })
 
 test('控制面：GET /notice 与 POST /notice（forever 写设置）', () => {

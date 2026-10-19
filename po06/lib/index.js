@@ -1848,6 +1848,15 @@ class DshAdapter {
     try { writeFileSync(join(DSH_HOME, 'po06-preset-pending.json'), JSON.stringify(this.presetPending), 'utf8') } catch { /* 旁路 */ }
   }
 
+  /** 这个会话第一次被我们看到的时间（用来判断"新会话是在选完预设之后才出现的"）。 */
+  sessionFirstSeen(sid) {
+    const key = String(sid || '')
+    if (!key) return null
+    if (!this.seenAt) this.seenAt = new Map()
+    if (!this.seenAt.has(key)) this.seenAt.set(key, Date.now())
+    return this.seenAt.get(key)
+  }
+
   clearPresetPending() {
     this.presetPending = null
     try { writeFileSync(join(DSH_HOME, 'po06-preset-pending.json'), '{}', 'utf8') } catch { /* 旁路 */ }
@@ -2410,6 +2419,7 @@ export function apply(ctx, config) {
     getPreset: (sid) => adapter.presetOf(sid),
     getPresetPending: () => adapter.pendingPreset(),
     clearPresetPending: () => adapter.clearPresetPending(),
+    sessionFirstSeen: (sid) => adapter.sessionFirstSeen(sid),
     getPresetAt: (sid) => adapter.presetAtOf(sid),
     inspectPreset: async (sid) => {
       // 返回 { preset, debug }：debug 只在 ?debug=1 时透出（真机上"为什么没弹窗"必须能查）。

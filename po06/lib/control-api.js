@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, sessionFirstSeen = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -684,8 +684,14 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         // 现在只在这两种情况下算数：
         //   ① 就是在这个会话里选的（pending.sid === sid）；
         //   ② 选的时候还没有会话（pending.sid 为空），且是 90 秒内的近期选择——并且用一次就消费掉，不会漏到别的会话。
-        const recent = !!(pending && (Date.now() - Number(pending.at || 0) < 90 * 1000))
-        const pendingForMe = recent && pending && (!pending.sid || String(pending.sid) === sid)
+        //   ③ 或者：这个会话是**在选完预设之后**才第一次出现的（= 新开的会话），且选择发生在 10 分钟内。
+        //      这条是为了"先拨预设、后开会话"——那种会话的会话头仍然是默认值（ptc），只能靠这条认出来。
+        const seenAt = typeof sessionFirstSeen === 'function' ? sessionFirstSeen(sid) : null
+        const recent10 = !!(pending && (Date.now() - Number(pending.at || 0) < 10 * 60 * 1000))
+        const pendingForMe = !!(pending && (
+          String(pending.sid || '') === sid
+          || (recent10 && seenAt && Number(seenAt) > Number(pending.at || 0))
+        ))
         const pendingPreset = pendingForMe && pending.preset ? String(pending.preset) : null
         const preset = eventPreset || pendingPreset || headerPreset
         const presetSource = eventPreset ? 'event' : (pendingPreset ? 'pending' : (headerPreset ? 'header' : 'unknown'))
