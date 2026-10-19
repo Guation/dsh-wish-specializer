@@ -1,14 +1,11 @@
 {
-  "at": "2026-10-19T14:36:26.204Z",
+  "at": "2026-10-19T14:42:48.390Z",
   "summary": {
     "suites": 123,
-    "passed": 121,
-    "failed": 2,
-    "passTotal": 1324,
-    "failing": [
-      "client-file.test.mjs",
-      "verifier-html.test.mjs"
-    ]
+    "passed": 123,
+    "failed": 0,
+    "passTotal": 1326,
+    "failing": []
   },
   "results": [
     {
@@ -349,10 +346,10 @@
     },
     {
       "file": "client-file.test.mjs",
-      "pass": 36,
-      "fail": 1,
-      "exit": 1,
-      "ok": false
+      "pass": 37,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
     },
     {
       "file": "client-hold-bridge.test.mjs",
@@ -846,10 +843,10 @@
     },
     {
       "file": "verifier-html.test.mjs",
-      "pass": null,
-      "fail": null,
-      "exit": null,
-      "ok": false
+      "pass": 1,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
     },
     {
       "file": "verify-artifact.test.mjs",
@@ -873,37 +870,5 @@
       "ok": true
     }
   ],
-  "failed": [
-    {
-      "file": "client-file.test.mjs",
-      "pass": 36,
-      "fail": 1,
-      "exit": 1,
-      "ok": false,
-      "unparsable": false,
-      "tail": [
-        "  \"phase\": \"P9\",",
-        "  \"total\": 37,",
-        "  \"pass\": 36,",
-        "  \"fail\": 1,",
-        "  \"failures\": [",
-        "    {",
-        "      \"name\": \"运行时：DSH 里切换语言 ⇒ 订阅回调立刻把界面语言换掉（不用刷新页面）\",",
-        "      \"error\": \"React.useLayoutEffect is not a function\"",
-        "    }",
-        "  ],",
-        "  \"note\": \"客户端面板静态守卫：加载器格式/声明一致/单例闸门/卸载即净/写头/界面锚点/XSS 与路径。不联网、不起浏览器。\"",
-        "}"
-      ]
-    },
-    {
-      "file": "verifier-html.test.mjs",
-      "pass": null,
-      "fail": null,
-      "exit": null,
-      "ok": false,
-      "unparsable": true,
-      "tail": []
-    }
-  ]
+  "failed": []
 }

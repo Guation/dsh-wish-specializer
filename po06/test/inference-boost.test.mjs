@@ -1,4 +1,4 @@
-import test from 'node:test'
+import test, { after } from 'node:test'
 import assert from 'node:assert/strict'
 import {createInferenceBoost,inferencePlan,DIRECTION_MAX_TOKENS,DIRECTION_MAX_CHARS} from '../lib/inference-boost.js'
 import {createInferenceTrace} from '../lib/inference-trace.js'
@@ -19,6 +19,14 @@ function make(responder,settings=config,options={}){
  return{boost,trace,requests,llm}
 }
 const waitGate=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve}}
+
+// ⚠ Node 20/22 的 node:test 会这样判：生产代码里的超时定时器是 **unref** 的（不该拖住进程），
+// 当某个用例只等这些定时器时，事件循环被判空 ⇒ 仍挂着的用例被标成 cancelled、进程以 1 退出
+// （CI 实测 "# cancelled 6"，Node 24 上不出现）。测试里用一个**被引用**的心跳托住事件循环，
+// 不改生产语义、也不改断言语义。
+const __po06KeepAlive = setInterval(() => {}, 1000)
+// 必须显式清掉：被引用的定时器会一直托住进程，node:test 就永远不退出（实测把套件挂住）。
+after(() => clearInterval(__po06KeepAlive))
 
 test('default off, session isolation and original settings remain intact',()=>{
  assert.equal(normalizeSettings({}).settings.reasoningBoost,false)
