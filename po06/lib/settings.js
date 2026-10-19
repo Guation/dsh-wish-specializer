@@ -111,6 +111,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   reasoningBoost: false,
   ...FAST_REASONING_PROFILE,
   englishMode: false,
+  // 2026-10-19 修：顾问默认**开**（此前默认值根本没写 ⇒ 界面拿不到布尔值 ⇒ 开关永远是灰的）。
+  advisor: true,
   permission: 'auto',   // P10
   historyMode: 'turns', // P10
   turns: 10,            // 2026-10-18 用户指定：默认读最近 10 回合

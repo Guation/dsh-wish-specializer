@@ -55,9 +55,9 @@ test('重度才有颤抖；帮助弹层用更轻的入场（避免大块文字�
 test('拖动只做本地预览、松手才落设置（避免每跨一格打一次接口 ⇒ 拖动卡顿）', () => {
   assert.ok(CLIENT_SRC.includes('const [dragValue, setDragValue] = React.useState(null)'), '拖动预览状态')
   assert.ok(CLIENT_SRC.includes('const shown = dragValue != null ? dragValue : value'), '显示值取预览优先')
-  const move = CLIENT_SRC.slice(CLIENT_SRC.indexOf('onPointerMove: (e) =>'), CLIENT_SRC.indexOf('onPointerUp: () =>'))
+  const move = CLIENT_SRC.slice(CLIENT_SRC.indexOf('onPointerMove: (e) =>'), CLIENT_SRC.indexOf('onPointerUp: (e) =>'))
   assert.equal(move.includes('onPick('), false, '指针移动期间不许提交')
-  assert.ok(/if \(k\) commit\(k\)/.test(CLIENT_SRC.slice(CLIENT_SRC.indexOf('onPointerUp: () =>'), CLIENT_SRC.indexOf('onPointerCancel:'))), '松手才 commit')
+  assert.ok(/if \(k\) commit\(k\)/.test(CLIENT_SRC.slice(CLIENT_SRC.indexOf('onPointerUp: (e) =>'), CLIENT_SRC.indexOf('onPointerCancel:'))), '松手才 commit')
 })
 
 test('无障碍与降级：区域仍可键盘操作，减少动效时全部停掉', () => {

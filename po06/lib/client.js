@@ -713,9 +713,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       pickerOpen: { borderColor: OVS.acc, boxShadow: '0 0 0 3px ' + OVS.acc12 },
       pickerText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
       pickerCaret: { flex: '0 0 auto', color: OVS.fg3, fontSize: '9px' },
-      pickerMenu: { position: 'fixed', zIndex: OV_Z.pop + 1, maxHeight: '260px', overflowY: 'auto',
-        display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px',
-        background: OVS.surface, border: '1px solid ' + OVS.lineSoft, borderRadius: '10px', boxShadow: SHADOW.float },
+      // 内联展开（2026-10-19）：菜单跟在触发器下面，不依赖定位/测量，不会被裁掉也不会错位
+      pickerMenu: { maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px',
+        padding: '4px', background: OVS.bg1, border: '1px solid ' + OVS.lineSoft, borderRadius: '10px' },
       pickerItem: { display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', padding: '6px 8px',
         borderRadius: '6px', border: '1px solid transparent', background: 'transparent', color: OVS.fg2,
         font: 'inherit', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
@@ -819,45 +819,80 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      */
     function Options({ value, onChange, options, labels, disabled, anchor }) {
       const [open, setOpen] = React.useState(false)
-      const [pos, setPos] = React.useState(null)
-      const [active, setActive] = React.useState(-1)
       const btnRef = React.useRef(null)
-      const wrapRef = React.useRef(null)
+      const layerRef = React.useRef(null)
       const idx = Math.max(0, options.indexOf(value))
       const label = (k) => (labels && labels[k]) || k
-      const place = () => {
-        const el = btnRef.current
-        if (!el || typeof el.getBoundingClientRect !== 'function') return
-        const r = el.getBoundingClientRect()
-        const vh = (typeof window !== 'undefined' && window.innerHeight) || 600
-        const below = vh - r.bottom > 240
-        setPos({
-          left: Math.round(r.left), width: Math.max(120, Math.round(r.width)),
-          ...(below ? { top: Math.round(r.bottom + 4) } : { bottom: Math.round(vh - r.top + 4) }),
-        })
-      }
+
+      /**
+       * 菜单用**独立浮层**画在 document.body 上（2026-10-19 真机修复）：
+       * 之前把菜单渲进选项面板内部，面板是滚动容器 + fixed 定位，菜单要么被裁、要么和别的行叠在一起。
+       * 这里用原生 DOM 直接建一个 fixed 浮层：不参与面板布局，也不会被任何祖先的 overflow/transform 裁掉。
+       */
       React.useEffect(() => {
         if (!open) return undefined
-        place()
-        setActive(idx)
-        const onDoc = (e) => { try { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false) } catch { setOpen(false) } }
-        const onKey = (e) => { if (e && e.key === 'Escape') setOpen(false) }
-        const onReflow = () => place()
+        const btn = btnRef.current
+        if (!btn || typeof document === 'undefined') { setOpen(false); return undefined }
+        const r = btn.getBoundingClientRect()
+        const w = Math.max(180, Math.round(r.width))
+        const layer = document.createElement('div')
+        layer.setAttribute('data-po06', 'picker-layer')
+        layer.style.cssText = [
+          'position:fixed', 'z-index:2147483000', 'box-sizing:border-box',
+          'display:flex', 'flex-direction:column', 'gap:2px', 'padding:4px',
+          'max-height:260px', 'overflow-y:auto', 'border-radius:10px',
+          'background:' + OVS.surface, 'border:1px solid ' + OVS.lineSoft,
+          'box-shadow:0 14px 34px rgba(0,0,0,.45)', 'font-size:12px', 'line-height:18px',
+          'left:' + Math.round(r.left) + 'px', 'width:' + w + 'px',
+        ].join(';')
+        const below = ((typeof window !== 'undefined' ? window.innerHeight : 600) - r.bottom) > 240
+        if (below) layer.style.top = Math.round(r.bottom + 4) + 'px'
+        else layer.style.bottom = Math.round(((typeof window !== 'undefined' ? window.innerHeight : 600) - r.top) + 4) + 'px'
+
+        const rows = options.map((k) => {
+          const b = document.createElement('button')
+          b.type = 'button'
+          b.setAttribute('data-po06', 'picker-item')
+          b.setAttribute('data-on', k === value ? '1' : '0')
+          b.textContent = label(k)
+          const on = k === value
+          b.style.cssText = [
+            'display:block', 'width:100%', 'box-sizing:border-box', 'text-align:left',
+            'padding:6px 8px', 'border:1px solid transparent', 'border-radius:6px',
+            'background:' + (on ? OVS.acc12 : 'transparent'),
+            'color:' + (on ? OVS.acc : OVS.fg2),
+            'font:inherit', 'font-size:12px', 'line-height:18px',
+            'white-space:nowrap', 'overflow:hidden', 'text-overflow:ellipsis', 'cursor:pointer',
+          ].join(';')
+          b.onmouseenter = () => { b.style.background = on ? OVS.acc12 : T('hover') }
+          b.onmouseleave = () => { b.style.background = on ? OVS.acc12 : 'transparent' }
+          b.onclick = () => { setOpen(false); if (k !== value) onChange(k) }
+          layer.appendChild(b)
+          return b
+        })
+
+        document.body.appendChild(layer)
+        layerRef.current = layer
+        // 面板/页面滚动时跟着收起（浮层不跟随滚动，留着就会错位）
+        const close = () => setOpen(false)
+        const onDoc = (e) => { if (!layer.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close() }
+        const onKey = (e) => { if (e && e.key === 'Escape') close() }
         document.addEventListener('pointerdown', onDoc, true)
         document.addEventListener('keydown', onKey, true)
-        window.addEventListener('resize', onReflow)
-        window.addEventListener('scroll', onReflow, true)
+        window.addEventListener('scroll', close, true)
+        window.addEventListener('resize', close)
         return () => {
           document.removeEventListener('pointerdown', onDoc, true)
           document.removeEventListener('keydown', onKey, true)
-          window.removeEventListener('resize', onReflow)
-          window.removeEventListener('scroll', onReflow, true)
+          window.removeEventListener('scroll', close, true)
+          window.removeEventListener('resize', close)
+          try { layer.remove() } catch { /* 忽略 */ }
+          layerRef.current = null
         }
       }, [open])
-      const choose = (k) => { setOpen(false); if (k !== value) onChange(k) }
+
       const onKeyDown = (e) => {
         if (disabled) return
-        const cur = active < 0 ? idx : active
         if (!open) {
           if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault()
@@ -865,15 +900,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           }
           return
         }
-        if (e.key === 'Escape') { e.preventDefault(); setOpen(false); return }
-        if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(options.length - 1, cur + 1)); return }
-        if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(0, cur - 1)); return }
-        if (e.key === 'Home') { e.preventDefault(); setActive(0); return }
-        if (e.key === 'End') { e.preventDefault(); setActive(options.length - 1); return }
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(options[Math.max(0, Math.min(options.length - 1, cur))]) }
+        if (e.key === 'Escape') { e.preventDefault(); setOpen(false) }
       }
-      return h('div', { ref: wrapRef, 'data-po06': 'picker', 'data-open': open ? '1' : '0',
-        style: { position: 'relative', flex: 1, minWidth: 0, display: 'flex' } },
+      return h('div', { 'data-po06': 'picker', 'data-open': open ? '1' : '0',
+        style: { flex: 1, minWidth: 0, display: 'flex' } },
         h('button', {
           ref: btnRef, type: 'button', 'data-po06': anchor || 'picker-btn',
           'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
@@ -883,19 +913,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onKeyDown,
         },
           h('span', { style: S.pickerText }, label(value)),
-          h('span', { 'aria-hidden': 'true', style: S.pickerCaret }, open ? '▴' : '▾')),
-        open && pos ? h('div', {
-          ...themeAttrs(), 'data-po06': 'picker-menu', role: 'listbox',
-          style: { ...S.pickerMenu, left: pos.left + 'px', width: pos.width + 'px',
-            ...(pos.top !== undefined ? { top: pos.top + 'px' } : { bottom: pos.bottom + 'px' }) },
-        },
-          options.map((k, i) => h('button', {
-            key: k, type: 'button', role: 'option', 'aria-selected': k === value ? 'true' : 'false',
-            'data-po06': 'picker-item', 'data-on': k === value ? '1' : '0', 'data-active': i === active ? '1' : '0',
-            style: { ...S.pickerItem, ...(k === value ? S.pickerItemOn : null), ...(i === active ? S.pickerItemActive : null) },
-            onMouseEnter: () => setActive(i),
-            onClick: () => choose(k),
-          }, label(k)))) : null)
+          h('span', { 'aria-hidden': 'true', style: S.pickerCaret }, open ? '▴' : '▾')))
     }
 
     /**
@@ -930,6 +948,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [dragValue, setDragValue] = React.useState(null)
       const shown = dragValue != null ? dragValue : value
       React.useEffect(() => { last.current = null }, [value, failTick])
+      // 真值已经跟上 ⇒ 撤掉乐观预览（否则下次重渲染会被旧预览盖住）
+      React.useEffect(() => { if (dragValue != null && dragValue === value) setDragValue(null) }, [value, dragValue])
       const measure = () => {
         const el = itemRefs.current[shown]
         const track = box.current
@@ -952,11 +972,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const commit = (k) => {
         if (!k || disabled || k === value || k === last.current) return
         last.current = k
+        setDragValue(k)   // 乐观显示：点下去指示器就滑到目标格，不等接口回来
         onPick(k)
       }
       // 拖动时会以 ~120Hz 触发 pointermove：每次都 getBoundingClientRect 会强制同步布局（卡顿的来源之一）。
       // 所以按下时量一次、整个拖动期间复用；松手清空。
       const rectRef = React.useRef(null)
+      const startRef = React.useRef(null)   // pointerdown 的起点：区分"单击"与"拖动"
       const indexAt = (clientX) => {
         const el = box.current
         if (!el || typeof el.getBoundingClientRect !== 'function') return -1
@@ -1038,26 +1060,27 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         },
         onPointerDown: (e) => {
           if (disabled) return
+          startRef.current = { x: e.clientX }
           try { rectRef.current = box.current.getBoundingClientRect() } catch { rectRef.current = null }
-          setDragging(true)
           try { if (e.currentTarget && e.currentTarget.setPointerCapture && e.pointerId != null) e.currentTarget.setPointerCapture(e.pointerId) } catch (err) { /* 环境不支持就算了 */ }
-          const k = valueAt(e.clientX)
-          if (k) setDragValue(k)
         },
         onPointerMove: (e) => {
-          if (disabled || !dragging) return
+          if (disabled || !startRef.current) return
+          // 只有真的拖出 3px 才算拖动：单击不该先跳到别处再落回来（用户看到的"来回跳动"）
+          if (!dragging && Math.abs(e.clientX - startRef.current.x) <= 3) return
+          if (!dragging) setDragging(true)
           const k = valueAt(e.clientX)
-          if (k && k !== dragValue) setDragValue(k)   // 只改本地预览：一次拖动最多几次 setState，不发请求
+          if (k && k !== dragValue) setDragValue(k)
         },
-        onPointerUp: () => {
-          const k = dragValue
+        onPointerUp: (e) => {
+          const k = dragging ? dragValue : (startRef.current ? valueAt(e.clientX) : null)
+          startRef.current = null
           rectRef.current = null
           setDragging(false)
           setDragValue(null)
-          if (k) commit(k)                              // 松手才真正落设置
+          if (k) commit(k)
         },
-        onPointerCancel: () => { rectRef.current = null; setDragging(false); setDragValue(null) },
-        // 移出轨道：若还在拖，就把最后停留的那一格落下来（没有 pointer capture 的环境也不会卡在"拖拽中"）
+        onPointerCancel: () => { startRef.current = null; rectRef.current = null; setDragging(false); setDragValue(null) },
         onPointerLeave: () => {
           if (!dragging) return
           const k = dragValue
@@ -1158,20 +1181,29 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const v = draft
           rectRef.current = null
           setDragging(false)
-          setDraft(null)
-          if (v != null) commit(v)
+          // 保留 draft：滑块**立刻**停在松手位置，等真值回来再由 effect 清掉（否则会先弹回旧值再跳过去）
+          if (v != null) { setDraft(v); commit(v) }
         },
         onPointerCancel: () => { rectRef.current = null; setDragging(false); setDraft(null) },
       },
-        h('span', { 'aria-hidden': 'true', style: { position: 'absolute', left: 0, right: 0, height: '4px',
-          borderRadius: '999px', background: OVS.line2 } }),
+        // 轨道：6px 凹槽（内阴影压出"嵌入"感），刻度点在 0 / 5 / 10
+        h('span', { 'aria-hidden': 'true', style: { position: 'absolute', left: 0, right: 0, height: '6px',
+          borderRadius: '999px', background: OVS.line2, boxShadow: 'inset 0 1px 2px rgba(0,0,0,.28)' } }),
         h('span', { 'aria-hidden': 'true', 'data-po06': 'ctx-fill', style: { position: 'absolute', left: 0,
-          width: (pct * 100) + '%', height: '4px', borderRadius: '999px',
-          background: disabled ? OVS.fg3 : OVS.acc, transition: dragging ? 'none' : 'width .16s ease' } }),
+          width: (pct * 100) + '%', height: '6px', borderRadius: '999px',
+          background: disabled ? OVS.fg3 : 'linear-gradient(90deg, ' + OVS.acc22 + ', ' + OVS.acc + ')',
+          boxShadow: dragging ? '0 0 10px ' + OVS.acc22 : 'none',
+          transition: dragging ? 'none' : 'width .18s cubic-bezier(.22,.8,.24,1)' } }),
+        ...[0, 0.5, 1].map((t) => h('span', { key: 'tick' + t, 'aria-hidden': 'true',
+          style: { position: 'absolute', left: 'calc(' + (t * 100) + '% - 1px)', top: '50%', marginTop: '-1px',
+            width: '2px', height: '2px', borderRadius: '50%', background: OVS.fg3, opacity: .55 } })),
+        // 滑块：16px，主题色实心 + surface 描边（压在轨道上边缘才清楚），拖动时放大一点
         h('span', { 'aria-hidden': 'true', 'data-po06': 'ctx-thumb', style: { position: 'absolute',
-          left: 'calc(' + (pct * 100) + '% - 7px)', width: '14px', height: '14px', borderRadius: '50%',
+          left: 'calc(' + (pct * 100) + '% - 8px)', width: '16px', height: '16px', borderRadius: '50%',
           background: disabled ? OVS.fg3 : OVS.acc, border: '2px solid ' + OVS.surface,
-          boxShadow: '0 1px 3px rgba(0,0,0,.3)', transition: dragging ? 'none' : 'left .16s ease' } }))
+          boxShadow: '0 2px 6px rgba(0,0,0,.35)',
+          transform: dragging ? 'scale(1.12)' : 'scale(1)',
+          transition: dragging ? 'transform .12s ease' : 'left .18s cubic-bezier(.22,.8,.24,1), transform .12s ease' } }))
     }
 
     // ── 控制表单（浮层与设置页共用）──────────────────────────────────
@@ -1504,8 +1536,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             onChange: (v) => saveTier({ applyToSubagents: v === 'on' }),
           }),
         ),
-        // ⚠ 2026-10-19 修：顾问的就绪状态**不能**借用 english.ready（那会让英文没就绪时顾问开关被禁用）。
-        h(AdvisorControls,{settings:eff,save:saveTier,ready:true,busy}),
+        // ⚠ 2026-10-19 修：顾问的就绪状态**不能**借用 english.ready；而且 advisor 不是会话级键，
+        //    写 bySession 会被归一化丢掉（点了没反应/来回跳）⇒ 这里一律写全局。
+        // ⚠ advisor 是**全局键**，而 sessionEffective 只带会话级键 ⇒ 必须并上全局的 s.advisor，
+        //   否则界面永远读不到布尔值、开关是灰的（2026-10-19 真机）。
+        h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:save,ready:true,busy}),
         h(EnglishControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
         // 2026-10-19 用户要求：**详情面板里的「快速增强」也隐藏**（与设置页一致，默认关闭、不再给入口）。
         // 组件与后端代码都保留；要恢复只把下面这一行放回来。
@@ -3299,7 +3334,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   //   表现为"点了档位但档位不变"（用户实测 2026-09-27）。
                   onPick: (v) => save({ bySession: replaceTier(v) }),
                 })),
-              h(AdvisorControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:true,busy,failTick}),
+              // advisor 是全局键（不在 SESSION_KEYS 里）⇒ 必须写全局，否则补丁被丢弃、界面看起来"点了没反应"
+              h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick}),
               h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick}),
               // ①b 协作基调（0.7.8）：与档位正交，按会话存。语域本身就是效果来源（见 framing.js）。
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('协作基调', 'Tone')),
@@ -3365,7 +3401,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                       'Context: read only the last N turns (0–10); drag the slider or use arrow keys'),
                     onCommit: (n) => save({ turns: n }),
                   }),
-                  h('span', { 'data-po06': 'ctx-num', style: { minWidth: '34px', textAlign: 'right', color: OVS.acc, fontSize: '12px', fontWeight: 650 } },
+                  h('span', { 'data-po06': 'ctx-num', style: { flex: '0 0 auto', padding: '1px 8px', borderRadius: '999px',
+                    background: OVS.acc12, border: '1px solid ' + OVS.acc22, color: OVS.acc, fontSize: '11.5px', fontWeight: 650,
+                    fontVariantNumeric: 'tabular-nums' } },
                     String(turns) + L(' 回合', ' turns')))),
             h('div', { style: S.divider }),
             // ⑤ 读项目文件：**永远可用**（不受档位影响）；三态纪律见上面的注释

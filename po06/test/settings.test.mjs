@@ -92,6 +92,7 @@ t('mergeSettings：只改补丁里出现的键，其余原样；未知键忽略'
     reasoningBoost: DEFAULT_SETTINGS.reasoningBoost, reasoningMode: DEFAULT_SETTINGS.reasoningMode,
     reasoningCandidates: DEFAULT_SETTINGS.reasoningCandidates, reasoningRounds: DEFAULT_SETTINGS.reasoningRounds, reasoningPace:DEFAULT_SETTINGS.reasoningPace,
     englishMode:DEFAULT_SETTINGS.englishMode,
+    advisor: DEFAULT_SETTINGS.advisor,
     permission: DEFAULT_SETTINGS.permission, historyMode: DEFAULT_SETTINGS.historyMode,
     turns: DEFAULT_SETTINGS.turns, readTools: DEFAULT_SETTINGS.readTools,
     bash: DEFAULT_SETTINGS.bash,
