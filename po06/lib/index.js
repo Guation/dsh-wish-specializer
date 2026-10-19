@@ -18,7 +18,7 @@
 //   · `ctx.inject` 的回调**不是同步执行**的 → 必须 await 就绪信号，不能假定服务立即可用。
 //   · 动态上下文是**全局注册**的：只要文本非空，就会进入**所有**会话（含用户正在用的那个）
 //     → 静默待命时文本必须为空（空文本被宿主聚合渲染过滤掉），只在确有内容时才置非空。
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync, existsSync, readFileSync, appendFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join, dirname, isAbsolute } from 'node:path'
 import { homedir } from 'node:os'
@@ -1827,6 +1827,36 @@ class DshAdapter {
     return this.presetsBySession.get(String(sessionId == null ? '' : sessionId)) || null
   }
 
+  /**
+   * 最近一次“在界面上选了什么预设”（2026-10-19 用户实测的真机情形）：
+   * 预设是在**会话开始之前**拨的，这时事件里还没有会话 id；等会话建立时宿主给的头仍是默认预设（ptc），
+   * 于是"我明明选了标准模式，却按 ptc 判断 ⇒ 不弹窗"。
+   * 所以这里单独记一条带时间戳的“待生效选择”，/preset 在没有更具体信息时优先用它（15 分钟内有效）。
+   */
+  notePresetPending(preset, sessionId) {
+    const p = String(preset || '')
+    if (!p) return
+    this.presetPending = { preset: p, at: Date.now(), sid: sessionId ? String(sessionId) : '' }
+  }
+
+  pendingPreset() {
+    const row = this.presetPending
+    if (!row) return null
+    if (Date.now() - row.at > 15 * 60 * 1000) return null
+    return { ...row }
+  }
+
+  /** 预设事件的取证：先拨预设、后开会话这条路上到底有没有事件、带没带会话 id。 */
+  tracePresetEvent(sessionId, preset) {
+    try {
+      const p = join(DSH_HOME, 'po06-api-trace.jsonl')
+      appendFileSync(p, JSON.stringify({
+        at: new Date().toISOString(), k: 'preset-event',
+        sid: String(sessionId == null ? '' : sessionId).slice(0, 48), preset: String(preset || ''),
+      }) + '\n', 'utf8')
+    } catch { /* 取证是旁路 */ }
+  }
+
   /** 预设提示（2026-10-19）：非 Wish / PTC 预设时，per-session 记一条，客户端据此弹提示。 */
   notePresetNotice(sessionId, preset) {
     const sid = String(sessionId == null ? '' : sessionId)
@@ -2360,6 +2390,7 @@ export function apply(ctx, config) {
     getNotice: (p) => adapter.getPresetNotice(p && p.sessionId),
     // 回车前的预设闸门（2026-10-19）：优先问 sessionController 的会话头，其次用事件里记下的。
     getPreset: (sid) => adapter.presetOf(sid),
+    getPresetPending: () => adapter.pendingPreset(),
     inspectPreset: async (sid) => {
       // 返回 { preset, debug }：debug 只在 ?debug=1 时透出（真机上"为什么没弹窗"必须能查）。
       // ⚠ 不同版本/不同入口的 inspect 结果形状不一样（header / meta / session.header …），
@@ -2611,13 +2642,17 @@ export function apply(ctx, config) {
           // 判定用会话头（宿主写的字段），并在同一个位置短路，避免它的 user/message 还去触发一次解释。
           // 预设切换（2026-10-19）：会话头的 agentPreset 是**创建时**写死的；中途切预设只会发事件。
           // 只读会话头会漏掉"切了但没重建会话"的情况 ⇒ 这里把最新选择记下来。
-          if (sid && event && event.type === 'agent-preset/selected' && event.data && typeof event.data.agentPreset === 'string') {
-            adapter.notePreset(sid, event.data.agentPreset)
-          }
           if (sid && isSubagentSession(session)) {
             let sub = null
             try { sub = readPolicy({ home: DSH_HOME, sessionId: sid }) } catch { sub = null }
             if (!sub || sub.applyToSubagents !== true) return
+          }
+          // 预设切换（2026-10-19）：会话头的 agentPreset 是**创建时**写死的；中途切预设只会发事件。
+          // ⚠ 即使事件还没带会话 id（"先拨预设、后开会话"）也要记：那是用户最后一次明确选择。
+          if (event && event.type === 'agent-preset/selected' && event.data && typeof event.data.agentPreset === 'string') {
+            if (sid) adapter.notePreset(sid, event.data.agentPreset)
+            adapter.notePresetPending(event.data.agentPreset, sid)
+            adapter.tracePresetEvent(sid, event.data.agentPreset)
           }
           inferenceContext.observe(session,event)
           // ── P10 步骤 2：先喂上下文累加器（**只观测，不做任何判定**）──────────
