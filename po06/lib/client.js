@@ -690,17 +690,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       optBtnOn: { background: T('hover'), borderColor: OVS.acc, boxShadow: '0 0 0 3px ' + OVS.acc12 },
       optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
       // ② 弹出面板：288 宽、12/14 内距，紧凑但不挤
-      optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '348px', maxHeight: 'min(76vh, 620px)', overflowY: 'auto',
-        display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px 16px 10px',
+      optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '320px', maxHeight: 'min(76vh, 620px)', overflowY: 'auto',
+        display: 'flex', flexDirection: 'column', gap: '7px', padding: '12px 14px 8px',
         background: OVS.surface, color: OVS.fg,
         border: '1px solid ' + OVS.lineSoft, borderRadius: '12px', boxShadow: SHADOW.float },
       optPopHead: { display: 'flex', alignItems: 'center', gap: '7px', ...TYPE.title, paddingBottom: '0' },
-      optRow: { display: 'grid', gridTemplateColumns: '60px 1fr', alignItems: 'center', gap: '10px', minHeight: '30px' },
+      optRow: { display: 'grid', gridTemplateColumns: '58px 1fr', alignItems: 'center', gap: '10px', minHeight: '28px' },
       // 行标签要看得清：用 fg2 而不是 fg3（用户 2026-10-19：小标题太淡）
       optLabel: { color: OVS.fg2, fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' },
       // 设置行：左标签 + 右状态值，整行是有底色的可点区域（紧凑版）
       optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
-        justifyContent: 'space-between', gap: '8px', padding: '7px 12px',
+        justifyContent: 'space-between', gap: '8px', padding: '6px 11px',
         borderRadius: '10px', border: '1px solid transparent', background: T('chip'),
         color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer', textAlign: 'left' },
       // 右侧状态：开 = 主题色药丸；关 = 空心淡字（不用"开关控件"，保持一眼可读）
@@ -3520,6 +3520,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                     left: Math.min(Math.max(rg.left + 8, Math.round(r.left)), Math.max(rg.left + 8, rg.right - popW - 8)),
                     bottom: Math.max(8, Math.round(vh - r.top + 6)),
                     width: popW,
+                    // 关键：高度必须按"按钮上方还剩多少"来收（否则短屏会顶出屏幕上沿）——
+                    // 超出就内部滚动，而不是让面板跑到屏幕外。
+                    maxH: Math.max(220, Math.round(vh - r.top - 16)),
                   })
                 }
                 setOptOpen((v) => !v)
@@ -3564,7 +3567,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               //   所以这里把按钮实测坐标铺上去，并在量不到时退回 `?` 弹层用的那套固定落点。
               // issue #18：宽度按会话窗收（打开侧栏 ⇒ 会话列变窄 ⇒ 弹层跟着窄），右缘不越界。
               style: { ...S.optPop, ...(optPos
-                ? { left: optPos.left + 'px', bottom: optPos.bottom + 'px', ...(optPos.width ? { width: optPos.width + 'px' } : null) }
+                ? { left: optPos.left + 'px', bottom: optPos.bottom + 'px', ...(optPos.width ? { width: optPos.width + 'px' } : null),
+                    ...(optPos.maxH ? { maxHeight: optPos.maxH + 'px' } : null) }
                 : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(300, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
               h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options'))),
               // ① 档位（从第一行搬来；分段控件本身没变）
