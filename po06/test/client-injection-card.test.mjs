@@ -130,3 +130,11 @@ test('新一轮开始就收起上一轮的卡（陈旧卡片不许替新消息�
   assert.ok(at > 0, '找不到 beginHold')
   assert.ok(/setInject\(null\)/.test(CLIENT_SRC.slice(at, at + 900)))
 })
+
+test('控制面按 id 查询要真的到达 adapter（整包转发，不许只取 sessionId）', () => {
+  // 2026-10-19 真机：对话流卡片是一片空行——事件写了、记录也在盘上，但 ?id= 查询永远 null。
+  // 根因就在这行包装：只把 p.sessionId 传下去，id 被丢了。
+  assert.ok(/getInjection: \(p\) => adapter\.getInjection\(p\)/.test(INDEX_SRC), '必须整包转发')
+  assert.equal(/getInjection: \(p\) => adapter\.getInjection\(p && p\.sessionId\)/.test(INDEX_SRC), false, '旧写法不许回来')
+  assert.ok(/getInjection\(id \? \{ id \} : \{ sessionId: sid \}\)/.test(API_SRC), '控制面要按 id/session 分头查')
+})

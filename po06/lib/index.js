@@ -2312,7 +2312,9 @@ export function apply(ctx, config) {
           },
           // P11：读回"这一轮注入的包"（回退后把新正文读回界面）
           getPacket: (p) => adapter.getIntentText(p && p.sessionId),
-        getInjection: (p) => adapter.getInjection(p && p.sessionId),
+        // ⚠ 必须**整包转发**：控制面有两种查询（?id= 给对话流卡片、?session= 给输入栏胶囊），
+    // 早先这里只取了 p.sessionId ⇒ 按 id 查永远 null ⇒ 对话流里的卡片成了空行（2026-10-19 实测）。
+    getInjection: (p) => adapter.getInjection(p),
           // P11：包级回退（宿主侧保存了每会话最近 10 版非空包）
           rollbackPacket: (p) => {
             const r = adapter.rollbackPacket(p && p.sessionId)
