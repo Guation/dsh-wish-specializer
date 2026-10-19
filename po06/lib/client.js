@@ -2839,6 +2839,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [hold, _setHold] = React.useState(() => holdBridgeRead(sessionId))
       const setHold = React.useCallback((v) => {
         _setHold(v)
+        // ⚠ 旧实例（会话已切走）不许再往桥上写：它的 clearHoldSoon 会把**别的会话**的拦截态清掉，
+        // 用户看到的就是"优化自己消失"（2026-10-19 真机）。跨会话的结果由完成回调直接写回发起会话。
+        if (!isActiveInstance()) return
         holdBridgeWrite(sessionId, v)   // 写桥即广播（issue #19）：别的挂载/后台完成的那一份也能被认领
       }, [sessionId])
       const [tick, setTick] = React.useState(0)        // 只用于"已用 N 秒"重新渲染
@@ -3069,7 +3072,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           // 进度面（prog）在离开 optimizing 那一刻就被清空，用量若只存那里，界面永远读不到。
           // 用户已经切到别的会话：结果写回**发起那一轮**的桥，别写进当前会话；
           // 自动模式下也**不能**在这里提交（会把别的会话的草稿发出去）——回到该会话时再补发。
-          if (startSid !== liveSidRef.current) {
+          if (startSid !== liveSidRef.current || !isActiveInstance()) {
             holdBridgeWrite(startSid, { ...h, phase: 'review', outgoingText: r.outgoingText || text,
               done: true, pendingAuto: permissionRef.current !== 'review', englishMode: r.englishMode === true })
             return
