@@ -651,11 +651,13 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         return send(200, { ok: true, chars: text.length, packet: text })
       }
       if (method === 'GET' && path === API_PREFIX + '/injection') {
-        // 「本次注入」记录：**来自插件自己的内存**，不读会话日志（日志里不允许出现自定义事件）。
-        // 刷新页面/重开会话后客户端靠它把胶囊恢复出来。
+        // 「本次注入」记录：**来自插件自己的内存**，不读会话日志。
+        //   ?id=<记录 id>  → 对话流卡片按命令事件里带的 id 取
+        //   ?session=<sid> → 输入栏胶囊取"这个会话最近一条"
+        const id = String(query.get('id') || '').trim()
         const sid = String(query.get('session') || '').trim()
-        if (!sid) return send(400, { ok: false, reason: 'session-required' })
-        const row = typeof getInjection === 'function' ? getInjection({ sessionId: sid }) : null
+        if (!id && !sid) return send(400, { ok: false, reason: 'id-or-session-required' })
+        const row = typeof getInjection === 'function' ? getInjection(id ? { id } : { sessionId: sid }) : null
         return send(200, { ok: true, injection: row || null })
       }
       if (method === 'POST' && path === API_PREFIX + '/rollback') {

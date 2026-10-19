@@ -364,22 +364,21 @@ const GRAPH = {
             refs: ["tree.index"]
           },
           {
-            id: "flow.event", kind: "event", title: "⑦ 记录注入（插件自己的内存）",
-            summary: "放行时若这一轮确实有包，就把「本次注入」记进插件状态——**不碰会话日志**。",
+            id: "flow.event", kind: "event", title: "⑦ 记录注入 + 写命令事件（已知类型）",
+            summary: "正文进插件内存；对话流里那一行用宿主**已注册**的 command/run + command/done 作锚。",
             facts: [
-              "**P0 事故（2026-10-19）**：这里曾经 append 一条自定义事件 po06/injection 来画对话流卡片。宿主对未知事件类型是 fail-closed 的——信封没有 ignorable 标记就整条会话拒绝解释，重启后会话打不开。",
-              "宿主插件指南原文：Do not append session events with a new type … the Session would refuse to reopen。而 Session.append() 只能带 surfaceOp/sourceEventSeqs，插件无法设置 ignorable。",
-              "现在：记录进 adapter 的内存 Map（每会话一条），客户端用 GET /po06/api/injection 取回；会话日志一个字节都不写。",
-              "包为空（跳过 / 按原文发出 / 解释失败）⇒ 不记录、不出胶囊。"
+              "**P0 事故（2026-10-19）**：早先这里 append 自定义事件 po06/injection。宿主对未知类型 fail-closed——信封没有 ignorable 就拒绝解释整条会话，重启后打不开。而 Session.append() 无法设置 ignorable。",
+              "现在的行锚用命令事件：command/run + command/done 是宿主自己的类型（/vmake 那种卡就是这么渲染的），写它安全；命令名固定 po06-inject。",
+              "事件里只带一个记录 id；注入正文在插件内存里，客户端用 /po06/api/injection?id= 取。",
+              "仍要延后一抽（回调在 user/message 的 append 边界内）；包为空（跳过 / 按原文发出 / 解释失败）⇒ 什么都不写。"
             ],
-            code: { path: "po06/lib/index.js", lines: [2508, 2524], text: [
-              "const working = adapter.getWorkingText(sid) || ''",
-              "if (working.trim() && typeof adapter.noteInjection === 'function') {",
-              "  adapter.noteInjection(sid, {",
-              "    anchorSeq, chars: working.length,",
-              "    injected: working.slice(0, 4000), truncated: working.length > 4000,",
-              "  })",
-              "}"
+            code: { path: "po06/lib/index.js", lines: [2537, 2565], text: [
+              "const id = adapter.noteInjection(sid, { anchorSeq, chars, injected, truncated })",
+              "setTimeout(() => {",
+              "  session.append('command/run', { commandId, name: 'po06-inject',",
+              "    args: JSON.stringify({ id }), source: { kind: 'user' } })",
+              "  session.append('command/done', { commandId, kind: 'success' })",
+              "}, 0)"
             ] },
             widget: "payload",
             refs: ["flow.field-anchor", "flow.field-chars", "flow.field-injected", "flow.field-truncated"]
@@ -408,30 +407,31 @@ const GRAPH = {
             facts: ["为真时卡片底下会多一行“这里显示前 4000 字”。"]
           },
           {
-            id: "flow.card", kind: "ui", title: "⑧ 输入栏胶囊",
-            summary: "发布后输入栏出现一颗默认收起的小条，点开只显示实际注入文。",
+            id: "flow.card", kind: "ui", title: "⑧ 对话流里的卡片",
+            summary: "命令事件在对话流里渲染成一张命令卡，宿主按命令名分发到我们的视图。",
             facts: [
-              "刷新或重开会话后，客户端从 /po06/api/injection 拉回最近一条，胶囊还在。",
-              "不点开时连正文 DOM 都不生成。",
-              "为什么不在对话流里：那需要一个会话事件，而写自定义事件会让会话打不开（见上一步的事故）。"
+              "宿主 CommandNodeView 的样子：按命令名去 conversation.chat.commandview 子槽找视图，找不到就退回通用命令卡。",
+              "我们注册 key=po06-inject 的视图；卡片默认收起，点开只显示实际注入文（正文按事件里的 id 取）。",
+              "输入栏胶囊作为**降级**保留：记录取不到时至少还能看见最近一次注入。"
             ],
-            code: { path: "po06/lib/client.js", lines: [2086, 2104], text: [
-              "React.useEffect(() => {",
-              "  apiGet('/injection?session=' + encodeURIComponent(sessionId)).then((r) => {",
-              "    if (r && r.ok === true && r.injection) setInject({ injected: r.injection.injected, chars: r.injection.chars })",
-              "  })",
-              "}, [sessionId])"
+            code: { path: "po06/lib/client.js", lines: [2014, 2064], text: [
+              "const INJECTION_COMMAND = 'po06-inject'",
+              "function InjectionCommandCard({ node }) {",
+              "  const id = JSON.parse(node.args || '{}').id",
+              "  // fetch /po06/api/injection?id=… 后渲染收起态",
+              "}",
+              "mountKeyed('conversation.chat.commandview', INJECTION_COMMAND, InjectionCommandCard)"
             ] },
             widget: "card",
             refs: ["tree.client", "flow.event", "flow.fallback"]
           },
           {
-            id: "flow.fallback", kind: "fallback", title: "为什么没有对话流卡片",
-            summary: "对话流里的行必须由会话事件驱动；而写自定义事件 = 会话打不开。这是一条硬边界。",
+            id: "flow.fallback", kind: "fallback", title: "输入栏胶囊（降级）",
+            summary: "记录取不到时（插件重启、按 id 查不到）至少还有最近一次注入。",
             facts: [
-              "宿主渲染 conversation.chat.node 的每一行，都要有一条**已知类型的会话事件**作锚。",
-              "插件能写的只有宿主已注册的类型；自定义类型会被读取器拒绝（fail-closed）。",
-              "所以卡片只能在输入栏；要做到对话流卡片，需要宿主开放「可忽略事件」的写入通道。"
+              "客户端挂载时 GET /po06/api/injection?session=…，把最近一条放回输入栏。",
+              "它只活在内存里；对话流卡片则由会话事件（命令行）持久化。",
+              "两者展示的是同一份记录：只显示实际注入文。"
             ] },
           {
             id: "flow.noevent", kind: "constraint", title: "三条不写事件的路",
@@ -868,7 +868,7 @@ const GRAPH = {
   const PIPE = [
     ["flow.trigger", "① 发送"], ["flow.interpret", "② 解释"], ["flow.render", "③ 组装"],
     ["flow.review", "④ 审查"], ["flow.release", "⑤ 放行"], ["flow.inject", "⑥ 注入"],
-    ["flow.event", "⑦ 记录"], ["flow.card", "⑧ 胶囊"]
+    ["flow.event", "⑦ 记录"], ["flow.card", "⑧ 卡片"]
   ];
   function renderPipe() {
     const host = document.getElementById("pipeline");

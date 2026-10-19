@@ -44,7 +44,8 @@ function loadClient() {
   mod.apply({ slots: { register: () => () => {}, inject: (slot, cb) => cb() } })
   return mod
 }
-const model = () => loadClient().__debug.injectionCardModel
+const dbg = () => loadClient().__debug
+const model = () => dbg().injectionCardModel
 
 test('没有真的注入过时，卡片不许出现（跳过 / 按原文发出 / 解释失败）', () => {
   const m = model()
@@ -77,23 +78,36 @@ test('展开体只有「实际注入文」一段', () => {
   assert.ok(!CLIENT_SRC.includes("injectSection('optimized'"), '不许再画意图包')
 })
 
-test('P0 回归门：生产代码里**不许**出现自定义会话事件写入', () => {
-  // 宿主读取器只接受已知类型；插件无法给事件打 ignorable ⇒ 写自定义类型 = 会话重启后打不开。
-  // 注释里提到它没关系（那是事故记录），所以先去掉注释再查。
+test('P0 回归门：只许写宿主**已注册**的事件类型（自定义类型会让会话打不开）', () => {
+  // 宿主读取器对未知类型 fail-closed，而 Session.append() 无法设置 ignorable ⇒ 写自定义类型
+  // = 会话重启后打不开。命令事件是宿主自己的行类型，允许；其它一律不许。
   const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')
-  assert.ok(!/session\.append\s*\(/.test(strip(INDEX_SRC)), 'index.js 不得调用 session.append')
-  assert.ok(!/po06\/injection/.test(strip(INDEX_SRC) + strip(CLIENT_SRC)), '不得再出现 po06/injection 自定义事件')
+  const code = strip(INDEX_SRC)
+  const types = [...code.matchAll(/session\.append\(\s*'([^']+)'/g)].map((m) => m[1])
+  const ALLOWED = new Set(['command/run', 'command/done'])
+  for (const t of types) assert.ok(ALLOWED.has(t), '只允许宿主已知类型，发现：' + t)
+  assert.ok(types.includes('command/run') && types.includes('command/done'), '卡片的行锚要写成命令事件')
+  assert.ok(!/po06\/injection/.test(code + strip(CLIENT_SRC)), '不得再出现 po06/injection 自定义事件')
   // 插件自己的状态投影同样不走会话日志：生产调用必须传 persist（projection.js 的 EV-0081 分流）。
   assert.ok(/persist:\s*\(s, state\)/.test(INDEX_SRC), 'commitPatch 必须带 persist，禁止回落到 session.append')
-  assert.ok(/\/\*[\s\S]*?persist[\s\S]*?\*\//.test(readFileSync(join(ROOT, 'lib', 'projection.js'), 'utf8')) === false || true)
 })
 
-test('注入记录进插件内存，经 /po06/api/injection 回到界面', () => {
+test('注入记录进插件内存，经 /po06/api/injection 回到界面（按 id 或按会话）', () => {
   assert.ok(/noteInjection\(sid/.test(INDEX_SRC), '放行时记录到 adapter')
-  assert.ok(/getInjection\(p && p\.sessionId\)/.test(INDEX_SRC), '控制面要接上读取口')
+  assert.ok(/getInjection\(p && p\.sessionId|getInjection\(id \?/.test(INDEX_SRC + API_SRC), '控制面要接上读取口')
   assert.ok(/API_PREFIX \+ '\/injection'/.test(API_SRC), '要有 /po06/api/injection 路由')
+  assert.ok(API_SRC.includes("query.get('id')"), '卡片要能按记录 id 取')
   assert.ok(API_SRC.includes('getInjection'), '路由要调用注入读取口')
-  assert.ok(CLIENT_SRC.includes("apiGet('/injection?session='"), '客户端挂载时要能恢复胶囊')
+  assert.ok(CLIENT_SRC.includes("apiGet('/injection?session='"), '胶囊挂载时要能恢复')
+  assert.ok(CLIENT_SRC.includes("apiGet('/injection?id='"), '对话流卡片按 id 取正文')
+})
+
+test('对话流卡片挂在宿主的 commandview 子槽上（已知事件类型 + 命令名分发）', () => {
+  const d = dbg()
+  assert.equal(d.INJECTION_COMMAND, 'po06-inject')
+  assert.equal(typeof d.InjectionCommandCard, 'function')
+  assert.ok(/mountKeyed\('conversation\.chat\.commandview', INJECTION_COMMAND/.test(CLIENT_SRC), '要按命令名注册卡片视图')
+  assert.ok(/commandId, name: 'po06-inject'/.test(INDEX_SRC), '事件里要带同一个命令名')
 })
 
 test('快照只在 submit 成功之后才记（失败不冒充已注入）', () => {

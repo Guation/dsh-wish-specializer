@@ -1494,6 +1494,18 @@ class DshAdapter {
     // P0 事故注释：自定义事件类型会让宿主的读取器拒绝整条会话）。
     // 只保留每会话最近一条；客户端通过 /po06/api/injection 取回，刷新/重开还能看见。
     this.injections = new Map()
+    this.injectionById = new Map()
+    // 落盘：记录放插件自己的 state 目录（**不进会话日志**），重启后对话流卡片还能取到正文。
+    this.injectionFile = join(DSH_HOME, 'po06-state', 'injections.json')
+    this.injectionSaveTimer = null
+    try {
+      const rows = JSON.parse(readFileSync(this.injectionFile, 'utf8'))
+      if (Array.isArray(rows)) for (const row of rows) {
+        if (!row || typeof row.id !== 'string' || typeof row.injected !== 'string') continue
+        this.injectionById.set(row.id, row)
+        if (typeof row.sessionId === 'string') this.injections.set(row.sessionId, row)
+      }
+    } catch { /* 没有存档就空着 */ }
     // 意图状态的**权威**在本插件手里（内存 + 自己的存储），不再经会话日志/投影（EV-0081）。
     this.stateBySession = new Map()
     this.stateStore = null
@@ -1785,23 +1797,53 @@ class DshAdapter {
     return directive ? [base, directive].filter(Boolean).join('\n\n') : base
   }
 
-  /** 记下最近一次注入（每会话一条；**不落会话日志**）。 */
+  /** 记下一次注入（每会话保留最近一条；**不进会话日志**）。返回这条记录的 id。 */
   noteInjection(sessionId, row) {
     const sid = String(sessionId == null ? '' : sessionId)
-    if (!sid || !row || typeof row.injected !== 'string' || !row.injected.trim()) return
-    this.injections.set(sid, {
+    if (!sid || !row || typeof row.injected !== 'string' || !row.injected.trim()) return null
+    const id = String(row.id || (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7)))
+    const rec = {
+      id,
       anchorSeq: Number.isFinite(row.anchorSeq) ? row.anchorSeq : null,
       chars: Number.isFinite(row.chars) ? row.chars : row.injected.length,
       injected: row.injected.slice(0, 4000),
       truncated: row.truncated === true,
       at: Number.isFinite(row.at) ? row.at : Date.now(),
-    })
+    }
+    this.injections.set(sid, rec)
+    this.injectionById.set(id, { ...rec, sessionId: sid })
+    // 上限：只留最近 200 条（够回看，又不常驻内存）
+    while (this.injectionById.size > 200) {
+      const oldest = this.injectionById.keys().next().value
+      this.injectionById.delete(oldest)
+    }
+    this.scheduleInjectionSave()
+    return id
   }
 
-  /** 取最近一次注入记录（给 /po06/api/injection）。 */
-  getInjection(sessionId) {
-    const sid = String(sessionId == null ? '' : sessionId)
-    const row = this.injections.get(sid)
+  /** 合并写盘：1 秒内的多次记录只写一次（文件很小，避免每条都 fsync）。 */
+  scheduleInjectionSave() {
+    if (this.injectionSaveTimer) return
+    this.injectionSaveTimer = setTimeout(() => {
+      this.injectionSaveTimer = null
+      try {
+        mkdirSync(dirname(this.injectionFile), { recursive: true })
+        writeFileSync(this.injectionFile, JSON.stringify([...this.injectionById.values()].slice(-200)), 'utf8')
+      } catch { /* 存不下不影响本次答复 */ }
+    }, 1000)
+    try { if (typeof this.injectionSaveTimer.unref === 'function') this.injectionSaveTimer.unref() } catch { /* 老运行时不支持 */ }
+  }
+
+  /** 取注入记录：给 id 就按 id（对话流卡片用），否则按会话取最近一条（胶囊用）。 */
+  getInjection(arg) {
+    if (arg && typeof arg === 'object') {
+      const id = String(arg.id == null ? '' : arg.id).trim()
+      if (id) return this.injectionById.get(id) || null
+      const sid = String(arg.sessionId == null ? '' : arg.sessionId)
+      const row = this.injections.get(sid)
+      return row ? { ...row } : null
+    }
+    const row = this.injections.get(String(arg == null ? '' : arg))
     return row ? { ...row } : null
   }
 
@@ -2508,27 +2550,43 @@ export function apply(ctx, config) {
           const nearInTime = hitFresh && hitAge < 15000
           if (sameText || nearInTime) {
             interceptedText.delete(sid)
-            // ⚠ 2026-10-19 事故修复（P0）：**绝不能往会话日志里写自定义事件类型**。
-            // 宿主读取器对未知类型是 fail-closed 的：信封上没有 `ignorable: true` 就整条会话
-            // 拒绝解释（SessionFormatUnsupportedError），用户重启后打不开会话。
-            // 而 `Session.append()` 的信封只接受 surfaceOp / sourceEventSeqs，**插件无法设置
-            // ignorable** —— 宿主自己的插件指南写得很清楚："Do not append session events with a
-            // new type … the Session would refuse to reopen"。
-            // 我们曾用它画「本次注入」卡片（po06/injection），代价是会话损坏 + 外部工具修复。
-            // 现在改为：注入记录写进**插件自己的内存态**，客户端用 /po06/api/injection 取回；
-            // 会话日志一个字节都不碰。
+            // 「本次注入」：正文进**插件自己的内存**（客户端用 /po06/api/injection 取），
+            // 对话流里的那张卡则用**宿主已知的事件类型**（command/run + command/done）作锚。
+            //
+            // ⚠ 2026-10-19 事故（P0）：早先这里 append 的是自定义类型 po06/injection。宿主读取器
+            // 对未知类型是 fail-closed（信封没有 ignorable: true 就拒绝解释整条会话），而
+            // Session.append() 无法设置该标记 ⇒ 重启后会话打不开。
+            // **只能写宿主已注册的类型**；命令事件就是宿主自己的行类型（/vmake 那种卡就是这么来的），
+            // 客户端再用 conversation.chat.commandview 按命令名注册自己的卡片视图。
             try {
               const working = adapter.getWorkingText(sid) || ''
               if (working.trim() && typeof adapter.noteInjection === 'function') {
                 const anchorSeq = Number(event.seq)
-                adapter.noteInjection(sid, {
+                const id = adapter.noteInjection(sid, {
                   anchorSeq,
                   chars: working.length,
                   injected: working.slice(0, 4000),
                   truncated: working.length > 4000,
                   at: Date.now(),
                 })
-                appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: true, chars: working.length, anchorSeq })
+                if (id) {
+                  const commandId = 'po06-inject-' + id
+                  // 必须延后一抽：本回调运行在 user/message 的 append 边界内，同步 append 会 reenter 失败。
+                  setTimeout(() => {
+                    try {
+                      session.append('command/run', {
+                        commandId, name: 'po06-inject', args: JSON.stringify({ id }), source: { kind: 'user' },
+                      })
+                      session.append('command/done', { commandId, kind: 'success' })
+                      appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: true, chars: working.length, anchorSeq, id })
+                    } catch (e) {
+                      // 写不进去 ⇒ 退回"没有卡片"（胶囊仍在），不重试、不打断会话
+                      appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: false, reason: String((e && e.message) || e) })
+                    }
+                  }, 0)
+                } else {
+                  appendWireLog({ sessionId: sid, trigger: 'inject-card', ok: false, reason: 'no-record' })
+                }
               }
             } catch { /* 记录是旁路，绝不打断会话 */ }
             appendWireLog({ sessionId: sid, trigger: 'user-message', ok: true, skipped: sameText ? 'intercepted-already' : 'intercepted-recently', chars: text.length })

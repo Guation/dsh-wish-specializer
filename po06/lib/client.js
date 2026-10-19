@@ -2006,6 +2006,59 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     }
 
 
+
+    /**
+     * 对话流里的「本次注入」卡片。
+     *
+     * 走的是宿主**本来就有的行类型**：命令事件（command/run + command/done）在对话流里
+     * 渲染成一张命令卡，宿主再按命令名分发到 conversation.chat.commandview 子槽
+     * ——/vmake 那种卡就是同一条路。我们只注册 `po06-inject` 这个名字的视图。
+     *
+     * ⚠ 为什么不用自定义事件：宿主读取器对未知类型 fail-closed，插件又设置不了 ignorable，
+     * 写自定义事件 = 会话重启后打不开（2026-10-19 P0）。命令事件是**已知类型**，安全。
+     *
+     * 卡片正文取自插件自己的 /po06/api/injection（事件里只放记录 id），默认收起。
+     */
+    const INJECTION_COMMAND = 'po06-inject'
+    function InjectionCommandCard(props) {
+      const cmd = (props && props.node) || {}
+      const [rec, setRec] = React.useState(null)
+      const [open, setOpen] = React.useState(false)
+      useLocaleLive()
+      useThemeLive()
+      const recordId = (() => {
+        try { const v = JSON.parse(String(cmd.args || '{}')); return v && typeof v.id === 'string' ? v.id : '' } catch { return '' }
+      })()
+      React.useEffect(() => {
+        if (!recordId) return undefined
+        let alive = true
+        apiGet('/injection?id=' + encodeURIComponent(recordId)).then((r) => {
+          if (!alive || !r || r.ok !== true || !r.injection) return
+          setRec(r.injection)
+        }, () => { /* 记录没了（插件重启过）就不画，留个空壳比编内容好 */ })
+        return () => { alive = false }
+      }, [recordId])
+      if (!rec || typeof rec.injected !== 'string' || !rec.injected.trim()) return null
+      const chars = Number(rec.chars) > 0 ? rec.chars : rec.injected.length
+      return h('div', { 'data-po06': 'injection-row', style: S.injRow },
+        h('button', {
+          type: 'button', 'data-po06': 'injection-row-head', 'data-open': open ? '1' : '0',
+          'aria-expanded': open ? 'true' : 'false',
+          title: L('看看这一轮到底往上下文里塞了什么（点开）', 'See exactly what this round put into the context (click)'),
+          style: S.injHead, onClick: () => setOpen((v) => !v),
+        },
+          h(InjectIcon),
+          h('span', { 'data-po06': 'injection-row-title', style: S.optBtnText }, L('本次注入', 'Injected')),
+          h('span', { 'data-po06': 'injection-row-chars', style: S.optSummary }, String(chars) + L(' 字', ' chars')),
+          h('span', { 'aria-hidden': 'true', style: S.optCaret }, open ? '▴' : '▾')),
+        open ? h('div', { 'data-po06': 'injection-row-body', style: S.injBody },
+          h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '320px', overflow: 'auto', fontFamily: 'inherit' } },
+            rec.injected),
+          rec.truncated ? h('div', { 'data-po06': 'inject-note', style: S.ovHintQuiet },
+            L('这里显示前 4000 字；完整内容就是模型实际收到的那段。', 'First 4000 characters; this is what the model actually received.')) : null,
+        ) : null)
+    }
+
     // ── ① 输入区左侧的控件栏（0.5 的操作形态）─────────────────────────
     // 为什么把"小胶囊"换成一排控件（用户实测反馈「不适应 0.6 的操控/检测模式」）：
     // 胶囊只回答"它在不在"，而人要的是**随手拨**——档位、权限、上下文、读不读项目文件、用哪个模型。
@@ -3933,10 +3986,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       mount('conversation.input.left', 'prompt-optimizer', 20, ControlBar)
       mount('shell.overlay', NS + '-panel', 40, () => null)   // 面板本体在控件栏里渲染；这一条保证浮层槽可用
       mount('settings.plugins.tab', NS, 40, SettingsTab)
-      // ⚠ 「本次注入」卡片**不再**挂在 conversation.chat.node 上（2026-10-19 事故后移除）。
-      // 宿主渲染对话流里的行需要一条**会话事件**，而插件的 Session.append() 无法给事件打
-      // ignorable 标记 ⇒ 写自定义类型会让整条会话重启后打不开。现在卡片回到输入栏胶囊，
-      // 数据从 /po06/api/injection 恢复（见 ControlBar 的 mount effect）。
+      // ⑤ 「本次注入」卡片：挂宿主的 **commandview** 子槽（按命令名分发，/vmake 同款机制）。
+      //    行锚是宿主已知的 command/run + command/done 事件（插件写安全），正文来自插件内存。
+      mountKeyed('conversation.chat.commandview', INJECTION_COMMAND, InjectionCommandCard)
       // 独立 list 项：不覆盖宿主文件卡片，也不接管 assistant 文本或停止边界。
       // 2026-10-18 用户指定：回复尾部不再挂复核旁注卡。
       void AdvisorDeliveryTail
@@ -4111,7 +4163,7 @@ const react = require("react")
         ovReflowWatch, ovReflowAll, EDITABLE_SEL,
         ADVISOR_POLL_MS, ADVISOR_POLL_ERROR_MS, ADVISOR_POLL_IDLE_MS, ADVISOR_POLL_FULL_MS, ADVISOR_REQUEST_TIMEOUT_MS,
         advisorMergeProgress, advisorProgressKey, advisorNextDelayMs, advisorDeltaMiss,
-        holdBridgeRead, holdBridgeWrite, holdBridgeOn,
+        holdBridgeRead, holdBridgeWrite, holdBridgeOn, INJECTION_COMMAND, InjectionCommandCard,
 
         advisorDeliveryKey, advisorDeliveryBinding, advisorDeliveryValue, advisorDeliveryLabel, useAdvisorDelivery, AdvisorDeliveryTail, ADVISOR_DELIVERY_TIMEOUT_MS,
         themeTokens: THEME_TOKENS,
