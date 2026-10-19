@@ -24,7 +24,9 @@
 ### 本机可执行的发布步骤（网络恢复后逐条跑）
 
 ```powershell
-node po06/scripts/check-release.mjs          # 应 PASS（判定行会打印 "判定：PASS"）
+node po06/scripts/check-release.mjs --strict # 应 PASS（判定行会打印 "判定：PASS"）
+#   --strict 多要求一项「turn305 parity 参考树」（.po06-tmp/exact-turn305，issue #36）：
+#   缺它时该套件会**跳过**（干净检出/CI 正常），但发版不许靠跳过的检查过关。
 node po06/scripts/install-drill.mjs          # 打包自足性演练（门禁里已跑一遍）
 git add -A; git commit -m "release: v0.8.4-stable — 六条线上 issue 修复与顾问闭环"
 git push origin HEAD:main

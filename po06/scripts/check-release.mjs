@@ -14,6 +14,9 @@ import { spawnSync } from 'node:child_process'
 const ROOT = join(import.meta.dirname, '..')          // po06/
 const REPO = join(ROOT, '..')                          // 仓库根
 const asJson = process.argv.includes('--json')
+// --strict：**发版**时用。多要求一项"本机不该缺的东西"（turn305 参考树，issue #36）；
+// CI 每次 push 都跑这个脚本，所以严格项必须显式要，否则 CI 会因为"作者本机的夹具"恒红。
+const strict = process.argv.includes('--strict')
 
 const problems = []
 const notes = []
@@ -201,7 +204,8 @@ if (existsSync(mutPath)) {
   const refCandidates = [join(REPO, '.po06-tmp', 'exact-turn305'), join(REPO, '..', 'exact-turn305')]
   const refFound = refCandidates.find((p) => existsSync(join(p, 'po06', 'lib', 'optimizer-protocol.js')))
   if (refFound) notes.push('turn305 parity 参考树就位：' + refFound)
-  else problems.push('缺 turn305 parity 参考树（.po06-tmp/exact-turn305）：测试会跳过，发版必须补回（见 docs/ROUND305-RESTORATION.md）')
+  else if (strict) problems.push('缺 turn305 parity 参考树（.po06-tmp/exact-turn305）：发版必须补回（见 docs/ROUND305-RESTORATION.md）')
+  else notes.push('turn305 parity 参考树不在本机：该套件跳过（CI 正常；发版用 --strict 要求它存在）')
 }
 
 // ── 7b. 打包产物自足性（EV-0110）────────────────────────────────────
