@@ -1,6 +1,6 @@
 <!-- po06:help-start 下面是用户可见正文；标记本身不会显示 -->
 
-# Prompt Optimizer
+# Wish Specializer
 
 You say one line; it adds the requirements you did not spell out but that decide the result — aesthetic register, light and material, composition, setting, interaction, the acceptance bar. **Your words are never rewritten**; the additions ship alongside them.
 

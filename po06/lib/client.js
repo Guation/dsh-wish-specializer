@@ -3157,7 +3157,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         }) : null,
         open ? h('div', { ...themeAttrs(), 'data-po06': 'panel', style: { ...S.panel, ...(region ? { right: Math.max(0, Math.round(((typeof window !== 'undefined' && window.innerWidth) || 800) - region.right) + 16) + 'px', width: Math.min(420, Math.max(120, region.w - 32)) + 'px' } : null) } },
           h('div', { style: S.row },
-            h('strong', {}, L('提示词优化器','Prompt Optimizer')),
+            h('strong', {}, L('许愿特化器','Wish Specializer')),
             h('span', { style: S.muted }, (data && data.version) || ''),
             h('button', { style: { ...S.btn, marginLeft: 'auto' }, onClick: () => setOpen(false) }, L('关闭','Close')),
           ),
