@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 22:35'
+    const CLIENT_BUILD = '10-19 22:50'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     const PRESET_NOTICE_SEEN = new Map()
     // 预设登记表（id ↔ 显示名）：由宿主从 agentPresets 服务转出来。
@@ -2635,6 +2635,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 预设闸门（2026-10-19 用户要求）：**按回车、优化还没开始**的时候就问宿主一次。
       // 不再做后台轮询——不希望在"发出去之后"才弹。一个会话只问一次（问过就放行，避免每次回车都打接口）。
       const presetGateRef = React.useRef('')
+      // 取证：这个面板当前绑定的是哪个会话（"我明明进了标准会话"时，先看插件有没有跟着换）
+      React.useEffect(() => {
+        apiPost('/client-log', { event: 'bar-mount', sid: sessionId }).catch(() => {})
+      }, [sessionId])
       // 预设登记表：一次拉取即可（失败每 5s 重试；换语言可能改名，所以也随 locale 重拉）
       React.useEffect(() => {
         let alive = true
@@ -2674,6 +2678,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // 同一会话对同一个预设只提示一次：点过「知道了」之后即使组件重挂载也不会再弹
             if (rec.shownFor === preset) return
             rec.shownFor = preset
+            apiPost('/client-log', { event: 'notice-recv', sid: sessionId, preset }).catch(() => {})
             setNotice(r.notice)
           }).catch(() => {})
         }
@@ -2686,6 +2691,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 真机上就是"notice 拿到了但屏幕上看不见"。这里改成命令式浮层：进来必有、层级最高、卸载即清。
       React.useEffect(() => {
         if (!notice || typeof document === 'undefined') return undefined
+        apiPost('/client-log', { event: 'notice-mount', sid: sessionId, preset: notice.preset }).catch(() => {})
         const el = document.createElement('div')
         el.setAttribute('data-po06', 'preset-notice-backdrop')
         el.style.cssText = 'position:fixed;inset:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;' +
@@ -2732,6 +2738,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         card.appendChild(head); card.appendChild(body); card.appendChild(hint); card.appendChild(actions)
         el.appendChild(card)
         document.body.appendChild(el)
+        apiPost('/client-log', { event: 'notice-mounted', sid: sessionId, preset: notice.preset,
+          detail: 'connected=' + String(el.isConnected) + ' children=' + String(el.childElementCount) }).catch(() => {})
         // 退场：先淡出 + 轻微下沉，再移除（与其他弹层同一套语言）
         return () => {
           try {

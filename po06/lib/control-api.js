@@ -757,6 +757,20 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         const row = typeof getNotice === 'function' ? getNotice({ sessionId: sid }) : null
         return send(200, { ok: true, notice: row || null })
       }
+      // 客户端取证（2026-10-19）：弹窗"到底跑没跑、有没有抛错"必须能查，不然只能猜。
+      if (method === 'POST' && path === API_PREFIX + '/client-log') {
+        const body = await readBody(req)
+        if (!body.ok) return send(400, { ok: false, reason: body.reason })
+        const v = body.value || {}
+        traceApi({
+          k: 'client-log',
+          event: String(v.event || '').slice(0, 40),
+          sid: String(v.sid || '').slice(0, 48),
+          preset: String(v.preset || '').slice(0, 24),
+          detail: String(v.detail || '').slice(0, 200),
+        })
+        return send(200, { ok: true })
+      }
       if (method === 'POST' && path === API_PREFIX + '/notice') {
         const body = await readBody(req)
         if (!body.ok) return send(400, { ok: false, reason: body.reason })
