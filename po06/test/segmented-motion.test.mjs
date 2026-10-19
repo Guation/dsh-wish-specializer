@@ -37,7 +37,12 @@ test('两种粒子运动各有自己的关键帧与参数', () => {
   assert.ok(/animation: 'po06-drift ' \+ dur\.toFixed\(2\)/.test(CLIENT_SRC), '飘动按各自时长跑')
   assert.ok(CLIENT_SRC.includes("'--dx': dx + 'px'") && CLIENT_SRC.includes("'--dy': dy + 'px'"), '飘动方向由每个粒子自己决定')
   assert.ok(/gradient\(90deg, rgba\(255,255,255,0\)/.test(CLIENT_SRC), '流星是白色拖尾')
-  assert.ok(CLIENT_SRC.includes('translate3d(-320px'), '流星从右向左')
+  assert.ok(CLIENT_SRC.includes("left: '100%'"), '流星从右侧轨道外进入')
+  assert.ok(CLIENT_SRC.includes("'--dist'"), '行程由每个粒子自己的 --dist 决定')
+  assert.ok(CLIENT_SRC.includes('Math.round(trackW * gap)'), '行程按轨道宽度算（不同粒子 0.88~1.16 倍）')
+  assert.ok(/const len = 5 \+ \(i \* 7\) % 13/.test(CLIENT_SRC), '长度随机 5~17px')
+  assert.ok(/const dur = 0\.9 \+ /.test(CLIENT_SRC), '速度随机 0.9~2.4s')
+  assert.ok(/opacity:0\}8%\{opacity:\.95\}70%\{opacity:\.7\}100%/.test(CLIENT_SRC), '进入时淡入、到左边缘前淡出')
 })
 
 test('重度才有颤抖；帮助弹层用更轻的入场（避免大块文字重绘卡顿）', () => {

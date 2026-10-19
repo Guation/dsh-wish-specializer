@@ -828,6 +828,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const last = React.useRef(null)
       const itemRefs = React.useRef({})
       const [ind, setInd] = React.useState(null)
+      const [trackW, setTrackW] = React.useState(0)
       const [dragging, setDragging] = React.useState(false)
       React.useEffect(() => { last.current = null }, [value, failTick])
       // 量选中格子的真实位置（不靠百分比算：padding/gap 会让算出来的和看到的差 1~2px）
@@ -836,6 +837,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const track = box.current
         if (!el || !track || typeof el.offsetLeft !== 'number') return
         setInd({ left: el.offsetLeft, width: el.offsetWidth })
+        setTrackW(track.offsetWidth || 0)   // 流星的行程要用整条轨道的宽度
       }
       const useIso = React.useLayoutEffect || React.useEffect
       useIso(() => {
@@ -880,18 +882,23 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // 固定伪随机（同一个 i 永远得到同一组参数）：位置/时长/延迟稳定，重渲染不跳
         const a = (i * 37) % 97, b = (i * 61) % 90 + 5, c = (i * 71) % 100
         if (fx.motion === 'meteor') {
-          // 流星：短横条 + 白色渐变，从右向左快速穿过，长度/速度/延迟各不相同
-          const len = 7 + (i * 5) % 9
-          const dur = 1.1 + ((i * 29) % 100) / 100   // 1.1s ~ 2.1s
+          // 流星（2026-10-19 二次调整）：**从右侧轨道外进入**，一路向左，到左边缘前淡出。
+          // 行程按整条轨道宽度算（-0.9~-1.15 倍），长度 5~17px、粗细 1~2.5px、速度 0.9~2.4s 全随机。
+          const len = 5 + (i * 7) % 13
+          const thick = 1 + ((i * 13) % 3) * 0.6
+          const dur = 0.9 + ((i * 37) % 100) / 100 * 1.5      // 0.9s ~ 2.4s
+          const gap = 0.88 + ((i * 23) % 28) / 100            // 行程 0.88~1.16 倍轨道宽
+          if (!trackW) return null                            // 还没量到宽度：先不画，避免行程为 0
           return h('span', {
             key: i, 'data-po06': 'tier-dot', 'data-po06-motion': 'meteor', 'aria-hidden': 'true',
             style: {
-              position: 'absolute', left: a + '%', top: b + '%',
-              width: len + 'px', height: '1.5px', borderRadius: '999px',
+              position: 'absolute', left: '100%', top: b + '%',
+              width: len + 'px', height: thick.toFixed(1) + 'px', borderRadius: '999px',
               background: 'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.95))',
+              '--dist': '-' + Math.round(trackW * gap) + 'px',
               animation: 'po06-meteor ' + dur.toFixed(2) + 's linear infinite',
               // 负延迟：动画从"已经跑了这么久"的位置开始 ⇒ 一出现就在动，不会先停一会儿
-              animationDelay: '-' + (c / 100 * 1.6).toFixed(2) + 's',
+              animationDelay: '-' + (c / 100 * dur).toFixed(2) + 's',
             },
           })
         }
@@ -4038,7 +4045,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // 标准档：无序随机线性飘动（方向/时长由每个粒子的内联变量决定，alternate 来回）
             '@keyframes po06-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--dx,10px),var(--dy,-8px),0)}}',
             // 重度档：白色流星从右向左穿过（顿挫感由 linear + 不同时长制造）
-            '@keyframes po06-meteor{from{transform:translate3d(0,0,0);opacity:.95}to{transform:translate3d(-320px,0,0);opacity:0}}',
+            // 流星：从右侧外面进来（left:100%），行程由每个粒子自己的 --dist 决定，末端淡出
+            '@keyframes po06-meteor{0%{transform:translate3d(0,0,0);opacity:0}8%{opacity:.95}70%{opacity:.7}100%{transform:translate3d(var(--dist,-320px),0,0);opacity:0}}',
             // 帮助弹层单独用一条更轻的入场（大块文字 + 阴影一起做 scale 会顿）
             '@keyframes po06-help{from{opacity:0;transform:translate3d(0,4px,0)}to{opacity:1;transform:none}}',
             '@keyframes po06-shake{0%,100%{transform:translate3d(0,0,0)}20%{transform:translate3d(.5px,-.4px,0)}40%{transform:translate3d(-.4px,.5px,0)}60%{transform:translate3d(.4px,.3px,0)}80%{transform:translate3d(-.3px,-.4px,0)}}',
