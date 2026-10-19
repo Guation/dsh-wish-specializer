@@ -810,11 +810,43 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      *   · 键盘触发的 click（Enter/Space）`detail === 0` 且没有 clientX，照 clientX 算会**一律落到第 0 格**
      *     （对档位就是"关闭"）——那是危险的误操作，所以这种 click 一律不处理，交给 onKeyDown。
      */
+    /**
+     * 分段控件（2026-10-19 重做动效）：
+     *   · 选中指示器是**一颗会滑动的药丸**（量真实格子位置，left/width 过渡），不是给格子换底色；
+     *   · 档位这一条额外带**主题特效**：轻度绿 / 标准蓝 / 重度紫，粒子湍流随档位变强，重度还会轻微颤。
+     *   · 拖动、方向键、点击三条交互不变（命中判定仍按整条轨道等分）。
+     */
+    const TIER_FX = {
+      light:    { color: '#3fbf7f', dots: 6,  speed: '7s' },
+      standard: { color: '#4a8bff', dots: 10, speed: '4.6s' },
+      heavy:    { color: '#a06bff', dots: 16, speed: '2.4s' },
+    }
     function Segmented({ name, value, options, label, disabled, title, onPick, failTick }) {
       const box = React.useRef(null)
       const last = React.useRef(null)
+      const itemRefs = React.useRef({})
+      const [ind, setInd] = React.useState(null)
       const [dragging, setDragging] = React.useState(false)
       React.useEffect(() => { last.current = null }, [value, failTick])
+      // 量选中格子的真实位置（不靠百分比算：padding/gap 会让算出来的和看到的差 1~2px）
+      const measure = () => {
+        const el = itemRefs.current[value]
+        const track = box.current
+        if (!el || !track || typeof el.offsetLeft !== 'number') return
+        setInd({ left: el.offsetLeft, width: el.offsetWidth })
+      }
+      const useIso = React.useLayoutEffect || React.useEffect
+      useIso(() => {
+        measure()
+        let ro = null
+        try {
+          if (typeof ResizeObserver === 'function' && box.current) {
+            ro = new ResizeObserver(() => measure())
+            ro.observe(box.current)
+          }
+        } catch { /* 旧环境没有 RO */ }
+        return () => { try { if (ro) ro.disconnect() } catch { /* 忽略 */ } }
+      }, [value, options.length])
       const pick = (k) => {
         if (!k || disabled || k === value || k === last.current) return
         last.current = k
@@ -841,12 +873,32 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         e.preventDefault()
         pick(options[Math.max(0, Math.min(options.length - 1, next))])
       }
+      const fx = name === 'tier' && !disabled ? TIER_FX[value] : null
+      const dots = fx ? Array.from({ length: fx.dots }, (_, i) => {
+        // 固定伪随机：同一次渲染里粒子位置稳定，不会每次重渲染乱跳
+        const a = (i * 37) % 100, b = (i * 53) % 100, c = (i * 71) % 100
+        return h('span', {
+          key: i, 'data-po06': 'tier-dot', 'aria-hidden': 'true',
+          style: {
+            position: 'absolute', left: a + '%', top: b + '%', width: '3px', height: '3px',
+            borderRadius: '50%', background: fx.color, opacity: .55,
+            filter: 'blur(.4px)',
+            animation: 'po06-turb ' + fx.speed + ' ease-in-out infinite',
+            animationDelay: (c / 100 * 0.9) + 's',
+          },
+        })
+      }) : null
       return h('div', {
         ref: box, role: 'slider', tabIndex: disabled ? -1 : 0,
         'aria-label': name, 'aria-disabled': disabled ? 'true' : 'false',
         'data-po06': name, 'data-po06-value': value || 'none',
         'data-po06-disabled': disabled ? '1' : '0',
-        title, style: { ...S.seg, ...(disabled ? S.dis : null), cursor: disabled ? 'not-allowed' : 'pointer' },
+        'data-po06-fx': fx ? value : 'none',
+        title, style: { ...S.seg, ...(disabled ? S.dis : null), cursor: disabled ? 'not-allowed' : 'pointer',
+          position: 'relative', overflow: 'hidden',
+          ...(fx ? { background: 'color-mix(in srgb, ' + fx.color + ' 16%, ' + OVS.bg1 + ')',
+            borderColor: 'color-mix(in srgb, ' + fx.color + ' 34%, transparent)',
+            ...(value === 'heavy' ? { animation: 'po06-shake 1.1s ease-in-out infinite' } : null) } : null) },
         onClick: (e) => {
           if (disabled) return
           if (!e || e.detail === 0 || typeof e.clientX !== 'number') return
@@ -863,10 +915,26 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         onPointerCancel: () => setDragging(false),
         onPointerLeave: () => setDragging(false),
         onKeyDown,
-      }, options.map((k) => h('span', {
-        key: k, 'data-po06': name + '-' + k, 'data-po06-on': (k === value ? '1' : '0'),
-        style: { ...S.segItem, ...(k === value ? S.segOn : null) },
-      }, label ? label(k) : k)))
+      },
+        // 粒度层：档位才有的扰动粒子（在指示器下面，文字上面留出对比）
+        fx ? h('span', { 'data-po06': 'tier-fx', 'aria-hidden': 'true',
+          style: { position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' } }, dots) : null,
+        // 滑动指示器：位置由真实格子量出来，切换时滑过去
+        h('span', { 'data-po06': 'seg-ind', 'aria-hidden': 'true',
+          style: {
+            position: 'absolute', top: '2px', bottom: '2px',
+            left: (ind ? ind.left : 2) + 'px', width: (ind ? ind.width : 0) + 'px',
+            borderRadius: '7px', pointerEvents: 'none',
+            background: fx ? fx.color : OVS.acc,
+            boxShadow: '0 1px 3px rgba(0,0,0,.25)',
+            transition: 'left .26s cubic-bezier(.22,.8,.24,1), width .26s cubic-bezier(.22,.8,.24,1), background-color .22s ease',
+          } }),
+        options.map((k) => h('span', {
+          key: k, 'data-po06': name + '-' + k, 'data-po06-on': (k === value ? '1' : '0'),
+          ref: (el) => { if (el) itemRefs.current[k] = el },
+          style: { ...S.segItem, position: 'relative', zIndex: 1,
+            ...(k === value ? { color: '#fff', fontWeight: 600 } : null) },
+        }, label ? label(k) : k)))
     }
 
     /**
@@ -3941,10 +4009,19 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '@keyframes po06-breathe{0%,100%{opacity:1}50%{opacity:.42}}',
             '@keyframes po06-fade{from{opacity:.4}to{opacity:1}}',
             // 2026-10-19 观感收口：弹出层/提示卡入场做**短促的浮起**（位移只在这一层，不碰带内联 transform 的面板）
-            '@keyframes po06-pop{from{opacity:0;transform:translateY(4px) scale(.985)}to{opacity:1;transform:none}}',
-            '[data-po06="options-pop"],[data-po06="inject-card"],[data-po06="help-pop"]{animation:po06-pop .16s ease-out both}',
-            '[data-po06="preset-notice-backdrop"]{animation:po06-fade-in .14s ease-out both}',
-            '[data-po06="preset-notice"]{animation:po06-pop .18s ease-out both}',
+            '@keyframes po06-pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}',
+            '@keyframes po06-row{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}',
+            // 档位特效（2026-10-19）：粒子湍流 + 重度档的轻微颤抖
+            '@keyframes po06-turb{0%{transform:translate3d(0,0,0) scale(1);opacity:.35}25%{transform:translate3d(3px,-2px,0) scale(1.5);opacity:.75}50%{transform:translate3d(-2px,3px,0) scale(.9);opacity:.5}75%{transform:translate3d(2px,1px,0) scale(1.3);opacity:.8}100%{transform:translate3d(0,0,0) scale(1);opacity:.35}}',
+            '@keyframes po06-shake{0%,100%{transform:translate3d(0,0,0)}20%{transform:translate3d(.5px,-.4px,0)}40%{transform:translate3d(-.4px,.5px,0)}60%{transform:translate3d(.4px,.3px,0)}80%{transform:translate3d(-.3px,-.4px,0)}}',
+            // 弹层（2026-10-19）：按用途给不同入场——面板从按钮方向浮起、帮助从右下滑入、弹窗带一点回弹
+            '[data-po06="options-pop"],[data-po06="inject-card"]{animation:po06-pop .2s cubic-bezier(.2,.8,.2,1) both}',
+            '[data-po06="help-pop"]{animation:po06-pop .18s cubic-bezier(.2,.8,.2,1) both}',
+            '[data-po06="preset-notice-backdrop"]{animation:po06-fade-in .16s ease-out both}',
+            '[data-po06="preset-notice"]{animation:po06-pop .26s cubic-bezier(.2,.9,.25,1.04) both}',
+            // 面板内容逐行浮现（错开 18ms，最多 10 行）：像"一点点展开"，而不是整块砸下来
+            '[data-po06="options-pop"] > *{animation:po06-row .22s ease-out both}',
+            ...Array.from({ length: 10 }, (_, i) => '[data-po06="options-pop"] > *:nth-child(' + (i + 1) + '){animation-delay:' + (i * 18) + 'ms}'),
             '[data-po06="intercept"]{animation:po06-fade-in .16s ease-out both}',
             '[data-po06="intercept"] [data-po06="intercept-head"]{animation:po06-fade-in .22s ease-out both}',
             '[data-po06="intercept"][data-po06-phase="optimizing"] [data-po06="state-dot"],'
