@@ -115,7 +115,9 @@ if (PROFILES_AT_START.size > 0) {
   } catch (e) { failures.push({ name: 'sampling-stop-predicates', error: String(e.message || e) }) }
 }
 
-const browser = findBrowser()
+// CI 上没有浏览器，而"有浏览器但跑不动"（受限沙箱 / 慢启动）会让本套件挂到超时——
+// 那会把整条流水线拖红。用 PO06_NO_BROWSER=1 显式要求"按无浏览器处理"（用例照旧跳过并如实计数）。
+const browser = process.env.PO06_NO_BROWSER === '1' ? null : findBrowser()
 
 if (!browser) {
   console.log(JSON.stringify({ suite: 'po06-verifier-html', phase: 'P6', browser: null, total: pass + failures.length + 1, pass, fail: failures.length, skipped: 1, reason: 'no-browser-on-this-machine', failures }, null, 2))

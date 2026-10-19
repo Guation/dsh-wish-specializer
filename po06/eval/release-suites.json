@@ -1,11 +1,14 @@
 {
-  "at": "2026-10-19T01:16:43.333Z",
+  "at": "2026-10-19T14:36:26.204Z",
   "summary": {
-    "suites": 113,
-    "passed": 113,
-    "failed": 0,
-    "passTotal": 1281,
-    "failing": []
+    "suites": 123,
+    "passed": 121,
+    "failed": 2,
+    "passTotal": 1324,
+    "failing": [
+      "client-file.test.mjs",
+      "verifier-html.test.mjs"
+    ]
   },
   "results": [
     {
@@ -170,6 +173,13 @@
       "ok": true
     },
     {
+      "file": "advisor-wish-style.test.mjs",
+      "pass": 4,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "advisor-workflow.test.mjs",
       "pass": 6,
       "fail": 0,
@@ -207,6 +217,13 @@
     {
       "file": "audit-clarify.test.mjs",
       "pass": 10,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "auto-switch.test.mjs",
+      "pass": 3,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -332,10 +349,10 @@
     },
     {
       "file": "client-file.test.mjs",
-      "pass": 37,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
+      "pass": 36,
+      "fail": 1,
+      "exit": 1,
+      "ok": false
     },
     {
       "file": "client-hold-bridge.test.mjs",
@@ -346,7 +363,7 @@
     },
     {
       "file": "client-injection-card.test.mjs",
-      "pass": 11,
+      "pass": 12,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -388,7 +405,7 @@
     },
     {
       "file": "double-enter-skip.test.mjs",
-      "pass": 3,
+      "pass": 4,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -431,6 +448,13 @@
     {
       "file": "eval-run.test.mjs",
       "pass": 18,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "exit-motion.test.mjs",
+      "pass": 9,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -618,6 +642,13 @@
       "ok": true
     },
     {
+      "file": "packet-render.test.mjs",
+      "pass": 6,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "packet-shape.test.mjs",
       "pass": 5,
       "fail": 0,
@@ -648,6 +679,13 @@
     {
       "file": "preflight-e001.test.mjs",
       "pass": 8,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "preset-notice.test.mjs",
+      "pass": 3,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -723,6 +761,13 @@
       "ok": true
     },
     {
+      "file": "segmented-motion.test.mjs",
+      "pass": 7,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "session-tier.test.mjs",
       "pass": 8,
       "fail": 0,
@@ -739,6 +784,13 @@
     {
       "file": "single-turn.test.mjs",
       "pass": 11,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "skip-hint.test.mjs",
+      "pass": 4,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -765,6 +817,13 @@
       "ok": true
     },
     {
+      "file": "tier-presets-sync.test.mjs",
+      "pass": 2,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "tool-note.test.mjs",
       "pass": 3,
       "fail": 0,
@@ -777,6 +836,20 @@
       "fail": 0,
       "exit": 0,
       "ok": true
+    },
+    {
+      "file": "ui-picker.test.mjs",
+      "pass": 4,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "verifier-html.test.mjs",
+      "pass": null,
+      "fail": null,
+      "exit": null,
+      "ok": false
     },
     {
       "file": "verify-artifact.test.mjs",
@@ -800,5 +873,37 @@
       "ok": true
     }
   ],
-  "failed": []
+  "failed": [
+    {
+      "file": "client-file.test.mjs",
+      "pass": 36,
+      "fail": 1,
+      "exit": 1,
+      "ok": false,
+      "unparsable": false,
+      "tail": [
+        "  \"phase\": \"P9\",",
+        "  \"total\": 37,",
+        "  \"pass\": 36,",
+        "  \"fail\": 1,",
+        "  \"failures\": [",
+        "    {",
+        "      \"name\": \"运行时：DSH 里切换语言 ⇒ 订阅回调立刻把界面语言换掉（不用刷新页面）\",",
+        "      \"error\": \"React.useLayoutEffect is not a function\"",
+        "    }",
+        "  ],",
+        "  \"note\": \"客户端面板静态守卫：加载器格式/声明一致/单例闸门/卸载即净/写头/界面锚点/XSS 与路径。不联网、不起浏览器。\"",
+        "}"
+      ]
+    },
+    {
+      "file": "verifier-html.test.mjs",
+      "pass": null,
+      "fail": null,
+      "exit": null,
+      "ok": false,
+      "unparsable": true,
+      "tail": []
+    }
+  ]
 }

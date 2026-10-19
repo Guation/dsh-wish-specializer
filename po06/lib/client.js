@@ -2813,7 +2813,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         return ovReflowWatch(reflow, optBtnRef.current)
       }, [])
       React.useEffect(() => { if (!optOpen) setOptDensity(0) }, [optOpen])
-      React.useLayoutEffect(() => {
+      // ⚠ 用 useIso（React.useLayoutEffect || React.useEffect）：管线里的 React 可能是精简替身，
+      // 直接点 useLayoutEffect 会 `is not a function`（真机 + 套件都撞过）。
+      // ⚠ 用 (React.useLayoutEffect || React.useEffect)：管线里的 React 可能是精简替身，
+      // 直接点 useLayoutEffect 会 "is not a function"（真机与套件都撞过）。
+      ;(React.useLayoutEffect || React.useEffect)(() => {
         if (!optOpen) return
         const el = optRef.current
         if (!el || !optPos) return

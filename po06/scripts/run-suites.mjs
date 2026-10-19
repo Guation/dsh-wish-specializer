@@ -105,9 +105,13 @@ else console.log('SUITES ' + summary.suites + ' · passed ' + summary.passed + '
 // 用公开 API /check-runs/{id}/annotations 就能读（日志下载要 admin 权限）。
 if (failed.length) {
   console.log('::error title=PO06 suites failed::' + summary.failing.join(', '))
-  for (const f of failed.slice(0, 3)) {
-    const tail = (f.tail || []).slice(-3).join(' | ').replace(/\r?\n/g, ' ')
-    console.log('::error title=' + f.file + '::' + tail.slice(0, 900))
+  for (const f of failed.slice(0, 6)) {
+    const tail = (f.tail || []).join('\n')
+    // 优先挑"失败那一行"（✖ / not ok / AssertionError），没有才退回尾部：
+    // 只贴尾部会在 node:test 的汇总行上打转，等于没信息。
+    const key = tail.split('\n').filter((l) => /^\s*(✖|not ok|AssertionError|Error:)/.test(l))
+    const picked = (key.length ? key : (f.tail || []).slice(-4)).join(' | ').replace(/\r?\n/g, ' ')
+    console.log('::error title=' + f.file + '::' + picked.slice(0, 900))
   }
 }
 process.exit(failed.length === 0 ? 0 : 1)

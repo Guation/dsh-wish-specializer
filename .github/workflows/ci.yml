@@ -19,6 +19,10 @@ jobs:
           node-version: ${{ matrix.node }}
       # 1) 全部套件（与本地同一条命令，避免"本地绿、CI 红"）
       - name: Run all suites
+        env:
+          # 运行器镜像上没有浏览器；verifier-html 需要真实浏览器拍 DOM，跑不起来会挂到超时。
+          # 这里显式声明"没有浏览器"，套件按无浏览器分支如实跳过（不是屏蔽断言）。
+          PO06_NO_BROWSER: '1'
         run: node po06/scripts/run-suites.mjs
       # 2) 发版门：包清单 / 版本一致 / 变异检验 / 打包自足性 / 文档数字
       #    只在单个 node 版本上跑（它更慢），但**必须在 CI 里**，否则它等于不存在。
