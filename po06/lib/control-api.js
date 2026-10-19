@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, sessionFirstSeen = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, sessionFirstSeen = null, getPresets = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -661,6 +661,12 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         const row = typeof getInjection === 'function' ? getInjection(id ? { id } : { sessionId: sid }) : null
         return send(200, { ok: true, injection: row || null })
       }
+      if (method === 'GET' && path === API_PREFIX + '/presets') {
+        // 预设登记表（文案 ↔ id）：客户端据此把输入区按钮的文字翻成预设 id
+        let r = { ok: false, presets: [], debug: { missing: true } }
+        try { if (typeof getPresets === 'function') r = getPresets() || r } catch (e) { r = { ok: false, presets: [], debug: { threw: String(e && e.message || e) } } }
+        return send(200, { ok: r.ok === true, presets: Array.isArray(r.presets) ? r.presets : [], debug: r.debug || null })
+      }
       if (method === 'GET' && path === API_PREFIX + '/preset') {
         // 预设闸门（2026-10-19）：客户端在**按下回车、开始优化之前**问一次。
         // 宿主这边优先问 sessionController 拿会话头（最新、最准），拿不到再用事件里记下的。
@@ -693,8 +699,19 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
           || (recent10 && seenAt && Number(seenAt) > Number(pending.at || 0))
         ))
         const pendingPreset = pendingForMe && pending.preset ? String(pending.preset) : null
-        const preset = eventPreset || pendingPreset || headerPreset
-        const presetSource = eventPreset ? 'event' : (pendingPreset ? 'pending' : (headerPreset ? 'header' : 'unknown'))
+        // 客户端把输入区按钮的**当前文案**带上来（label）：这是唯一能反映"用户眼前这个会话选了什么"的来源。
+        // 磁盘上的会话头永远是 ptc（已核对 session.v4.jsonl），所以这条优先级最高。
+        const label = String(query.get('label') || '').trim().slice(0, 40)
+        let hintPreset = null
+        if (label && typeof getPresets === 'function') {
+          try {
+            const reg = getPresets() || {}
+            const hit = (Array.isArray(reg.presets) ? reg.presets : []).find((p) => p.name === label || p.id === label)
+            if (hit) hintPreset = hit.id
+          } catch { hintPreset = null }
+        }
+        const preset = hintPreset || eventPreset || pendingPreset || headerPreset
+        const presetSource = hintPreset ? 'label' : (eventPreset ? 'event' : (pendingPreset ? 'pending' : (headerPreset ? 'header' : 'unknown')))
         if (pendingPreset && !pending.sid && typeof clearPresetPending === 'function') {
           try { clearPresetPending() } catch { /* 消费失败就当没消费 */ }
         }
@@ -719,6 +736,7 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         if (String(query.get('debug') || '') === '1') {
           payload.debug = { inspect: debug, header: headerPreset, events: eventPreset, pending: pendingPreset,
             pendingRaw: pending ? { preset: pending.preset, sid: pending.sid || '', at: pending.at } : null,
+            label: label || null, hintPreset,
             source: presetSource, dismissed }
         }
         return send(200, payload)

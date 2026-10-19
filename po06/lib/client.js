@@ -134,9 +134,28 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 21:35'
+    const CLIENT_BUILD = '10-19 21:50'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     const PRESET_NOTICE_SEEN = new Map()
+    // 预设登记表（id ↔ 显示名）：由宿主从 agentPresets 服务转出来。
+    // 磁盘上会话头永远是 ptc，所以"用户眼前这个会话选了什么"只能看输入区按钮的文案。
+    let PRESET_REG = null
+    function presetLabelIn(root, presets) {
+      if (!root || !presets || !presets.length || typeof document === 'undefined') return ''
+      const names = presets.map((p) => p && p.name).filter(Boolean)
+      if (!names.length) return ''
+      try {
+        const walker = document.createTreeWalker(root, 4 /* SHOW_TEXT */)
+        let node = null
+        let guard = 0
+        while ((node = walker.nextNode()) && guard++ < 4000) {
+          const t = String(node.textContent || '').trim()
+          if (!t || t.length > 24) continue
+          if (names.indexOf(t) >= 0) return t
+        }
+      } catch { /* 无 DOM 能力的环境忽略 */ }
+      return ''
+    }
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
     // ⚠ 必须与 settings.js 的 TIER_PRESETS **逐项一致**：这里是拿三项反推档位（tierOfSettings）。
     // 2026-10-19 修：此前这一份和宿主侧不一致（light/standard 的 detail、budget 错位），
@@ -2616,6 +2635,20 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 预设闸门（2026-10-19 用户要求）：**按回车、优化还没开始**的时候就问宿主一次。
       // 不再做后台轮询——不希望在"发出去之后"才弹。一个会话只问一次（问过就放行，避免每次回车都打接口）。
       const presetGateRef = React.useRef('')
+      // 预设登记表：一次拉取即可（失败每 5s 重试；换语言可能改名，所以也随 locale 重拉）
+      React.useEffect(() => {
+        let alive = true
+        const load = () => {
+          apiGet('/presets').then((r) => {
+            if (!alive) return
+            if (r && r.ok && Array.isArray(r.presets) && r.presets.length) { PRESET_REG = r.presets; return }
+            setTimeout(() => { if (alive) load() }, 5000)
+          }).catch(() => { if (alive) setTimeout(load, 5000) })
+        }
+        load()
+        return () => { alive = false }
+      }, [LOCALE])
+
       // 预设提示的触发（2026-10-19 重做）：**不再靠 MutationObserver**。
       // 之前盯输入区的任何改动（打字、光标、流式输出）都会触发一次判定 ⇒ 弹窗"乱出现"。
       // 现在只做两件事：①进入会话判定一次；②每 2.5s 轻查一次，只在"预设真的变了"时才考虑弹。
@@ -2624,7 +2657,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         let stopped = false
         const tick = () => {
           try { if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return } catch { /* 忽略 */ }
-          apiGet('/preset?via=watch&session=' + encodeURIComponent(sessionId)).then((r) => {
+          const card = composerCard(rootRef.current)
+          const label = presetLabelIn(card, PRESET_REG)
+          apiGet('/preset?via=watch&session=' + encodeURIComponent(sessionId)
+            + (label ? '&label=' + encodeURIComponent(label) : '')).then((r) => {
             if (stopped || !r || r.ok !== true) return
             const at = r.presetAt || null
             const rec = PRESET_NOTICE_SEEN.get(sessionId) || { at: null, shownFor: null }
@@ -3152,7 +3188,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           // 预设闸门：档位不是关闭、本会话还没问过 ⇒ 先问宿主，再决定"弹提示"还是"开始优化"。
           if (!tierOff && presetGateRef.current !== sessionId) {
             const draft = draftNow()
-            apiGet('/preset?via=enter&session=' + encodeURIComponent(sessionId)).then((r) => {
+            const gateCard = composerCard(rootRef.current)
+            const gateLabel = presetLabelIn(gateCard, PRESET_REG)
+            apiGet('/preset?via=enter&session=' + encodeURIComponent(sessionId)
+              + (gateLabel ? '&label=' + encodeURIComponent(gateLabel) : '')).then((r) => {
               if (r && r.ok === true && r.notice) {          // 弹窗；不开始优化、不发送
                 presetGateRef.current = sessionId
                 setNotice(r.notice)

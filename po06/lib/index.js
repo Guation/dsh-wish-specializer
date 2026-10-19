@@ -2421,6 +2421,30 @@ export function apply(ctx, config) {
     clearPresetPending: () => adapter.clearPresetPending(),
     sessionFirstSeen: (sid) => adapter.sessionFirstSeen(sid),
     getPresetAt: (sid) => adapter.presetAtOf(sid),
+    // 预设登记表（真机 2026-10-19）：磁盘上的会话头**永远是 ptc**（读 session.v4.jsonl 确认过），
+    // 唯一可靠来源是输入区那个按钮当前显示的文案 ⇒ 宿主把"文案 ↔ id"的对照表给客户端。
+    getPresets: () => {
+      const out = { ok: false, presets: [], debug: {} }
+      try {
+        const svc = (typeof ctx.get === 'function') ? ctx.get('agentPresets') : null
+        out.debug.gotService = !!svc
+        out.debug.keys = svc && typeof svc === 'object' ? Object.keys(svc).slice(0, 24) : null
+        let list = null
+        if (svc && typeof svc.list === 'function') list = svc.list()
+        else if (Array.isArray(svc)) list = svc
+        else if (svc && Array.isArray(svc.presets)) list = svc.presets
+        else if (svc && typeof svc.values === 'function') list = svc.values()
+        out.debug.listType = Array.isArray(list) ? 'array:' + list.length : typeof list
+        if (Array.isArray(list)) {
+          out.presets = list.map((x) => ({
+            id: String((x && (x.id || x.presetId)) || ''),
+            name: String((x && (x.name || x.title || x.label)) || ''),
+          })).filter((x) => x.id)
+          out.ok = out.presets.length > 0
+        }
+      } catch (e) { out.debug.threw = String((e && e.message) || e) }
+      return out
+    },
     inspectPreset: async (sid) => {
       // 返回 { preset, debug }：debug 只在 ?debug=1 时透出（真机上"为什么没弹窗"必须能查）。
       // ⚠ 不同版本/不同入口的 inspect 结果形状不一样（header / meta / session.header …），

@@ -40,6 +40,17 @@ test('pending 只对本会话/近期无会话的选择生效（否则所有会�
   assert.ok(API_SRC.includes('clearPresetPending'), '消费口仍然保留（无会话时的那条路径）')
 })
 
+test('会话头不可信 ⇒ 用输入区按钮文案判定（/presets 对照表 + label 参数）', () => {
+  // 2026-10-19 核对：session.v4.jsonl 里**每个**会话的 agentPreset 都是 ptc，
+  // 用户在输入区拨的预设根本没写进会话头 ⇒ 只能读按钮文案。
+  assert.ok(API_SRC.includes("API_PREFIX + '/presets'"), '要有登记表路由')
+  assert.ok(API_SRC.includes("query.get('label')"), '/preset 接受 label')
+  assert.ok(API_SRC.includes("hintPreset ? 'label'"), 'label 命中的来源要标出来')
+  assert.ok(CLIENT_SRC.includes("apiGet('/presets')"), '客户端拉登记表')
+  assert.ok(CLIENT_SRC.includes('function presetLabelIn('), '要在输入区里找预设文案')
+  assert.ok(CLIENT_SRC.includes("'&label=' + encodeURIComponent(label)"), '探测时带上文案')
+})
+
 test('控制面：GET /notice 与 POST /notice（forever 写设置）', () => {
   assert.ok(API_SRC.includes("API_PREFIX + '/notice'"), '要有 /notice 路由')
   assert.ok(/getNotice\s*=\s*null/.test(API_SRC) && /clearNotice\s*=\s*null/.test(API_SRC) && /clearNotices\s*=\s*null/.test(API_SRC), '三个注入点都在')
