@@ -437,10 +437,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       optBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '4px 11px 4px 9px',
         borderRadius: '10px', border: '1px solid ' + OVS.line, background: 'transparent',
         color: 'inherit', cursor: 'pointer', fontSize: '12px', lineHeight: '18px' },
-      optBtnOn: { background: T('hover'), borderColor: OVS.acc },
+      optBtnOn: { background: T('hover'), borderColor: OVS.acc, boxShadow: '0 0 0 2px ' + OVS.acc12 },
       optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
       // 对话流里的「本次注入」卡片（宿主 chat row）：一条克制的横条，点开才是三段
-      injRow: { border: '1px solid ' + OVS.lineSoft, borderRadius: '10px', background: 'transparent', overflow: 'hidden' },
+      injRow: { border: '1px solid ' + OVS.lineSoft, borderLeft: '2px solid ' + OVS.acc22,
+        borderRadius: '10px', background: 'transparent', overflow: 'hidden' },
       injHead: { display: 'flex', alignItems: 'center', gap: '7px', width: '100%', boxSizing: 'border-box',
         padding: '6px 11px', border: 'none', background: 'transparent', color: 'inherit', font: 'inherit',
         fontSize: '12px', lineHeight: '18px', textAlign: 'left', cursor: 'pointer' },
@@ -448,7 +449,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // ── 预设提示弹窗（2026-10-19）：主题色只点在"信号点 + 主动作"上，其余保持克制 ──
       noticeBackdrop: { position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center',
         justifyContent: 'center', background: 'rgba(8,10,14,.42)', backdropFilter: 'blur(2px)' },
-      noticeCard: { width: 'min(420px, 92vw)', boxSizing: 'border-box', padding: '18px 18px 14px', borderRadius: '14px',
+      noticeCard: { width: 'min(420px, 92vw)', boxSizing: 'border-box', padding: '20px 20px 16px', borderRadius: '16px',
         background: OVS.surface, color: OVS.fg, border: '1px solid ' + OVS.acc22, boxShadow: T('shadow'),
         display: 'flex', flexDirection: 'column', gap: '8px' },
       noticeHead: { display: 'flex', alignItems: 'center', gap: '8px' },
@@ -458,20 +459,20 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       noticeBody: { margin: 0, fontSize: '12.5px', lineHeight: '1.65', color: OVS.fg2 },
       noticeHint: { margin: 0, fontSize: '11px', color: OVS.fg3 },
       noticeActions: { display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' },
-      noticeBtn: { padding: '5px 12px', borderRadius: '9px', border: '1px solid ' + OVS.line, background: 'transparent',
+      noticeBtn: { padding: '6px 14px', borderRadius: '10px', border: '1px solid ' + OVS.line, background: 'transparent',
         color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
-      noticeBtnPrimary: { padding: '5px 12px', borderRadius: '9px', border: '1px solid ' + OVS.acc22,
-        background: OVS.acc12, color: OVS.acc, font: 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
+      noticeBtnPrimary: { padding: '6px 14px', borderRadius: '10px', border: '1px solid transparent',
+        background: OVS.acc, color: '#fff', font: 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
       // ⚠ 用**颜色**压暗，不用 opacity：浅色底上 `opacity:.65` 会变成看不清的浅灰细字（用户截图）。
       optSummary: { color: OVS.fg3, fontSize: '11px', whiteSpace: 'nowrap' },
       optCaret: { color: OVS.fg3, fontSize: '10px', lineHeight: 1 },
       optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '300px', maxHeight: 'min(62vh, 460px)', overflowY: 'auto',
         display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px 14px',
         background: OVS.surface, color: OVS.fg,
-        border: '1px solid ' + OVS.line, borderRadius: '14px',
+        border: '1px solid ' + OVS.line, borderTop: '2px solid ' + OVS.acc22, borderRadius: '14px',
         boxShadow: T('shadow') },
-      optPopHead: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600,
-        color: OVS.fg, paddingBottom: '2px' },
+      optPopHead: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 700,
+        color: OVS.fg, letterSpacing: '.2px', paddingBottom: '4px' },
       optRow: { display: 'grid', gridTemplateColumns: '64px 1fr', alignItems: 'center', gap: '10px' },
       optLabel: { color: OVS.fg3, fontSize: '12px', whiteSpace: 'nowrap' },
       // 面板里的按钮（只读工具 / 详情）也**铺满整格**：点击范围与看到的格子一致，不留死区
@@ -504,7 +505,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         background: T('chip'),
         fontSize: '12px', lineHeight: '18px', userSelect: 'none', touchAction: 'none' },
       segItem: { flex: '1 1 0', textAlign: 'center', padding: '5px 7px', whiteSpace: 'nowrap',
-        color: OVS.fg2, cursor: 'inherit' },
+        color: OVS.fg2, cursor: 'inherit',
+        // 分段项是 div（不在全局 button 过渡里），单独给一条，切换档位时颜色才"滑"得过去
+        transition: 'background-color .16s ease, color .16s ease, box-shadow .16s ease' },
       // 选中态：用 **DSH 的主题副色**（原版就是蓝）——只染底色与文字，克制、不加粗边框
       segOn: { background: OVS.acc12, color: OVS.acc, fontWeight: 600,
         boxShadow: 'inset 0 0 0 1px ' + OVS.acc22 },
@@ -2122,8 +2125,14 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if (r && r.ok === true) setNotice(r.notice || null)
         }, () => { /* 读不到就静默；提示是旁路 */ })
         load()
-        const timer = setInterval(load, 10000)
-        return () => { live = false; clearInterval(timer) }
+        const timer = setInterval(load, 4000)
+        const onFocus = () => { try { load() } catch { /* 旁路 */ } }
+        try { window.addEventListener('focus', onFocus) } catch { /* 无 window */ }
+        return () => {
+          live = false
+          clearInterval(timer)
+          try { window.removeEventListener('focus', onFocus) } catch { /* 无 window */ }
+        }
       }, [sessionId])
       const dismissNotice = (forever) => {
         setNotice(null)

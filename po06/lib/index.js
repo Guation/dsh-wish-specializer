@@ -1513,6 +1513,7 @@ class DshAdapter {
     this.injections = new Map()
     this.injectionById = new Map()
     this.presetNotices = new Map()
+    this.presetsBySession = new Map()
     // 落盘：记录放插件自己的 state 目录（**不进会话日志**），重启后对话流卡片还能取到正文。
     this.injectionFile = join(DSH_HOME, 'po06-state', 'injections.json')
     this.injectionSaveTimer = null
@@ -1815,6 +1816,17 @@ class DshAdapter {
     return directive ? [base, directive].filter(Boolean).join('\n\n') : base
   }
 
+  /** 会话当前预设（含中途切换）：只用来判断要不要提示，不直接进界面。 */
+  notePreset(sessionId, preset) {
+    const sid = String(sessionId == null ? '' : sessionId)
+    if (!sid || !preset) return
+    this.presetsBySession.set(sid, String(preset))
+  }
+
+  presetOf(sessionId) {
+    return this.presetsBySession.get(String(sessionId == null ? '' : sessionId)) || null
+  }
+
   /** 预设提示（2026-10-19）：非 Wish / PTC 预设时，per-session 记一条，客户端据此弹提示。 */
   notePresetNotice(sessionId, preset) {
     const sid = String(sessionId == null ? '' : sessionId)
@@ -1939,9 +1951,11 @@ class DshAdapter {
                 if (isSubagentSession(session) && pol && pol.applyToSubagents !== true) return ''
                 // 预设提示（2026-10-19）：只在 Wish / PTC 上效果最好；别的预设就记一条，客户端弹一次。
                 try {
-                  const preset = session && session.header && session.header.agentPreset
+                  const preset = adapter.presetOf(sid) || (session && session.header && session.header.agentPreset)
                   if (typeof preset === 'string' && preset && preset !== 'wish' && preset !== 'ptc'
                     && !(pol && pol.presetNoticeDismissed === true)) adapter.notePresetNotice(sid, preset)
+                  else if (preset === 'wish' || preset === 'ptc') adapter.clearPresetNotice(sid)
+                  if (preset) adapter.notePreset(sid, preset)
                 } catch { /* 提示是旁路，绝不打断装配 */ }
                 // Tool presence alone did not cause a review in the tank test. Keep the working
                 // workflow available even when the interpreter has no new intent items.
@@ -2557,6 +2571,11 @@ export function apply(ctx, config) {
           const sid = session && session.id !== undefined ? String(session.id) : ''
           // 子代理默认不解释（2026-10-19）：父代理派下来的任务再来一轮「解释 → 注入」通常只是白花 token。
           // 判定用会话头（宿主写的字段），并在同一个位置短路，避免它的 user/message 还去触发一次解释。
+          // 预设切换（2026-10-19）：会话头的 agentPreset 是**创建时**写死的；中途切预设只会发事件。
+          // 只读会话头会漏掉"切了但没重建会话"的情况 ⇒ 这里把最新选择记下来。
+          if (sid && event && event.type === 'agent-preset/selected' && event.data && typeof event.data.agentPreset === 'string') {
+            adapter.notePreset(sid, event.data.agentPreset)
+          }
           if (sid && isSubagentSession(session)) {
             let sub = null
             try { sub = readPolicy({ home: DSH_HOME, sessionId: sid }) } catch { sub = null }
