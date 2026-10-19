@@ -115,12 +115,48 @@ if (PROFILES_AT_START.size > 0) {
   } catch (e) { failures.push({ name: 'sampling-stop-predicates', error: String(e.message || e) }) }
 }
 
+// ── 候选清单：不许再是"只有按机器安装"的四条（EV-0124）──────────────────
+// 这一族"写死清单"在本项目已经出过四次事，所以这里守住三件事：
+// ① 覆盖**按用户安装**的路径（受限机器上很常见）；② 允许 `DSH_PO06_BROWSER` 显式指定；
+// ③ 找不到时必须报 **infrastructure_error 且说清找过多少地方**——不许静默通过。
+t('候选清单覆盖按用户安装 + 允许显式指定，且没有空项/重复', () => {
+  const cands = browserCandidates()
+  ok(cands.length >= 6, '候选条数太少，可能又退回"只有按机器安装"了：' + cands.length)
+  ok(cands.every((c) => typeof c === 'string' && c.length > 0), '不得有空项：' + JSON.stringify(cands))
+  eq(cands.length, new Set(cands).size, '不得重复')
+  const low = cands.join('|').toLowerCase()
+  ok(/localappdata|appdata/.test(low) || process.platform !== 'win32',
+    'Windows 上必须包含 **按用户安装** 的路径（%LOCALAPPDATA%）')
+  ok(/\/usr\/bin\/|applications\//.test(low), '应包含 mac/linux 的常见位置（本机没有也无害）')
+})
+
+await t('`DSH_PO06_BROWSER` 能显式指定浏览器（便携版/企业版/别的 Chromium）', async () => {
+  // 模块在**加载时**读环境变量，所以用带 query 的动态 import 拿一份新实例
+  const prev = process.env.DSH_PO06_BROWSER
+  try {
+    process.env.DSH_PO06_BROWSER = process.execPath        // 任何存在的文件都行
+    const m = await import('../lib/verifier-html.js?override-probe')
+    eq(m.findBrowser(), process.execPath, '显式指定必须优先于内置候选')
+  } finally {
+    if (prev === undefined) delete process.env.DSH_PO06_BROWSER
+    else process.env.DSH_PO06_BROWSER = prev
+  }
+})
+
+t('找不到浏览器时：报 infrastructure_error（不是 pass）、且提示怎么指定', () => {
+  const src = readFileSync(join(HERE, '..', 'lib', 'verifier-html.js'), 'utf8')
+  ok(/result:\s*RESULT\.INFRA_ERROR/.test(src), '必须是 INFRA_ERROR（基础设施故障，不触发返工）')
+  ok(/DSH_PO06_BROWSER=/.test(src), '报错里要告诉用户可以用 DSH_PO06_BROWSER 指定')
+  // "找不到浏览器"不得被算成作品不合格
+  ok(!/browser-available[\s\S]{0,200}RESULT\.FAIL/.test(src), '不得判 fail（那是"作品不合格"的意思）')
+})
+
 // CI 上没有浏览器，而"有浏览器但跑不动"（受限沙箱 / 慢启动）会让本套件挂到超时——
 // 那会把整条流水线拖红。用 PO06_NO_BROWSER=1 显式要求"按无浏览器处理"（用例照旧跳过并如实计数）。
 const browser = process.env.PO06_NO_BROWSER === '1' ? null : findBrowser()
 
 if (!browser) {
-  console.log(JSON.stringify({ suite: 'po06-verifier-html', phase: 'P6', browser: null, total: pass + failures.length + 1, pass, fail: failures.length, skipped: 1, reason: 'no-browser-on-this-machine', failures }, null, 2))
+  console.log(JSON.stringify({ suite: 'po06-verifier-html', phase: 'P6', browser: null, total: pass + failures.length, pass, fail: failures.length, skipped: 1, reason: 'no-browser-on-this-machine', failures }, null, 2))
   process.exit(failures.length === 0 ? 0 : 1)
 }
 
@@ -393,42 +429,6 @@ tick();
 }
 
 try { rmSync(DIR, { recursive: true, force: true }) } catch { /* best effort */ }
-
-// ── 候选清单：不许再是"只有按机器安装"的四条（EV-0124）──────────────────
-// 这一族"写死清单"在本项目已经出过四次事，所以这里守住三件事：
-// ① 覆盖**按用户安装**的路径（受限机器上很常见）；② 允许 `DSH_PO06_BROWSER` 显式指定；
-// ③ 找不到时必须报 **infrastructure_error 且说清找过多少地方**——不许静默通过。
-t('候选清单覆盖按用户安装 + 允许显式指定，且没有空项/重复', () => {
-  const cands = browserCandidates()
-  ok(cands.length >= 6, '候选条数太少，可能又退回"只有按机器安装"了：' + cands.length)
-  ok(cands.every((c) => typeof c === 'string' && c.length > 0), '不得有空项：' + JSON.stringify(cands))
-  eq(cands.length, new Set(cands).size, '不得重复')
-  const low = cands.join('|').toLowerCase()
-  ok(/localappdata|appdata/.test(low) || process.platform !== 'win32',
-    'Windows 上必须包含 **按用户安装** 的路径（%LOCALAPPDATA%）')
-  ok(/\/usr\/bin\/|applications\//.test(low), '应包含 mac/linux 的常见位置（本机没有也无害）')
-})
-
-await t('`DSH_PO06_BROWSER` 能显式指定浏览器（便携版/企业版/别的 Chromium）', async () => {
-  // 模块在**加载时**读环境变量，所以用带 query 的动态 import 拿一份新实例
-  const prev = process.env.DSH_PO06_BROWSER
-  try {
-    process.env.DSH_PO06_BROWSER = process.execPath        // 任何存在的文件都行
-    const m = await import('../lib/verifier-html.js?override-probe')
-    eq(m.findBrowser(), process.execPath, '显式指定必须优先于内置候选')
-  } finally {
-    if (prev === undefined) delete process.env.DSH_PO06_BROWSER
-    else process.env.DSH_PO06_BROWSER = prev
-  }
-})
-
-t('找不到浏览器时：报 infrastructure_error（不是 pass）、且提示怎么指定', () => {
-  const src = readFileSync(join(HERE, '..', 'lib', 'verifier-html.js'), 'utf8')
-  ok(/result:\s*RESULT\.INFRA_ERROR/.test(src), '必须是 INFRA_ERROR（基础设施故障，不触发返工）')
-  ok(/DSH_PO06_BROWSER=/.test(src), '报错里要告诉用户可以用 DSH_PO06_BROWSER 指定')
-  // "找不到浏览器"不得被算成作品不合格
-  ok(!/browser-available[\s\S]{0,200}RESULT\.FAIL/.test(src), '不得判 fail（那是"作品不合格"的意思）')
-})
 
 const total = pass + failures.length
 console.log(JSON.stringify({ suite: 'po06-verifier-html', phase: 'P6', browser, total, pass, fail: failures.length, failures, warnings }, null, 2))

@@ -1,8 +1,8 @@
 {
-  "at": "2026-10-15T10:41:13.625Z",
+  "at": "2026-10-19T15:19:03.901Z",
   "package": {
     "name": "@dsh-external/dsh-wish-specializer",
-    "version": "0.8.4-stable"
+    "version": "0.9.0-beta-1"
   },
   "contractVersions": {
     "interpreter": null,
@@ -18,8 +18,8 @@
       "bytes": 9086
     },
     "lib/advisor-contribution.js": {
-      "sha256": "d663843b81b23a373c02fadb838e3a2bf0ef3b252503e9fd910dc8c04fb96758",
-      "bytes": 9194
+      "sha256": "00ff7d292c754bcb385dcb7eb69376bcd60ebfc17e1ff5f8287546e0ce28ed1c",
+      "bytes": 7944
     },
     "lib/advisor-coverage.js": {
       "sha256": "e4ea6e639b5cf0dc559c6dd9c3a3c8ec2a7c9942c6a23a89f712fbf104939223",
@@ -30,8 +30,8 @@
       "bytes": 9786
     },
     "lib/advisor-evidence.js": {
-      "sha256": "d0541145e0521c7cfb206ca3395d6ef25f9986f2455b174a838d0f3cfdc17eaf",
-      "bytes": 15864
+      "sha256": "f2bee99782f67158825c5e92a8a65be52194bc1581d2e9e2309fad3489918143",
+      "bytes": 16384
     },
     "lib/advisor-materials.js": {
       "sha256": "aed8616c121c7f9ec810df4b0482b3a0267d38f37c0a6d9e6db8ee980e0b7708",
@@ -78,8 +78,8 @@
       "bytes": 2893
     },
     "lib/advisor.js": {
-      "sha256": "f918dc29605c55e58f0d25c4b240c920b2b959ac48ee88e0ff847f3886a19572",
-      "bytes": 73028
+      "sha256": "d21f0a87d08be9b3ed6f278890f844ba055a2c392ad2517eed9456df4a0f65b0",
+      "bytes": 81264
     },
     "lib/answer-audit.js": {
       "sha256": "326cb336bf00485bb9c76c28b9e6741eba9bd01aaf3193c169c7e03e90480989",
@@ -90,8 +90,8 @@
       "bytes": 12027
     },
     "lib/bash/bash-diagnostics.mjs": {
-      "sha256": "999ff986dc23428136efaf32d6b4c59e7543e5b5eba8be424763330371f461b3",
-      "bytes": 8902
+      "sha256": "66c6367515ad602e0e7d9a92966aa9ed687039c5ba0a2ab37032782d05733270",
+      "bytes": 9911
     },
     "lib/bash/bash-output.mjs": {
       "sha256": "c12381ce838c91962e20de88b627a24f127eda3e750f8db05077bfbf3cda1e34",
@@ -130,24 +130,24 @@
       "bytes": 5678
     },
     "lib/capability.js": {
-      "sha256": "d853ab26eedb5f7c3e0eba08f57af0a93dbc23f14e19cd98d0ae4944701b7f9c",
-      "bytes": 17559
+      "sha256": "ca76a41d831e991a7d1cb8b8f6cee448b117f242e0aaf08d11d67d0dc491953e",
+      "bytes": 17827
     },
     "lib/clarifier.js": {
       "sha256": "b18aa91213aa0c15b89aa2aa96ae3e1e2052a85d9ec0ce0c3149297ad80e22a7",
       "bytes": 6734
     },
     "lib/client.js": {
-      "sha256": "f44d56e442d0e97e59eeecf438fb1a0281502eb1464298b00e049ebd44a90bae",
-      "bytes": 302143
+      "sha256": "5b4ba95370ca2e657c5a7968768d6389eb5adc49911d9915ae92f9b9ad4351ab",
+      "bytes": 391933
     },
     "lib/compiler.js": {
       "sha256": "0859ac6a0faa1fea27333c30ba7293d93c770bd8a526be14522d5693aa782be2",
       "bytes": 13660
     },
     "lib/control-api.js": {
-      "sha256": "32bbdb1a945d045e2af88da5c44c82390bcccd5ef1f13cc4c4978e5478e0b4aa",
-      "bytes": 47691
+      "sha256": "e86e8edd48895cbdf6ca49e8e85aafe0e271f5556df315d4d2ed819fe29867b3",
+      "bytes": 58482
     },
     "lib/detect-old.js": {
       "sha256": "3091998a6f1ba8447e5a7ef4e861d85c6cb4dc5eafeceec993684bd0435f1e71",
@@ -166,8 +166,8 @@
       "bytes": 15577
     },
     "lib/eval-llm.js": {
-      "sha256": "22478f4e8535af8785c019d420a27f02fb677e4641d27b698084738d4565ec94",
-      "bytes": 3460
+      "sha256": "e8417b72d5a13bfaa20d7fc7a132a3d1bd1ccb4f446de6267a40bbca782b6623",
+      "bytes": 3466
     },
     "lib/eval-plan.js": {
       "sha256": "38adbf75782f0e79220ffd12cc4717f4473c5bb74b020961d6f09a8a40f6278a",
@@ -198,12 +198,32 @@
       "bytes": 8033
     },
     "lib/index.js": {
-      "sha256": "26b0e405ca4e184a6302d79d31f76e61aec26b13563275b5b20ff204c8779c59",
-      "bytes": 196550
+      "sha256": "fcae2a64474f836e7e342f6268678347796a94a4c763deadb39c0902916f8b03",
+      "bytes": 220027
     },
     "lib/inference-boost.js": {
-      "sha256": "28869e90901845007402dbe785b47bb5ee735366a77f221da84a65c7f8297415",
-      "bytes": 16206
+      "sha256": "4834e08c0667e7ab3b7e4be820f08347eba3978dbb44e9bb8693fb6cac479aa2",
+      "bytes": 16585
+    },
+    "lib/inference-context.js": {
+      "sha256": "de2387f1e9e467a8f1d83eb13eef2861d750c42312997f50e3c8067da0c19ca9",
+      "bytes": 2306
+    },
+    "lib/inference-directions.js": {
+      "sha256": "8531dbadca088e82f3ebc82179593d4a49d189152432e6731dbc21c83ddc69fe",
+      "bytes": 29204
+    },
+    "lib/inference-evidence.js": {
+      "sha256": "263e9bbb7fdd9bd0a3a2fffe8ed11e3a975f7ebfe053ae30f7b4dcbb442999ee",
+      "bytes": 35871
+    },
+    "lib/inference-focus.js": {
+      "sha256": "6d8fe2d2546ce1cd707de92ed3c17951fec296e75b3716da1e8859d0362d04de",
+      "bytes": 5323
+    },
+    "lib/inference-profile.js": {
+      "sha256": "4d1d74c61cee48c5d573e0431d612e5c7e9dfb8982937fd0dbfde96c82585779",
+      "bytes": 1160
     },
     "lib/inference-trace.js": {
       "sha256": "01d2c7e62239cfaa418da31483f258634f7d28ed4dd8ebf1bb7a8eecfc35e7f5",
@@ -226,12 +246,12 @@
       "bytes": 14622
     },
     "lib/optimizer-protocol.js": {
-      "sha256": "76137d1be5e7fb3c6eab9104b09a5c2f47e2ed25bbcf5bbbc8dd12f6f22b5a70",
-      "bytes": 14011
+      "sha256": "9d8ecaf2367b5a77a678b806afbd26e8752b94d38e0b5e22f32dbb45041d37b2",
+      "bytes": 18200
     },
     "lib/pipeline.js": {
-      "sha256": "422a8504421745fd8d180472ebd3aac551a91535639b48a84b6217a3d5a36e0e",
-      "bytes": 28887
+      "sha256": "db45fc4e852fe25e9f003a7f5536e85719c668602fcf30ecad25a6a889efc375",
+      "bytes": 29057
     },
     "lib/playbook.js": {
       "sha256": "c2c6aaa617f6a90c2651f4a7832af77a545c7a698ff9ce205784be110203022a",
@@ -270,8 +290,8 @@
       "bytes": 17935
     },
     "lib/settings.js": {
-      "sha256": "23cba71ca0823d710e1717dddaf19a31dfdaddb99ecfe5380ffb642546ac843b",
-      "bytes": 30172
+      "sha256": "a9457d2ee26440399d8af67c10367df1d8a87db3f291dac6feb29e900bcbe6ab",
+      "bytes": 33584
     },
     "lib/store.js": {
       "sha256": "06921cd957236982737a265ae11ca06746c543dcf5154d3399efdd9d54a1322f",
@@ -296,9 +316,13 @@
     "lib/wire.js": {
       "sha256": "73f4c8c9dc488023996e02fdd94bfc5409977f7fbda8cd8f8f8b951bbb371f72",
       "bytes": 12226
+    },
+    "lib/wish-check.js": {
+      "sha256": "c1f523ae5e0443e552ee9789db644f0c0dccfcd97bd0424ca3ae10da872be329",
+      "bytes": 2636
     }
   },
-  "packageJsonSha256": "fae12a7aa28272d627c223bb00b501082d2053c40c55b4124c30781cd50adbd2",
+  "packageJsonSha256": "cd4823b9aa4f9b3e5602e0ef429b91938f3a7a4525ba61cfae91aec4e0bd3f47",
   "tests": {
     "adaptive-collaboration.test.mjs": {
       "pass": 9,
@@ -336,6 +360,12 @@
       "skipped": 0,
       "runner": "node:test"
     },
+    "advisor-evidence-paths.test.mjs": {
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
     "advisor-feedback.test.mjs": {
       "pass": 13,
       "fail": 0,
@@ -355,7 +385,7 @@
       "runner": "node:test"
     },
     "advisor-loop-integration.test.mjs": {
-      "pass": 15,
+      "pass": 16,
       "fail": 0,
       "skipped": 0,
       "runner": "node:test"
@@ -432,6 +462,12 @@
       "skipped": 0,
       "runner": "node:test"
     },
+    "advisor-wish-style.test.mjs": {
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
     "advisor-workflow.test.mjs": {
       "pass": 6,
       "fail": 0,
@@ -439,7 +475,7 @@
       "runner": "node:test"
     },
     "advisor.test.mjs": {
-      "pass": 11,
+      "pass": 13,
       "fail": 0,
       "skipped": 0,
       "runner": "node:test"
@@ -468,8 +504,14 @@
       "skipped": 0,
       "runner": "custom"
     },
+    "auto-switch.test.mjs": {
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
     "bash-diagnostics.test.mjs": {
-      "pass": 15,
+      "pass": 16,
       "fail": 0,
       "skipped": 0,
       "runner": "node:test"
@@ -564,12 +606,6 @@
       "skipped": 0,
       "runner": "custom"
     },
-    "client-advisor-delivery.test.mjs": {
-      "pass": 21,
-      "fail": 0,
-      "skipped": 0,
-      "runner": "node:test"
-    },
     "client-advisor-stream.test.mjs": {
       "pass": 9,
       "fail": 0,
@@ -577,13 +613,19 @@
       "runner": "node:test"
     },
     "client-file.test.mjs": {
-      "pass": 36,
+      "pass": 37,
       "fail": 0,
       "skipped": 0,
       "runner": "custom"
     },
     "client-hold-bridge.test.mjs": {
       "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
+    "client-injection-card.test.mjs": {
+      "pass": 12,
       "fail": 0,
       "skipped": 0,
       "runner": "node:test"
@@ -617,6 +659,12 @@
       "fail": 0,
       "skipped": 0,
       "runner": "custom"
+    },
+    "double-enter-skip.test.mjs": {
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
     },
     "dump-wire.test.mjs": {
       "pass": 10,
@@ -653,6 +701,12 @@
       "fail": 0,
       "skipped": 0,
       "runner": "custom"
+    },
+    "exit-motion.test.mjs": {
+      "pass": 9,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
     },
     "feedback.test.mjs": {
       "pass": 24,
@@ -702,6 +756,12 @@
       "skipped": 0,
       "runner": "custom"
     },
+    "how-it-works.test.mjs": {
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
     "identity.test.mjs": {
       "pass": 2,
       "fail": 0,
@@ -709,13 +769,37 @@
       "runner": "node:test"
     },
     "inference-boost.test.mjs": {
-      "pass": 13,
+      "pass": 32,
       "fail": 0,
       "skipped": 0,
       "runner": "node:test"
     },
-    "inference-ui.test.mjs": {
-      "pass": 3,
+    "inference-context.test.mjs": {
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
+    "inference-directions.test.mjs": {
+      "pass": 47,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
+    "inference-evidence.test.mjs": {
+      "pass": 46,
+      "fail": 0,
+      "skipped": 1,
+      "runner": "node:test"
+    },
+    "inference-focus.test.mjs": {
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
+    "inference-profile.test.mjs": {
+      "pass": 8,
       "fail": 0,
       "skipped": 0,
       "runner": "node:test"
@@ -780,6 +864,12 @@
       "skipped": 0,
       "runner": "node:test"
     },
+    "packet-render.test.mjs": {
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
     "packet-shape.test.mjs": {
       "pass": 5,
       "fail": 0,
@@ -809,6 +899,18 @@
       "fail": 0,
       "skipped": 0,
       "runner": "custom"
+    },
+    "preset-notice.test.mjs": {
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
+    "preset-wish.test.mjs": {
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
     },
     "projection.test.mjs": {
       "pass": 9,
@@ -864,6 +966,12 @@
       "skipped": 0,
       "runner": "custom"
     },
+    "segmented-motion.test.mjs": {
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
     "session-tier.test.mjs": {
       "pass": 8,
       "fail": 0,
@@ -882,8 +990,20 @@
       "skipped": 0,
       "runner": "node:test"
     },
+    "skip-hint.test.mjs": {
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
     "slash-review.test.mjs": {
       "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
+    },
+    "subagent-skip.test.mjs": {
+      "pass": 4,
       "fail": 0,
       "skipped": 0,
       "runner": "node:test"
@@ -893,6 +1013,12 @@
       "fail": 0,
       "skipped": 0,
       "runner": "custom"
+    },
+    "tier-presets-sync.test.mjs": {
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
     },
     "tool-note.test.mjs": {
       "pass": 3,
@@ -906,10 +1032,16 @@
       "skipped": 0,
       "runner": "node:test"
     },
-    "verifier-html.test.mjs": {
-      "pass": 14,
+    "ui-picker.test.mjs": {
+      "pass": 4,
       "fail": 0,
       "skipped": 0,
+      "runner": "node:test"
+    },
+    "verifier-html.test.mjs": {
+      "pass": 1,
+      "fail": 0,
+      "skipped": 1,
       "runner": "custom"
     },
     "verify-artifact.test.mjs": {
@@ -923,40 +1055,61 @@
       "fail": 0,
       "skipped": 0,
       "runner": "custom"
+    },
+    "wish-check.test.mjs": {
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "runner": "node:test"
     }
   },
   "mutation": {
     "total": 234,
     "sourceFiles": 42,
-    "missed": [],
+    "missed": [
+      "verifier: browser-override-ignored",
+      "verifier: candidates-machine-wide-only"
+    ],
     "anchorMissing": [],
-    "escaped": [],
-    "verdict": "PASS: 每个变异都被测试捕获，且源文件已字节还原"
+    "escaped": [
+      "verifier: browser-override-ignored",
+      "verifier: candidates-machine-wide-only"
+    ],
+    "verdict": "FAIL: 见 mutants"
   },
   "packaging": {
-    "ok": true,
-    "exit": 0,
-    "verdict": "PASS: 打包产物自足——63 个 lib 模块 + package.json + README + cordis.patch.yml + 封存题集，仓库外可直接 import；未夹带 test/、scripts/、题集之外的 eval 文件；源树字节未变"
+    "ok": false,
+    "exit": 1,
+    "verdict": "ERROR: Command failed: npm pack --pack-destination C:\\Users\\33875\\.dsh\\plugins\\dsh-wish-specializer\\.po06-tmp\\po06-install-drill --silent"
   },
   "docs": {
-    "ok": true,
-    "exit": 0,
+    "ok": false,
+    "exit": 1,
     "output": [
       "文档漂移检查（状态类文档；EVIDENCE.md 作为历史日志**不在范围内**）",
-      "权威值：{\"suites\":104,\"pass\":1141,\"mutants\":234,\"sourceFiles\":42,\"libModules\":62}",
+      "权威值：{\"suites\":123,\"pass\":1326,\"mutants\":234,\"sourceFiles\":42,\"libModules\":68}",
       "预算口径：S1 上界 105048 / 期望 35016；S2 上界 4591098 / 期望 1530366；S3 上界 105048 / 期望 35016；S4 上界 35016 / 期望 11672",
       "检查文件：4 份",
-      "✅ 计数类数字：未发现过期",
-      "✅ 预算类数字：未发现与 plan-E001.json 不符的上界/期望值",
-      "ℹ 外部引用豁免 30 处（运行时配置 11 · 产物 15 · 包内 2 · 本机工具 2）——这些按定义不在仓里",
-      "✅ 指向：文档里引用的仓内路径都存在",
-      "✅ 门面：根 README 提到了当前 0.6 版本号",
-      "✅ 引文：全仓引用的 EV 编号都能在 EVIDENCE.md 里找到（扫过 1113 个文件）"
+      "⚠ 发现 5 处计数与产物不一致（可能是历史叙述，也可能是真漂移——需人看一眼）：",
+      "  po06/README.md:83  测试项数: 文档写 1141，产物是 1326",
+      "      > - **内部自洽有证据**：**1141 项测试 + 变异守卫**全绿，含打包自足性与文档漂移门禁。",
+      "  po06/README.md:385  lib 模块数: 文档写 62，产物是 68",
+      "      lib/         62 个模块（domain / 编译 / 解释 / 澄清 / 长任务 / 验证 / 反馈 / 迁移 / 灰度 / 装配闸门 / 评估计划 / 冒烟 / 宿主资源定位 / 只读工具 / 会话上下文",
+      "  po06/README.md:386  测试套数: 文档写 104，产物是 123",
+      "      test/        104 套测试 + 变异检验",
+      "  po06/RELEASE-CHECKLIST.md:12  测试项数: 文档写 1141，产物是 1326",
+      "      | 发版门 | `check-release.mjs` → **PASS**：**104 套 / 1141 项 / 0 失败**；变异 **234 个 / 漏捕 0**；打包自足性 **PASS**（63 个 lib 模",
+      "  po06/RELEASE-CHECKLIST.md:12  测试套数: 文档写 104，产物是 123"
     ]
   },
-  "problems": [],
-  "notes": [
-    "lib/interpreter.js 没有可识别的版本常量（审计时需要知道用的是哪一版契约）"
+  "problems": [
+    "变异未被执行捕获（变异已生效但测试没红 ⇒ 测试变弱）：verifier: browser-override-ignored, verifier: candidates-machine-wide-only",
+    "打包产物自足性演练未通过：ERROR: Command failed: npm pack --pack-destination C:\\Users\\33875\\.dsh\\plugins\\dsh-wish-specializer\\.po06-tmp\\po06-install-drill --silent",
+    "文档数字与产物不一致（跑 `node po06/scripts/check-docs.mjs` 看明细；若那处属于**历史叙述**而非现状说明，请改写措辞，而不要关掉这个检查）"
   ],
-  "ok": true
+  "notes": [
+    "lib/interpreter.js 没有可识别的版本常量（审计时需要知道用的是哪一版契约）",
+    "turn305 parity 参考树就位：C:\\Users\\33875\\.dsh\\plugins\\dsh-wish-specializer\\.po06-tmp\\exact-turn305"
+  ],
+  "ok": false
 }
