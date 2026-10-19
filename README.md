@@ -1,4 +1,4 @@
-# 许愿特化器 · Wish Specializer **v0.9.0-beta-1**（开发中）· DSH Web 插件（包名 dsh-arbiter-wf）
+# 许愿特化器 · Wish Specializer **v0.9.0-beta-1**（开发中）· DSH Web 插件（包名 dsh-wish-specializer）
 
 **中文** ｜ [English](README.en.md)
 
@@ -19,7 +19,7 @@
 >
 > | 渠道 | 是什么 | 该不该用 |
 > |---|---|---|
-> | **GitHub Release 附件** | 当前版本（`@dsh-external/dsh-arbiter-wf`） | ✅ **唯一正确来源**，就是下面这段命令 |
+> | **GitHub Release 附件** | 当前版本（`@dsh-external/dsh-wish-specializer`） | ✅ **唯一正确来源**，就是下面这段命令 |
 > | **npm** | **本插件不发 npm**（`private: true`），只在 Release 分发；
 >   registry 上搜到的同名或相似包**都不是本项目** | ❌ 不要从 npm 装 |
 > | 仓库根直接 clone | 与本 Release 同源，适合开发者 | ⚠️ 需要自己构建，普通使用走 Release 更省事 |
@@ -30,11 +30,11 @@
 >
 > ```powershell
 > $v = '0.8.4-stable'; $d = "$env:USERPROFILE\Downloads"
-> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$d\dsh-external-dsh-arbiter-wf-$v.tgz"
+> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-wish-specializer-$v.tgz" -OutFile "$d\dsh-external-dsh-wish-specializer-$v.tgz"
 > Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
 > Get-Content "$d\SHA256SUMS-$v.txt"     # 与上一行下载到的 tgz 对 sha256（Release 页也有同一份）
 > dsh --profile po061 --from-default-profile web --dump-config        # 建一个干净 profile
-> dsh plugin --profile po061 add "$d\dsh-external-dsh-arbiter-wf-$v.tgz"    # 装
+> dsh plugin --profile po061 add "$d\dsh-external-dsh-wish-specializer-$v.tgz"    # 装
 > dsh --profile po061                                                 # 起服务（会打印带 token 的地址）
 > ```
 >
@@ -123,7 +123,7 @@
 **读项目文件会不会动我的东西？** 不会：只读、限定在你的工作目录内、越界一律拒绝。
 
 **关掉/卸载？** 临时关：档位拨到 `关闭`（不拦不注入，等于没装）。彻底卸载：从 profile 的 `dsh.profile.bundles` 与
-`dependencies` 里移除 `@dsh-external/dsh-arbiter-wf`，重启 DSH；配置在 `<home>/po06.json`，可自行删除。
+`dependencies` 里移除 `@dsh-external/dsh-wish-specializer`，重启 DSH；配置在 `<home>/po06.json`，可自行删除。
 
 ## 隐私与边界
 

@@ -27,7 +27,7 @@ test('the experiment is shorter tool-result memory, not fewer capabilities',()=>
 })
 test('the preset mounts our acceptance tool',()=>{
  assert.match(text,/id: tool-wish-check/)
- assert.match(text,/'@dsh-external\/dsh-arbiter-wf\/check'/)
+ assert.match(text,/'@dsh-external\/dsh-wish-specializer\/check'/)
 })
 test('nothing is deleted from the composition, only disabled',()=>{
  const ids=[...text.matchAll(/- id: (\S+)/g)].map(m=>m[1]).filter(id=>!id.startsWith('preset-'))

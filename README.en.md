@@ -1,4 +1,4 @@
-# Wish Specializer **v0.9.0-beta-1** (in development) · DSH Web plugin (package `dsh-arbiter-wf`)
+# Wish Specializer **v0.9.0-beta-1** (in development) · DSH Web plugin (package `dsh-wish-specializer`)
 
 **English** ｜ [中文](README.md)
 
@@ -23,7 +23,7 @@ showpiece-quality.
 >
 > | Channel | What it is | Use it? |
 > |---|---|---|
-> | **GitHub Release asset** | The current version (`@dsh-external/dsh-arbiter-wf`) | ✅ **The only correct source** — the command below |
+> | **GitHub Release asset** | The current version (`@dsh-external/dsh-wish-specializer`) | ✅ **The only correct source** — the command below |
 > | **npm** | **This plugin is not published to npm** (`private: true`); it ships via Releases only.
 >  Any same-named or similar package on the registry **is not this project**. | ❌ Do not install from npm |
 > | Cloning the repo root | Same source as this Release, for developers | ⚠️ You must build it yourself; Releases are easier for normal use |
@@ -34,11 +34,11 @@ showpiece-quality.
 >
 > ```powershell
 > $v = '0.8.4-stable'; $d = "$env:USERPROFILE\Downloads"
-> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$d\dsh-external-dsh-arbiter-wf-$v.tgz"
+> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-wish-specializer-$v.tgz" -OutFile "$d\dsh-external-dsh-wish-specializer-$v.tgz"
 > Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
 > Get-Content "$d\SHA256SUMS-$v.txt"     # compare the sha256 with the tgz you just downloaded (same file as on the Release page)
 > dsh --profile po061 --from-default-profile web --dump-config        # a clean profile
-> dsh plugin --profile po061 add "$d\dsh-external-dsh-arbiter-wf-$v.tgz"    # install
+> dsh plugin --profile po061 add "$d\dsh-external-dsh-wish-specializer-$v.tgz"    # install
 > dsh --profile po061                                                 # start (prints a tokenized URL)
 > ```
 >
@@ -125,7 +125,7 @@ theme** as well, switching live.
 
 **Does reading project files touch anything?** No: read-only, confined to your working directory, anything outside is refused.
 
-**Turning it off / uninstalling?** Temporarily: set the tier to `off` (no interception, no injection). Fully: remove `@dsh-external/dsh-arbiter-wf` from the profile's `dsh.profile.bundles` and `dependencies`, restart DSH; its config lives in `<home>/po06.json` and you can delete it.
+**Turning it off / uninstalling?** Temporarily: set the tier to `off` (no interception, no injection). Fully: remove `@dsh-external/dsh-wish-specializer` from the profile's `dsh.profile.bundles` and `dependencies`, restart DSH; its config lives in `<home>/po06.json` and you can delete it.
 
 ## Privacy and boundaries
 

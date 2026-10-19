@@ -40,7 +40,7 @@ test('all short directions reach the original worker; no independent selector or
  assert.equal(main.sessionId,base.sessionId);assert.equal(main.provider,base.provider);assert.equal(main.model,base.model)
  assert.equal(main.reasoningEffort,base.reasoningEffort);assert.equal(main.maxTokens,base.maxTokens);assert.strictEqual(main.tools,base.tools)
  const hint=main.messages.at(-1)
- assert.equal(hint.source.kind,'plugin:@dsh-external/dsh-arbiter-wf');assert.equal(hint.source.form,'notice')
+ assert.equal(hint.source.kind,'plugin:@dsh-external/dsh-wish-specializer');assert.equal(hint.source.form,'notice')
  assert.match(hint.content[0].text,/Approach 1/);assert.match(hint.content[0].text,/Approach 2/)
  assert.equal(JSON.stringify(base),snapshot)
  assert.equal(out.filter(c=>c.block?.type==='tool-call').length,1)

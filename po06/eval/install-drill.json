@@ -4,7 +4,7 @@
   "at": "2026-10-15T10:41:06.659Z",
   "steps": {
     "pack": {
-      "tgz": "dsh-external-dsh-arbiter-wf-0.8.4-stable.tgz",
+      "tgz": "dsh-external-dsh-wish-specializer-0.8.4-stable.tgz",
       "bytes": 21391844,
       "sha256": "a99ace3d0ac568e2f768e5aa207ef57d528375fb7d43a1287ac387973a6be160"
     },

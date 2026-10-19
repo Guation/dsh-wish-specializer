@@ -32,7 +32,7 @@ const PROFILE = opt('profile', 'po06beta')
 const EXPECT_VERSION = opt('expect-version', null)
 const JSON_OUT = opt('json', null)
 const DSH_CMD = opt('dsh', process.env.DSH_PO06_DSH || 'dsh')
-const PKG_NAME = '@dsh-external/dsh-arbiter-wf'
+const PKG_NAME = '@dsh-external/dsh-wish-specializer'
 const OLD_PKG = '@dsh-external/dsh-prompt-optimizer'
 
 const L = []
@@ -212,7 +212,7 @@ if (problems.length === 0) {
   // 而不是让用户自己去翻文档（EV-0135：这一页存在的意义就是"装好了吗"）。
   if (!pkgPresent) {
     say('')
-    say('装法（把 `<tgz>` 换成你下载到的那个 `dsh-external-dsh-arbiter-wf-<版本>.tgz` 的路径）：')
+    say('装法（把 `<tgz>` 换成你下载到的那个 `dsh-external-dsh-wish-specializer-<版本>.tgz` 的路径）：')
     say('```powershell')
     say('dsh plugin --profile ' + PROFILE + ' add <tgz>')
     say('node ' + join(REPO, 'scripts', 'check-install.mjs') + ' --profile ' + PROFILE + ' --expect-version <版本>')

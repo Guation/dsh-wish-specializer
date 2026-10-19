@@ -1,7 +1,7 @@
 {
   "at": "2026-10-15T10:41:13.625Z",
   "package": {
-    "name": "@dsh-external/dsh-arbiter-wf",
+    "name": "@dsh-external/dsh-wish-specializer",
     "version": "0.8.4-stable"
   },
   "contractVersions": {

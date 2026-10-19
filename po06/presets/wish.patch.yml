@@ -135,7 +135,7 @@
                   subagentProvider: spawn
                   maxRounds: 64
           - id: tool-wish-check
-            name: '@dsh-external/dsh-arbiter-wf/check'
+            name: '@dsh-external/dsh-wish-specializer/check'
           - id: tool-ask-user
             name: '@deepseek-ai/dsh-tool-ask-user'
           - id: tool-todo

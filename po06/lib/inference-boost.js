@@ -7,7 +7,7 @@ export const INFERENCE_VERSION='5'
 const route=o=>({provider:o.provider,model:o.model,reasoningEffort:o.reasoningEffort??null,maxTokens:o.maxTokens??null})
 function inputOf(o){return {system:o.system||null,messages:o.messages.map(m=>({role:m.role,content:m.content,toolCallId:m.toolCallId||null})),tools:o.tools||[]}}
 export const inferencePlan=fixedInferencePlan
-const defaultNotice=(text,summary)=>({id:randomUUID(),role:'user',content:[{type:'text',text}],source:{kind:'plugin:@dsh-external/dsh-arbiter-wf',form:'notice',summary}})
+const defaultNotice=(text,summary)=>({id:randomUUID(),role:'user',content:[{type:'text',text}],source:{kind:'plugin:@dsh-external/dsh-wish-specializer',form:'notice',summary}})
 // Auxiliary roles receive public history as quoted data, never the worker's active tool-only system.
 const DIRECTION_CONTEXT_CHARS=24000
 export function directionContext(base){

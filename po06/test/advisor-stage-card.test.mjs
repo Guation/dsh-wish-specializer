@@ -148,7 +148,7 @@ test('legacy parser and loader id remain intact', () => {
   assert.equal(mod.__debug.advisorValueOf({ content: [{ type: 'text', text: '[{\"ok\":true}]' }] }), null)
   assert.equal(mod.__debug.advisorValueOf({ content: [{ type: 'text', text: '{\"broken\": {\"ok\":true}' }] }), null)
   assert.match(SRC, /window\.__ModuleLoader__\.load\(\{/)
-  assert.match(SRC, /id:\s*'@dsh-external\/dsh-arbiter-wf'/)
+  assert.match(SRC, /id:\s*'@dsh-external\/dsh-wish-specializer'/)
   assert.match(SRC, /function advisorValueOf\(block\)/)
 })
 

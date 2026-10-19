@@ -9,9 +9,9 @@ const CLIENT = readFileSync(join(ROOT, 'lib', 'client.js'), 'utf8')
 const HOST = readFileSync(join(ROOT, 'lib', 'index.js'), 'utf8')
 const PATCH = readFileSync(join(ROOT, 'cordis.patch.yml'), 'utf8')
 
-// issue #20 / #21：包名从 `@dsh-external/dsh-po06` 改成 `@dsh-external/dsh-arbiter-wf` 时，
+// issue #20 / #21：包名从 `@dsh-external/dsh-po06` 改成 `@dsh-external/dsh-wish-specializer` 时，
 // **包内有三处身份标识漏改**，后果是 0.8.0-preview 装上去 app 直接起不来：
-//   client-modules: loaded without registering "@dsh-external/dsh-arbiter-wf"
+//   client-modules: loaded without registering "@dsh-external/dsh-wish-specializer"
 // 报告者实测：改掉这三处就恢复正常，并明确建议"补一条发版门"。
 // ⚠ 门禁必须**从 package.json 动态取名字**：写死成新名字的话，下次再改名它照样放过（真发生过）。
 test('包内三处身份标识必须与 package.json 的 name 一致（issue #20/#21）', () => {

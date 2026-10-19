@@ -69,7 +69,7 @@ test('unrelated PASS, ALL PASS banners and model path exoneration never wash awa
  f.run('FAIL world-spacing\nPASS closure')
  f.emit('assistant/message', {content: 'path exonerated; ALL PASS'})
  f.emit('assistant/reasoning', {text: 'PASS world-spacing'})
- f.input('plugin:@dsh-external/dsh-arbiter-wf')
+ f.input('plugin:@dsh-external/dsh-wish-specializer')
  f.run('TEST[all] ALL PASS\nPASS no-discontinuity\nPASS arc-pitch')
  assert.equal(f.snap().openIssues.length, 1)
  assert.equal(f.snap().openIssues[0].label, 'world-spacing')

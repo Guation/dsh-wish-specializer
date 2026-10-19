@@ -1,4 +1,4 @@
-# 许愿特化器 · Wish Specializer（包名 dsh-arbiter-wf，**0.9.0-beta-1** 开发中；最新发布 0.8.4-stable）
+# 许愿特化器 · Wish Specializer（包名 dsh-wish-specializer，**0.9.0-beta-1** 开发中；最新发布 0.8.4-stable）
 
 ## 0.8.0-preview：独立裁判层（改名首版）
 
@@ -46,7 +46,7 @@
 
 > 💬 中文用户交流：**QQ 群 1121399051**（最新消息、安装帮助、版本公告）。
 
-`@dsh-external/dsh-arbiter-wf` · **0.8.4-stable** · GitHub Release（**未发 npm**：`private: true`，只发附件）
+`@dsh-external/dsh-wish-specializer` · **0.8.4-stable** · GitHub Release（**未发 npm**：`private: true`，只发附件）
 → 下载：<https://github.com/WestFox-AwA/dsh-wish-specializer/releases/tag/v0.8.4-stable>（附件含 `tgz` 与 `SHA256SUMS`）
 
 > **0.7.8（历史版本）的一句话**：**档位终于真的分开了**——补充程度（700 / 1200 / 2000 字）与自主预算
@@ -130,10 +130,10 @@
 # 直链（版本号换成你要的；0.8.4-stable 是最新版）
 $v = '0.8.4-stable'
 $dir = "$env:USERPROFILE\Downloads"
-Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$dir\dsh-external-dsh-arbiter-wf-$v.tgz"
+Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-wish-specializer-$v.tgz" -OutFile "$dir\dsh-external-dsh-wish-specializer-$v.tgz"
 Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$dir\SHA256SUMS-$v.txt"
 # 校验（下载坏了会在安装后才以"行为怪怪的"暴露，先比一下最省事）
-Get-FileHash "$dir\dsh-external-dsh-arbiter-wf-$v.tgz" -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+Get-FileHash "$dir\dsh-external-dsh-wish-specializer-$v.tgz" -Algorithm SHA256 | Select-Object -ExpandProperty Hash
 Get-Content "$dir\SHA256SUMS-$v.txt"
 ```
 > 也可以在浏览器里打开 <https://github.com/WestFox-AwA/dsh-wish-specializer/releases> 挑对应版本手动下这两个文件。
@@ -155,7 +155,7 @@ Get-Content "$dir\SHA256SUMS-$v.txt"
 # 用发行版自带的 web 模板新建 profile（不含 0.5.x）
 dsh --profile po061 --from-default-profile web --dump-config
 # 装本包（tgz 路径换成你下载到的位置）
-dsh plugin --profile po061 add "$env:USERPROFILE\Downloads\dsh-external-dsh-arbiter-wf-0.8.4-stable.tgz"
+dsh plugin --profile po061 add "$env:USERPROFILE\Downloads\dsh-external-dsh-wish-specializer-0.8.4-stable.tgz"
 ```
 
 **③（可选，但强烈建议）一条命令自检**：装好了、装的是这一份、会被装配"（**不调模型、不花钱**）：

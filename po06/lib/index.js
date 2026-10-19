@@ -182,7 +182,7 @@ const WIRE_LOG_PATH = join(DSH_HOME, 'po06-wire.jsonl')
  * 本机 0.1.6 侧不受影响：v3 对用户消息的 kind 不设白名单（只要求非空字符串），
  * 而"绝不自我触发"那道闸是**正向白名单**（只认 `kind === 'user'`，见 `wire.js`），不依赖这个名字。
  */
-const PRODUCER_KIND = 'plugin:@dsh-external/dsh-arbiter-wf'
+const PRODUCER_KIND = 'plugin:@dsh-external/dsh-wish-specializer'
 
 /** 追加一条生产接线记录。**尽力而为**：台账写不进去也绝不打断会话。 */
 function appendWireLog(rec) {
@@ -1486,7 +1486,7 @@ async function decideEnableFor(agentId) {
   return { ...decision, probe }
 }
 
-export const name = '@dsh-external/dsh-arbiter-wf'
+export const name = '@dsh-external/dsh-wish-specializer'
 /** 版本号从**随包发行的 package.json** 读，不写死（写死就会漂——本项目栽过这类跟头）。 */
 const PKG_VERSION = (() => {
   try { return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8')).version } catch { return null }
@@ -2042,7 +2042,7 @@ export function apply(ctx, config) {
         if (!live) return
         try {
           const cm = scope.clientModules || scope.get('clientModules')
-          const name = '@dsh-external/dsh-arbiter-wf'
+          const name = '@dsh-external/dsh-wish-specializer'
           if (!cm?.pkgMeta || !cm?.dirty || typeof cm.flush !== 'function') return
           for (const key of cm.pkgMeta.keys()) {
             if (key === name || String(key).endsWith('\0' + name)) cm.pkgMeta.delete(key)
@@ -2076,7 +2076,7 @@ export function apply(ctx, config) {
       const engine=createInferenceBoost({llm:scope.llm,trace:inferenceTrace,isWorkingRequest:loaded.mod.isAgentLoopRequest,
         evidenceFor:options=>inferenceContext.evidenceFor(options),
         focus:createInferenceFocus({home:DSH_HOME,namespace:PROFILE_DIR}),
-        createNotice:(text,summary)=>loaded.mod.createUserMessage({content:[{type:'text',text}],source:{kind:'plugin:@dsh-external/dsh-arbiter-wf',form:'notice',summary}}),
+        createNotice:(text,summary)=>loaded.mod.createUserMessage({content:[{type:'text',text}],source:{kind:'plugin:@dsh-external/dsh-wish-specializer',form:'notice',summary}}),
         settingsFor:sid=>{const p=readPolicy({home:DSH_HOME,sessionId:sid});return {reasoningBoost:p.reasoningBoost,reasoningMode:p.reasoningMode,reasoningCandidates:p.reasoningCandidates,reasoningRounds:p.reasoningRounds,reasoningPace:p.reasoningPace,englishMode:p.englishMode}},log:appendWireLog})
       inferenceEngine=engine
       scope.effect(()=>scope.on('llm/stream',(options,next)=>engine.intercept(options,next)),'dsh-arbiter: working generation interception')
@@ -2296,7 +2296,7 @@ export function apply(ctx, config) {
           advisorProgress: (sid, identity) => advisorProgress.get(sid, identity),
           advisorDelivery:createAdvisorDeliveryReader({getAgent:sid=>adapter.agentFor(sid),inspect:sid=>adapter.services.sessionController?.inspect?.(sid),policy:sid=>readPolicy({home:DSH_HOME,sessionId:sid}),rootFor:sid=>sessionHistory.getCwd(sid)}),
            inferenceStatus:()=>({...(inferenceEngine?.status() || {protocolVersion:'1',ready:false}),ready:inferenceReady,reason:inferenceProblem,...inferenceTrace.status(),
-             client:(()=>{try{const cm=ctx.get('clientModules'),name='@dsh-external/dsh-arbiter-wf';return {registered:!!cm?.clientPath?.(name),revision:cm?.graph?.().entries.find(e=>e.id===name)?.rev || null}}catch{return null}})()}),
+             client:(()=>{try{const cm=ctx.get('clientModules'),name='@dsh-external/dsh-wish-specializer';return {registered:!!cm?.clientPath?.(name),revision:cm?.graph?.().entries.find(e=>e.id===name)?.rev || null}}catch{return null}})()}),
            englishStatus:sid=>({ready:true,...adapter.english.status(sid)}),
            englishGet:sid=>adapter.english.get(sid),
            inferenceList:sid=>inferenceTrace.list(sid),

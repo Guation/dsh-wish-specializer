@@ -15,7 +15,7 @@ function loadConsumer() {
   }
   const require = (name) => name === 'react' ? React : {}
   runInNewContext(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'), { window })
-  assert.equal(registration.id, '@dsh-external/dsh-arbiter-wf')
+  assert.equal(registration.id, '@dsh-external/dsh-wish-specializer')
   const client = registration.factory(require)
   const slots = []
   const dispose = client.apply({ slots: {

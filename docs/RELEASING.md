@@ -27,8 +27,8 @@ dsh-prompt-optimizer/
 
 本机的 `profiles/web` 用 **link 装配**开发目录，而不是装发布包：
 
-- `profiles/web/package.json` → `"@dsh-external/dsh-arbiter-wf": "link:C:/Users/WestFox/.dsh/plugins/dsh-prompt-optimizer"`（2026-10-01 由 `dsh-po06` 改名）
-- `profiles/web/node_modules/@dsh-external/dsh-arbiter-wf` 是指向开发目录的 junction（`isSymlink=true`）
+- `profiles/web/package.json` → `"@dsh-external/dsh-wish-specializer": "link:C:/Users/WestFox/.dsh/plugins/dsh-prompt-optimizer"`（2026-10-01 由 `dsh-po06` 改名）
+- `profiles/web/node_modules/@dsh-external/dsh-wish-specializer` 是指向开发目录的 junction（`isSymlink=true`）
 - 于是**改完开发目录 + 重启（或 `dev_reload_package` 热重载），运行的就是最新那一份**，不需要每次重装。
 
 ⚠ **实测踩过的坑（2026-09-30）**：这条依赖曾被钉在 `file:...dsh-external-dsh-po06-0.7.4.tgz`，于是出现
@@ -149,7 +149,7 @@ git push origin v0.7.5
 > node po06/scripts/check-release.mjs        # 门禁：PASS 才继续（包装自足演练也在这里跑）
 > git push origin HEAD:main                  # 先推提交
 > git tag v<版本>; git push origin v<版本>    # 再推 tag
-> npm pack --pack-destination <临时目录>      # 产物 dsh-external-dsh-arbiter-wf-<版本>.tgz
+> npm pack --pack-destination <临时目录>      # 产物 dsh-external-dsh-wish-specializer-<版本>.tgz
 > # 建 Release（GitHub 页面或 API）并上传 tgz 与 SHA256SUMS-<版本>.txt
 > ```
 >
