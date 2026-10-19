@@ -38,8 +38,10 @@ test('顾问限时：默认 5 分钟；环境变量可调并钳制；报告长�
   assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: 'abc' }), ADVISOR_TIMEOUT_MS, '非法值回落默认，不静默变 0')
   assert.equal(resolveAdvisorTimeoutMs({ DSH_PO06_ADVISOR_TIMEOUT_MS: '-5' }), ADVISOR_TIMEOUT_MS, '负数也是非法值')
   // 长输出是超时主因之一：提示词里必须有长度纪律，否则放宽限时只是把超时往后推
-  assert.ok(/findings 最多 6 条/.test(ADVISOR_SYSTEM))
-  assert.ok(/checks 最多 8 条/.test(ADVISOR_SYSTEM))
+  // 2026-10-19 用户要求"点到为止"：长度纪律从 6/8 收紧到 findings ≤ 3、checks 只写阶段契约项。
+  assert.ok(/findings 最多 3 条/.test(ADVISOR_SYSTEM), '仍要有长度纪律（只是更短）')
+  assert.ok(/能一句话说清就不写第二句/.test(ADVISOR_SYSTEM))
+  assert.ok(/不要罗列小修小补/.test(ADVISOR_SYSTEM))
 })
 
 test('顾问schema不含宿主已确认不支持的maxItems，必填字段和模式保留',()=>{

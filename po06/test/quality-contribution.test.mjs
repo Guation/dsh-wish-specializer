@@ -25,7 +25,8 @@ test('registered improvement invokes the configured Flash route and never record
  assert.equal(out.ok, true); assert.equal(out.improvementAvailable, true); assert.equal(out.retainCurrent, false)
  assert.equal(out.reviewPassed, false); assert.equal(out.completionClaimAllowed, false); assert.equal(recorded, 0)
  assert.equal(out.model, 'deepseek-official/deepseek-flash'); assert.equal(input.reasoningEffort, 'max')
- assert.equal(out.contributionRevision, 'route-a-1')
+ // 2026-10-19 用户改口径：贡献改成"愿望式方向"（往上抬、一条一句、只有缺陷可稍具体）⇒ 修订号进一版。
+ assert.equal(out.contributionRevision, 'route-a-2')
  assert.equal(finished.improvementAvailable, true); assert.equal(finished.reviewPassed, false)
  assert.equal(finished.disposition, 'quality-advice')
  const payload = JSON.parse(input.messages[0].content[0].text)

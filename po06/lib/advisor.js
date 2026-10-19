@@ -84,9 +84,9 @@ export const ADVISOR_SYSTEM = [
   'selectionScope=line-range 表示只附指定行段；selectionComplete不等于wholeFileComplete。evidenceType是调用者声明的来源，不是系统认证。software-preview只能证明可见几何，不能证明真实成品画面；source不能证明运行成功，测试桩与runtime-log不等价。',
   '无法验证必须给出缺哪种证据与最小下一步；环境失败只记录实际现象，不把一次启动失败断言为永久无权限。',
   '截断、缺失和只列出路径都不是通过证据。顾问意见是建议而非用户授权。不得因一次咨询通过就宣称任务一定成功。',
-  '只返回 JSON，不返回 markdown：',
-  '报告要**短**（长输出会拖长耗时，直接影响能不能给出结论）：findings 最多 6 条、checks 最多 8 条，',
-  '每条一两句话说清；summary/nextStep/stopCondition 各不超过三句。宁可少写，不要写不完。',
+  '只返回 JSON，不返回 markdown。',
+  '**短**：能一句话说清就不写第二句。summary 两三句以内；findings 最多 3 条、每条一句话；checks 只写阶段契约里的项。',
+  '回答要点到为止：只写决定成败的观察与结论；不要罗列小修小补清单（细节执行者自己会做）。',
   '{"verdict":"continue|narrow|change|need_user|pass|gaps|unverified","summary":"简短结论",',
   '"findings":[{"text":"偏差或假设","evidenceRefs":["E编号或F编号或read:相对路径"]}],',
   '"checks":[{"checkId":"stageContract提供的ID（非阶段时省略）","criterion":"原话中的验收点","status":"satisfied|failed|unverified","evidenceRefs":[]}],',
@@ -101,7 +101,7 @@ export const ADVISOR_PARAMETERS = {
   type: 'object', additionalProperties: false,
   required: ['mode', 'question'],
   properties: {
-    mode: { type: 'string', enum: ADVISOR_MODES, description: 'develop_approach在关键方案确定前贡献具体解法；improve_result针对实际产物提供可落实的质量提升，也可保留当前版本；diagnose_failure诊断试错；review_result核验成果。解题与质量建议不计入验收通过。' },
+    mode: { type: 'string', enum: ADVISOR_MODES, description: 'develop_approach在关键方案确定前给方向性要求（往上抬，不是小修小补）；improve_result针对实际产物指出最该抬的一处并给方向，也可保留当前版本；diagnose_failure诊断试错；review_result核验成果。方向与质量建议不计入验收通过。' },
     taskId: {type:'string',description:'可选阶段复核：advisor_stage返回的taskId；与stageId一起传'},
     stageId: {type:'string',description:'可选阶段复核：advisor_stage返回的stageId；scope/focus从阶段契约取，不重命名检查项'},
     scope: { type: 'string', enum: ADVISOR_SCOPES, description: '一次一个专项（检查维度，不是行业）：geometry形体与装配、appearance画面观感、code代码正确性、interaction交互逻辑、performance性能证据、delivery交付覆盖、custom其它专项；省略=general兼容。维度按本次任务实际需要选，一次只选一个；某维度不适用就不用。' },
@@ -362,21 +362,44 @@ export function advisorDirective(report, mode = 'review_result') {
   const clip1 = (s, n) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, n)
   const lines = ['【顾问指令 · 必须执行】']
   if (report.degraded === true) lines.push('（这份结论的格式不完整，已降级采纳；按下面这些做，不要把它当成验收通过。）')
-  const summary = clip1(report.summary, 300)
+  const summary = clip1(report.summary, 200)
   if (summary) lines.push('结论：' + summary)
   const failed = (Array.isArray(report.checks) ? report.checks : []).filter((c) => c && c.status === 'failed')
-  for (const c of failed.slice(0, 4)) lines.push('必须修：' + clip1(c.criterion, 120))
-  const findings = (Array.isArray(report.findings) ? report.findings : []).slice(0, 4)
-  for (const f of findings) lines.push('注意：' + clip1(f && f.text, 160))
-  const next = clip1(report.nextStep, 300)
+  for (const c of failed.slice(0, 3)) lines.push('必须修：' + clip1(c.criterion, 90))
+  // 贡献模式（2026-10-19）：contribultion 是"愿望式"的编号列表——一条一句、点到为止。
+  // 缺陷行（以「缺陷：」开头）单独提出来当"必须修"，其余一律是方向（不是建议）。
+  if (mode === 'develop_approach' || mode === 'improve_result') {
+    const raw = String(report.contribution || '')
+    const items = raw.split(/\n+/).map((s) => s.trim()).filter(Boolean)
+    const defects = []
+    const demands = []
+    for (const it of items) {
+      const body = it.replace(/^\d+[.、)]\s*/, '').replace(/^[-*•]\s*/, '')
+      if (/^缺陷[:：]/.test(body)) defects.push(body.replace(/^缺陷[:：]\s*/, ''))
+      else if (body) demands.push(body)
+    }
+    if (demands.length) {
+      lines.push('方向（往上抬，不是在现有方案上打补丁）：')
+      demands.slice(0, 5).forEach((d, i) => lines.push('  ' + (i + 1) + ') ' + clip1(d, 80)))
+    }
+    for (const d of defects.slice(0, 2)) lines.push('必须修：' + clip1(d, 120))
+    if (!demands.length && !defects.length && failed.length === 0) {
+      const next = clip1(report.nextStep, 160)
+      if (next && next !== '(not provided)') lines.push('下一步：' + next)
+    }
+    if (lines.length <= 2) return ''
+    lines.push('按这些方向改；它们不是“仅供参考”，但也**不等于验收通过**。')
+    return lines.join('\n').slice(0, 1200)
+  }
+  const findings = (Array.isArray(report.findings) ? report.findings : []).slice(0, 3)
+  for (const f of findings) lines.push('注意：' + clip1(f && f.text, 120))
+  const next = clip1(report.nextStep, 200)
   if (next && next !== '(not provided)') lines.push('下一步：' + next)
-  const stop = clip1(report.stopCondition, 200)
+  const stop = clip1(report.stopCondition, 160)
   if (stop && stop !== '(not provided)') lines.push('停止条件：' + stop)
-  const contribution = clip1(report.contribution, 400)
-  if (mode === 'improve_result' && contribution) lines.push('可采用的做法：' + contribution)
   if (lines.length <= 1) return ''
-  lines.push('除非你手上有能反驳它的证据，否则先按以上要求改，再继续；它不是“仅供参考”。')
-  return lines.join('\n').slice(0, 1600)
+  lines.push('除非你手上有能反驳它的证据，否则先按以上要求做，再继续；它不是“仅供参考”。')
+  return lines.join('\n').slice(0, 1200)
 }
 export function createAdvisor({ resolveRuntime, log = () => {}, progress = null, coverage = createAdvisorCoverage(), stages = null, taskContext = () => null, timeoutMs = ADVISOR_TIMEOUT_MS, stallMs = ADVISOR_STALL_MS, runLoop = runReadOnlyToolLoop, contributionMemory=createContributionMemory() }) {
   const busy = new Set()
@@ -776,7 +799,7 @@ export function registerAdvisorTool(scope, execute) {
   try { if (typeof execute?.dispose === 'function') losslessExecute.dispose = execute.dispose } catch { /* 只读属性就算了 */ }
   return scope.tools.register({
     name: 'consult_task',
-    description: '返回值里的 directive 是**必做指令**（会随注入文进入上下文）：先按它改，再继续；只有拿得出反驳证据时才能偏离，并在回复里说明理由。独立解题与复核顾问（沿用优化 AI 配置，只读，不改文件）。关键方案确定前可用 develop_approach：独立贡献洞见、构造、方法与可采用内容，不必先失败。实际产物形成后可用 improve_result：找限制质量的关键因素，给具体改法或保留当前，正文可用currentResult，文件/截图用files/images；不是只查合格，也不强制每轮调用。两种贡献均沿用优化AI，不自动引入更强模型，不记验收通过。现有 diagnose_failure 与 review_result 保持原义。验收每次一个scope+focus专项；风险部分成形即复核，视觉先审图再追源码，交付用delivery核对覆盖与版本；小任务general兼容。重复失败且没有新证据时用 diagnose_failure：先判断信息增量，再决定继续/缩小实验/换路线。首次准备宣称成果完成时，先取得原始验证证据并自验，再调用 review_result 独立复核；不要提交自己的通过结论。用户指出偏差或关键成果变化后重审相关部分，普通小测试不要重复咨询。分歧应通过针对性证据或用户判断解决，不靠模型投票。默认不设顾问总截止；显式DSH_PO06_ADVISOR_TIMEOUT_MS才设置截止，用户取消与只读轮次上限仍生效；关闭提示词辅助时不可用。',
+    description: '返回值里的 directive 是**必做指令**（会随注入文进入上下文）：先按它改再继续；只有拿得出反驳证据时才能偏离，并在回复里说明理由。顾问是独立只读复核者（沿用优化 AI 配置，不改文件）。关键方案确定前用 develop_approach：要 3–5 条把成果往上抬的方向（往上抬，不是小修小补；不写代码/数值/步骤）——质变优先，宁少勿细，不必先失败。产物形成后用 improve_result：指出最该抬的那一处并给方向，可带 currentResult 或 files/images；只有明确缺陷才写成「缺陷：…」（最多 2 条），其余保持方向级。两种贡献都不记验收通过；diagnose_failure 与 review_result 保持原义（同样点到为止）。一次一个 scope+focus；视觉先审图再追源码；交付用 delivery 核对覆盖与版本；小任务general兼容。重复失败且没有新证据时用 diagnose_failure：先判断信息增量，再决定继续/缩小实验/换路线。首次准备宣称成果完成时，先取得原始验证证据并自验，再调用 review_result 独立复核；不要提交自己的通过结论。用户指出偏差或关键成果变化后重审相关部分，普通小测试不要重复咨询。分歧应通过针对性证据或用户判断解决，不靠模型投票。默认不设顾问总截止；显式DSH_PO06_ADVISOR_TIMEOUT_MS才设置截止，用户取消与只读轮次上限仍生效；关闭提示词辅助时不可用。',
     parameters: ADVISOR_PARAMETERS,
     output: {
       schema: { type: 'object', additionalProperties: true },

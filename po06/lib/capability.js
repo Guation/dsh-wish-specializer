@@ -217,12 +217,14 @@ export function createCapability({ home = null, namespace = 'default', now = () 
       }
       if(!s.optimizer && s.understanding && s.understanding.action!=='acknowledge' && s.understanding.summary!==s.current?.text)lines.push('【当前任务理解 · 机器解释，非新增要求】\n'+s.understanding.summary+(s.understanding.focus?'\n当前对象：'+s.understanding.focus:''))
       if(!s.optimizer && s.support && s.support.mode!=='none' && (s.support.contribution || (s.support.reason && s.support.nextAction))) {
-        const advice=['【解题贡献 · 机器建议，以原话和实际依据为准】']
+        // 2026-10-19：顾问改成"愿望式方向"后，注入给执行者的标题也改成方向口径；
+        // 但**不是新增用户要求**这条边界不变（下方那句仍然要求按原话判断是否适用）。
+        const advice=['【解题方向 · 机器提出的方向要求（不是新增用户要求）】']
         if(s.support.reason)advice.push(s.support.reason)
         if(s.support.contribution)advice.push(s.support.contribution)
         if(s.support.assumptions?.length)advice.push('待核对的前提：\n'+s.support.assumptions.map(x=>'· '+x).join('\n'))
         if(s.support.nextAction)advice.push('可选下一步：'+s.support.nextAction)
-        advice.push('判断该贡献是否适用于当前任务；采纳、修改或反驳均可，建议不改变用户目标和授权。')
+        advice.push('这些方向只为抬高成果上限；按用户原话判断是否适用，采纳或反驳都可以，它们不改变用户目标与授权。')
         lines.push(advice.join('\n'))
       }
       if(packet)lines.push(packet)

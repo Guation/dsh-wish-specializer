@@ -63,12 +63,22 @@ test('normal packet and source message are historical, without later consult-opp
 })
 
 test('unchanged capability/contribution authority stays historical; claim-policy differences are explicit', { skip: SKIP },()=>{
- for(const file of ['capability.js','advisor-contribution.js','advisor-stage-tool.js'])assert.equal(readFileSync(new URL('../lib/'+file,import.meta.url),'utf8'),readFileSync(join(ref,'po06/lib',file),'utf8'),file)
+ assert.equal(readFileSync(new URL('../lib/advisor-stage-tool.js',import.meta.url),'utf8'),readFileSync(join(ref,'po06/lib/advisor-stage-tool.js'),'utf8'),'advisor-stage-tool.js 逐字节一致')
+ // 2026-10-19 用户改口径：顾问贡献改成"愿望式方向"（一条一句、点到为止、只有缺陷可稍具体）。
+ // 漂移必须**可枚举**：capability.js 只换了两处文案，其余逐字节与历史一致。
+ const revertCapability=(s)=>s
+  .replace('【解题方向 · 机器提出的方向要求（不是新增用户要求）】','【解题贡献 · 机器建议，以原话和实际依据为准】')
+  .replace('这些方向只为抬高成果上限；按用户原话判断是否适用，采纳或反驳都可以，它们不改变用户目标与授权。','判断该贡献是否适用于当前任务；采纳、修改或反驳均可，建议不改变用户目标和授权。')
+ const stripComments=(s)=>s.split('\n').filter((l)=>!/^\s*\/\//.test(l)).join('\n')
+ assert.equal(stripComments(revertCapability(readFileSync(new URL('../lib/capability.js',import.meta.url),'utf8'))),stripComments(readFileSync(join(ref,'po06/lib/capability.js'),'utf8')),'capability.js 的差异必须只有那两处文案（注释不计）')
  // 与历史的差异必须**逐项列出来**（本测试的用处就是"看不出来的漂移"为零）。现在有三处：
  //   subjectPaths（新增，只绑定版本不新增验收目标）、requiredScopes/requiredReviews（GitHub #33A）。
- const {subjectPaths,requiredScopes,requiredReviews,...properties}=ADVISOR_PARAMETERS.properties
+ // 2026-10-19：贡献改成"方向性要求"后，mode 的描述也改了（与历史有意不同；枚举集合不变）。
+ const {subjectPaths,requiredScopes,requiredReviews,mode:currentMode,...properties}=ADVISOR_PARAMETERS.properties
  // 历史那一侧也要把同样三项摘掉再比 —— 否则比的是"谁少两个键"，不是"其余是否逐字一致"。
- const {requiredScopes:_hScopes,requiredReviews:_hReviews,...historicalProperties}=historicalAdvisor.ADVISOR_PARAMETERS.properties
+ const {requiredScopes:_hScopes,requiredReviews:_hReviews,mode:historicalMode,...historicalProperties}=historicalAdvisor.ADVISOR_PARAMETERS.properties
+ assert.deepEqual(currentMode.enum,historicalMode.enum,'模式集合不变')
+ assert.ok(currentMode.description.includes('方向性要求')&&historicalMode.description.includes('贡献具体解法'),'mode 描述是有意改的')
  assert.deepEqual({...ADVISOR_PARAMETERS,properties},{...historicalAdvisor.ADVISOR_PARAMETERS,properties:historicalProperties});assert.ok(subjectPaths)
  // GitHub #33A：这两个参数的**全部**消费方都在 delivery 分支内，非 delivery 下是纯 no-op。
  // 历史实现按硬错误拒掉整次调用（真机某会话 21 连败 0 成功），而 schema 的 enum 又把 8 个值全给 ⇒ 照 schema 选值必被拒。
@@ -85,7 +95,15 @@ test('unchanged capability/contribution authority stays historical; claim-policy
  assert.equal(requiredReviews.items.required.join(),'scope,focus')
  assert.equal(historicalDelivery.requiredScopes.items.enum.includes('general'),true)
  assert.equal(requiredScopes.items.enum.includes('general'),false,'schema 不许再给出 delivery 内非法的取值')
- for(const mode of ['develop_approach','improve_result'])for(const en of [false,true])assert.equal(contribution.contributionSystem(mode,en),originalContribution.contributionSystem(mode,en))
+ // 贡献提示词是**有意**改的（2026-10-19 愿望式）：不再与历史逐字一致，但边界必须还在。
+ for(const mode of ['develop_approach','improve_result'])for(const en of [false,true]){
+  const sys=contribution.contributionSystem(mode,en)
+  assert.ok(sys.includes(en?'Raise the ceiling':'往上抬'),mode+' '+(en?'en':'zh')+' 要写明「往上抬」')
+  assert.ok(sys.includes(en?'no code':'不写代码'),'不写代码')
+  assert.ok(sys.includes(en?'Defect:':'缺陷：'),'只有缺陷可稍具体')
+  assert.ok(sys.includes('checks'),'checks 仍要显式声明为空')
+  assert.notEqual(sys,originalContribution.contributionSystem(mode,en),'这是有意的口径变化')
+ }
  for(const mode of ['develop_approach','improve_result','review_result'])for(const scope of ['general','code','appearance']){
   const args={mode,scope,question:'Actual question',focus:'Actual object'};if(scope!=='appearance'||mode!=='review_result')assert.deepEqual(scopes.scopePolicy(args),historicalScopes.scopePolicy(args));else {assert.equal(scopes.scopePolicy(args).imagesOnly,false);assert.equal(scopes.scopePolicy(args).allowTools,true)}
  }
@@ -102,7 +120,11 @@ test('actual adviser system and supplied history match turn305 for both contribu
   // The bounded observedRanges index is new; actual sent content/system/history are unchanged here.
   const normalize=x=>JSON.parse(JSON.stringify(x),(k,v)=>k==='observedRanges'?undefined:v)
   const stripPayload=x=>({...x,messages:x.messages.map(m=>({...m,content:m.content.map(b=>b.type==='text'?{...b,text:JSON.stringify(normalize(JSON.parse(b.text)))}:b)}))})
-  assert.deepEqual(stripPayload(inputs[0]),stripPayload(inputs[1]),mode+' '+englishMode)
+  // system 提示是有意改的（愿望式方向）；其余（messages/count/rootListing）必须与历史一致。
+  const noSystem=(x)=>({...stripPayload(x),system:undefined})
+  assert.deepEqual(noSystem(inputs[0]),noSystem(inputs[1]),mode+' '+englishMode)
+  assert.notEqual(inputs[0].system,inputs[1].system,mode+' '+englishMode+'：贡献 system 提示是有意改过的')
+  assert.ok(/往上抬|Raise the ceiling/.test(inputs[1].system),mode+' '+englishMode+'：当前 system 是愿望式口径')
  }}finally{rmSync(root,{recursive:true,force:true})}
 })
 
