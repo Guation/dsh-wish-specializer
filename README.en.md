@@ -1,176 +1,120 @@
-# Wish Specializer **v0.9.0-beta-1** (in development) · DSH Web plugin (package `dsh-wish-specializer`)
+# Wish Specializer
 
-**English** ｜ [中文](README.md)
+**v0.9.0-beta-1** · DSH Web plugin · package `@dsh-external/dsh-wish-specializer`
 
-> Former repository name: `dsh-prompt-optimizer` (old links redirect here automatically).
-> **Wish Specializer** turns a one-line wish into requirements the working AI can actually build against.
+[中文](README.md) ｜ **English**
 
-Effect demo — all captured on Windows + DSH + PTC, in one shot.
-(the plugin tier was set to "Heavy")
-With DeepSeek-V4.1-Flash
-![](./docs/image/contrast_small.png)
-Prompt: Do not preview any other files in the folder. Build a single-HTML program whose subject is an
-extremely detailed modern main battle tank model — previewable, controllable, realistic, striking, and
-showpiece-quality.
-
-> **It never rewrites your words.** You type as usual; before you hit send it works out *what this round actually
-> needs* and hands that understanding to the working AI — your original message goes out **byte for byte**,
-> the understanding rides along, the model's clarifications and suggestions are **always labelled as machine output**
-> (never passed off as something you said), and each round is **reasoned from scratch** (nothing is inherited).
-> Full guide and self-check: [`po06/README.md`](po06/README.md) · manual acceptance: [`po06/HUMAN-TEST.md`](po06/HUMAN-TEST.md)
-
-> ### ⚠️ There is only one install source: this repo’s Releases
->
-> | Channel | What it is | Use it? |
-> |---|---|---|
-> | **GitHub Release asset** | The current version (`@dsh-external/dsh-wish-specializer`) | ✅ **The only correct source** — the command below |
-> | **npm** | **This plugin is not published to npm** (`private: true`); it ships via Releases only.
->  Any same-named or similar package on the registry **is not this project**. | ❌ Do not install from npm |
-> | Cloning the repo root | Same source as this Release, for developers | ⚠️ You must build it yourself; Releases are easier for normal use |
->
-> Looking for versions 0.1–0.6? See [`old/`](old/README.md) (per-generation notes and download methods).
-> Want to publish a release yourself? See [`docs/RELEASING.md`](docs/RELEASING.md) (9-step procedure + checklist).
-> ### Install 0.8.4-stable in 30 seconds
->
-> ```powershell
-> $v = '0.8.4-stable'; $d = "$env:USERPROFILE\Downloads"
-> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-wish-specializer-$v.tgz" -OutFile "$d\dsh-external-dsh-wish-specializer-$v.tgz"
-> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
-> Get-Content "$d\SHA256SUMS-$v.txt"     # compare the sha256 with the tgz you just downloaded (same file as on the Release page)
-> dsh --profile po061 --from-default-profile web --dump-config        # a clean profile
-> dsh plugin --profile po061 add "$d\dsh-external-dsh-wish-specializer-$v.tgz"    # install
-> dsh --profile po061                                                 # start (prints a tokenized URL)
-> ```
->
-> Afterwards set the **tier** control to `standard` or `heavy` (`off` does not intercept and injects nothing).
-> The long version (4-step self-check, common install failures) is in [`po06/README.md`](po06/README.md).
-> **Do not install it into the profile that carries your 0.5.x**: having both assembled makes the `DOUBLE_INTERCEPT`
-> guard refuse to enable (that is deliberate), and the two **do not share configuration** (0.6's enable intent lives in
-> `<home>/po06.json` and never touches 0.5's `prompt-optimizer.json`).
+> Turns a one-line wish into requirements the working AI can actually follow.
 
 ---
 
-## The problem it solves
+## What it is
 
-Models of this class (v4.1-flash and friends) **don't act unprompted, don't guess, and finish in one pass**:
-anything you leave out that they cannot infer is **necessarily missing**, and anything you write they **will** do.
-So what is missing is never "a prettier prompt" — it is **the bit of context you forgot to say and the model cannot know**.
+Say "build a modern main battle tank model — detailed, controllable, badass," and the parts that decide
+whether the result is good — **aesthetic register, light and material, composition and depth, setting,
+interaction and states, and what counts as done** — are filled in **before you hit send**, then handed to
+the working AI together with your words.
 
-This plugin does exactly one thing: **before you send, it fills that gap, and every line it adds can be traced back to
-evidence**. It never writes the downstream's own craft (generic boilerplate, ordinary API usage, best practices,
-teaching) and never writes untargeted verification boilerplate — for this class of model the prompt is not advice
-but an **instruction set**.
+In one sentence: **your words stay untouched; the missing half is supplied.**
 
-## How it works (four steps)
+## What it is not
 
-1. **Intercept before sending**: your message has not reached the working AI yet (the panel shows "optimizing… N s",
-   and you can hit **Skip and send as-is** at any moment).
-2. **A separate call does the interpretation** (the explainer layer). Its only inputs are **your verbatim message this
-   round** plus **the session context / project files actually read this round**. It returns four kinds of content:
-   **the intent of this round**, **clarifications**, **positive additions and suggestions**, and **questions worth asking**.
-   It does **not** rewrite your message.
-3. **The host owns the engineering side**: item ids, provenance and state updates are handled by the plugin, and the
-   model's clarifications and suggestions are **always labelled as machine output** — they never enter the "you said that" class.
-4. **Sidecar injection**: your message goes out **unchanged**, and the interpretation rides along as a packet for this
-   round only; when the next round starts, the previous round's items retire wholesale (kept for the record, not deleted).
+- It **never rewrites** your request — no trimming, narrowing, or "improving" your intent;
+- It **never decides for you**: architecture forks that change the shape of the deliverable stay yours;
+- It **never records "accepted"**: the advisor only contributes directions and reviews;
+- It is **not on npm** (`private: true`); it ships as a GitHub Release asset;
+- It **does not touch the host**: no DSH UI files, no custom session event types.
 
-**Three invariants** (this is also where it differs from other tools):
+## Side by side
 
-| Invariant | Meaning | Not |
-|---|---|---|
-| **No rewriting** | the message dispatched to the working AI is the bytes you wrote | not a prompt rewriter |
-| **Advice never gains authority** | clarifications and suggestions stay machine output; only what you explicitly said counts as a requirement | not free-form completion |
-| **Per-round zero base** | this round's understanding does not depend on the previous round's items | not memory/profiling, not RAG |
-| **Adding nothing is fine** | with nothing worth adding, the round is simply "understood, no additions" | no padding to look busy |
+Windows + DSH + PTC preset, one shot, tier "Heavy", model DeepSeek-V4.1-Flash.
 
-> **The cost, honestly**: long-lived constraints ("ship a single file", "don't touch other folders") no longer carry
-> across rounds — they must be re-derived from the context each round ⇒ **do not shrink the context window too far**.
-> What you get in return: "something solved two rounds ago is demanded again" cannot happen.
+![](./docs/image/contrast_small.png)
 
-## What the UI gives you
+Prompt (verbatim):
 
-One row in the input area: **Optimization options** (icon + current tier summary), a state dot, and a `?` manual.
-Clicking it opens a restrained card:
+> Do not preview other files in the folder; build a single-HTML program: an extremely detailed modern main battle tank model, previewable, controllable, realistic, good-looking, showy-photographic.
 
-| Control | Values | What it does |
-|---|---|---|
-| **Tier** | `off` / `light` / `standard` / `heavy` | tier = **evidence budget**. `off` = no interception, no injection (as if not installed) |
-| **Permission** | `review` / `auto` | review = it shows you what it will inject and lets you edit before sending; auto = it sends as soon as it finishes |
-| **Model** | follow the session model (default) or pick one | which model the explainer layer uses |
-| **Context** | turns `0–10` / `full` | how much history it reads; more is better informed and slower |
-| **Read-only tools** | `on` / `off` (default off) | lets it read files **inside your working directory** to check facts (read-only, no writes, no commands) |
-| **Details** | — | edit the explainer prompt (undo, or restore the built-in one) |
+## What it adds
 
-The intercept overlay has two panes: **thinking** (fixed height, no scrollbar, never truncated, scrollable back) and
-**output** (what will be injected; editable in review mode). Token counts come from the provider's **real reported
-usage**, split into input / output / cache (k/M; `—` when nothing is reported; **never estimated**).
+| Dimension | What gets filled in |
+|---|---|
+| Aesthetic register | Cold and hard vs. warm, realistic vs. stylized |
+| Light and material | Key light, contrast, reflectivity/roughness, worn vs. pristine |
+| Composition and depth | Subject scale, foreground/mid/back separation, visual focus |
+| Setting and mood | Ambient light, atmosphere, ground and background |
+| Interaction and states | What can be operated, hover/click/drag feedback, boundaries |
+| Acceptance | One line that says what "done" means, so you stop ping-ponging |
 
-**UI language follows DSH**: set DSH to Chinese and everything is Chinese, set it to English and everything is English
-(the `?` manual switches too) — there is **no separate language switch inside the plugin**. Light/dark **follows the DSH
-theme** as well, switching live.
+Additions are **directional requirements** — no code, no numeric parameters, no implementation steps.
 
-## FAQ
+## Use it in 30 seconds
 
-**How long does it take?** Typically 20–60 s (tier, context and model dependent). That wait *is* the thinking time; hit **Skip and send as-is** whenever you don't want to wait.
+1. Install (below) and set the **tier** to "Standard" or "Heavy" ("Off" neither intercepts nor injects);
+2. Type as usual and press **Enter**;
+3. In the intercept panel, click "Confirm", or "Skip and send as-is";
+4. Want speed? **Press Enter twice** to skip this round (on by default, two presses within 600 ms);
+5. After sending, the "Injected" card under the message shows exactly what went into the context.
 
-**Does it change my message?** No. What gets augmented is the understanding handed to the working AI; the words you send are still yours.
+## Tiers
 
-**Can it lose my message?** No. If interpretation fails: in `auto` it sends your original text and says why; in `review` it stops in an error state and waits for you (your message stays in the input box).
+| Tier | Additions | Packet budget | Clarifying questions |
+|---|---|---|---|
+| Off | record only | — | — |
+| Light | 2–3 decisive directions | 700 chars | 1 |
+| Standard | 4–6 items + acceptance line | 1200 chars | 2 |
+| Heavy | the decisive few, written through + staging note | 2000 chars | 3 |
 
-**What if it extracts nothing this round?** "Understood, but nothing worth adding" is now a **valid outcome**: it no longer pads the packet, and it does not retry just because the additions are empty. It only retries when the **output format itself is broken**.
+Tiers widen "how much / how many questions", **never your decision rights**.
 
-**Does it remember the previous round's goals?** No. Each round is re-derived from *your message this round* plus *the context read this round*; see the invariants above for the cost.
+## Also in the panel
 
-**Will it invent requirements?** No. Only what you explicitly said counts as your requirement; the model's clarifications and suggestions are always labelled **machine output** and never enter the "you said that" class. Legacy-format items still require a verbatim quote, and mismatches are flagged in red in the UI.
+- **Advisor**: a separate read-only model reviews the round and returns executable directions;
+- **Permission**: Review (show sources first) / Auto;
+- **Tone**: neutral / direct;
+- **English mode**: additionally return a faithful English task;
+- **Model and thinking effort** for the explainer;
+- **Context**: last N turns, or everything you still hold;
+- **Read-only tools / built-in Bash**: let it look at a few project files first;
+- **Double-Enter skip**: on by default;
+- **Details**: the control and explainer prompts, visible and editable.
 
-**Does reading project files touch anything?** No: read-only, confined to your working directory, anything outside is refused.
+## Install
 
-**Turning it off / uninstalling?** Temporarily: set the tier to `off` (no interception, no injection). Fully: remove `@dsh-external/dsh-wish-specializer` from the profile's `dsh.profile.bundles` and `dependencies`, restart DSH; its config lives in `<home>/po06.json` and you can delete it.
+The only source is the **Release asset** (`.tgz`) in this repository.
 
-## Privacy and boundaries
+```powershell
+$v = '0.9.0-beta-1'; $d = "$env:USERPROFILE\Downloads"
+Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-wish-specializer-$v.tgz" -OutFile "$d\dsh-external-dsh-wish-specializer-$v.tgz"
+Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
+Get-Content "$d\SHA256SUMS-$v.txt"     # compare sha256 with the tgz you downloaded
+dsh --profile po061 --from-default-profile web --dump-config
+dsh plugin --profile po061 add "$d\dsh-external-dsh-wish-specializer-$v.tgz"
+dsh --profile po061
+```
 
-- **Nothing leaves your machine**: no telemetry, no callbacks. All state lives under `<home>/po06-*.json*` and `po06-state/`.
-- **Read-only tools are the only file access**: off by default; when on they are read-only, confined to the working directory, and run no commands.
-- **No unrelated content is injected**: the packet is derived only from this round's message and the context read this round; items whose sources cannot be verified are dropped.
-- **Not enabled by default (deliberately conservative)**: the assembly-time enable gate defaults to `off`. To enable it, write
-  `{"settingsVersion":1,"enabled":true,"rollout":{"mode":"all"}}` to `<home>/po06.json` (for selected sessions only:
-  `{"mode":"allowlist","sessions":["<session id>"]}`). As long as the old plugin is still assembled it refuses to enable with
-  `DOUBLE_INTERCEPT` — having one message processed twice is the worse failure.
+- Not on npm: `private: true`; any same-named package in a registry is not this project;
+- Do not install into the profile that hosts 0.5.x — the `DOUBLE_INTERCEPT` guard refuses it (by design);
+- Install troubleshooting and a four-step self-check: [`po06/README.md`](po06/README.md).
 
-## Honest status (please set your expectations here)
+## Docs
 
-- ✅ **Internally self-consistent, with evidence**: **104 suites / 1141 tests green** (including package self-sufficiency and
-  documentation-drift gates; plus 234 mutation guards on the release-gate line).
-- 📊 **The author's hands-on observation (not a benchmark)**: testing has mostly been done in a
-  **DeepSeek-V4.1-Flash + PTC + PowerShell** environment. **No professional benchmark has been run**; however, across the
-  usual one-shot tasks and long-task iterations the **practical results are clearly stronger than DeepSeek-V4.1-Flash
-  under the same environment and the same prompt**, and a **small sample** of projects suggests it **may also reduce token
-  consumption and save cost**.
-- ⚠️ **The capability is still experimental** — treat it as something you can install, try, and switch off at any time,
-  **not as an upgrade**.
-- 📌 What `0.8.4-stable` changes:
-  ⓪ **The advisor loop (headline)** — a review now checks **the evidence each claim actually cites**: clipped or missing
-     *unrelated* material no longer vetoes the whole report, while clipped material you *did* cite still has to be read in full;
-     source, screenshots and runtime records never vouch for each other. Real failures, missing evidence and version changes stay visible.
-  ① **"I cannot read this file" no longer voids the consultation** (#32) — unreadable material can be cited normally and the gap is
-     recorded in the result; `/po06/api/status` reports the session's real read setting instead of a hard-coded "off".
-  ② **A rejected parse no longer means "no packet"** (#31) — "emitted nothing" and "emitted garbage" are now treated alike: retry once,
-     and if it is still broken the host adds an **honest note** (it never invents a requirement). The balanced scan takes only the first
-     **complete** object; it never guesses JSON.
-  ③ **Reading one file in several segments no longer throws the review away** (#30) — materials merge by **file version**
-     (5 segments of one file = 1 row; changed versions are not swallowed; more than 8 real versions is still refused).
-     Failed / interrupted cards now really show the produced thinking tail and evidence calls.
-  ④ **Two guaranteed-failure paths are fixed** (#33) — `requiredScopes` / `requiredReviews` are a no-op outside `delivery`,
-     so they no longer reject the whole call (one real session: 21 failures, 0 successes); English translation retries a bounded
-     number of times on upstream jitter and records every attempt in the ledger.
-  ⑤ **A silent advisor is stopped early** (#34) — only when it produces **nothing at all** (90 s default); any incremental output resets
-     it. It is not a total deadline: `DSH_PO06_ADVISOR_STALL_MS=0` turns it off entirely.
-  ⑥ **Install troubleshooting table** (#29) — this plugin deliberately ships no npm package; see above for what to do when an installer
-     falls back to a git install and hits TLS failures or an `allowBuilds` hint.
-  ⑦ Everything else (English mode, experimental reasoning boost, `consult_task`, built-in Bash, slash-command allowlist, streaming
-     intercept overlay) continues from 0.8.3.
-  **No professional benchmark**: this release is about correctness and usability, not about a faster model or automatically better artifacts.
-  See [`CHANGELOG.md`](CHANGELOG.md).
+| Looking for | Where |
+|---|---|
+| Help text (same source as the panel's `?`) | [`po06/HELP-0.6.en.md`](po06/HELP-0.6.en.md) |
+| Install / self-check / troubleshooting | [`po06/README.md`](po06/README.md) |
+| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
+| Human acceptance checklist | [`po06/HUMAN-TEST.md`](po06/HUMAN-TEST.md) |
+| Release procedure | [`docs/RELEASING.md`](docs/RELEASING.md) |
+| Legacy versions (0.1–0.6) | [`old/`](old/README.md) |
+
+## Version and evidence
+
+- Current: **v0.9.0-beta-1** (in development); previous stable: v0.8.4-stable
+- All suites: `node po06/scripts/run-suites.mjs`; release gate: `node po06/scripts/check-release.mjs`
+- Compatibility: `dsh-0.1.7-rc.2` (run for real), `dsh-0.2.0-rc.2` (static contract check)
+- Author: 啃轮胎的西狐 · QQ group **1121399051** (announcements / install help)
+
 ## License
 
-[BSD-3-Clause](LICENSE) · fully open source; anyone may use and modify it in any way, and suggestions are welcome.
+[BSD-3-Clause](LICENSE) · fully open source.

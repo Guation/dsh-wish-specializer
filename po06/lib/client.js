@@ -548,8 +548,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       helpH: { fontWeight: 600, margin: '10px 0 4px' },
       helpP: { margin: '2px 0' },
       helpQuote: { color: OVS.fg3, borderLeft: '3px solid ' + OVS.line, paddingLeft: '8px', margin: '4px 0' },
-      helpTr: { display: 'flex', gap: '8px', padding: '1px 0' },
+      // 表格行：细横线分隔；首列压暗，像真正的表
+      helpTr: { display: 'flex', gap: '8px', padding: '4px 0', borderBottom: '1px solid ' + OVS.line2 },
       helpTd: { flex: '1 1 0', minWidth: 0 },
+      helpTdKey: { flex: '0 0 34%', minWidth: 0, color: OVS.fg3 },
       // ── P11 拦截浮层（**照 0.5 的观感复刻**；0.6 只用内联样式对象，不注入 <style>）─────────
       // 0.5 用一张 CSS 字符串（`.dpo-*`）注入页面；0.6 的纪律是内联样式 ⇒ 这里把 0.5 里
       // **决定观感的那几条**逐条翻过来：尺寸/间距/圆角/配色/层级/滚动归属（底栏在滚动区之外）。
@@ -780,14 +782,25 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       dis: { opacity: .45, filter: 'grayscale(1)', cursor: 'not-allowed' },
       // ⑦ 帮助弹层
       helpPop: { position: 'fixed', right: '16px', bottom: '84px', width: 'min(520px, 92vw)', maxHeight: '70vh',
+        borderTop: '2px solid ' + OVS.acc,
         contain: 'content',
         overflow: 'auto', background: OVS.surface, color: OVS.fg, border: '1px solid ' + OVS.lineSoft,
         borderRadius: '12px', padding: '14px 16px', zIndex: OV_Z.help, boxShadow: SHADOW.float,
         fontSize: '12px', lineHeight: '18px' },
-      helpTitle: { fontWeight: 700, fontSize: '14px', margin: '2px 0 6px' },
-      helpH: { fontWeight: 700, fontSize: '12.5px', margin: '12px 0 4px' },
+      // 主标题：主题色竖条 + 底部细线，像一张卡的头
+      helpTitle: { display: 'flex', alignItems: 'center', fontWeight: 700, fontSize: '14px',
+        margin: '2px 0 8px', paddingBottom: '8px', borderBottom: '1px solid ' + OVS.lineSoft },
+      // 小标题：细竖条 + 字号提升
+      helpH: { display: 'flex', alignItems: 'center', fontWeight: 700, fontSize: '12.5px',
+        color: OVS.fg, margin: '14px 0 5px' },
+      helpBar: { flex: '0 0 auto', width: '3px', height: '15px', borderRadius: '2px',
+        background: OVS.acc, marginRight: '8px', boxShadow: '0 0 8px ' + OVS.acc22 },
+      helpBarSmall: { flex: '0 0 auto', width: '2px', height: '11px', borderRadius: '2px',
+        background: OVS.acc, opacity: .8, marginRight: '7px' },
       helpP: { margin: '2px 0', ...TYPE.body },
-      helpQuote: { color: OVS.fg3, borderLeft: '2px solid ' + OVS.acc22, paddingLeft: '8px', margin: '6px 0' },
+      // 引用块：主题色左边框 + 一点主题色底
+      helpQuote: { color: OVS.fg2, borderLeft: '3px solid ' + OVS.acc, background: OVS.acc12,
+        borderRadius: '0 8px 8px 0', padding: '7px 10px', margin: '8px 0' },
       // ⑧ 拦截浮层：440 宽，紧凑排版，主按钮实心
       ov: { position: 'fixed', left: 0, top: 0, zIndex: OV_Z.ov, display: 'flex', flexDirection: 'column',
         width: '440px', minWidth: '340px', minHeight: '220px', maxHeight: 'min(76vh, 620px)',
@@ -1708,12 +1721,21 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (!s.trim()) { out.push(h('div', { key: i, style: { height: '6px' } })); return }
         if (/^\|[\s:|-]+\|$/.test(s.trim())) return                    // 表格分隔行（|---|---|）不显示
         const clean = (x) => String(x).replace(/\*\*/g, '').replace(/`/g, '')
-        if (/^##\s/.test(s)) { out.push(h('div', { key: i, style: S.helpH }, clean(s.replace(/^##\s+/, '')))); return }
-        if (/^#\s/.test(s)) { out.push(h('div', { key: i, style: S.helpTitle }, clean(s.replace(/^#\s+/, '')))); return }
+        if (/^##\s/.test(s)) {
+          out.push(h('div', { key: i, style: S.helpH },
+            h('span', { 'aria-hidden': 'true', style: S.helpBarSmall }), clean(s.replace(/^##\s+/, ''))))
+          return
+        }
+        if (/^#\s/.test(s)) {
+          out.push(h('div', { key: i, style: S.helpTitle },
+            h('span', { 'aria-hidden': 'true', style: S.helpBar }), clean(s.replace(/^#\s+/, ''))))
+          return
+        }
         if (/^>\s?/.test(s)) { out.push(h('div', { key: i, style: S.helpQuote }, clean(s.replace(/^>\s?/, '')))); return }
         if (s.trim().startsWith('|')) {
           const cells = s.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => clean(c.trim()))
-          out.push(h('div', { key: i, style: S.helpTr }, cells.map((c, j) => h('span', { key: j, style: S.helpTd }, c))))
+          out.push(h('div', { key: i, style: S.helpTr },
+            cells.map((c, j) => h('span', { key: j, style: j === 0 ? S.helpTdKey : S.helpTd }, c))))
           return
         }
         out.push(h('div', { key: i, style: S.helpP }, clean(s)))
