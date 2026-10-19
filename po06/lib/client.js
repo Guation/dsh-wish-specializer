@@ -2309,7 +2309,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 避免"没读到就当关"把用户的设置误写回去。
       const bashKnown = !!(data && (hasOwn(s, 'bash') || hasOwn(d, 'bash')))
       const bashOn = bashKnown ? !!(hasOwn(s, 'bash') ? s.bash : d.bash) : true
-      // 双击 Enter 跳过本轮优化（2026-10-19，默认关）。与 bash 同款三态：没读到就是关，
+      // 双击 Enter 跳过本轮优化（2026-10-19，**默认开**）。与 bash 同款三态：没读到就是关（不发这个字段），
       // 但**不发**这个字段，免得把"没读到"写成"用户选了关"。
       const desKnown = !!(data && (hasOwn(s, 'doubleEnterSkip') || hasOwn(d, 'doubleEnterSkip')))
       const doubleEnterSkip = desKnown ? !!(hasOwn(s, 'doubleEnterSkip') ? s.doubleEnterSkip : d.doubleEnterSkip) : false

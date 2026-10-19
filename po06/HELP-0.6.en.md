@@ -21,6 +21,6 @@ Enter → held → optimized → you confirm (or it auto-releases) → your text
 
 - **Read-only tools**: read a few project files before writing requirements. More accurate, slower.
 - **Advisor**: a separate read-only model reviews independently; its findings come back as must-do requirements.
-- **Double-Enter skip**: off by default. When on, pressing Enter twice within 600ms sends this round unoptimized.
+- **Double-Enter skip**: on by default. Pressing Enter twice within 600ms sends this round unoptimized.
 
 > No injection, no card: skipped, switched off, or failed — it never pretends something was injected.

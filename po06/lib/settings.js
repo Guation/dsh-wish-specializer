@@ -121,10 +121,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // 0.7.1：内置 Bash（随本插件装配即提供）。默认 **开**——它是"内置功能"，
   // 关掉＝不把 bash 工具注册给模型（模型看不到它），不是在工具内部做软拦截。
   bash: true,
-  // 2026-10-19 用户要求：**双击 Enter 跳过本轮优化**，默认关。
+  // 2026-10-19 用户要求：**双击 Enter 跳过本轮优化**；当天稍后改成**默认开**。
   // 开着时：第一次 Enter 正常拦截并开始解释；600ms 内再按一次 Enter ⇒ 放弃本轮解释、
   // 按原文立即发出（与面板上的「跳过」同一语义：不发包、不出注入卡片）。
-  doubleEnterSkip: false,
+  doubleEnterSkip: true,
   // 2026-10-19 用户提出：子代理也会跑这套解释/注入，通常没必要（白花 token）。
   // 默认 **不应用**；要的话在「详情」里打开。
   applyToSubagents: false,

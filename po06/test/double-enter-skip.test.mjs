@@ -14,12 +14,13 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(HERE, '..')
 const CLIENT_SRC = readFileSync(join(ROOT, 'lib', 'client.js'), 'utf8')
 
-test('设置：默认关、在白名单里、非布尔值回落为关', () => {
-  assert.equal(DEFAULT_SETTINGS.doubleEnterSkip, false, '默认必须是关')
+test('设置：默认**开**、在白名单里、非布尔值回落为默认', () => {
+  // 2026-10-19 用户改口径：这个开关改为默认开（双击仍然只是"跳过一次"，不会误发）。
+  assert.equal(DEFAULT_SETTINGS.doubleEnterSkip, true, '默认必须是开')
   assert.ok(SETTINGS_KEYS.includes('doubleEnterSkip'), '必须进白名单，否则写不进设置')
   assert.equal(normalizeSettings({ doubleEnterSkip: true }).settings.doubleEnterSkip, true)
   const bad = normalizeSettings({ doubleEnterSkip: 'yes' })
-  assert.equal(bad.settings.doubleEnterSkip, false, '非布尔值回落默认')
+  assert.equal(bad.settings.doubleEnterSkip, true, '非布尔值回落默认（现在是开）')
   assert.ok(bad.problems.some((p) => p.key === 'doubleEnterSkip'), '要如实报告这一项被回落')
 })
 
