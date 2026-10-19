@@ -2316,72 +2316,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [ovBall, setOvBall] = React.useState(null)  // {visible, pos, sent, phase}
       const [ovLast, setOvLast] = React.useState(null)  // 最近一次**已终结**的拦截（0.5 球里存的那份 run）
       const ovLastRef = React.useRef(null)
-      // 第 5 项：**发布完成之后**留在输入栏上的一颗小卡片——点开看这一轮注入了什么。
-      // 默认收起；只存"最近一次真的发出去了"的那一轮（跳过/按原文发出不产生快照）。
-      const [inject, setInject] = React.useState(null)
-      const [injectOpen, setInjectOpen] = React.useState(false)
-      const [injectPos, setInjectPos] = React.useState(null)
-      const injectBtnRef = React.useRef(null)
-      const injectCardRef = React.useRef(null)
-      // 2026-10-19：卡片数据不再写会话事件（宿主会因此拒绝整条会话），改由插件自己的
-      // /po06/api/injection 提供。挂载时拉一次 ⇒ 刷新/重开会话后胶囊还在。
-      React.useEffect(() => {
-        if (!sessionId) return undefined
-        let alive = true
-        apiGet('/injection?session=' + encodeURIComponent(sessionId)).then((r) => {
-          if (!alive || !r || r.ok !== true || !r.injection) return
-          const row = r.injection
-          if (!row || typeof row.injected !== 'string' || !row.injected.trim()) return
-          setInject({ injected: row.injected, chars: Number(row.chars) > 0 ? row.chars : row.injected.length })
-        }, () => { /* 读不到就不显示，不打扰 */ })
-        return () => { alive = false }
-      }, [sessionId])
-      /** 第 5 项：把展开体摆到胶囊旁边（fixed + 实测坐标，右缘收进会话窗——issue #18）。 */
-      const placeInject = () => {
-        const el = injectBtnRef.current
-        const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null
-        if (!r) return
-        const vh = (typeof window !== 'undefined' && window.innerHeight) || 600
-        const rg = composerRegion(el)
-        const popW = Math.min(460, Math.max(240, rg.w - 16))
-        setInjectPos({
-          left: Math.min(Math.max(rg.left + 8, Math.round(r.left)), Math.max(rg.left + 8, rg.right - popW - 8)),
-          bottom: Math.max(8, Math.round(vh - r.top + 6)),
-          width: popW,
-        })
-      }
-      // 第 5 项：卡片的外点 / Esc / 窗口变化。
-      // 外点**只豁免胶囊与卡片本体**（不是整条控件栏）：否则点同排的「优化选项」不关卡片，
-      // 两块 fixed 浮层会叠在一起。滚动 / 缩放时重算位置，否则输入框一长高卡片就和胶囊脱位。
-      React.useEffect(() => {
-        if (!injectOpen) return undefined
-        placeInject()
-        const onDown = (e) => {
-          const card = injectCardRef.current
-          if (card && card.contains && card.contains(e.target)) return
-          const btn = injectBtnRef.current
-          if (btn && btn.contains && btn.contains(e.target)) return
-          setInjectOpen(false)
-        }
-        const onKey = (e) => {
-          if (!e || e.key !== 'Escape') return
-          if (e.isComposing || e.keyCode === 229) return
-          // 键盘用户：关掉之后焦点回胶囊，不落到 body
-          try { if (injectBtnRef.current && injectBtnRef.current.focus) injectBtnRef.current.focus() } catch { /* 无焦点能力 */ }
-          setInjectOpen(false)
-        }
-        const onReflow = () => placeInject()
-        document.addEventListener('pointerdown', onDown, true)
-        document.addEventListener('keydown', onKey, true)
-        window.addEventListener('resize', onReflow)
-        window.addEventListener('scroll', onReflow, true)
-        return () => {
-          document.removeEventListener('pointerdown', onDown, true)
-          document.removeEventListener('keydown', onKey, true)
-          window.removeEventListener('resize', onReflow)
-          window.removeEventListener('scroll', onReflow, true)
-        }
-      }, [injectOpen])
+      // 2026-10-19：输入栏那颗「本次注入」胶囊**已移除**——对话流里已有命令卡，
+      // 两处展示同一份记录是重复噪音。注入记录的读取只保留对话流卡（按 id 查）。
 
       const rootRef = React.useRef(null)
       const holdRef = React.useRef(null)               // 去重要用 ref（同一个事件循环里 state 还没生效）
@@ -2434,8 +2370,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         setHold(null)
         setProg(null)
         setOvOpen(false)
-        setInject(null)
-        setInjectOpen(false)
       }, [tierOff, englishOn,sessionId])
       const permission = s.permission === 'review' ? 'review' : 'auto'
       const historyMode = s.historyMode === 'full' ? 'full' : 'turns'
@@ -2511,10 +2445,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if (typeof inputActions.setDraft === 'function') inputActions.setDraft(outgoing)
           inputActions.submit()
           setHold({ ...(h || {}), phase: mark || 'sent' })
-          // 第 5 项：**发布成功之后**才留快照。提交抛错时什么都不记——
-          // 没发出去却显示"已注入"，正是本项目最忌的伪成功。
-          const card = injectionCardModel(h)
-          if (card) { setInject(card); setInjectOpen(false) }
           clearHoldSoon()
         } catch (e) {
           // 连放行都失败 ⇒ 必须说出来（用户至少知道消息没发出去，可以手动再按一次）
@@ -2545,9 +2475,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // 见 0.5:443-453 的 `coalesced`）。放在事件处理函数里会让同一次发送**记两次**，
         // "本会话已拦截 N 次"就变成了一个虚高的数字——界面上的数字不允许这样。
         setInterceptCount((n) => n + 1)
-        // 第 5 项：新一轮开始 ⇒ 上一轮的注入卡收起（陈旧卡片不能替新消息作证）
-        setInject(null)
-        setInjectOpen(false)
         const my = ++holdSeq.current                        // 这一轮的世代号
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 上一轮先断掉 */ }
         const ac = (typeof AbortController === 'function') ? new AbortController() : null
@@ -2992,14 +2919,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // hold 被清掉之后面板还开着 ⇒ 显示最后那份快照（只读回看，0.5 的球展开就是这个语义）。
       const shown = ovOpen ? (hold || ovLast) : null
 
-      // 第 5 项：注入卡片里的三段（默认收起时它们都不渲染）。
-      // 每段都**自带标题**，因为「意图包」与「注入文」只差几个字很容易被看错——
-      // 卡片存在的意义就是让人能分辨这两件事，而不是把它们混成一段。
-      const injectSection = (key, title, body, note) => h('section', { 'data-po06': 'inject-section', 'data-section': key },
-        h('div', { style: S.ovPaneTitle }, title),
-        h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '180px', overflow: 'auto', fontFamily: 'inherit' } },
-          body || L('（空）', '(empty)')),
-        note ? h('div', { 'data-po06': 'inject-note', style: S.ovHintQuiet }, note) : null)
       // 2026-10-19：产品名与状态标签不再带 "0.6"（那是 0.6 时代的遗留前缀，版本号由 /status 单独显示）。
       const statusLabel = !data ? L('读取中', 'loading')
         : (data.enabled ? (on ? L('自动辅助', 'auto') : L('只记录', 'record')) : L('未启用', 'off'))
@@ -3073,23 +2992,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   + (rtKnown && readTools ? ' · ' + L('工具开', 'tools on') : '')),
               h('span', { 'aria-hidden': 'true', style: S.optCaret }, optOpen ? '▴' : '▾'),
             ),
-            // ②b 第 5 项：**发布完成之后**那一颗小卡片（默认收起，点开才看三段）。
-            //    它只在这台会话真的注入过东西时出现；跳过 / 按原文发出 / 解释失败都不会有它。
-            inject ? h('button', {
-              type: 'button', 'data-po06': 'inject-pill', 'data-po06-open': injectOpen ? '1' : '0',
-              ref: injectBtnRef,
-              style: { ...S.optBtn, ...(injectOpen ? S.optBtnOn : null) },
-              title: L('本次注入了什么：你的原话 / 优化后的意图包 / 实际注入文（点开）',
-                'What this round injected: your words / optimized intent / the injected text (click to open)'),
-              'aria-expanded': injectOpen ? 'true' : 'false',
-              'aria-controls': 'po06-inject-card',
-              onClick: () => setInjectOpen((v) => !v),   // 摆位由 placeInject()（effect 里，含滚动/缩放重算）负责
-            },
-              h(InjectIcon),
-              h('span', { 'data-po06': 'inject-pill-title', style: S.optBtnText }, L('本次注入', 'Injected')),
-              h('span', { 'data-po06': 'inject-pill-chars', style: S.optSummary }, String(inject.chars) + L(' 字', ' chars')),
-              h('span', { 'aria-hidden': 'true', style: S.optCaret }, injectOpen ? '▴' : '▾'),
-            ) : null,
+            // 2026-10-19：输入栏的「本次注入」胶囊已移除（对话流里有卡片，重复）。
             // ② 「?」帮助（0.5 的形态：文字就是一个 ASCII `?`）；正文见 HELP-0.6.md（要求②）
             h('button', {
               type: 'button', 'data-po06': 'help-btn', 'data-po06-open': helpOpen ? '1' : '0',
@@ -3110,22 +3013,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             msg && msg.kind === 'err' ? h('span', { 'data-po06': 'error', style: { ...S.muted, color: T('err') } }, msg.text) : null,
             msg && msg.kind !== 'err' ? h('span', { 'data-po06': 'saved', style: { ...S.muted, color: msg.kind === 'warn' ? T('warn') : T('ok') } }, msg.text) : null,
           ),
-          // 第 5 项的展开体：**只在点开后渲染**（默认收起 = 连 DOM 都不生成）。
-          // 三段各自独立滚动，避免注入文那一段把整块撑爆。
-          injectOpen && inject ? h('div', { ...themeAttrs(), 'data-po06': 'inject-card', id: 'po06-inject-card',
-            role: 'region', 'aria-label': L('本次注入了什么', 'What this round injected'), ref: injectCardRef,
-            style: { ...S.optPop, width: 'auto', gap: '10px', maxHeight: 'min(70vh, 560px)', ...(injectPos
-              ? { left: injectPos.left + 'px', bottom: injectPos.bottom + 'px', width: injectPos.width + 'px' }
-              : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(460, Math.max(240, region.w - 16)) + 'px' } : null) }) } },
-            h('div', { style: S.optPopHead },
-              h(InjectIcon),
-              h('span', {}, L('本次注入了什么', 'What this round injected')),
-              h('span', { 'data-po06': 'inject-card-chars', style: { ...S.optSummary, marginLeft: 'auto' } },
-                String(inject.chars) + L(' 字', ' chars'))),
-            injectSection('injected', L('实际注入文', 'Injected text'), inject.injected),
-            h('div', { 'data-po06': 'inject-foot', style: S.ovHintQuiet },
-              L('这一轮已经发布出去了：上面就是它真正带走的全部内容。', 'This round is already published; the above is exactly what went out.')),
-          ) : null,
+          // 2026-10-19：原来这里还有一块"本次注入"的展开面板；随胶囊一起移除（对话流卡片已覆盖）。
           // ── 第二行 = **弹出面板**（点「优化选项」才展开）：设定类 + 范围类都收在这里 ──────
           //    只有打开时才渲染 ⇒ 关闭时控件栏就是**一行**（用户要的"更简洁"）。
           optOpen ? h('div', { 'data-po06': 'bar-row-2', style: { position: 'relative' } },

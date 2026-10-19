@@ -67,15 +67,18 @@ test('字数以服务端给的真实注入长度为准，缺了才回落到文�
   assert.equal(m({ packet: 'abcd' }).chars, 4)
 })
 
-test('默认收起：胶囊只在点开后渲染展开体', () => {
-  assert.ok(/const \[injectOpen, setInjectOpen\] = React\.useState\(false\)/.test(CLIENT_SRC), '默认收起')
-  assert.ok(/injectOpen && inject \? h\('div'/.test(CLIENT_SRC), '展开体由 injectOpen && inject 守着')
+test('输入栏胶囊已移除：注入只在对话流里展示一次', () => {
+  // 2026-10-19 用户要求：对话流已有卡片，输入栏那颗「本次注入」是重复噪音，去掉。
+  assert.equal(CLIENT_SRC.includes("'data-po06': 'inject-pill'"), false, '胶囊按钮不许回来')
+  assert.equal(CLIENT_SRC.includes("id: 'po06-inject-card'"), false, '胶囊展开体也不许回来')
+  assert.equal(/setInject\(card\)/.test(CLIENT_SRC), false, '放行路径不再留快照')
+  assert.ok(CLIENT_SRC.includes("'data-po06': 'injection-row'"), '对话流卡片还在')
 })
 
-test('展开体只有「实际注入文」一段', () => {
-  assert.ok(CLIENT_SRC.includes("injectSection('injected'"), '要渲染注入文')
-  assert.ok(!CLIENT_SRC.includes("injectSection('original'"), '不许再画原话')
-  assert.ok(!CLIENT_SRC.includes("injectSection('optimized'"), '不许再画意图包')
+test('卡片正文只有「实际注入文」一段', () => {
+  assert.ok(CLIENT_SRC.includes('rec.injected'), '要渲染注入文')
+  assert.equal(CLIENT_SRC.includes("injectSection('original'"), false, '不许画原话')
+  assert.equal(CLIENT_SRC.includes("injectSection('optimized'"), false, '不许画意图包')
 })
 
 test('P0 回归门：只许写宿主**已注册**的事件类型（自定义类型会让会话打不开）', () => {
@@ -98,8 +101,8 @@ test('注入记录进插件内存，经 /po06/api/injection 回到界面（按 i
   assert.ok(/API_PREFIX \+ '\/injection'/.test(API_SRC), '要有 /po06/api/injection 路由')
   assert.ok(API_SRC.includes("query.get('id')"), '卡片要能按记录 id 取')
   assert.ok(API_SRC.includes('getInjection'), '路由要调用注入读取口')
-  assert.ok(CLIENT_SRC.includes("apiGet('/injection?session='"), '胶囊挂载时要能恢复')
   assert.ok(CLIENT_SRC.includes("apiGet('/injection?id='"), '对话流卡片按 id 取正文')
+  assert.equal(CLIENT_SRC.includes("apiGet('/injection?session='"), false, '胶囊已移除，不再按会话拉')
 })
 
 test('对话流卡片挂在宿主的 commandview 子槽上（已知事件类型 + 命令名分发）', () => {
@@ -110,14 +113,12 @@ test('对话流卡片挂在宿主的 commandview 子槽上（已知事件类型 
   assert.ok(/commandId, name: 'po06-inject'/.test(INDEX_SRC), '事件里要带同一个命令名')
 })
 
-test('快照只在 submit 成功之后才记（失败不冒充已注入）', () => {
+test('放行路径不再自己记卡片（正文由宿主命令事件 + 记录 id 决定）', () => {
   const at = CLIENT_SRC.indexOf('const releaseHold = (text, h, mark) =>')
   assert.ok(at > 0, '找不到 releaseHold')
   const body = CLIENT_SRC.slice(at, at + 1200)
-  const submit = body.indexOf('inputActions.submit()')
-  const snap = body.indexOf('injectionCardModel(h)')
-  assert.ok(submit > 0 && snap > submit, '必须先 submit 成功，才留注入快照')
-  assert.ok(body.includes('setInject(card)'))
+  assert.equal(body.includes('injectionCardModel(h)'), false, '不再在放行时留快照')
+  assert.ok(body.includes('inputActions.submit()'), '放行仍然要真的提交')
 })
 
 test('跳过 / 按原文发出 / 解释失败三条路都显式标成未注入', () => {
@@ -125,10 +126,10 @@ test('跳过 / 按原文发出 / 解释失败三条路都显式标成未注入',
   assert.ok(marks.length >= 3, '三条不注入的路径都要显式标记，实际：' + marks.length)
 })
 
-test('新一轮开始就收起上一轮的卡（陈旧卡片不许替新消息作证）', () => {
-  const at = CLIENT_SRC.indexOf('const beginHold = (text, via) =>')
-  assert.ok(at > 0, '找不到 beginHold')
-  assert.ok(/setInject\(null\)/.test(CLIENT_SRC.slice(at, at + 900)))
+test('新旧卡片互不干扰：旧的胶囊状态已彻底删除', () => {
+  for (const gone of ['setInject(', 'setInjectOpen(', 'injectOpen', 'placeInject']) {
+    assert.equal(CLIENT_SRC.includes(gone), false, '残留：' + gone)
+  }
 })
 
 test('控制面按 id 查询要真的到达 adapter（整包转发，不许只取 sessionId）', () => {

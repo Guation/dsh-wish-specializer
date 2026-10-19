@@ -414,7 +414,7 @@ const GRAPH = {
             facts: [
               "宿主 CommandNodeView 的样子：按命令名去 conversation.chat.commandview 子槽找视图，找不到就退回通用命令卡。",
               "我们注册 key=po06-inject 的视图；卡片默认收起，点开只显示实际注入文（正文按事件里的 id 取）。",
-              "输入栏胶囊作为**降级**保留：记录取不到时至少还能看见最近一次注入。"
+              "**2026-10-19：输入栏那颗胶囊已移除**——对话流卡片是唯一入口，避免同一份记录展示两次。"
             ],
             code: { path: "po06/lib/client.js", lines: [2014, 2064], text: [
               "const INJECTION_COMMAND = 'po06-inject'",
@@ -428,12 +428,12 @@ const GRAPH = {
             refs: ["tree.client", "flow.event", "flow.fallback"]
           },
           {
-            id: "flow.fallback", kind: "fallback", title: "输入栏胶囊（降级）",
-            summary: "记录取不到时（插件重启、按 id 查不到）至少还有最近一次注入。",
+            id: "flow.fallback", kind: "fallback", title: "为什么只保留对话流卡片",
+            summary: "同一份记录只展示一次；卡片由会话事件（命令行）锚定，正文从插件存储按 id 取。",
             facts: [
-              "客户端挂载时 GET /po06/api/injection?session=…，把最近一条放回输入栏。",
-              "它只活在内存里；对话流卡片则由会话事件（命令行）持久化。",
-              "两者展示的是同一份记录：只显示实际注入文。"
+              "记录存在插件自己的存储里（最多 200 条），不写会话日志。",
+              "卡片锚点是宿主已知的 command/run + command/done；记录丢了卡片就渲染为空行，不会编内容。",
+              "输入栏不再提供第二份展示（2026-10-19 用户要求）。"
             ] },
           {
             id: "flow.noevent", kind: "constraint", title: "三条不写事件的路",
