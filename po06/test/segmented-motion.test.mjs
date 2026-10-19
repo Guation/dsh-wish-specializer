@@ -26,7 +26,7 @@ test('四档：关闭无特效；轻度只有底色；标准飘动；重度白�
   assert.ok(block.includes("light:    { color: '#3fbf7f', dots: 0"), '轻度不要粒子')
   assert.ok(block.includes("standard: { color: '#4a8bff', dots: 9,  motion: 'drift'"), '标准=飘动')
   assert.ok(block.includes("heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff'"), '重度=白色流星')
-  assert.ok(CLIENT_SRC.includes("name === 'tier' && !disabled ? TIER_FX[value]"), '只有档位控件挂特效')
+  assert.ok(CLIENT_SRC.includes("name === 'tier' && !disabled ? TIER_FX[shown]"), '只有档位控件挂特效（用 shown：拖动时可预览）')
 })
 
 test('两种粒子运动各有自己的关键帧与参数', () => {
@@ -46,10 +46,18 @@ test('两种粒子运动各有自己的关键帧与参数', () => {
 })
 
 test('重度才有颤抖；帮助弹层用更轻的入场（避免大块文字重绘卡顿）', () => {
-  assert.ok(/value === 'heavy' \? \{ animation: 'po06-shake 1\.1s ease-in-out infinite' \}/.test(CLIENT_SRC), '只有重度档加颤抖')
+  assert.ok(CLIENT_SRC.includes("shown === 'heavy' ? { animation: 'po06-shake 1.1s ease-in-out infinite'"), '只有重度档加颤抖')
   assert.ok(CLIENT_SRC.includes('po06-help'), '帮助弹层单独一条轻动画')
   assert.ok(CLIENT_SRC.includes('animation:po06-help'), '帮助弹层不再用带缩放的 po06-pop')
   assert.ok(CLIENT_SRC.includes("contain: 'content'"), '帮助弹层做渲染隔离')
+})
+
+test('拖动只做本地预览、松手才落设置（避免每跨一格打一次接口 ⇒ 拖动卡顿）', () => {
+  assert.ok(CLIENT_SRC.includes('const [dragValue, setDragValue] = React.useState(null)'), '拖动预览状态')
+  assert.ok(CLIENT_SRC.includes('const shown = dragValue != null ? dragValue : value'), '显示值取预览优先')
+  const move = CLIENT_SRC.slice(CLIENT_SRC.indexOf('onPointerMove: (e) =>'), CLIENT_SRC.indexOf('onPointerUp: () =>'))
+  assert.equal(move.includes('onPick('), false, '指针移动期间不许提交')
+  assert.ok(/if \(k\) commit\(k\)/.test(CLIENT_SRC.slice(CLIENT_SRC.indexOf('onPointerUp: () =>'), CLIENT_SRC.indexOf('onPointerCancel:'))), '松手才 commit')
 })
 
 test('无障碍与降级：区域仍可键盘操作，减少动效时全部停掉', () => {

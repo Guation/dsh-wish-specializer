@@ -830,14 +830,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [ind, setInd] = React.useState(null)
       const [trackW, setTrackW] = React.useState(0)
       const [dragging, setDragging] = React.useState(false)
+      // 拖动只是**预览**：按住移动只改这个本地值，松手才真正 onPick（避免每跨一格就打一次接口）
+      const [dragValue, setDragValue] = React.useState(null)
+      const shown = dragValue != null ? dragValue : value
       React.useEffect(() => { last.current = null }, [value, failTick])
-      // 量选中格子的真实位置（不靠百分比算：padding/gap 会让算出来的和看到的差 1~2px）
       const measure = () => {
-        const el = itemRefs.current[value]
+        const el = itemRefs.current[shown]
         const track = box.current
         if (!el || !track || typeof el.offsetLeft !== 'number') return
         setInd({ left: el.offsetLeft, width: el.offsetWidth })
-        setTrackW(track.offsetWidth || 0)   // 流星的行程要用整条轨道的宽度
+        setTrackW(track.offsetWidth || 0)
       }
       const useIso = React.useLayoutEffect || React.useEffect
       useIso(() => {
@@ -850,21 +852,24 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           }
         } catch { /* 旧环境没有 RO */ }
         return () => { try { if (ro) ro.disconnect() } catch { /* 忽略 */ } }
-      }, [value, options.length])
-      const pick = (k) => {
+      }, [shown, options.length])
+      const commit = (k) => {
         if (!k || disabled || k === value || k === last.current) return
         last.current = k
         onPick(k)
       }
+      // 拖动时会以 ~120Hz 触发 pointermove：每次都 getBoundingClientRect 会强制同步布局（卡顿的来源之一）。
+      // 所以按下时量一次、整个拖动期间复用；松手清空。
+      const rectRef = React.useRef(null)
       const indexAt = (clientX) => {
         const el = box.current
         if (!el || typeof el.getBoundingClientRect !== 'function') return -1
-        const r = el.getBoundingClientRect()
+        const r = rectRef.current || el.getBoundingClientRect()
         if (!r || !r.width) return -1
         const i = Math.floor(((clientX - r.left) / r.width) * options.length)
         return Math.max(0, Math.min(options.length - 1, i))
       }
-      const moveTo = (clientX) => { const i = indexAt(clientX); if (i >= 0) pick(options[i]) }
+      const valueAt = (clientX) => { const i = indexAt(clientX); return i >= 0 ? options[i] : null }
       const onKeyDown = (e) => {
         if (disabled) return
         const cur = Math.max(0, options.indexOf(value))
@@ -875,15 +880,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         else if (e.key === 'End') next = options.length - 1
         if (next === null) return
         e.preventDefault()
-        pick(options[Math.max(0, Math.min(options.length - 1, next))])
+        commit(options[Math.max(0, Math.min(options.length - 1, next))])
       }
-      const fx = name === 'tier' && !disabled ? TIER_FX[value] : null
+      const fx = name === 'tier' && !disabled ? TIER_FX[shown] : null
       const dots = fx && fx.dots ? Array.from({ length: fx.dots }, (_, i) => {
         // 固定伪随机（同一个 i 永远得到同一组参数）：位置/时长/延迟稳定，重渲染不跳
         const a = (i * 37) % 97, b = (i * 61) % 90 + 5, c = (i * 71) % 100
         if (fx.motion === 'meteor') {
           // 流星（2026-10-19 二次调整）：**从右侧轨道外进入**，一路向左，到左边缘前淡出。
-          // 行程按整条轨道宽度算（-0.9~-1.15 倍），长度 5~17px、粗细 1~2.5px、速度 0.9~2.4s 全随机。
+          // 行程按整条轨道宽度算（-0.88~-1.16 倍），长度 5~17px、粗细 1~2.5px、速度 0.9~2.4s 全随机。
           const len = 5 + (i * 7) % 13
           const thick = 1 + ((i * 13) % 3) * 0.6
           const dur = 0.9 + ((i * 37) % 100) / 100 * 1.5      // 0.9s ~ 2.4s
@@ -920,35 +925,56 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       return h('div', {
         ref: box, role: 'slider', tabIndex: disabled ? -1 : 0,
         'aria-label': name, 'aria-disabled': disabled ? 'true' : 'false',
-        'data-po06': name, 'data-po06-value': value || 'none',
+        'data-po06': name, 'data-po06-value': shown || 'none',
         'data-po06-disabled': disabled ? '1' : '0',
-        'data-po06-fx': fx ? value : 'none',
+        'data-po06-fx': fx ? shown : 'none',
         title, style: { ...S.seg, ...(disabled ? S.dis : null), cursor: disabled ? 'not-allowed' : 'pointer',
           position: 'relative', overflow: 'hidden',
           ...(fx ? { background: 'color-mix(in srgb, ' + fx.color + ' 16%, ' + OVS.bg1 + ')',
             borderColor: 'color-mix(in srgb, ' + fx.color + ' 34%, transparent)',
-            ...(value === 'heavy' ? { animation: 'po06-shake 1.1s ease-in-out infinite' } : null) } : null) },
+            ...(shown === 'heavy' ? { animation: 'po06-shake 1.1s ease-in-out infinite', willChange: 'transform' } : null) } : null) },
+        // 点击（键盘/触屏的 click）照旧立即生效；拖动走 pointer 预览、松手才提交
         onClick: (e) => {
           if (disabled) return
           if (!e || e.detail === 0 || typeof e.clientX !== 'number') return
-          moveTo(e.clientX)
+          const k = valueAt(e.clientX)
+          if (k) commit(k)
         },
         onPointerDown: (e) => {
           if (disabled) return
+          try { rectRef.current = box.current.getBoundingClientRect() } catch { rectRef.current = null }
           setDragging(true)
           try { if (e.currentTarget && e.currentTarget.setPointerCapture && e.pointerId != null) e.currentTarget.setPointerCapture(e.pointerId) } catch (err) { /* 环境不支持就算了 */ }
-          moveTo(e.clientX)
+          const k = valueAt(e.clientX)
+          if (k) setDragValue(k)
         },
-        onPointerMove: (e) => { if (!disabled && dragging) moveTo(e.clientX) },
-        onPointerUp: () => setDragging(false),
-        onPointerCancel: () => setDragging(false),
-        onPointerLeave: () => setDragging(false),
+        onPointerMove: (e) => {
+          if (disabled || !dragging) return
+          const k = valueAt(e.clientX)
+          if (k && k !== dragValue) setDragValue(k)   // 只改本地预览：一次拖动最多几次 setState，不发请求
+        },
+        onPointerUp: () => {
+          const k = dragValue
+          rectRef.current = null
+          setDragging(false)
+          setDragValue(null)
+          if (k) commit(k)                              // 松手才真正落设置
+        },
+        onPointerCancel: () => { rectRef.current = null; setDragging(false); setDragValue(null) },
+        // 移出轨道：若还在拖，就把最后停留的那一格落下来（没有 pointer capture 的环境也不会卡在"拖拽中"）
+        onPointerLeave: () => {
+          if (!dragging) return
+          const k = dragValue
+          setDragging(false)
+          setDragValue(null)
+          if (k) commit(k)
+        },
         onKeyDown,
       },
         // 粒度层：档位才有的扰动粒子（在指示器下面，文字上面留出对比）
         fx ? h('span', { 'data-po06': 'tier-fx', 'aria-hidden': 'true',
           style: { position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' } }, dots) : null,
-        // 滑动指示器：位置由真实格子量出来，切换时滑过去
+        // 滑动指示器：位置由真实格子量出来，切换/拖动时滑过去
         h('span', { 'data-po06': 'seg-ind', 'aria-hidden': 'true',
           style: {
             position: 'absolute', top: '2px', bottom: '2px',
@@ -959,10 +985,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             transition: 'left .26s cubic-bezier(.22,.8,.24,1), width .26s cubic-bezier(.22,.8,.24,1), background-color .22s ease',
           } }),
         options.map((k) => h('span', {
-          key: k, 'data-po06': name + '-' + k, 'data-po06-on': (k === value ? '1' : '0'),
+          key: k, 'data-po06': name + '-' + k, 'data-po06-on': (k === shown ? '1' : '0'),
           ref: (el) => { if (el) itemRefs.current[k] = el },
           style: { ...S.segItem, position: 'relative', zIndex: 1,
-            ...(k === value ? { color: '#fff', fontWeight: 600 } : null) },
+            ...(k === shown ? { color: '#fff', fontWeight: 600 } : null) },
         }, label ? label(k) : k)))
     }
 
