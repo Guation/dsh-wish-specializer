@@ -2637,6 +2637,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [optOpen, setOptOpen] = React.useState(false)
       const [optPos, setOptPos] = React.useState(null)
       const optBtnRef = React.useRef(null)
+      const optRef = React.useRef(null)
+      // 密度档：0 正常 / 1 紧凑 / 2 极紧。打开后按"内容高度 vs 可用高度"自动升档，
+      // 这是"边界自动挤压"：先缩间距与行高，挤不下才允许内部滚动。
+      const [optDensity, setOptDensity] = React.useState(0)
       // issue #18（用户澄清）：弹层/面板**不许与右侧栏重合** —— 它们的右边界要收在会话窗内。
       // 会话窗宽度没有现成的常量可读，所以**量输入卡片**：侧栏一开，会话列变窄、卡片跟着变窄。
       // 观察点用 ResizeObserver 而不是只听 window.resize：侧栏开关时窗口尺寸不变，变的是列宽。
@@ -2798,6 +2802,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         reflow()
         return ovReflowWatch(reflow, optBtnRef.current)
       }, [])
+      React.useEffect(() => { if (!optOpen) setOptDensity(0) }, [optOpen])
+      React.useLayoutEffect(() => {
+        if (!optOpen) return
+        const el = optRef.current
+        if (!el || !optPos) return
+        const maxH = optPos.maxH || 600
+        // scrollHeight 反映真实内容高度（即使已被 maxHeight 裁剪），所以能判断"挤不挤得下"
+        if (el.scrollHeight > maxH + 2 && optDensity < 2) setOptDensity((d) => d + 1)
+      }, [optOpen, optPos, optDensity])
       // 点面板外 / 按 Esc 收起（键盘可达；不抢输入框的回车）
       React.useEffect(() => {
         if (!optOpen) return undefined
@@ -3515,14 +3528,21 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   const rg = composerRegion(optBtnRef.current)
                   const popW = Math.min(300, Math.max(200, rg.w - 16))
                   const vh = (typeof window !== 'undefined' && window.innerHeight) || 600
+                  // 边界自适应：上下两侧都量，选空间大的那侧，maxH 取该侧可用高度。
+                  // 面板再配合密度档（见 optDensity）做"自动挤压"：先挤间距/行高，挤不下才内部滚动。
+                  const spaceAbove = Math.round(r.top - 12)
+                  const spaceBelow = Math.round(vh - r.bottom - 12)
+                  const place = (spaceAbove >= 340 || spaceAbove >= spaceBelow) ? 'above' : 'below'
+                  const side = place === 'above' ? spaceAbove : spaceBelow
                   setOptPos({
                     // 右缘收在会话窗内（侧栏打开时弹层跟着会话列一起左移/变窄）
                     left: Math.min(Math.max(rg.left + 8, Math.round(r.left)), Math.max(rg.left + 8, rg.right - popW - 8)),
-                    bottom: Math.max(8, Math.round(vh - r.top + 6)),
+                    place,
+                    ...(place === 'above'
+                      ? { bottom: Math.max(8, Math.round(vh - r.top + 6)) }
+                      : { top: Math.round(r.bottom + 6) }),
                     width: popW,
-                    // 关键：高度必须按"按钮上方还剩多少"来收（否则短屏会顶出屏幕上沿）——
-                    // 超出就内部滚动，而不是让面板跑到屏幕外。
-                    maxH: Math.max(220, Math.round(vh - r.top - 16)),
+                    maxH: Math.max(180, side),
                   })
                 }
                 setOptOpen((v) => !v)
@@ -3566,8 +3586,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               //   （用户 2026-09-22："点击优化选项没有任何弹窗出现"）。
               //   所以这里把按钮实测坐标铺上去，并在量不到时退回 `?` 弹层用的那套固定落点。
               // issue #18：宽度按会话窗收（打开侧栏 ⇒ 会话列变窄 ⇒ 弹层跟着窄），右缘不越界。
+              'data-po06-density': String(optDensity),
+              ref: optRef,
               style: { ...S.optPop, ...(optPos
-                ? { left: optPos.left + 'px', bottom: optPos.bottom + 'px', ...(optPos.width ? { width: optPos.width + 'px' } : null),
+                ? { left: optPos.left + 'px',
+                    ...(optPos.place === 'below' ? { top: optPos.top + 'px' } : { bottom: optPos.bottom + 'px' }),
+                    ...(optPos.width ? { width: optPos.width + 'px' } : null),
                     ...(optPos.maxH ? { maxHeight: optPos.maxH + 'px' } : null) }
                 : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(300, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
               h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options'))),
@@ -4558,6 +4582,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '[data-po06="preset-notice-backdrop"]{animation:po06-fade-in .16s ease-out both}',
             '[data-po06="preset-notice"]{animation:po06-pop .26s cubic-bezier(.2,.9,.25,1.04) both}',
             // 面板内容逐行浮现（错开 18ms，最多 10 行）：像"一点点展开"，而不是整块砸下来
+            // 密度档（边界自动挤压）：空间不够就缩间距/行高/字号，而不是顶出屏幕或立刻滚动
+            '[data-po06="options-pop"][data-po06-density="1"]{gap:5px !important;padding:10px 12px 6px !important}',
+            '[data-po06="options-pop"][data-po06-density="1"] > div{min-height:24px !important}',
+            '[data-po06="options-pop"][data-po06-density="1"] button{font-size:11.5px}',
+            '[data-po06="options-pop"][data-po06-density="2"]{gap:4px !important;padding:8px 10px 6px !important}',
+            '[data-po06="options-pop"][data-po06-density="2"] > div{min-height:22px !important}',
+            '[data-po06="options-pop"][data-po06-density="2"] button{font-size:11px}',
             '[data-po06="options-pop"] > *{animation:po06-row .22s ease-out both}',
             ...Array.from({ length: 10 }, (_, i) => '[data-po06="options-pop"] > *:nth-child(' + (i + 1) + '){animation-delay:' + (i * 18) + 'ms}'),
             '[data-po06="intercept"]{animation:po06-fade-in .16s ease-out both}',
