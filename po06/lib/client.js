@@ -26,6 +26,70 @@ window.__ModuleLoader__.load({
     Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })
 
     const React = require('react')
+
+    // ── 刷新/失败恢复的**判定与载荷构造**（纯函数，2026-10-19）─────────────────
+    // 与 UI 解耦：这里只回答"该走哪条分支 / 该贴回什么"，副作用（setHold / clearPending）
+    // 留在组件里。放 factory 作用域是因为 client.js 是 DSH 模块加载器包装（没有 ESM 导入），
+    // 测试用假 `window.__ModuleLoader__` 加载**这个真实文件**再读 `__restore` 出口。
+    //
+    // action 语义：
+    //   poll  —— 还在跑：贴回"优化中"并接着轮询
+    //   review—— 跑完了且**成功**：贴回审查态，可提交
+    //   none  —— 没有可恢复的：调用方应 clearPending
+    //   retry —— **查不到**（请求失败/超时）：不能当成 gone，保留 pending 下次再试
+    function resolveRestore(saved, progress) {
+      if (!saved || typeof saved !== 'object') return { action: 'none', reason: 'no-pending' }
+      const rid = typeof saved.requestId === 'string' ? saved.requestId : ''
+      if (!rid) return { action: 'none', reason: 'invalid-pending' }
+      if (!progress || typeof progress !== 'object') return { action: 'retry', reason: 'progress-missing' }
+      if (progress.ok !== true) return { action: 'retry', reason: 'progress-unavailable' }
+      const pid = typeof progress.requestId === 'string' ? progress.requestId : ''
+      if (pid && pid !== rid) return { action: 'none', reason: 'request-id-mismatch' }
+      const state = typeof progress.state === 'string' ? progress.state : ''
+      if (state === 'running') return { action: 'poll', reason: 'running' }
+      if (state === 'done') {
+        const r = progress.result
+        // ⚠ 必须看 result.ok：优化失败（no-packet / assist-off / 模型报错）也会落成 done，
+        //   若照样贴回就是"审查态 + 空包"——一个没有内容的可编辑面板。
+        return (r && typeof r === 'object' && r.ok === true)
+          ? { action: 'review', reason: 'done' }
+          : { action: 'none', reason: 'failed-round' }
+      }
+      if (state === 'cancelled') return { action: 'none', reason: 'cancelled' }
+      if (state === 'gone') return { action: 'none', reason: 'gone' }
+      return { action: 'none', reason: 'unknown-state' }
+    }
+
+    /** 纯构造：返回要贴回面板的 hold 对象；不该恢复时返回 null。 */
+    function buildRestoredHold(saved, progress, opts) {
+      const o = opts || {}
+      const d = resolveRestore(saved, progress)
+      if (d.action !== 'poll' && d.action !== 'review') return null
+      const at = typeof o.now === 'function' ? o.now() : Date.now()
+      const base = {
+        text: String((saved && saved.text) || ''),
+        via: 'restore',
+        t0: Number(saved && saved.startedAt) || at,
+        requestId: (saved && saved.requestId) || null,
+      }
+      if (d.action === 'poll') {
+        return { ...base, englishMode: o.englishMode === true, phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
+      }
+      const r = (progress && progress.result) || {}
+      const packet = typeof r.packet === 'string' ? r.packet : ''
+      return { ...base, englishMode: r.englishMode === true, phase: 'review',
+        outgoingText: typeof r.outgoingText === 'string' ? r.outgoingText : base.text,
+        translation: r.translation || null,
+        noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null,
+        packet, chars: typeof r.chars === 'number' ? r.chars : 0,
+        ms: typeof r.ms === 'number' ? r.ms : null,
+        unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null,
+        edited: packet, usage: r.usage || null,
+        usageTotal: typeof r.usageTotal === 'number' ? r.usageTotal : null,
+        restored: true }
+    }
+    // 仅供 node 单测读取的出口（浏览器侧不使用）。
+    exports.__restore = { resolveRestore, buildRestoredHold }
     const h = React.createElement
 
     const NS = 'dsh-po06'
@@ -2175,27 +2239,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }
 
       /** 把上一次的结果原样贴回面板（review 可提交 / optimizing 继续轮询）。 */
+      // 判定与载荷构造都在 factory 作用域的纯函数里（见 resolveRestore / buildRestoredHold），
+      // 这里只剩副作用：贴回面板。
       const applyRestoredHold = (pending, p) => {
-        if (!p || p.ok !== true) return false
-        const base = { text: String((pending && pending.text) || ''), via: 'restore', t0: Number(pending && pending.startedAt) || Date.now(), requestId: pending && pending.requestId }
-        if (p.state === 'running') {
-          const h = { ...base, englishMode: englishRef.current, phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
-          holdRef.current = h; setHold(h)
-          return true
-        }
-        if (p.state === 'done' && p.result && typeof p.result === 'object') {
-          const r = p.result
-          const done = { ...base, englishMode: r.englishMode === true, phase: 'review',
-            outgoingText: r.outgoingText || base.text, translation: r.translation || null,
-            noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null,
-            packet: r.packet || '', chars: r.chars || 0, ms: r.ms || null,
-            unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null,
-            edited: r.packet || '', usage: r.usage || null,
-            usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null, restored: true }
-          holdRef.current = done; setHold(done)
-          return true
-        }
-        return false
+        const h = buildRestoredHold(pending, p, { englishMode: englishRef.current })
+        if (!h) return false
+        holdRef.current = h; setHold(h)
+        return true
       }
       /** 真正发起一轮优化（原 beginHold 的正文）。seq 由预检传入，避免重复自增世代号。 */
       const startOptimize = (text, via, seq) => {
