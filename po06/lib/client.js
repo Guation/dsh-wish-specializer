@@ -2763,6 +2763,27 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }, [skipHint])
 
 
+      // 第二个触发（2026-10-19 用户）：**在新会话里把预设切到非 PTC/Wish** 时也要弹。
+      // 只认"预设真的变了"（宿主返回的 presetAt 变化），挂载/首帧不弹，避免又变成乱弹。
+      React.useEffect(() => {
+        if (!sessionId) return undefined
+        let stopped = false
+        const seen = { armed: false, at: null }
+        const tick = () => {
+          apiGet('/preset?via=watch&session=' + encodeURIComponent(sessionId)).then((r) => {
+            if (stopped || !r || r.ok !== true) return
+            const at = r.presetAt || null
+            if (!seen.armed) { seen.armed = true; seen.at = at; return }
+            if (!at || at === seen.at) return
+            seen.at = at
+            if (r.notice && !(s && s.presetNoticeDismissed === true)) setNotice(r.notice)
+          }).catch(() => {})
+        }
+        tick()
+        const timer = setInterval(tick, 2500)
+        return () => { stopped = true; clearInterval(timer) }
+      }, [sessionId, s && s.presetNoticeDismissed])
+
       const dismissNotice = (forever) => {
         setNotice(null)
         apiPost('/notice', forever ? { forever: true } : { session: sessionId }).catch(() => {})
