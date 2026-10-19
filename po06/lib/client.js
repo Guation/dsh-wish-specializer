@@ -3530,8 +3530,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   const vh = (typeof window !== 'undefined' && window.innerHeight) || 600
                   // 边界自适应：上下两侧都量，选空间大的那侧，maxH 取该侧可用高度。
                   // 面板再配合密度档（见 optDensity）做"自动挤压"：先挤间距/行高，挤不下才内部滚动。
-                  const spaceAbove = Math.round(r.top - 12)
-                  const spaceBelow = Math.round(vh - r.bottom - 12)
+                  // 两侧各留 24px 呼吸空间：挤压/滚动都以这条边界为准，不贴屏幕上下沿
+                  const spaceAbove = Math.round(r.top - 24)
+                  const spaceBelow = Math.round(vh - r.bottom - 24)
                   const place = (spaceAbove >= 340 || spaceAbove >= spaceBelow) ? 'above' : 'below'
                   const side = place === 'above' ? spaceAbove : spaceBelow
                   setOptPos({
@@ -3542,7 +3543,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                       ? { bottom: Math.max(8, Math.round(vh - r.top + 6)) }
                       : { top: Math.round(r.bottom + 6) }),
                     width: popW,
-                    maxH: Math.max(180, side),
+                    maxH: Math.max(140, side),
                   })
                 }
                 setOptOpen((v) => !v)
