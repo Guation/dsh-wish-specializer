@@ -14,14 +14,19 @@ const checkKey = (check,index) => check?.checkId || check?.id || 'check:'+index
 
 // Lexical root identity only. Disk reads/realpath safety remain the stores' materialPath job.
 // Absolute paths must be inside the actual root; basename/suffix matching is never authority.
-export function evidencePathIdentity(path, root) {
+// 2026-10-19 issue #35：非 Windows 分支原来用 `win32.isAbsolute(raw)` 一刀切，
+// 而 win32 语义下以 / 开头就算绝对路径 ⇒ Linux/macOS 上**一切**绝对路径都被拒收
+// （/tmp/r/a.js 明明在 root 里也拿不到键）。现在只拒收"另一边"的路径形态：
+//   带盘符（C:/x、C:\x）或 UNC（//server/share），其余交给下面的 resolve+relative 越界判断。
+export function evidencePathIdentity(path, root, opts = {}) {
   if (!text(path,2000) || !text(root,2000) || path.includes('\0')) return null
-  const windows = /^[a-z]:[\\/]/i.test(root) || process.platform === 'win32'
+  const platform = (opts && typeof opts.platform === 'string' && opts.platform) || process.platform
+  const windows = /^[a-z]:[\\/]/i.test(root) || platform === 'win32'
   const api = windows ? win32 : posix
   const clean = value => windows ? value.replaceAll('/','\\') : value.replaceAll('\\','/')
   const base = api.resolve(clean(root)), raw = clean(path)
   if (windows && (/^[a-z]:(?![\\/])/i.test(raw) || /^\\\\/.test(raw))) return null
-  if (!windows && (win32.isAbsolute(raw) || /^[a-z]:/i.test(raw))) return null
+  if (!windows && (/^[a-z]:[\\/]/i.test(raw) || /^\/\//.test(raw))) return null
   const target = api.resolve(base,raw), relative = api.relative(base,target)
   if (!relative || relative === '..' || relative.startsWith('..'+api.sep) || api.isAbsolute(relative)) return null
   const value = relative.replace(/\\/g,'/')

@@ -193,6 +193,17 @@ if (existsSync(mutPath)) {
   }
 }
 
+// ── 7a. turn305 parity 参考树（issue #36）──────────────────────────
+// 那套对比依赖作者本机重建的 turn305 快照（.po06-tmp/exact-turn305，**不在仓库里**）。
+// 测试在缺它时会整份跳过（干净检出/CI 不再因为加载期抛错而判红），
+// 但**发版不能靠跳过的检查过关** ⇒ 发版门在这里要求它存在并给出重建提示。
+{
+  const refCandidates = [join(REPO, '.po06-tmp', 'exact-turn305'), join(REPO, '..', 'exact-turn305')]
+  const refFound = refCandidates.find((p) => existsSync(join(p, 'po06', 'lib', 'optimizer-protocol.js')))
+  if (refFound) notes.push('turn305 parity 参考树就位：' + refFound)
+  else problems.push('缺 turn305 parity 参考树（.po06-tmp/exact-turn305）：测试会跳过，发版必须补回（见 docs/ROUND305-RESTORATION.md）')
+}
+
 // ── 7b. 打包产物自足性（EV-0110）────────────────────────────────────
 // 为什么进发版门：这条演练**红了好几轮却没人知道**——因为没有任何东西会跑它。
 // **一个没人跑的检查不是检查。** 它只要约 1 秒（npm pack + tar + 仓库外 import）。

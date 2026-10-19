@@ -17,6 +17,11 @@
   卡片改用宿主已知的 command/run + command/done 作行锚，正文走插件自己的存储与 /po06/api/injection。
 - **双击 Enter 跳过优化**（默认关）：600ms 内第二次回车＝放弃本轮解释、按原文发出。
 - **隐藏实验性「快速增强」**：设置页与详情面板都不再渲染入口（代码保留）。
+- 修复 **issue #35**：evidencePathIdentity 在 Linux/macOS 上拒收一切绝对路径
+  （win32.isAbsolute('/tmp/...') 为真）。现在非 Windows 分支只拒收盘符与 UNC 路径，
+  root 内的 POSIX 绝对路径正常映射成相对键；新增 3 项跨平台钉桩。
+- 修复 **issue #36**：turn305-parity.test.mjs 在参考树缺失时**加载阶段抛错**（干净检出/CI 恒红）。
+  现在缺参考树整份套件跳过并打印原因（exit 0），发版门 check-release 另行要求参考树存在。
 
 ## 0.8.4-stable — 六条线上 issue 修复与顾问闭环
 

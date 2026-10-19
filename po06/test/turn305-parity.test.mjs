@@ -13,12 +13,16 @@ import {prepareAdvisorMaterials} from '../lib/advisor-materials.js'
 import {mergeReadMaterialVersions} from '../lib/advisor-read-materials.js'
 const here=dirname(fileURLToPath(import.meta.url))
 const ref=[resolve(here,'../../.po06-tmp/exact-turn305'),resolve(here,'../../../exact-turn305')].find(p=>existsSync(join(p,'po06/lib/optimizer-protocol.js')))
-if(!ref)throw Error('Expected independently reconstructed original checkpoint.')
-const original=await import(pathToFileURL(join(ref,'po06/lib/optimizer-protocol.js')))
-const historicalAdvisor=await import(pathToFileURL(join(ref,'po06/lib/advisor.js')))
-const historicalScopes=await import(pathToFileURL(join(ref,'po06/lib/advisor-scopes.js')))
+// 2026-10-19 issue #36：参考树是作者本机的重建目录（.po06-tmp 未入库）。
+// 干净检出/CI 上不许因为缺它而在加载阶段抛错：整份套件跳过并打印原因，
+// 由发版门（po06/scripts/check-release.mjs --strict）负责要求它存在。
+const SKIP=ref?false:'reference tree missing: .po06-tmp/exact-turn305 (rebuild from git history; the release gate requires it)'
+if(SKIP)console.error('[turn305-parity] SKIP — '+SKIP)
+const original=ref?await import(pathToFileURL(join(ref,'po06/lib/optimizer-protocol.js'))):null
+const historicalAdvisor=ref?await import(pathToFileURL(join(ref,'po06/lib/advisor.js'))):null
+const historicalScopes=ref?await import(pathToFileURL(join(ref,'po06/lib/advisor-scopes.js'))):null
 const scopes=await import('../lib/advisor-scopes.js')
-const originalContribution=await import(pathToFileURL(join(ref,'po06/lib/advisor-contribution.js')))
+const originalContribution=ref?await import(pathToFileURL(join(ref,'po06/lib/advisor-contribution.js'))):null
 const contribution=await import('../lib/advisor-contribution.js')
 const human={type:'user/message',seq:1,data:{id:'m1',source:{kind:'user'},content:[{type:'text',text:'Make the original requested artifact.'}]}}
 const events=[human,{type:'tool/call',seq:2,data:{callId:'c1',name:'read',arguments:{file_path:'artifact.txt'}}},{type:'tool/result',seq:3,data:{message:{toolCallId:'c1',content:[{type:'text',text:'ACTUAL observed content'}]}}}]
@@ -26,7 +30,7 @@ const exec={agent:{session:{id:'exact-parity',snapshotEvents:()=>events}}}
 const report={verdict:'suggestion',summary:'Concrete gain',contribution:'Adoptable method, without inventing requirements.',assumptions:[],findings:[],checks:[],nextStep:'Use if useful.',stopCondition:'Check facts before use.'}
 const stream=(text,usage={inputTokens:1,outputTokens:2,totalTokens:3})=>(async function*(){yield{type:'text-delta',text};yield{type:'usage',usage};yield{type:'finish',reason:{kind:'stop'}}})()
 
-test('optimizer contract: format/options stay historical; core and tiers are the deliberate wish-amplifier change',()=>{
+test('optimizer contract: format/options stay historical; core and tiers are the deliberate wish-amplifier change', { skip: SKIP },()=>{
  // 2026-10-18 用户明确改口径：优化 = 扩充"愿望内容"（方向性要求），不是替工作模型写实现。
  // 因此 OPTIMIZER_CORE / OPTIMIZER_TIERS 与历史 checkpoint **有意不同**；其余必须逐字一致，
  // 这样"漂移"仍然只有一个已知出口，而不是整块失守。
@@ -48,7 +52,7 @@ test('optimizer contract: format/options stay historical; core and tiers are the
  assert.equal(actual.OPTIMIZER_PROTOCOL_VERSION,'3');assert.deepEqual(actual.OPTIMIZER_BASELINE_ROUNDS,[300,301,302,303,304,305])
 })
 
-test('normal packet and source message are historical, without later consult-opportunity policy',()=>{
+test('normal packet and source message are historical, without later consult-opportunity policy', { skip: SKIP },()=>{
  for(const language of ['zh','en']){
   const value={intent:{text:language==='zh'?'原任务，不强化否定。':'Original task, no stronger negation.',relation:'continue'},clarify:[],add:[language==='zh'?'实际构造。':'Actual useful construction.'],ask:[],consult:{mode:'develop_approach',focus:'Later invented opportunity',reason:'Not part of turn305'}}
   assert.equal(actual.renderOptimizerPacket(value,language),original.renderOptimizerPacket(value,language))
@@ -58,7 +62,7 @@ test('normal packet and source message are historical, without later consult-opp
  assert.equal(actual.buildOptimizerUserMessage(source),original.buildOptimizerUserMessage(source))
 })
 
-test('unchanged capability/contribution authority stays historical; claim-policy differences are explicit',()=>{
+test('unchanged capability/contribution authority stays historical; claim-policy differences are explicit', { skip: SKIP },()=>{
  for(const file of ['capability.js','advisor-contribution.js','advisor-stage-tool.js'])assert.equal(readFileSync(new URL('../lib/'+file,import.meta.url),'utf8'),readFileSync(join(ref,'po06/lib',file),'utf8'),file)
  // 与历史的差异必须**逐项列出来**（本测试的用处就是"看不出来的漂移"为零）。现在有三处：
  //   subjectPaths（新增，只绑定版本不新增验收目标）、requiredScopes/requiredReviews（GitHub #33A）。
@@ -87,7 +91,7 @@ test('unchanged capability/contribution authority stays historical; claim-policy
  }
 })
 
-test('actual adviser system and supplied history match turn305 for both contribution modes',async()=>{
+test('actual adviser system and supplied history match turn305 for both contribution modes', { skip: SKIP },async()=>{
  const root=mkdtempSync(join(tmpdir(),'round305-advice-'));writeFileSync(join(root,'artifact.txt'),'ACTUAL source')
  try{for(const mode of ['develop_approach','improve_result'])for(const englishMode of [false,true]){
   const inputs=[]
@@ -102,7 +106,7 @@ test('actual adviser system and supplied history match turn305 for both contribu
  }}finally{rmSync(root,{recursive:true,force:true})}
 })
 
-test('faithful English task and ready advice survive missing-task fallback',async()=>{
+test('faithful English task and ready advice survive missing-task fallback', { skip: SKIP },async()=>{
  const service=createEnglishMode(),mark=String.fromCharCode(96),originalText='检查 '+mark+'src/layout.js'+mark+'，答复中文。'
  const p=protectEnglishLiterals(originalText)
  const parsed=prepareEnglishInterpretation({intent:{text:'Inspect implementation.',relation:'continue'},englishTask:'Inspect '+p.literals[0].token+'; respond in Chinese.',clarify:[],add:['Useful method for '+p.literals[0].token],ask:[]},originalText,p)
@@ -112,7 +116,7 @@ test('faithful English task and ready advice survive missing-task fallback',asyn
  assert.equal(finish.ok,true);assert.equal(finish.assistanceAvailable,true);assert.equal(finish.fallback,true);assert.equal(finish.translation.warnings.at(-1).reason,'translation-fallback-assistance-kept')
 })
 
-test('unavailable paths may be cited but never support result satisfaction or merged versions',async()=>{
+test('unavailable paths may be cited but never support result satisfaction or merged versions', { skip: SKIP },async()=>{
  const root=mkdtempSync(join(tmpdir(),'round305-missing-'))
  try{const prepared=await prepareAdvisorMaterials({args:{files:[{path:'not-here.txt',purpose:'Claimed file'}]},root,enabled:true});assert.ok(prepared.evidenceIds.has('F0'));assert.equal(prepared.resultIds.has('F0'),false)}finally{rmSync(root,{recursive:true,force:true})}
  const rows=[{path:'a.txt',kind:'file',sha256:'a'.repeat(64),startLine:1,endLine:3,status:'ready',selectionComplete:true,wholeFileComplete:false},{path:'a.txt',kind:'file',sha256:'a'.repeat(64),startLine:40,endLine:44,status:'ready',selectionComplete:true,wholeFileComplete:false}]
@@ -120,7 +124,7 @@ test('unavailable paths may be cited but never support result satisfaction or me
  assert.equal(mergeReadMaterialVersions([...rows,{...rows[0],sha256:'b'.repeat(64)}]).length,2)
 })
 
-test('the user can cancel after the former deadline without any default total timer',async t=>{
+test('the user can cancel after the former deadline without any default total timer', { skip: SKIP },async t=>{
  t.mock.timers.enable({apis:['Date','setTimeout'],now:1000})
  let entered,modelSignal;const ready=new Promise(r=>{entered=r}),controller=new AbortController()
  const invoke=createAdvisor({progress:createAdvisorProgress(),resolveRuntime:async()=>({ok:true,readTools:false,cfg:{provider:'offline',model:'test'},llm:{stream:o=>(async function*(){modelSignal=o.signal;yield{type:'reasoning-delta',text:'Actual pending evidence analysis'};entered();await new Promise(r=>o.signal.addEventListener('abort',r,{once:true}))})()}})})
@@ -149,7 +153,7 @@ test('the user can cancel after the former deadline without any default total ti
  controller2.abort();const out3=await noGuard;assert.equal(out3.reason,'advisor-cancelled')
 })
 
-test('paid fallback accounting is isolated from normal successful output',async()=>{
+test('paid fallback accounting is isolated from normal successful output', { skip: SKIP },async()=>{
  const root=mkdtempSync(join(tmpdir(),'round305-cost-'))
  try{let count=0;const llm={stream:()=>stream(++count===1?'Not optimizer JSON.':JSON.stringify({intent:{text:'Actual request',relation:'continue'},clarify:[],add:[],ask:[]}),count===1?{totalTokens:5}:{totalTokens:7})}
  const out=await interpretViaLlm({llm,cfg:{provider:'offline',model:'test'},system:'JSON.',userPrompt:'Original request',tools:{enabled:true,root,count:1}})

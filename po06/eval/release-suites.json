@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-15T10:07:14.402Z",
+  "at": "2026-10-19T01:16:43.333Z",
   "summary": {
-    "suites": 104,
-    "passed": 104,
+    "suites": 113,
+    "passed": 113,
     "failed": 0,
-    "passTotal": 1138,
+    "passTotal": 1281,
     "failing": []
   },
   "results": [
@@ -51,6 +51,13 @@
       "ok": true
     },
     {
+      "file": "advisor-evidence-paths.test.mjs",
+      "pass": 3,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "advisor-feedback.test.mjs",
       "pass": 13,
       "fail": 0,
@@ -73,7 +80,7 @@
     },
     {
       "file": "advisor-loop-integration.test.mjs",
-      "pass": 15,
+      "pass": 16,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -171,7 +178,7 @@
     },
     {
       "file": "advisor.test.mjs",
-      "pass": 11,
+      "pass": 13,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -206,7 +213,7 @@
     },
     {
       "file": "bash-diagnostics.test.mjs",
-      "pass": 15,
+      "pass": 16,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -317,13 +324,6 @@
       "ok": true
     },
     {
-      "file": "client-advisor-delivery.test.mjs",
-      "pass": 21,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
       "file": "client-advisor-stream.test.mjs",
       "pass": 9,
       "fail": 0,
@@ -332,7 +332,7 @@
     },
     {
       "file": "client-file.test.mjs",
-      "pass": 36,
+      "pass": 37,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -340,6 +340,13 @@
     {
       "file": "client-hold-bridge.test.mjs",
       "pass": 3,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "client-injection-card.test.mjs",
+      "pass": 11,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -380,6 +387,13 @@
       "ok": true
     },
     {
+      "file": "double-enter-skip.test.mjs",
+      "pass": 3,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "dump-wire.test.mjs",
       "pass": 10,
       "fail": 0,
@@ -388,7 +402,7 @@
     },
     {
       "file": "english-mode.test.mjs",
-      "pass": 24,
+      "pass": 27,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -478,6 +492,13 @@
       "ok": true
     },
     {
+      "file": "how-it-works.test.mjs",
+      "pass": 4,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "identity.test.mjs",
       "pass": 2,
       "fail": 0,
@@ -486,14 +507,42 @@
     },
     {
       "file": "inference-boost.test.mjs",
-      "pass": 13,
+      "pass": 32,
       "fail": 0,
       "exit": 0,
       "ok": true
     },
     {
-      "file": "inference-ui.test.mjs",
-      "pass": 3,
+      "file": "inference-context.test.mjs",
+      "pass": 7,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "inference-directions.test.mjs",
+      "pass": 47,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "inference-evidence.test.mjs",
+      "pass": 46,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "inference-focus.test.mjs",
+      "pass": 10,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "inference-profile.test.mjs",
+      "pass": 8,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -604,6 +653,13 @@
       "ok": true
     },
     {
+      "file": "preset-wish.test.mjs",
+      "pass": 7,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "projection.test.mjs",
       "pass": 9,
       "fail": 0,
@@ -695,6 +751,13 @@
       "ok": true
     },
     {
+      "file": "subagent-skip.test.mjs",
+      "pass": 4,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "temp-sweep.test.mjs",
       "pass": 5,
       "fail": 0,
@@ -716,13 +779,6 @@
       "ok": true
     },
     {
-      "file": "verifier-html.test.mjs",
-      "pass": 14,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
       "file": "verify-artifact.test.mjs",
       "pass": 10,
       "fail": 0,
@@ -732,6 +788,13 @@
     {
       "file": "wire.test.mjs",
       "pass": 36,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "wish-check.test.mjs",
+      "pass": 4,
       "fail": 0,
       "exit": 0,
       "ok": true
