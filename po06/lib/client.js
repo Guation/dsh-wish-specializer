@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 19:35'
+    const CLIENT_BUILD = '10-19 19:55'
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
     // ⚠ 必须与 settings.js 的 TIER_PRESETS **逐项一致**：这里是拿三项反推档位（tierOfSettings）。
     // 2026-10-19 修：此前这一份和宿主侧不一致（light/standard 的 detail、budget 错位），
@@ -3359,7 +3359,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               type: 'button', 'data-po06': 'options-btn', 'data-po06-open': optOpen ? '1' : '0',
               ref: optBtnRef,
               style: { ...S.optBtn, ...(optOpen ? S.optBtnOn : null) },
-              title: L('优化选项：档位 / 权限 / 模型 / 上下文 / 只读工具（点开）', 'Options: tier / permission / model / context / read-only tools'),
+              title: L('优化选项：档位 / 权限 / 模型 / 上下文 / 只读工具（点开）· build ' + CLIENT_BUILD,
+                'Options: tier / permission / model / context / read-only tools (click) · build ' + CLIENT_BUILD),
               'aria-expanded': optOpen ? 'true' : 'false',
               // ⚠ 面板用 **fixed** 定位并按按钮实测坐标摆位：输入卡片可能有 overflow 裁剪，
               //   用 absolute 会被裁掉（`?` 的弹层当年就是因此改成 fixed 的，见 S.helpPop）。
@@ -3413,7 +3414,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           // ── 第二行 = **弹出面板**（点「优化选项」才展开）：设定类 + 范围类都收在这里 ──────
           //    只有打开时才渲染 ⇒ 关闭时控件栏就是**一行**（用户要的"更简洁"）。
           optExit.mounted ? h('div', { 'data-po06': 'bar-row-2', style: { position: 'relative' } },
-            h('div', { ...themeAttrs(), 'data-po06': 'options-pop', 'data-po06-closing': optExit.closing ? '1' : '0',
+            h('div', { ...themeAttrs(), 'data-po06': 'options-pop', 'data-po06-build': CLIENT_BUILD, 'data-po06-closing': optExit.closing ? '1' : '0',
               // ⚠ 坐标**必须真的用上**：`S.optPop` 是 `position: fixed`，而 fixed 元素在没给
               //   `left/top/bottom` 时会退回到"流里的位置"——实测就是**看不见任何弹窗**
               //   （用户 2026-09-22："点击优化选项没有任何弹窗出现"）。
@@ -3422,9 +3423,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               style: { ...S.optPop, ...(optPos
                 ? { left: optPos.left + 'px', bottom: optPos.bottom + 'px', ...(optPos.width ? { width: optPos.width + 'px' } : null) }
                 : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(300, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
-              h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options')),
-                h('span', { 'data-po06': 'client-build', title: L('客户端构建时间（重启后应变成最新一版）', 'Client build time (should update after restart)'),
-                  style: { marginLeft: 'auto', fontSize: '10px', fontWeight: 400, color: OVS.fg3, letterSpacing: '0' } }, CLIENT_BUILD)),
+              h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options'))),
               // ① 档位（从第一行搬来；分段控件本身没变）
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('档位', 'Tier')),
                 h(Segmented, {
@@ -4338,7 +4337,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '@keyframes po06-pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}',
             '@keyframes po06-row{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}',
             '@keyframes po06-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(4px) scale(.99)}}',
-            '[data-po06-closing="1"]{animation:po06-out .16s ease-in both;pointer-events:none}',
+            // ⚠ !important 是必须的：入场规则（po06-pop/po06-help）与这条**同优先级**且写在后面，
+            //   而入场动画是 fill-mode:both（播完仍占着 animation 槽）。不加 !important 时退场动画根本不会接管，
+            //   元素就"啪一下消失"——2026-10-19 真机就是这个问题（优化选项 / ? / 拦截面板都没有退场）。
+            '[data-po06-closing="1"]{animation:po06-out .16s ease-in both !important;pointer-events:none}',
+            '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .16s ease-in both !important}',
             '@keyframes po06-out-fade{from{opacity:1}to{opacity:0}}',
             '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .16s ease-in both}',
             // 档位特效（2026-10-19）：粒子湍流 + 重度档的轻微颤抖

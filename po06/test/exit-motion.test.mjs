@@ -44,3 +44,9 @@ test('下拉浮层自己淡出后再 remove（不直接消失）', () => {
   assert.ok(block.includes("layer.style.transition = 'opacity .12s ease, transform .12s ease'"), '先设过渡')
   assert.ok(block.includes('setTimeout(() => { try { layer.remove()'), '延迟移除')
 })
+
+test('退场动画必须带 !important（入场是 fill:both，会一直占着 animation 槽）', () => {
+  // 2026-10-19 真机：优化选项 / 帮助 / 拦截面板"没有退场"，根因就是这条同优先级规则被后面的入场规则盖住
+  assert.ok(/\[data-po06-closing="1"\]\{animation:po06-out \.16s ease-in both !important/.test(CLIENT_SRC), '通用退场要 !important')
+  assert.ok(/\[data-po06="intercept"\]\[data-po06-closing="1"\]\{animation:po06-out-fade \.16s ease-in both !important/.test(CLIENT_SRC), '拦截浮层淡出也要 !important')
+})
