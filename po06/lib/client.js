@@ -3371,6 +3371,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const prevAt = enterAtRef.current
           enterAtRef.current = now
           const held = holdRef.current
+          // 取证（2026-10-19）：双击这条路到底看到了什么相位 —— 真机上"审查态仍被跳过"必须能查
+          try { apiPost('/client-log', { event: 'dbl-enter', sid: sessionId,
+            detail: 'phase=' + String(held && held.phase) + ' des=' + String(desRef.current) }).catch(() => {}) } catch { /* 忽略 */ }
           if (desRef.current && prevAt && now - prevAt < 600 && held) {
             // 优化中：双击 = 跳过（按原文立即发）
             if (held.phase === 'optimizing') {
