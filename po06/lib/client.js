@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 18:58'
+    const CLIENT_BUILD = '10-19 19:10'
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
     // ⚠ 必须与 settings.js 的 TIER_PRESETS **逐项一致**：这里是拿三项反推档位（tierOfSettings）。
     // 2026-10-19 修：此前这一份和宿主侧不一致（light/standard 的 detail、budget 错位），

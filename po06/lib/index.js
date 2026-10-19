@@ -2431,7 +2431,9 @@ export function apply(ctx, config) {
       if (hit) {
         out.preset = cands[hit]
         out.debug.from = hit
-        adapter.notePreset(sid, out.preset)
+        // ⚠ **不要**回写事件表（2026-10-19 真机）：这里读到的是会话头（创建时的默认值），
+        //   一旦回写就会把"用户刚刚切换的预设"覆盖掉，连时间戳都被刷成当前时刻 ⇒
+        //   客户端永远看到 ptc、永远判成"没变化"。会话头只作为**兜底**值返回。
       }
       return out
     },
