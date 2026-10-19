@@ -2156,6 +2156,17 @@ export function apply(ctx, config) {
           home: DSH_HOME, version: PKG_VERSION, now: () => Date.now(),
            capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url}),
            optimizerStatus: sid => sid ? optimizerRequests.get(String(sid)) || null : null,
+           // 到达判据（只读）：会话事件里最后一条**真人**输入的消息 id。
+           // 只认 isRealUserInput（source.kind === 'user'）；插件的"投递"被这条白名单排除。
+           lastUserMessageId: sid => {
+             try {
+               const agent = adapter.agentFor(String(sid || ''))
+               const session = agent && (agent.session || (typeof agent.getSession === 'function' ? agent.getSession() : null))
+               const events = (session && typeof session.snapshotEvents === 'function') ? session.snapshotEvents() : []
+               const last = events.filter(isRealUserInput).at(-1)
+               return last ? extractMessageId(last) : null
+             } catch { return null }
+           },
           // P11：前置拦截的按需解释（客户端拦下发送后调它；失败即由客户端按原文放行）
           interpret: (p) => runInterceptInput(ctx, p),
           // P11：拦截进度面（"优化中"那几十秒要看得见它在想什么）

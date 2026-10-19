@@ -1657,6 +1657,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             L('把上一版注入的包放回来（本会话最多可退 10 版；没有上一版时会如实告诉你）',
               'Restore the previous packet for this session (up to 10 versions; it will say so if there is none)')),
         ])
+        // foot-sending（2026-10-19）：提交已被受理，但**还没确认发出**——这时绝不能显示成"已发送"。
+        : phase === 'sending'
+          ? footWrap('sending', [
+            h('span', { 'data-po06': 'intercept-sent-tag', style: S.ovSentTag }, L('发送中…（等宿主确认）', 'Sending… (waiting for the host to confirm)')),
+          ])
         // foot-sent（0.5:1650-1657）：放行之后只读回看 —— 关闭 / 重新生成
         : (phase === 'sent' || phase === 'skipped' || phase === 'failed')
           ? footWrap('sent', [
@@ -1670,13 +1675,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               L('用同一条原文重跑一次解释层', 'Run the explainer again on the same original text')),
           ])
           // foot-error（0.5:1675-1681）：`重试` / `按原文发出`
+          // ⚠ 发送失败与"优化失败"要分开：前者**不该重跑解释层**，只需把同一份结果再发一次。
           : phase === 'error'
-            ? footWrap('error', [
-              btn({ 'data-po06': 'intercept-retry' }, L('重试', 'Retry'), props.onRegen, null,
-                L('重新跑一次解释层再放行（这条消息还没发出去）', 'Run the explainer again before releasing (this message was never sent)')),
-              btn({ 'data-po06': 'intercept-original' }, L('按原文发出', 'Send as-is'), props.onOriginal, 'primary',
-                L('不要这一轮的结果，直接按原文发出', 'Skip this round and send the original text')),
-            ])
+            ? (hold && hold.sendFailed
+              ? footWrap('error', [
+                btn({ 'data-po06': 'intercept-resend' }, L('再次发送', 'Send again'), props.onResend, 'primary',
+                  L('用同一份优化结果再发一次（不会重跑解释层）。如果消息其实已经发出去了，不要再点',
+                    'Resend the same optimized result without re-running the explainer. Do not press if the message actually went out.')),
+                btn({ 'data-po06': 'intercept-original' }, L('按原文发出', 'Send as-is'), props.onOriginal, null,
+                  L('不要这一轮的结果，直接按原文发出', 'Skip this round and send the original text')),
+              ])
+              : footWrap('error', [
+                btn({ 'data-po06': 'intercept-retry' }, L('重试', 'Retry'), props.onRegen, null,
+                  L('重新跑一次解释层再放行（这条消息还没发出去）', 'Run the explainer again before releasing (this message was never sent)')),
+                btn({ 'data-po06': 'intercept-original' }, L('按原文发出', 'Send as-is'), props.onOriginal, 'primary',
+                  L('不要这一轮的结果，直接按原文发出', 'Skip this round and send the original text')),
+              ]))
             // foot-idle（0.5:1683-1686）：优化中始终留一个出口 —— 0.6 就是既有的「跳过并直接发送」
             : footWrap('idle', [
               btn({ 'data-po06': 'intercept-skip' }, L('跳过并直接发送', 'Skip and send as-is'), props.onSkip, 'primary',
@@ -2095,6 +2109,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const slashAllowedDraft = (t) => slashReviewAllowed([...slashActive], t)
 
       const clearHoldSoon = () => { window.setTimeout(() => { holdRef.current = null; setHold(null) }, 1600) }
+      // ── 刷新恢复（2026-10-19）────────────────────────────────────────
+      // 后端已解绑"连接关闭=取消"：刷新不会杀掉这一轮，结果按 requestId 留档。
+      // 这里把"这一轮是谁、原话是什么"存进 localStorage，重挂载时按 requestId 把面板贴回来。
+      const PENDING_KEY = 'po06:pending:' + String(sessionId || '')
+      const readPending = () => { try { const raw = window.localStorage.getItem(PENDING_KEY); return raw ? JSON.parse(raw) : null } catch { return null } }
+      const writePending = (rec) => { try { window.localStorage.setItem(PENDING_KEY, JSON.stringify(rec)) } catch { /* 存不进去就让这一轮不可恢复，不打断发送 */ } }
+      const clearPending = () => { try { window.localStorage.removeItem(PENDING_KEY) } catch { /* 同上 */ } }
+      const newRequestId = () => {
+        try { if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID() } catch { /* 老浏览器回落 */ }
+        return 'po06-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10)
+      }
       /** 放行：**先把拦下的那条原话写回草稿**，再交给宿主的 submit。
        *  为什么"总是写一遍"（而不是仅在 DOM 与状态不一致时）：拦下的字是从 **DOM** 读的，
        *  而 submit 发的是**宿主状态**里的草稿——两者可能不同步（真机探针实测：headless 下
@@ -2109,12 +2134,27 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const heldName = slashNameOf(held)
           if (heldName && slashActive.has(heldName) && slashNameOf(outgoing) !== heldName) outgoing = held
           if (typeof inputActions.setDraft === 'function') inputActions.setDraft(outgoing)
-          inputActions.submit()
+          // ⚠ DSH 的 submit() 是**同步布尔**：宿主忙（adjudicating/submitting）时静默回 false、不抛错。
+          //   忽略返回值会把"被拒绝"也当成"已发出"。
+          const accepted = inputActions.submit()
+          if (accepted === false) {
+            const blocked = { ...(h || {}), phase: 'error', sendFailed: true, reason: L('宿主正在提交上一条消息，这一轮还没发出——稍后重试或点「按原文发出」','Host is still submitting the previous message; this round was not sent — retry shortly or send the original') }
+            holdRef.current = blocked; setHold(blocked)
+            return
+          }
+          // ⚠ 发送**结果**不在这里判断（2026-10-19 用户决定）：
+          //   原先用"草稿有没有被清空"去猜，会把"读不到输入框"误判成"已发送"。
+          //   真正的裁决推迟到**下一次点发送**——那时用 /sent-check 问会话「上一轮到底进没进」，
+          //   没进就把上一次的结果原样还回来（见 beginHold 的预检），不重跑优化。
+          //   所以这里**不清 pending**：它是下次预检的唯一依据。
           setHold({ ...(h || {}), phase: mark || 'sent' })
           clearHoldSoon()
         } catch (e) {
           // 连放行都失败 ⇒ 必须说出来（用户至少知道消息没发出去，可以手动再按一次）
-          setHold({ ...(h || {}), phase: 'error', reason: L('放行失败：','Release failed: ') + String((e && e.message) || e) })
+          const failed = { ...(h || {}), phase: 'error', reason: L('放行失败：','Release failed: ') + String((e && e.message) || e) }
+          holdRef.current = failed; setHold(failed)
+          // 也要收尾：beginHold 的第一行是 if (holdRef.current) return，hold 不清就再也不能发
+          clearHoldSoon()
         }
       }
       /**
@@ -2134,19 +2174,42 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         releaseHold(text, { ...h, reason: why }, 'sent')
       }
 
-      const beginHold = (text, via) => {
-        if (holdRef.current) return                        // 去重：同一次发送的第二条事件直接忽略
-        // 拦截计数**放在去重之后**：同一次发送可能同时命中 Enter 与 click（0.5 也要处理这件事，
-        // 见 0.5:443-453 的 `coalesced`）。放在事件处理函数里会让同一次发送**记两次**，
-        // "本会话已拦截 N 次"就变成了一个虚高的数字——界面上的数字不允许这样。
-        setInterceptCount((n) => n + 1)
-        const my = ++holdSeq.current                        // 这一轮的世代号
+      /** 把上一次的结果原样贴回面板（review 可提交 / optimizing 继续轮询）。 */
+      const applyRestoredHold = (pending, p) => {
+        if (!p || p.ok !== true) return false
+        const base = { text: String((pending && pending.text) || ''), via: 'restore', t0: Number(pending && pending.startedAt) || Date.now(), requestId: pending && pending.requestId }
+        if (p.state === 'running') {
+          const h = { ...base, englishMode: englishRef.current, phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
+          holdRef.current = h; setHold(h)
+          return true
+        }
+        if (p.state === 'done' && p.result && typeof p.result === 'object') {
+          const r = p.result
+          const done = { ...base, englishMode: r.englishMode === true, phase: 'review',
+            outgoingText: r.outgoingText || base.text, translation: r.translation || null,
+            noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null,
+            packet: r.packet || '', chars: r.chars || 0, ms: r.ms || null,
+            unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null,
+            edited: r.packet || '', usage: r.usage || null,
+            usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null, restored: true }
+          holdRef.current = done; setHold(done)
+          return true
+        }
+        return false
+      }
+      /** 真正发起一轮优化（原 beginHold 的正文）。seq 由预检传入，避免重复自增世代号。 */
+      const startOptimize = (text, via, seq) => {
+        if (holdRef.current) return
+        const my = (typeof seq === 'number') ? seq : ++holdSeq.current
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 上一轮先断掉 */ }
         const ac = (typeof AbortController === 'function') ? new AbortController() : null
         abortRef.current = ac
-        const h = { text, via,englishMode:englishOn, t0: Date.now(), phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
+        // requestId 是这一轮的身份证：后端按它记账，刷新后按它把结果取回来。
+        const requestId = newRequestId()
+        const h = { text, via,englishMode:englishOn, t0: Date.now(), phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null, requestId }
         holdRef.current = h; setHold(h)
-        apiPost('/interpret', { sessionId, text }, ac ? { signal: ac.signal } : undefined).then((r) => {
+        writePending({ requestId, text, startedAt: h.t0, sessionId })
+        apiPost('/interpret', { sessionId, text, requestId }, ac ? { signal: ac.signal } : undefined).then((r) => {
           if (my !== holdSeq.current) return                // ⚠ 过期世代：这一轮已被跳过/取消/重跑 ⇒ 结果丢弃
           if (!r || r.ok !== true) {
             settleFailure(text, h, reasonText((r && r.reason) || 'unknown'))
@@ -2164,6 +2227,40 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           settleFailure(text, h, reasonText((e && e.message) || e))
         })
       }
+      /**
+       * 用户按下发送的入口（2026-10-19 用户设计）：
+       * **先问"上一轮到底进没进会话"**——没进就把上一次的结果原样还回来（像没点过发送），
+       * **不重新优化**；已进 / 查不到（unknown）才走正常新优化。
+       * 不用"草稿有没有被清空"去猜：那会把"读不到输入框"误判成"已发送"。
+       */
+      const beginHold = (text, via) => {
+        if (holdRef.current) return                        // 去重：同一次发送的第二条事件直接忽略
+        // 拦截计数**放在去重之后**：同一次发送可能同时命中 Enter 与 click（见 0.5:443-453）。
+        setInterceptCount((n) => n + 1)
+        const prev = readPending()
+        const sameText = !!(prev && prev.requestId && String(prev.text || '').trim() === String(text || '').trim())
+        if (!sameText) { startOptimize(text, via); return }
+        const my = ++holdSeq.current                        // 这一轮的世代号
+        const probe = { text, via, englishMode: englishOn, t0: Date.now(), phase: 'checking', packet: '', chars: 0, ms: null, reason: null, requestId: prev.requestId }
+        holdRef.current = probe; setHold(probe)
+        const fallThrough = () => {
+          if (my !== holdSeq.current) return
+          holdRef.current = null; setHold(null)
+          startOptimize(text, via, my)
+        }
+        Promise.resolve(apiGet('/sent-check?requestId=' + encodeURIComponent(prev.requestId))).then((r) => {
+          if (my !== holdSeq.current) return
+          const st = (r && r.ok === true && typeof r.state === 'string') ? r.state : 'unknown'
+          // arrived / unknown ⇒ 不能安全恢复（unknown 按用户选择 A：重新优化，绝不冒险重发）
+          if (st !== 'absent') { clearPending(); fallThrough(); return }
+          // absent：上一次确实没进会话 ⇒ 把结果贴回来，**不调用 /interpret**
+          Promise.resolve(apiGet('/interpret-progress?requestId=' + encodeURIComponent(prev.requestId))).then((p) => {
+            if (my !== holdSeq.current) return
+            if (applyRestoredHold(prev, p)) return
+            clearPending(); fallThrough()
+          }, () => { if (my === holdSeq.current) fallThrough() })
+        }, () => { if (my === holdSeq.current) fallThrough() })
+      }
 
       /**
        * 「取消」（0.5 那颗 `‹ 回退` 真正干的事，用户 2026-09-21 指出我误解了它）：
@@ -2172,6 +2269,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
        */
       const cancelHold = () => {
         holdSeq.current += 1                                  // 让在飞的那次结果作废
+        // 连接断开不再等于取消 ⇒ 必须**显式**告诉宿主停，否则后台会把这一轮跑完（还烧一次模型调用）。
+        try {
+          const rid = holdRef.current && holdRef.current.requestId
+          if (rid) Promise.resolve(apiPost('/interpret-cancel', { requestId: rid })).catch(() => {})
+        } catch { /* 取消是尽力而为，不能让它挡住界面收尾 */ }
+        clearPending()
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 断不掉也要作废世代 */ }
         abortRef.current = null
         setProg(null)                                         // 立刻收掉"还在跑"的观感（宿主侧同时会被中止）
@@ -2209,6 +2312,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const h = holdRef.current || hold || {}
         if (!h.text) { holdRef.current = null; setHold(null); setProg(null); return }
         holdSeq.current += 1                                 // ⚠ 跳过之后，在飞的那次解释结果必须作废
+        // 「跳过并发送」的语义是**中止这一轮优化**（不是"发出但不带包"）。
+        // 连接断开已经不再等于取消 ⇒ 必须显式告诉宿主停，否则后台会继续跑完、白烧一次模型调用。
+        try {
+          if (h.requestId) Promise.resolve(apiPost('/interpret-cancel', { requestId: h.requestId })).catch(() => {})
+        } catch { /* 尽力而为：取消失败也不能挡住"按原文发出" */ }
+        clearPending()   // 这一轮的优化被明确丢弃 ⇒ 下次点击不该再把它"恢复"回来
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 同上 */ }
         abortRef.current = null
         setProg(null)                                        // 立刻收掉"还在跑"的观感（不再等下一次刷新）
@@ -2242,14 +2351,43 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           setHold({ ...h, phase: 'review', reason: L('这一轮的包没能清掉：', 'Could not clear this round packet: ') + reasonText(r && r.reason) })
           return
         }
+        clearPending()   // 用户明确不要这一轮的结果 ⇒ 下次点击不该再把它"恢复"回来
         releaseHold(h.text, { ...h, phase: 'sent' }, 'sent')
       }
       const regenHold = () => {
         const h = holdRef.current || hold
         if (!h) return
         holdRef.current = null
-        beginHold(h.text, 'regen')
+        startOptimize(h.text, 'regen')     // 重新生成 = 明确重跑，不经过"上一轮恢复"预检
       }
+      /** 发送失败后的「再次发送」：**复用同一份优化结果**，不重跑解释层。 */
+      const sendAgainHold = () => {
+        const h = holdRef.current || hold
+        if (!h || !h.text) return
+        holdSeq.current += 1                                  // 新一代：让上一轮迟到的核对作废
+        releaseHold(h.text, { ...h, sendFailed: false, reason: null }, 'sent')
+      }
+
+      // ── 刷新恢复：把未完成的一轮重新贴回面板（2026-10-19）──────────────
+      // 与"没刷新过"尽可能一致：进行中 → 继续显示优化中并接着轮询；已跑完未提交 → 回到审查态可提交。
+      React.useEffect(() => {
+        if (!sessionId) return undefined
+        if (holdRef.current) return undefined                  // 已经在跑（会话来回切换时别覆盖）
+        const pending = readPending()
+        if (!pending || !pending.requestId) return undefined
+        let alive = true
+        const rid = pending.requestId
+        const base = { text: String(pending.text || ''), via: 'restore', t0: Number(pending.startedAt) || Date.now(), requestId: rid }
+        apiGet('/interpret-progress?requestId=' + encodeURIComponent(rid)).then((p) => {
+          if (!alive || holdRef.current) return
+          if (!p || p.ok !== true) return
+          if (applyRestoredHold(pending, p)) return
+          // gone / failed / cancelled：没什么可恢复的，把痕迹清掉（避免每次挂载都白查一次）
+          clearPending()
+        }, () => { /* 读不到就当作没有；pending 留着，下次挂载再试 */ })
+        return () => { alive = false }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [sessionId])
 
       // ── P11 浮层的两条时序（**只读 hold，绝不改拦截状态机**）────────────
       // ① 终结即留档：0.6 的 releaseHold 会在 1.6s 后把 hold 清空（clearHoldSoon），
@@ -2834,6 +2972,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onRollback: rollbackHold,    // 回退上一版包（包级历史，宿主侧保留 10 版）
           onOriginal: sendOriginal,    // 按原文发出（审查态里就是 0.5 的「‹ 回退」，见面板注记②）
           onRegen: doRegen,            // 重新生成 / 重试
+          onResend: sendAgainHold,     // 发送失败后：用同一份结果再发一次（不重跑优化）
           onSkip: skipHold,            // 跳过并直接发送
           onCancel: cancelHold,        // 取消（中止、什么都不发）
           onCollapse: collapseToBall,  // 收起为球
