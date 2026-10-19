@@ -1487,6 +1487,9 @@ async function decideEnableFor(agentId) {
 }
 
 export const name = '@dsh-external/dsh-wish-specializer'
+// 预设登记表（agentPresets）是 DSH 的核心服务。cordis 里**不声明 inject 就访问 ctx.agentPresets 会抛**
+// （"cannot get property agentPresets without inject"）。用 optional 形式：拿不到也不影响插件加载。
+export const inject = { optional: ['agentPresets'] }
 /** 版本号从**随包发行的 package.json** 读，不写死（写死就会漂——本项目栽过这类跟头）。 */
 const PKG_VERSION = (() => {
   try { return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8')).version } catch { return null }
@@ -2453,8 +2456,18 @@ export function apply(ctx, config) {
       const now = Date.now()
       if (adapter._presetCache && now - adapter._presetCache.at < 60 * 1000) return adapter._presetCache.value
       try {
-        const svc = (ctx && ctx.agentPresets) || (typeof ctx.get === 'function' ? ctx.get('agentPresets') : null)
-        out.debug.hasAgentPresets = !!(ctx && ctx.agentPresets)
+        let svc = null
+        try { svc = (ctx && ctx.agentPresets) || null } catch (e) { out.debug.injectThrew = String((e && e.message) || e) }
+        if (!svc && typeof ctx.get === 'function') {
+          try { svc = ctx.get('agentPresets') } catch { svc = null }
+        }
+        out.debug.hasAgentPresets = !!svc
+        if (svc) {
+          try {
+            const proto = Object.getPrototypeOf(svc) || {}
+            out.debug.methods = Object.getOwnPropertyNames(proto).filter((k) => k !== 'constructor').slice(0, 24)
+          } catch { /* 忽略 */ }
+        }
         let list = null
         if (svc && typeof svc.list === 'function') list = await svc.list()
         else if (Array.isArray(svc)) list = svc

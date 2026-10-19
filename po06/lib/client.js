@@ -136,26 +136,9 @@ window.__ModuleLoader__.load({
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
     const CLIENT_BUILD = '10-19 22:50'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
-    const PRESET_NOTICE_SEEN = new Map()
+    const PRESET_NOTICE_ONCE = new Set()   // 本次运行里哪些会话已经提示过（切会话才再提示）
     // 预设登记表（id ↔ 显示名）：由宿主从 agentPresets 服务转出来。
     // 磁盘上会话头永远是 ptc，所以"用户眼前这个会话选了什么"只能看输入区按钮的文案。
-    let PRESET_REG = null
-    function presetLabelIn(root, presets) {
-      if (!root || !presets || !presets.length || typeof document === 'undefined') return ''
-      const names = presets.map((p) => p && p.name).filter(Boolean)
-      if (!names.length) return ''
-      try {
-        const walker = document.createTreeWalker(root, 4 /* SHOW_TEXT */)
-        let node = null
-        let guard = 0
-        while ((node = walker.nextNode()) && guard++ < 4000) {
-          const t = String(node.textContent || '').trim()
-          if (!t || t.length > 24) continue
-          if (names.indexOf(t) >= 0) return t
-        }
-      } catch { /* 无 DOM 能力的环境忽略 */ }
-      return ''
-    }
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
     // ⚠ 必须与 settings.js 的 TIER_PRESETS **逐项一致**：这里是拿三项反推档位（tierOfSettings）。
     // 2026-10-19 修：此前这一份和宿主侧不一致（light/standard 的 detail、budget 错位），
@@ -2623,7 +2606,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 预设提示（2026-10-19）：非 Wish / PTC 预设时弹一次，两个按钮（知道了 / 以后不再显示）。
       const [notice, setNotice] = React.useState(null)
       // 「跳过并发送」时提示双击 Enter 的卡片（2026-10-19 用户要求；开关已开或点过"以后不再显示"就不弹）
-      const [skipHint, setSkipHint] = React.useState(false)
+      const [skipHint, setSkipHint] = React.useState(null)   // null | { on: boolean }
       // 预设被**在会话开始前**拨过（用户 2026-10-19 的真机情形）：宿主给会话头的是默认预设，
       // 光在回车时判定是看不出来的。所以盯着输入区，预设一变就问一次宿主"现在算哪个预设"，
       // 变了且不是 Wish/PTC 就当场把提示弹出来（不用等下一次发送）。
@@ -2642,53 +2625,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       React.useEffect(() => {
         apiPost('/client-log', { event: 'bar-mount', sid: sessionId }).catch(() => {})
       }, [sessionId])
-      // 预设登记表：一次拉取即可（失败每 5s 重试；换语言可能改名，所以也随 locale 重拉）
-      React.useEffect(() => {
-        let alive = true
-        const load = () => {
-          apiGet('/presets').then((r) => {
-            if (!alive) return
-            if (r && r.ok && Array.isArray(r.presets) && r.presets.length) { PRESET_REG = r.presets; return }
-            setTimeout(() => { if (alive) load() }, 5000)
-          }).catch(() => { if (alive) setTimeout(load, 5000) })
-        }
-        load()
-        return () => { alive = false }
-      }, [LOCALE])
 
-      // 预设提示的触发（2026-10-19 重做）：**不再靠 MutationObserver**。
-      // 之前盯输入区的任何改动（打字、光标、流式输出）都会触发一次判定 ⇒ 弹窗"乱出现"。
-      // 现在只做两件事：①进入会话判定一次；②每 2.5s 轻查一次，只在"预设真的变了"时才考虑弹。
-      React.useEffect(() => {
-        if (!sessionId) return undefined
-        let stopped = false
-        const tick = () => {
-          try { if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return } catch { /* 忽略 */ }
-          const card = composerCard(rootRef.current)
-          const label = presetLabelIn(card, PRESET_REG)
-          apiGet('/preset?via=watch&session=' + encodeURIComponent(sessionId)
-            + (label ? '&label=' + encodeURIComponent(label) : '')).then((r) => {
-            if (stopped || !r || r.ok !== true) return
-            const at = r.presetAt || null
-            const rec = PRESET_NOTICE_SEEN.get(sessionId) || { at: null, shownFor: null }
-            const first = rec.at === null
-            const changed = !!at && at !== rec.at
-            if (!first && !changed) return
-            rec.at = at
-            PRESET_NOTICE_SEEN.set(sessionId, rec)
-            if (!r.notice) return
-            const preset = r.notice.preset
-            // 同一会话对同一个预设只提示一次：点过「知道了」之后即使组件重挂载也不会再弹
-            if (rec.shownFor === preset) return
-            rec.shownFor = preset
-            apiPost('/client-log', { event: 'notice-recv', sid: sessionId, preset }).catch(() => {})
-            setNotice(r.notice)
-          }).catch(() => {})
-        }
-        tick()
-        const timer = setInterval(tick, 2500)
-        return () => { stopped = true; clearInterval(timer) }
-      }, [sessionId])
+
+
       // 预设提示：**画到 document.body 上**（2026-10-19 第三次踩同一个坑）。
       // 之前用 React 渲染在输入区里，position:fixed 在带 transform/overflow 的祖先下会被裁掉或错位，
       // 真机上就是"notice 拿到了但屏幕上看不见"。这里改成命令式浮层：进来必有、层级最高、卸载即清。
@@ -2713,15 +2652,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         dot.style.cssText = 'flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:' + OVS.acc
         const title = document.createElement('strong')
         title.style.cssText = 'font-size:13.5px;font-weight:700;letter-spacing:.2px'
-        title.textContent = L('建议切换到 Wish 或 PTC 预设', 'Switch to the Wish or PTC preset')
+        title.textContent = L('许愿特化器', 'Wish Specializer')
         head.appendChild(dot); head.appendChild(title)
         const body = document.createElement('p')
         body.style.cssText = 'margin:0 0 6px;color:' + OVS.fg2
-        body.textContent = L('许愿特化器在 Wish / PTC 预设下发挥最好，其他预设可能表现不佳。',
-          'This plugin works best on the Wish or PTC preset; other presets may behave poorly.')
+        body.textContent = L('它会把一句话的愿望补成方向性要求，再交给工作 AI；在 Wish / PTC 预设下效果最好。另外：输入框里连按两次 Enter 可以直接跳过本轮优化。',
+          'It turns a one-line wish into directional requirements before the work starts; best on the Wish or PTC preset. Tip: press Enter twice in the composer to skip a round.')
         const hint = document.createElement('p')
         hint.style.cssText = 'margin:0 0 10px;color:' + OVS.fg3 + ';font-size:11px'
-        hint.textContent = L('当前预设：', 'Current preset: ') + String(notice.preset || '?')
+        hint.textContent = L('档位 / 权限 / 上下文都在「优化选项」里；不想看就点「以后不再显示」。',
+          'Tier, permission and context live in Options; choose "Do not show again" to stop this.')
         const actions = document.createElement('div')
         actions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end'
         const mk = (label, primary, onClick, attr) => {
@@ -2780,11 +2720,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         head.appendChild(dot); head.appendChild(title)
         const body = document.createElement('p')
         body.style.cssText = 'margin:0 0 6px;color:' + OVS.fg2
-        body.textContent = L('开启「双击 Enter 跳过」后，即可双击 Enter 来直接跳过优化。',
-          'Turn on "Double Enter skip" and you can press Enter twice to skip the optimization.')
+        const isOn = !!(skipHint && skipHint.on)
+        body.textContent = isOn
+          ? L('「双击 Enter 跳过」已开启：在输入框里连按两次 Enter，即可直接跳过本轮优化。',
+            '"Double Enter skip" is on: press Enter twice in the composer to skip this round immediately.')
+          : L('开启「双击 Enter 跳过」后，即可双击 Enter 来直接跳过优化。',
+            'Turn on "Double Enter skip" and you can press Enter twice to skip the optimization.')
         const hint = document.createElement('p')
         hint.style.cssText = 'margin:0 0 10px;color:' + OVS.fg3 + ';font-size:11px'
-        hint.textContent = L('位置：优化选项 → 双击 Enter 跳过', 'Where: Options → Double Enter skip')
+        hint.textContent = isOn
+          ? L('不需要时可在：优化选项 → 双击 Enter 跳过 里关掉', 'Turn it off in: Options → Double Enter skip')
+          : L('位置：优化选项 → 双击 Enter 跳过', 'Where: Options → Double Enter skip')
         const actions = document.createElement('div')
         actions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end'
         const mk = (label, primary, onClick, attr) => {
@@ -2798,9 +2744,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           b.onclick = onClick
           actions.appendChild(b)
         }
-        mk(L('知道了', 'Got it'), false, () => setSkipHint(false), 'skip-hint-ok')
+        mk(L('知道了', 'Got it'), false, () => setSkipHint(null), 'skip-hint-ok')
         mk(L('以后不再显示', 'Do not show again'), true, () => {
-          setSkipHint(false)
+          setSkipHint(null)
           save({ skipHintDismissed: true })
         }, 'skip-hint-never')
         card.appendChild(head); card.appendChild(body); card.appendChild(hint); card.appendChild(actions)
@@ -2814,6 +2760,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           } catch { try { el.remove() } catch { /* 忽略 */ } }
         }
       }, [skipHint])
+
 
       const dismissNotice = (forever) => {
         setNotice(null)
@@ -2893,6 +2840,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
       const data = status.data
       const s = (data && data.settings) || {}
+      // 预设提示改版（2026-10-19 用户最终口径）：**不再判断预设**。
+      // 只要切换会话（或刚打开 DSH）就提示一次——它的目的只是告诉新用户有这个特性；
+      // 觉得烦就点「以后不再显示」，写进设置后永久闭嘴。每个会话在本次运行里只提示一次。
+      React.useEffect(() => {
+        if (!sessionId) return
+        if (s && s.presetNoticeDismissed === true) return
+        if (PRESET_NOTICE_ONCE.has(sessionId)) return
+        PRESET_NOTICE_ONCE.add(sessionId)
+        setNotice({ preset: '', intro: true })
+      }, [sessionId, s && s.presetNoticeDismissed])
       const d = (data && data.described) || null
       // ⚠ 0.7.7 会话级档位：`sessionEffective/sessionDescribed` 是**本会话生效**的值
       //   （全局 + 该会话覆盖的合并结果）。没有就回退全局，行为与改动前一致。
@@ -3319,24 +3276,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           e.preventDefault(); e.stopPropagation()
           if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation()
           markSeen('key:intercepted')
-          // 预设闸门：档位不是关闭、本会话还没问过 ⇒ 先问宿主，再决定"弹提示"还是"开始优化"。
-          if (!tierOff && presetGateRef.current !== sessionId) {
-            const draft = draftNow()
-            const gateCard = composerCard(rootRef.current)
-            const gateLabel = presetLabelIn(gateCard, PRESET_REG)
-            apiGet('/preset?via=enter&session=' + encodeURIComponent(sessionId)
-              + (gateLabel ? '&label=' + encodeURIComponent(gateLabel) : '')).then((r) => {
-              if (r && r.ok === true && r.notice) {          // 弹窗；不开始优化、不发送
-                presetGateRef.current = sessionId
-                setNotice(r.notice)
-                return
-              }
-              // 只有真的知道预设了才记"问过"：宿主还不知道（新会话）时，下次回车再问一次
-              if (r && r.ok === true && r.preset) presetGateRef.current = sessionId
-              beginHold(draft, 'key')
-            }, () => { beginHold(draftNow(), 'key') })
-            return
-          }
           // 双击 Enter 跳过（2026-10-19）：第一次 Enter 已拦下并开始解释；600ms 内的第二次
           // 表示"这轮别等了" ⇒ 放弃解释、按原文立即发出（与面板「跳过」同一语义，不发包、不出卡片）。
           const now = Date.now()
@@ -3808,7 +3747,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onRegen: doRegen,            // 重新生成 / 重试
           // 跳过并直接发送：开双击跳过前先提示一次（点过"以后不再显示"就不再提）
           onSkip: () => {
-            if (!doubleEnterSkip && (s.skipHintDismissed !== true)) setSkipHint(true)
+            // 2026-10-19 用户：开关**开着也要提示**——它默认开着，新用户并不知道有这个玩法。
+            if (s.skipHintDismissed !== true) setSkipHint({ on: doubleEnterSkip })
             skipHold()
           },
           onCancel: cancelHold,        // 取消（中止、什么都不发）

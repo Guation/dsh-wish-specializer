@@ -20,10 +20,14 @@ test('设置：skipHintDismissed 默认关、在白名单、可持久化', () =>
   assert.ok(SETTINGS_KEYS.includes('skipHintDismissed'), '必须在白名单里')
 })
 
-test('跳过按钮：只有"双击跳过没开"且"没点过以后不再显示"时才弹', () => {
-  assert.ok(CLIENT_SRC.includes('setSkipHint(true)'), '要能弹')
-  assert.ok(/if \(!doubleEnterSkip && \(s\.skipHintDismissed !== true\)\) setSkipHint\(true\)/.test(CLIENT_SRC), '两个前置条件')
+test('跳过按钮：开关开着也提示（默认开，新用户不知道），只被"以后不再显示"拦住', () => {
+  assert.ok(CLIENT_SRC.includes('setSkipHint({ on: doubleEnterSkip })'), '要能弹，并带上当时的开关状态')
+  assert.ok(/if \(s\.skipHintDismissed !== true\) setSkipHint\(/.test(CLIENT_SRC), '唯一的前置条件就是没点过以后不再显示')
+  assert.equal(CLIENT_SRC.includes('!doubleEnterSkip &&'), false, '不再要求开关关闭')
   assert.ok(CLIENT_SRC.includes('save({ skipHintDismissed: true })'), '以后不再显示要写设置')
+  // 文案按开关状态分岔（开着说"已开启，连按两次即可"；关着说"开启后可以"）
+  assert.ok(CLIENT_SRC.includes('「双击 Enter 跳过」已开启'), '开着的文案')
+  assert.ok(CLIENT_SRC.includes('开启「双击 Enter 跳过」后'), '关着的文案')
 })
 
 test('提示卡画在 body 上，两个出口都齐全', () => {
