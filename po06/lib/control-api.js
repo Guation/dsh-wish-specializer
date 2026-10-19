@@ -389,7 +389,10 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         //   那个字段只是覆盖里写进来的别名原样，不代表实际生效的档位。
         //   实测过这个坑：覆盖写了 tier=heavy 而三项没展开时，界面会显示"重度"，行为却是 standard。
         const sessDesc = sessEff ? describeSettings(sessEff) : null
-        traceApi({ k: 'status', sid: qsid || null, tier: sessDesc ? sessDesc.tier : null, ua: String(req.headers['user-agent'] || '').slice(0, 40) })
+        // build = 客户端自报的构建标记（2026-10-19）：一条台账就能看出浏览器里跑的是不是最新一版
+        traceApi({ k: 'status', sid: qsid || null, tier: sessDesc ? sessDesc.tier : null,
+          build: String(query.get('build') || '').slice(0, 24) || null,
+          ua: String(req.headers['user-agent'] || '').slice(0, 40) })
         const prompt = resolvePrompt({ home: H })
         return send(200, {
           ok: true, version, home: H,

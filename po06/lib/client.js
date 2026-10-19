@@ -409,7 +409,8 @@ window.__ModuleLoader__.load({
     // ⚠ 0.7.7：带上 session —— 档位改成会话级后，界面必须读【本会话生效的档位】，
 //   而不是全局那个（否则 A 会话设成关闭、B 会话的界面也跟着显示关闭）。
 const useStatus = (sessionId) => usePoll(React.useCallback(
-  () => apiGet('/status' + (sessionId ? ('?session=' + encodeURIComponent(sessionId)) : '')),
+  () => apiGet('/status?build=' + encodeURIComponent(CLIENT_BUILD)
+    + (sessionId ? ('&session=' + encodeURIComponent(sessionId)) : '')),
   [sessionId]), 15000)
     const useTurns = (n) => usePoll(React.useCallback(() => apiGet('/turns?limit=' + n), [n]), 15000)
     const useState_ = (sid) => usePoll(
