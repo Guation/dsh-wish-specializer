@@ -2467,6 +2467,8 @@ export function apply(ctx, config) {
       }
       out.debug.candidates = cands
       out.debug.keys = info && typeof info === 'object' ? Object.keys(info).slice(0, 24) : null
+      // 会话里已经有多少条事件：用来区分"全新会话"与"有历史的老会话"（pending 只该影响前者）
+      out.debug.eventCount = (info && Array.isArray(info.events)) ? info.events.length : null
       const hit = Object.keys(cands).find((k) => cands[k])
       if (hit) {
         out.preset = cands[hit]

@@ -692,11 +692,18 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         //   ② 选的时候还没有会话（pending.sid 为空），且是 90 秒内的近期选择——并且用一次就消费掉，不会漏到别的会话。
         //   ③ 或者：这个会话是**在选完预设之后**才第一次出现的（= 新开的会话），且选择发生在 10 分钟内。
         //      这条是为了"先拨预设、后开会话"——那种会话的会话头仍然是默认值（ptc），只能靠这条认出来。
+        // 会话头只有在"等于默认预设"时才不可信（默认值见 profile 的 agent-preset-registry.selectedDefault）。
+        // 非默认的头（standard / cordis / wish…）是会话自己的真相，**不能被 pending 覆盖**——
+        // 2026-10-19 真机就是 pending(ptc) 把老 standard 会话覆盖成 ptc，于是进入老会话不弹。
+        const DEFAULT_PRESET = 'ptc'
+        const headerIsDefault = !headerPreset || headerPreset === DEFAULT_PRESET
+        const eventCount = debug && debug.inspect ? debug.inspect.eventCount : null
+        const freshSession = typeof eventCount === 'number' ? eventCount <= 1 : false
         const seenAt = typeof sessionFirstSeen === 'function' ? sessionFirstSeen(sid) : null
         const recent10 = !!(pending && (Date.now() - Number(pending.at || 0) < 10 * 60 * 1000))
         const pendingForMe = !!(pending && (
           String(pending.sid || '') === sid
-          || (recent10 && seenAt && Number(seenAt) > Number(pending.at || 0))
+          || (recent10 && headerIsDefault && freshSession && seenAt && Number(seenAt) > Number(pending.at || 0))
         ))
         const pendingPreset = pendingForMe && pending.preset ? String(pending.preset) : null
         // 客户端把输入区按钮的**当前文案**带上来（label）：这是唯一能反映"用户眼前这个会话选了什么"的来源。
@@ -710,7 +717,9 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
             if (hit) hintPreset = hit.id
           } catch { hintPreset = null }
         }
-        const preset = hintPreset || eventPreset || pendingPreset || headerPreset
+        const preset = hintPreset || eventPreset
+          || (headerPreset && headerPreset !== DEFAULT_PRESET ? headerPreset : null)
+          || pendingPreset || headerPreset
         const presetSource = hintPreset ? 'label' : (eventPreset ? 'event' : (pendingPreset ? 'pending' : (headerPreset ? 'header' : 'unknown')))
         if (pendingPreset && !pending.sid && typeof clearPresetPending === 'function') {
           try { clearPresetPending() } catch { /* 消费失败就当没消费 */ }

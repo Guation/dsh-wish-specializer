@@ -38,6 +38,12 @@ test('pending 只对本会话/近期无会话的选择生效（否则所有会�
   assert.ok(API_SRC.includes('sessionFirstSeen'), '新会话要靠"首次出现时间晚于选择"认出来')
   assert.ok(/seenAt\) > Number\(pending\.at/.test(API_SRC), '比较的是时间先后')
   assert.ok(API_SRC.includes('clearPresetPending'), '消费口仍然保留（无会话时的那条路径）')
+  // 非默认的会话头是会话自己的真相，绝不能被 pending 覆盖（老 standard 会话被判成 ptc 的根因）
+  assert.ok(API_SRC.includes("const DEFAULT_PRESET = 'ptc'"), '默认预设要显式写出来')
+  assert.ok(API_SRC.includes('headerIsDefault'), '先看头是不是默认值')
+  assert.ok(/headerPreset && headerPreset !== DEFAULT_PRESET \? headerPreset : null/.test(API_SRC), '非默认头优先于 pending')
+  assert.ok(API_SRC.includes('freshSession'), 'pending 只该影响全新会话')
+  assert.ok(API_SRC.includes('eventCount'), '用事件条数判断会话新旧')
 })
 
 test('会话头不可信 ⇒ 用输入区按钮文案判定（/presets 对照表 + label 参数）', () => {
