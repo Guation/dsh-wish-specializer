@@ -133,10 +133,13 @@ window.__ModuleLoader__.load({
     // 只有当 `described` 缺失（老宿主 / 接口改过）时才用下面这张表自己推。
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
+    // ⚠ 必须与 settings.js 的 TIER_PRESETS **逐项一致**：这里是拿三项反推档位（tierOfSettings）。
+    // 2026-10-19 修：此前这一份和宿主侧不一致（light/standard 的 detail、budget 错位），
+    // 于是选「标准」会被反推成「轻度」、选「轻度」会变成「自定义」——真机上看起来就是"点了跳回去"。
     const TIER_PRESETS_LOCAL = Object.freeze({
       off: { assist: 'off', detail: 'standard', budget: 'standard' },
-      light: { assist: 'auto', detail: 'standard', budget: 'standard' },
-      standard: { assist: 'auto', detail: 'detailed', budget: 'standard' },
+      light: { assist: 'auto', detail: 'minimal', budget: 'minimal' },
+      standard: { assist: 'auto', detail: 'standard', budget: 'standard' },
       heavy: { assist: 'auto', detail: 'detailed', budget: 'generous' },
     })
     const TURNS_MIN = 0
