@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 19:10'
+    const CLIENT_BUILD = '10-19 19:35'
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
     // ⚠ 必须与 settings.js 的 TIER_PRESETS **逐项一致**：这里是拿三项反推档位（tierOfSettings）。
     // 2026-10-19 修：此前这一份和宿主侧不一致（light/standard 的 detail、budget 错位），
@@ -1131,6 +1131,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // 粒度层：档位才有的扰动粒子（在指示器下面，文字上面留出对比）
         fx ? h('span', { 'data-po06': 'tier-fx', 'aria-hidden': 'true',
           style: { position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' } }, dots) : null,
+        // 重度：流星撞上右边界形成的白色激浪（2026-10-19 用户要求）
+        shown === 'heavy' ? h('span', { 'data-po06': 'tier-shock', 'aria-hidden': 'true',
+          style: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '52%', pointerEvents: 'none',
+            background: 'linear-gradient(270deg, rgba(255,255,255,.62), rgba(255,255,255,.18) 42%, rgba(255,255,255,0))',
+            filter: 'blur(5px)', mixBlendMode: 'screen',
+            animation: 'po06-shock 1.5s ease-in-out infinite' } }) : null,
         // 滑动指示器：位置由真实格子量出来，切换/拖动时滑过去
         h('span', { 'data-po06': 'seg-ind', 'aria-hidden': 'true',
           style: {
@@ -1919,6 +1925,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (props.defaultOpen === true) setOpen(true)
       }, [props.defaultOpen])
       const mark = props.mark
+      const fold = useExit(open, 140)
       return h('div', { 'data-po06': 'intercept-fold-' + mark, 'data-open': open ? 'true' : 'false', style: S.ovFold },
         h('button', {
           type: 'button', 'data-po06': 'intercept-fold-head-' + mark, 'aria-expanded': open ? 'true' : 'false',
@@ -1928,7 +1935,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           h('span', { style: S.ovFoldTitle }, props.title),
           props.summary ? h('span', { style: S.ovFoldSum }, props.summary) : null,
         ),
-        open ? h('div', { 'data-po06': 'intercept-fold-body-' + mark, style: S.ovFoldText }, props.children) : null,
+        fold.mounted ? h('div', { 'data-po06': 'intercept-fold-body-' + mark, style: S.ovFoldText,
+          'data-po06-closing': fold.closing ? '1' : '0' }, props.children) : null,
       )
     }
 
@@ -2545,6 +2553,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }, [recordId])
       if (!rec || typeof rec.injected !== 'string' || !rec.injected.trim()) return null
       const chars = Number(rec.chars) > 0 ? rec.chars : rec.injected.length
+      const body = useExit(open, 140)
       return h('div', { 'data-po06': 'injection-row', style: S.injRow },
         h('button', {
           type: 'button', 'data-po06': 'injection-row-head', 'data-open': open ? '1' : '0',
@@ -2556,7 +2565,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           h('span', { 'data-po06': 'injection-row-title', style: S.optBtnText }, L('本次注入', 'Injected')),
           h('span', { 'data-po06': 'injection-row-chars', style: S.optSummary }, String(chars) + L(' 字', ' chars')),
           h('span', { 'aria-hidden': 'true', style: S.optCaret }, open ? '▴' : '▾')),
-        open ? h('div', { 'data-po06': 'injection-row-body', style: S.injBody },
+        body.mounted ? h('div', { 'data-po06': 'injection-row-body', style: S.injBody, 'data-po06-closing': body.closing ? '1' : '0' },
           h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '320px', overflow: 'auto', fontFamily: 'inherit' } },
             rec.injected),
           rec.truncated ? h('div', { 'data-po06': 'inject-note', style: S.ovHintQuiet },
@@ -2604,6 +2613,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         let obs = null
         let timer = null
         let tries = 0
+        presetWatchRef.current = { armed: false, lastAt: null }   // 换会话要重新判定一次
         const arm = () => {
           if (stopped) return
           const card = composerCard(rootRef.current)
@@ -2618,7 +2628,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               if (stopped || !r || r.ok !== true) return
               const st = presetWatchRef.current
               const at = r.presetAt || null
-              if (!st.armed) { st.armed = true; st.lastAt = at; return }
+              // 首次（含切换会话/刚进入）也弹：用户 2026-10-19 要求"进入非 Wish/PTC 的会话就提示"，
+              // 只有点过「以后不再显示」才永久闭嘴（那由宿主 dismissed 决定 notice 是否为空）。
+              if (!st.armed) { st.armed = true; st.lastAt = at; if (r.notice) setNotice(r.notice); return }
               if (!at || at === st.lastAt) return
               st.lastAt = at
               if (r.notice) setNotice(r.notice)   // 非 Wish/PTC 且没被"以后不再显示"
@@ -3300,6 +3312,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const offTip = L('档位为「关闭」时不生效', 'Has no effect while the tier is Off')
 
       // 退场动效：面板 / 帮助 / 提示弹窗 / 拦截浮层，关闭时先播 160ms 收起动画再卸载
+      const panelExit = useExit(open, 160)   // 「详情」面板：关闭也要有收起动画
       const optExit = useExit(optOpen, 160)
       const helpExit = useExit(helpOpen, 140)
       const noticeExit = useExit(!!notice, 170)
@@ -3645,7 +3658,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onOpen: reopenFromBall,
           onMove: (p) => setOvBall((b) => (b ? { ...b, pos: p } : b)),
         }) : null,
-        open ? h('div', { ...themeAttrs(), 'data-po06': 'panel', style: { ...S.panel, ...(region ? { right: Math.max(0, Math.round(((typeof window !== 'undefined' && window.innerWidth) || 800) - region.right) + 16) + 'px', width: Math.min(420, Math.max(120, region.w - 32)) + 'px' } : null) } },
+        panelExit.mounted ? h('div', { ...themeAttrs(), 'data-po06': 'panel', 'data-po06-closing': panelExit.closing ? '1' : '0',
+          style: { ...S.panel, ...(region ? { right: Math.max(0, Math.round(((typeof window !== 'undefined' && window.innerWidth) || 800) - region.right) + 16) + 'px', width: Math.min(420, Math.max(120, region.w - 32)) + 'px' } : null) } },
           h('div', { style: S.row },
             h('strong', {}, L('许愿特化器','Wish Specializer')),
             h('span', { style: S.muted }, (data && data.version) || ''),
@@ -4332,6 +4346,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '@keyframes po06-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--dx,10px),var(--dy,-8px),0)}}',
             // 重度档：白色流星从右向左穿过（顿挫感由 linear + 不同时长制造）
             // 流星：从右侧外面进来（left:100%），行程由每个粒子自己的 --dist 决定，末端淡出
+            // 流星撞右边界：亮度与横向拉伸一起起伏，像被冲击推起的浪
+            '@keyframes po06-shock{0%,100%{opacity:.16;transform:scaleX(.88) translateX(5px)}45%{opacity:.55;transform:scaleX(1.1) translateX(0)}70%{opacity:.34;transform:scaleX(.98) translateX(2px)}}',
             '@keyframes po06-meteor{0%{transform:translate3d(0,0,0);opacity:0}8%{opacity:.95}70%{opacity:.7}100%{transform:translate3d(var(--dist,-320px),0,0);opacity:0}}',
             // 帮助弹层单独用一条更轻的入场（大块文字 + 阴影一起做 scale 会顿）
             '@keyframes po06-help{from{opacity:0;transform:translate3d(0,4px,0)}to{opacity:1;transform:none}}',

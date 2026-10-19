@@ -46,6 +46,14 @@ test('回车闸门的口径：只有非 Wish 且非 PTC 才提醒（用户 2026-
   assert.ok(line.includes('!dismissed'), '点过「以后不再显示」后一律不提示')
 })
 
+test('进入非 Wish/PTC 会话也要弹（首次检查就判，不等发送）', () => {
+  const i = CLIENT_SRC.indexOf('if (!st.armed)')
+  assert.ok(i > 0, '要有首次判定')
+  const win = CLIENT_SRC.slice(i, i + 200)
+  assert.ok(win.includes('if (r.notice) setNotice(r.notice)'), '首次就弹')
+  assert.ok(CLIENT_SRC.includes('presetWatchRef.current = { armed: false, lastAt: null }'), '换会话重新判定')
+})
+
 test('客户端：弹窗有主题色点缀与两个出口', () => {
   assert.ok(CLIENT_SRC.includes("'data-po06': 'preset-notice'"), '要有弹窗节点')
   assert.ok(CLIENT_SRC.includes("'data-po06': 'notice-accent'"), '要有主题色信号点')

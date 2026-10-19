@@ -31,6 +31,13 @@ test('CSS：退场关键帧存在；拦截浮层只淡出（不能动 transform�
   assert.ok(CLIENT_SRC.includes('[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade'), '拦截浮层只淡出')
 })
 
+test('「详情」面板与两处折叠块也有退场', () => {
+  assert.ok(CLIENT_SRC.includes('const panelExit = useExit(open, 160)'), '详情面板要有退出钩子')
+  assert.ok(/panelExit\.mounted \? h\('div'/.test(CLIENT_SRC), '面板按 mounted 渲染')
+  assert.ok(CLIENT_SRC.includes("'data-po06': 'intercept-fold-body-' + mark"), '折叠块仍在')
+  assert.ok(/fold\.mounted \? h\('div'/.test(CLIENT_SRC) && /body\.mounted \? h\('div'/.test(CLIENT_SRC), '两处折叠都走 useExit')
+})
+
 test('下拉浮层自己淡出后再 remove（不直接消失）', () => {
   const i = CLIENT_SRC.indexOf('function Options(')
   const block = CLIENT_SRC.slice(i, i + 6000)

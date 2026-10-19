@@ -45,6 +45,13 @@ test('两种粒子运动各有自己的关键帧与参数', () => {
   assert.ok(/opacity:0\}8%\{opacity:\.95\}70%\{opacity:\.7\}100%/.test(CLIENT_SRC), '进入时淡入、到左边缘前淡出')
 })
 
+test('重度：流星在右边界激起白色浪（2026-10-19 用户要求）', () => {
+  assert.ok(CLIENT_SRC.includes("'data-po06': 'tier-shock'"), '要有激浪层')
+  assert.ok(CLIENT_SRC.includes('@keyframes po06-shock{'), '激浪关键帧')
+  assert.ok(/shown === 'heavy' \? h\('span', \{ 'data-po06': 'tier-shock'/.test(CLIENT_SRC), '只有重度才画')
+  assert.ok(/rgba\(255,255,255,\.62\)/.test(CLIENT_SRC), '白色渐变')
+})
+
 test('重度才有颤抖；帮助弹层用更轻的入场（避免大块文字重绘卡顿）', () => {
   assert.ok(CLIENT_SRC.includes("shown === 'heavy' ? { animation: 'po06-shake 1.1s ease-in-out infinite'"), '只有重度档加颤抖')
   assert.ok(CLIENT_SRC.includes('po06-help'), '帮助弹层单独一条轻动画')
