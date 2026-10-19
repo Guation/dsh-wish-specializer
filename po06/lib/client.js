@@ -890,7 +890,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               width: len + 'px', height: '1.5px', borderRadius: '999px',
               background: 'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.95))',
               animation: 'po06-meteor ' + dur.toFixed(2) + 's linear infinite',
-              animationDelay: (c / 100 * 1.6).toFixed(2) + 's',
+              // 负延迟：动画从"已经跑了这么久"的位置开始 ⇒ 一出现就在动，不会先停一会儿
+              animationDelay: '-' + (c / 100 * 1.6).toFixed(2) + 's',
             },
           })
         }
@@ -904,7 +905,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             position: 'absolute', left: a + '%', top: b + '%', width: '2.5px', height: '2.5px',
             borderRadius: '50%', background: fx.color, opacity: .7,
             animation: 'po06-drift ' + dur.toFixed(2) + 's linear infinite alternate',
-            animationDelay: (c / 100 * 0.8).toFixed(2) + 's',
+            animationDelay: '-' + (c / 100 * 0.8).toFixed(2) + 's',
             '--dx': dx + 'px', '--dy': dy + 'px',
           },
         })
@@ -4037,7 +4038,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // 标准档：无序随机线性飘动（方向/时长由每个粒子的内联变量决定，alternate 来回）
             '@keyframes po06-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--dx,10px),var(--dy,-8px),0)}}',
             // 重度档：白色流星从右向左穿过（顿挫感由 linear + 不同时长制造）
-            '@keyframes po06-meteor{from{transform:translate3d(0,0,0);opacity:.95}to{transform:translate3d(-320px,0,0);opacity:.12}}',
+            '@keyframes po06-meteor{from{transform:translate3d(0,0,0);opacity:.95}to{transform:translate3d(-320px,0,0);opacity:0}}',
             // 帮助弹层单独用一条更轻的入场（大块文字 + 阴影一起做 scale 会顿）
             '@keyframes po06-help{from{opacity:0;transform:translate3d(0,4px,0)}to{opacity:1;transform:none}}',
             '@keyframes po06-shake{0%,100%{transform:translate3d(0,0,0)}20%{transform:translate3d(.5px,-.4px,0)}40%{transform:translate3d(-.4px,.5px,0)}60%{transform:translate3d(.4px,.3px,0)}80%{transform:translate3d(-.3px,-.4px,0)}}',
