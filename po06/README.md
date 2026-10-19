@@ -47,7 +47,7 @@
 > 💬 中文用户交流：**QQ 群 1121399051**（最新消息、安装帮助、版本公告）。
 
 `@dsh-external/dsh-arbiter-wf` · **0.8.4-stable** · GitHub Release（**未发 npm**：`private: true`，只发附件）
-→ 下载：<https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/tag/v0.8.4-stable>（附件含 `tgz` 与 `SHA256SUMS`）
+→ 下载：<https://github.com/WestFox-AwA/dsh-wish-specializer/releases/tag/v0.8.4-stable>（附件含 `tgz` 与 `SHA256SUMS`）
 
 > **0.7.8（历史版本）的一句话**：**档位终于真的分开了**——补充程度（700 / 1200 / 2000 字）与自主预算
 > （1 / 2 / 3 个问题）两个维度逐级递进；此前 `minimal` 从未被任何档位使用、且 standard 与 heavy 的
@@ -130,13 +130,13 @@
 # 直链（版本号换成你要的；0.8.4-stable 是最新版）
 $v = '0.8.4-stable'
 $dir = "$env:USERPROFILE\Downloads"
-Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$dir\dsh-external-dsh-arbiter-wf-$v.tgz"
-Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$dir\SHA256SUMS-$v.txt"
+Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$dir\dsh-external-dsh-arbiter-wf-$v.tgz"
+Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$dir\SHA256SUMS-$v.txt"
 # 校验（下载坏了会在安装后才以"行为怪怪的"暴露，先比一下最省事）
 Get-FileHash "$dir\dsh-external-dsh-arbiter-wf-$v.tgz" -Algorithm SHA256 | Select-Object -ExpandProperty Hash
 Get-Content "$dir\SHA256SUMS-$v.txt"
 ```
-> 也可以在浏览器里打开 <https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases> 挑对应版本手动下这两个文件。
+> 也可以在浏览器里打开 <https://github.com/WestFox-AwA/dsh-wish-specializer/releases> 挑对应版本手动下这两个文件。
 
 > ### 装不上时的排查顺序（issue #29）
 >

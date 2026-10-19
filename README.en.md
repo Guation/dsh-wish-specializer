@@ -1,6 +1,9 @@
-# dsh-arbiter-wf **v0.8.4-stable** · Independent Arbiter Layer (DSH Web plugin)
+# Wish Specializer **v0.9.0-beta-1** (in development) · DSH Web plugin (package `dsh-arbiter-wf`)
 
 **English** ｜ [中文](README.md)
+
+> Former repository name: `dsh-prompt-optimizer` (old links redirect here automatically).
+> **Wish Specializer** turns a one-line wish into requirements the working AI can actually build against.
 
 Effect demo — all captured on Windows + DSH + PTC, in one shot.
 (the plugin tier was set to "Heavy")
@@ -31,8 +34,8 @@ showpiece-quality.
 >
 > ```powershell
 > $v = '0.8.4-stable'; $d = "$env:USERPROFILE\Downloads"
-> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$d\dsh-external-dsh-arbiter-wf-$v.tgz"
-> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
+> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$d\dsh-external-dsh-arbiter-wf-$v.tgz"
+> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
 > Get-Content "$d\SHA256SUMS-$v.txt"     # compare the sha256 with the tgz you just downloaded (same file as on the Release page)
 > dsh --profile po061 --from-default-profile web --dump-config        # a clean profile
 > dsh plugin --profile po061 add "$d\dsh-external-dsh-arbiter-wf-$v.tgz"    # install

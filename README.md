@@ -2,6 +2,9 @@
 
 **中文** ｜ [English](README.en.md)
 
+> 原名 / 旧仓库：`dsh-prompt-optimizer`（旧链接会由 GitHub 自动重定向到本仓库）。
+> 产品名 **许愿特化器 / Wish Specializer**：把一句话的愿望，特化成工作 AI 真正能照着做的要求。
+
 效果展示:皆为Windows+DSH+PTC环境,OneShoot
 (其中插件档位为"重度")
 模型DeepSeek-V4.1-Flash
@@ -27,8 +30,8 @@
 >
 > ```powershell
 > $v = '0.8.4-stable'; $d = "$env:USERPROFILE\Downloads"
-> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$d\dsh-external-dsh-arbiter-wf-$v.tgz"
-> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
+> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/dsh-external-dsh-arbiter-wf-$v.tgz" -OutFile "$d\dsh-external-dsh-arbiter-wf-$v.tgz"
+> Invoke-WebRequest "https://github.com/WestFox-AwA/dsh-wish-specializer/releases/download/v$v/SHA256SUMS-$v.txt" -OutFile "$d\SHA256SUMS-$v.txt"
 > Get-Content "$d\SHA256SUMS-$v.txt"     # 与上一行下载到的 tgz 对 sha256（Release 页也有同一份）
 > dsh --profile po061 --from-default-profile web --dump-config        # 建一个干净 profile
 > dsh plugin --profile po061 add "$d\dsh-external-dsh-arbiter-wf-$v.tgz"    # 装
@@ -157,7 +160,7 @@
 
 - 更新日志：[`CHANGELOG.md`](CHANGELOG.md) ｜ 人工验收：[`po06/HUMAN-TEST.md`](po06/HUMAN-TEST.md) ｜
   发版登记（含每次真跑过的装机演练）：[`po06/RELEASE-CHECKLIST.md`](po06/RELEASE-CHECKLIST.md)
-- 安装与自检：[`po06/README.md`](po06/README.md) ｜ 当前 Release：**[v0.8.4-stable](https://github.com/WestFox-AwA/dsh-prompt-optimizer/releases/tag/v0.8.4-stable)**
+- 安装与自检：[`po06/README.md`](po06/README.md) ｜ 当前 Release：**[v0.8.4-stable](https://github.com/WestFox-AwA/dsh-wish-specializer/releases/tag/v0.8.4-stable)**
 - 💬 **欢迎加入 QQ 群：1121399051** 获取最新消息、安装帮助与版本公告。
 - 兼容：`dsh-0.1.7-rc.2`（本机实测运行）｜ `dsh-0.2.0-rc.2`（逐成员静态契约核对通过，实机待验，见 [`docs/DSH-0.2-COMPAT.md`](docs/DSH-0.2-COMPAT.md)）｜ 作者：啃轮胎的西狐
 - **上一代（0.5 线，仍可用，但已不再更新）**：装在另一个包 `@dsh-external/dsh-prompt-optimizer`，

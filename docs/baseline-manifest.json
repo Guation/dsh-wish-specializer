@@ -16,7 +16,7 @@
 
   "repo": {
     "path": "C:/Users/WestFox/.dsh/plugins/dsh-prompt-optimizer",
-    "remote": "https://github.com/WestFox-AwA/dsh-prompt-optimizer.git",
+    "remote": "https://github.com/WestFox-AwA/dsh-wish-specializer.git",
     "mainHead": "04a661539cc86080b8e12a6cf453fad9b2d90d3a",
     "mainDescribe": "v0.5.0-beta.1-16-g04a6615",
     "packageJsonVersion": "0.5.2-beta.1",
