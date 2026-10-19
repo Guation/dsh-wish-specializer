@@ -10,7 +10,7 @@
 
 ## What it is
 
-Say "build a modern main battle tank model — detailed, controllable, badass," and the parts that decide
+The parts that decide
 whether the result is good — **aesthetic register, light and material, composition and depth, setting,
 interaction and states, and what counts as done** — are filled in **before you hit send**, then handed to
 the working AI together with your words.
