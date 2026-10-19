@@ -676,17 +676,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       optBtnOn: { background: T('hover'), borderColor: OVS.acc, boxShadow: '0 0 0 3px ' + OVS.acc12 },
       optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
       // ② 弹出面板：288 宽、12/14 内距，紧凑但不挤
-      optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '288px', maxHeight: 'min(60vh, 440px)', overflowY: 'auto',
-        display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px 14px 10px',
+      optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '288px', maxHeight: 'min(72vh, 540px)', overflowY: 'auto',
+        display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px 8px',
         background: OVS.surface, color: OVS.fg,
         border: '1px solid ' + OVS.lineSoft, borderRadius: '12px', boxShadow: SHADOW.float },
       optPopHead: { display: 'flex', alignItems: 'center', gap: '7px', ...TYPE.title, paddingBottom: '0' },
-      sectionLabel: { ...TYPE.label, marginTop: '2px' },
-      optRow: { display: 'grid', gridTemplateColumns: '52px 1fr', alignItems: 'center', gap: '8px' },
-      optLabel: { color: OVS.fg3, fontSize: '11.5px', whiteSpace: 'nowrap' },
+      optRow: { display: 'grid', gridTemplateColumns: '48px 1fr', alignItems: 'center', gap: '8px', minHeight: '24px' },
+      // 行标签要看得清：用 fg2 而不是 fg3（用户 2026-10-19：小标题太淡）
+      optLabel: { color: OVS.fg2, fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' },
       // 设置行：左标签 + 右状态值，整行是有底色的可点区域（紧凑版）
       optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
-        justifyContent: 'space-between', gap: '8px', padding: '6px 10px',
+        justifyContent: 'space-between', gap: '8px', padding: '5px 10px',
         borderRadius: '8px', border: '1px solid transparent', background: T('chip'),
         color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer', textAlign: 'left' },
       optVal: (on) => ({ color: on ? OVS.acc : OVS.fg3, fontSize: '12px', fontWeight: 650, letterSpacing: '.2px' }),
@@ -703,7 +703,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       seg: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'stretch',
         border: '1px solid ' + OVS.lineSoft, borderRadius: '10px', overflow: 'hidden',
         background: T('chip'), fontSize: '12px', lineHeight: '18px', userSelect: 'none', touchAction: 'none' },
-      segItem: { flex: '1 1 0', textAlign: 'center', padding: '3px 6px', whiteSpace: 'nowrap',
+      segItem: { flex: '1 1 0', textAlign: 'center', padding: '2px 6px', whiteSpace: 'nowrap',
         color: OVS.fg2, cursor: 'inherit',
         transition: 'background-color .16s ease, color .16s ease, box-shadow .16s ease' },
       segOn: { background: OVS.acc, color: '#fff', fontWeight: 600 },
@@ -3027,7 +3027,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 ? { left: optPos.left + 'px', bottom: optPos.bottom + 'px', ...(optPos.width ? { width: optPos.width + 'px' } : null) }
                 : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(300, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
               h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options'))),
-              h('div', { style: S.sectionLabel }, L('优化行为', 'OPTIMIZATION')),
               // ① 档位（从第一行搬来；分段控件本身没变）
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('档位', 'Tier')),
                 h(Segmented, {
@@ -3107,7 +3106,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 onClick: () => { if (tierOff) return; save({ historyMode: historyMode === 'full' ? 'turns' : 'full' }) },
               }, historyMode === 'full' ? L('全文', 'Full') : L('回合', 'Turns')),
             ),
-            h('div', { style: S.sectionLabel }, L('常驻能力', 'ALWAYS ON')),
             // ⑤ 读项目文件：**永远可用**（不受档位影响）；三态纪律见上面的注释
             h('button', {
               type: 'button', 'data-po06': 'readtools',
@@ -3153,7 +3151,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             },
               h('span', {}, L('内置 Bash', 'Built-in Bash')),
               h('span', { style: S.optVal(bashKnown && bashOn) }, bashKnown ? (bashOn ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
-            h('div', { style: S.sectionLabel }, L('交互', 'INTERACTION')),
             // ⑤c 双击 Enter 跳过本轮优化（2026-10-19 用户要求，放在 Bash 与详情之间）。
             // 语义与面板上的「跳过」一致：不发包、直接按原文发出；只是省掉一次点击。
             h('button', {
