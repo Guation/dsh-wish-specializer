@@ -3370,11 +3370,21 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const now = Date.now()
           const prevAt = enterAtRef.current
           enterAtRef.current = now
-          if (desRef.current && prevAt && now - prevAt < 600
-            && holdRef.current && holdRef.current.phase === 'optimizing') {
-            markSeen('key:double-skip')
-            skipHold()
-            return
+          const held = holdRef.current
+          if (desRef.current && prevAt && now - prevAt < 600 && held) {
+            // 优化中：双击 = 跳过（按原文立即发）
+            if (held.phase === 'optimizing') {
+              markSeen('key:double-skip')
+              skipHold()
+              return
+            }
+            // **审查完成**：双击 = 确认发送（2026-10-19 用户要求）——不是跳过，
+            // 因为它已经优化完了，此刻"跳过"没有意义，确认才是用户想要的下一步。
+            if (held.phase === 'review') {
+              markSeen('key:double-confirm')
+              void confirmHold()
+              return
+            }
           }
           // 计数在 beginHold 里、去重之后加（同一次发送可能同时命中 Enter 与 click，见那里的注释）
           beginHold(draftNow(), 'key')

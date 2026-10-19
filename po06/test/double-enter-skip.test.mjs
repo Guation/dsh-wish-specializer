@@ -43,7 +43,16 @@ test('行为：600ms 内的第二次 Enter 放弃本轮优化、按原文发出'
   const body = CLIENT_SRC.slice(at, at + 1800)
   assert.ok(/enterAtRef/.test(body), '要记录上一次 Enter 时间')
   assert.ok(/now - prevAt < 600/.test(body), '判定窗口 600ms')
-  assert.ok(/holdRef\.current\.phase === 'optimizing'/.test(body), '只有正在优化时才允许双击跳过')
+  // 2026-10-19 起：优化中=跳过；审查完成=确认发送（两条分支，判据都在 held.phase 上）
+  assert.ok(/if \(held\.phase === 'optimizing'\)/.test(body), '优化中才允许双击跳过')
+  assert.ok(/if \(held\.phase === 'review'\)/.test(body), '审查完成时双击＝确认发送')
   assert.ok(/skipHold\(\)/.test(body), '跳过走与面板「跳过」同一个函数（不发包）')
   assert.ok(/desRef\.current/.test(body), '设置默认关，必须读当前值')
+})
+
+test('审查完成态：双击 Enter = 确认发送（不是跳过）', () => {
+  assert.ok(CLIENT_SRC.includes("markSeen('key:double-confirm')"), '要有独立的确认分支')
+  assert.ok(/if \(held\.phase === 'review'\)[\s\S]{0,80}confirmHold/.test(CLIENT_SRC), 'review 时调 confirmHold')
+  // 跳过分支仍然只在 optimizing
+  assert.ok(/if \(held\.phase === 'optimizing'\)[\s\S]{0,80}skipHold/.test(CLIENT_SRC), '跳过分支只认 optimizing')
 })

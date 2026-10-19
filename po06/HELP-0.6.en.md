@@ -14,6 +14,7 @@ Enter → held → optimized → you confirm (or it auto-releases) → your text
 |---|---|
 | Send normally | Press Enter, confirm in the panel |
 | Skip this round | Double-press Enter (enable it under Options first), or hit Skip |
+| Send once optimized | In review mode, **double-press Enter again** = confirm and send (not skip) |
 | See what was injected | The "Injected" card under your message |
 | Change strength / permission | Options: tier, review or auto, English mode |
 
@@ -21,6 +22,7 @@ Enter → held → optimized → you confirm (or it auto-releases) → your text
 
 - **Read-only tools**: read a few project files before writing requirements. More accurate, slower.
 - **Advisor**: a separate read-only model reviews independently; its findings come back as must-do requirements.
-- **Double-Enter skip**: on by default. Pressing Enter twice within 600ms sends this round unoptimized.
+- **Double-Enter skip**: on by default. Pressing Enter twice within 600ms sends this round unoptimized;
+  if the round is already optimized (review state), the same gesture **confirms and sends**.
 
 > No injection, no card: skipped, switched off, or failed — it never pretends something was injected.
