@@ -667,7 +667,7 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
       if (method === 'GET' && path === API_PREFIX + '/presets') {
         // 预设登记表（文案 ↔ id）：客户端据此把输入区按钮的文字翻成预设 id
         let r = { ok: false, presets: [], debug: { missing: true } }
-        try { if (typeof getPresets === 'function') r = getPresets() || r } catch (e) { r = { ok: false, presets: [], debug: { threw: String(e && e.message || e) } } }
+        try { if (typeof getPresets === 'function') r = (await getPresets()) || r } catch (e) { r = { ok: false, presets: [], debug: { threw: String(e && e.message || e) } } }
         return send(200, { ok: r.ok === true, presets: Array.isArray(r.presets) ? r.presets : [], debug: r.debug || null })
       }
       if (method === 'GET' && path === API_PREFIX + '/preset') {
@@ -715,7 +715,7 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         let hintPreset = null
         if (label && typeof getPresets === 'function') {
           try {
-            const reg = getPresets() || {}
+            const reg = (await getPresets()) || {}
             const hit = (Array.isArray(reg.presets) ? reg.presets : []).find((p) => p.name === label || p.id === label)
             if (hit) hintPreset = hit.id
           } catch { hintPreset = null }

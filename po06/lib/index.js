@@ -2423,34 +2423,33 @@ export function apply(ctx, config) {
     getPresetAt: (sid) => adapter.presetAtOf(sid),
     // 预设登记表（真机 2026-10-19）：磁盘上的会话头**永远是 ptc**（读 session.v4.jsonl 确认过），
     // 唯一可靠来源是输入区那个按钮当前显示的文案 ⇒ 宿主把"文案 ↔ id"的对照表给客户端。
-    getPresets: () => {
+    getPresets: async () => {
+      // 真机（2026-10-19）：ctx.get('agentPresets') 拿到的是插件实例，不带 list()；
+      // 服务在 ctx.agentPresets 上，list() 是 async（见 docs/subsystems/core.md）。
       const out = { ok: false, presets: [], debug: {} }
+      const now = Date.now()
+      if (adapter._presetCache && now - adapter._presetCache.at < 60 * 1000) return adapter._presetCache.value
       try {
-        const svc = (typeof ctx.get === 'function') ? ctx.get('agentPresets') : null
-        out.debug.gotService = !!svc
-        out.debug.keys = svc && typeof svc === 'object' ? Object.keys(svc).slice(0, 24) : null
+        const svc = (ctx && ctx.agentPresets) || (typeof ctx.get === 'function' ? ctx.get('agentPresets') : null)
+        out.debug.hasAgentPresets = !!(ctx && ctx.agentPresets)
         let list = null
-        if (svc && typeof svc.list === 'function') list = svc.list()
+        if (svc && typeof svc.list === 'function') list = await svc.list()
         else if (Array.isArray(svc)) list = svc
-        else if (svc && Array.isArray(svc.presets)) list = svc.presets
-        else if (svc && typeof svc.values === 'function') list = Array.from(svc.values())
-        // 真机看到的服务形状：{ ctx, name, config, owner, definitions, generations, bindings, switches }
-        // ⇒ definitions 才是登记表（Map 或 普通对象）
         else if (svc && svc.definitions) {
           const d = svc.definitions
-          if (d instanceof Map) list = Array.from(d.values())
-          else if (Array.isArray(d)) list = d
-          else list = Object.values(d)
+          list = d instanceof Map ? Array.from(d.values()) : (Array.isArray(d) ? d : Object.values(d))
         }
         out.debug.listType = Array.isArray(list) ? 'array:' + list.length : typeof list
         if (Array.isArray(list)) {
+          out.debug.sample = list[0] && typeof list[0] === 'object' ? Object.keys(list[0]).slice(0, 12) : null
           out.presets = list.map((x) => ({
-            id: String((x && (x.id || x.presetId)) || ''),
-            name: String((x && (x.name || x.title || x.label)) || ''),
+            id: String((x && (x.id || x.presetId || x.agentPreset)) || ''),
+            name: String((x && (x.name || x.title || x.label || x.displayName)) || ''),
           })).filter((x) => x.id)
           out.ok = out.presets.length > 0
         }
       } catch (e) { out.debug.threw = String((e && e.message) || e) }
+      adapter._presetCache = { at: now, value: out }
       return out
     },
     inspectPreset: async (sid) => {
