@@ -648,6 +648,143 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       ballIcon: { fontSize: '15px', lineHeight: 1, opacity: .95 },
       ballLabel: { fontSize: '9px', letterSpacing: '.5px', opacity: .9 },
     }
+
+    // ────────────────────────────────────────────────────────────────
+    // 视觉基线 v2（2026-10-19 第二轮）：**紧凑、清晰、安静**。
+    // 目标是"层级一眼可读 + 操作不费劲"，不是把东西做大；任何一屏都按
+    // 标题(10-12.5) / 主值(12, 600) / 次值(11, fg3) / 操作(28px 高) 四层排。
+    // 圆角 8/10/12；间距 4/6/8/10/12/14；浮层只靠阴影与底色分层，描边极淡。
+    // ────────────────────────────────────────────────────────────────
+    const SHADOW = {
+      card: '0 1px 2px rgba(0,0,0,.05)',
+      float: '0 18px 44px -20px rgba(0,0,0,.50), 0 1px 4px rgba(0,0,0,.10)',
+    }
+    const TYPE = {
+      label: { color: OVS.fg3, fontSize: '10px', fontWeight: 600, letterSpacing: '.08em' },
+      title: { color: OVS.fg, fontSize: '12.5px', fontWeight: 700, letterSpacing: '.15px' },
+      value: { color: OVS.fg, fontSize: '12px', fontWeight: 650 },
+      body: { color: OVS.fg2, fontSize: '12px', lineHeight: '1.55' },
+    }
+    Object.assign(S, {
+      // ① 控件栏：一行放得下，不撑高输入区
+      bar: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', fontSize: '12px',
+        lineHeight: '18px', color: 'inherit' },
+      barRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' },
+      optBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px 3px 8px',
+        borderRadius: '8px', border: '1px solid ' + OVS.lineSoft, background: T('chip'),
+        color: 'inherit', cursor: 'pointer', fontSize: '12px', lineHeight: '18px' },
+      optBtnOn: { background: T('hover'), borderColor: OVS.acc, boxShadow: '0 0 0 3px ' + OVS.acc12 },
+      optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
+      // ② 弹出面板：288 宽、12/14 内距，紧凑但不挤
+      optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '288px', maxHeight: 'min(60vh, 440px)', overflowY: 'auto',
+        display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px 14px 10px',
+        background: OVS.surface, color: OVS.fg,
+        border: '1px solid ' + OVS.lineSoft, borderRadius: '12px', boxShadow: SHADOW.float },
+      optPopHead: { display: 'flex', alignItems: 'center', gap: '7px', ...TYPE.title, paddingBottom: '0' },
+      sectionLabel: { ...TYPE.label, marginTop: '2px' },
+      optRow: { display: 'grid', gridTemplateColumns: '52px 1fr', alignItems: 'center', gap: '8px' },
+      optLabel: { color: OVS.fg3, fontSize: '11.5px', whiteSpace: 'nowrap' },
+      // 设置行：左标签 + 右状态值，整行是有底色的可点区域（紧凑版）
+      optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
+        justifyContent: 'space-between', gap: '8px', padding: '6px 10px',
+        borderRadius: '8px', border: '1px solid transparent', background: T('chip'),
+        color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer', textAlign: 'left' },
+      optVal: (on) => ({ color: on ? OVS.acc : OVS.fg3, fontSize: '12px', fontWeight: 650, letterSpacing: '.2px' }),
+      optWide: { width: '100%', boxSizing: 'border-box', textAlign: 'center',
+        padding: '6px 10px', borderRadius: '8px', border: '1px solid transparent',
+        background: T('chip'), color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
+      optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', paddingTop: '2px' },
+      optSummary: { color: OVS.fg3, fontSize: '11px', whiteSpace: 'nowrap' },
+      optCaret: { color: OVS.fg3, fontSize: '9px', lineHeight: 1 },
+      optSelect: { width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '8px',
+        border: '1px solid ' + OVS.lineSoft, background: OVS.bg1, color: OVS.fg,
+        font: 'inherit', fontSize: '12px', cursor: 'pointer' },
+      // ③ 分段控件：选中 = 实心主题色；其余安静
+      seg: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'stretch',
+        border: '1px solid ' + OVS.lineSoft, borderRadius: '10px', overflow: 'hidden',
+        background: T('chip'), fontSize: '12px', lineHeight: '18px', userSelect: 'none', touchAction: 'none' },
+      segItem: { flex: '1 1 0', textAlign: 'center', padding: '3px 6px', whiteSpace: 'nowrap',
+        color: OVS.fg2, cursor: 'inherit',
+        transition: 'background-color .16s ease, color .16s ease, box-shadow .16s ease' },
+      segOn: { background: OVS.acc, color: '#fff', fontWeight: 600 },
+      // ④ 注入卡片：紧凑一行头 + 展开正文
+      injRow: { border: '1px solid transparent', borderLeft: '2px solid ' + OVS.acc,
+        borderRadius: '10px', background: OVS.bg1, overflow: 'hidden' },
+      injHead: { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box',
+        padding: '5px 10px', border: 'none', background: 'transparent', color: 'inherit', font: 'inherit',
+        fontSize: '12px', lineHeight: '18px', textAlign: 'left', cursor: 'pointer' },
+      injBody: { display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px 10px 10px',
+        borderTop: '1px solid ' + OVS.line2 },
+      // ⑤ 提示弹窗：380 宽、紧凑，主按钮实心主题色
+      noticeCard: { width: 'min(380px, 92vw)', boxSizing: 'border-box', padding: '16px 18px 14px', borderRadius: '12px',
+        background: OVS.surface, color: OVS.fg, border: '1px solid ' + OVS.acc22, boxShadow: SHADOW.float,
+        display: 'flex', flexDirection: 'column', gap: '8px' },
+      noticeTitle: { fontSize: '13.5px', fontWeight: 700, letterSpacing: '.2px' },
+      noticeBody: { margin: 0, ...TYPE.body, fontSize: '12.5px', lineHeight: '1.6' },
+      noticeHint: { margin: 0, color: OVS.fg3, fontSize: '11px' },
+      noticeActions: { display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' },
+      noticeBtn: { height: '28px', padding: '0 12px', borderRadius: '8px', border: '1px solid ' + OVS.lineSoft,
+        color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
+      noticeBtnPrimary: { height: '28px', padding: '0 12px', borderRadius: '8px', border: '1px solid transparent',
+        background: OVS.acc, color: '#fff', font: 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
+      // ⑥ 通用控件
+      small: { padding: '2px 8px', borderRadius: '7px', border: '1px solid ' + OVS.lineSoft,
+        background: 'transparent', color: 'inherit', fontSize: '11.5px', lineHeight: '17px', cursor: 'pointer' },
+      btn: { padding: '5px 10px', borderRadius: '8px', border: '1px solid ' + OVS.lineSoft,
+        background: 'transparent', color: 'inherit', fontSize: '12px', cursor: 'pointer' },
+      select: { flex: 1, padding: '3px 6px', borderRadius: '8px', border: '1px solid ' + OVS.lineSoft,
+        background: 'transparent', color: 'inherit', fontSize: '12px' },
+      ta: { width: '100%', minHeight: '110px', borderRadius: '8px', border: '1px solid ' + OVS.lineSoft,
+        background: OVS.bg1, color: 'inherit', fontFamily: 'inherit', fontSize: '12px', padding: '6px 8px' },
+      h: { margin: '14px 0 6px', fontSize: '13px', fontWeight: 700, letterSpacing: '.2px' },
+      muted: { color: OVS.fg3, fontSize: '11.5px', lineHeight: '1.55' },
+      prov: (p) => ({ fontSize: '10px', fontWeight: 600, padding: '0 6px', borderRadius: '999px', marginLeft: '6px',
+        background: p === 'user' ? 'rgba(57,192,122,.16)' : (p === 'machine' ? 'rgba(120,150,255,.16)' : 'rgba(230,90,90,.18)') }),
+      dis: { opacity: .45, filter: 'grayscale(1)', cursor: 'not-allowed' },
+      // ⑦ 帮助弹层
+      helpPop: { position: 'fixed', right: '16px', bottom: '84px', width: 'min(520px, 92vw)', maxHeight: '70vh',
+        overflow: 'auto', background: OVS.surface, color: OVS.fg, border: '1px solid ' + OVS.lineSoft,
+        borderRadius: '12px', padding: '14px 16px', zIndex: OV_Z.help, boxShadow: SHADOW.float,
+        fontSize: '12px', lineHeight: '18px' },
+      helpTitle: { fontWeight: 700, fontSize: '14px', margin: '2px 0 6px' },
+      helpH: { fontWeight: 700, fontSize: '12.5px', margin: '12px 0 4px' },
+      helpP: { margin: '2px 0', ...TYPE.body },
+      helpQuote: { color: OVS.fg3, borderLeft: '2px solid ' + OVS.acc22, paddingLeft: '8px', margin: '6px 0' },
+      // ⑧ 拦截浮层：440 宽，紧凑排版，主按钮实心
+      ov: { position: 'fixed', left: 0, top: 0, zIndex: OV_Z.ov, display: 'flex', flexDirection: 'column',
+        width: '440px', minWidth: '340px', minHeight: '220px', maxHeight: 'min(76vh, 620px)',
+        background: OVS.surface, border: '1px solid ' + OVS.lineSoft, borderRadius: '14px',
+        boxShadow: SHADOW.float, color: OVS.fg, fontSize: '12px',
+        overflow: 'hidden', pointerEvents: 'auto', willChange: 'transform', touchAction: 'none' },
+      ovHead: { display: 'flex', alignItems: 'center', gap: '0', flex: '0 0 auto', padding: '9px 14px',
+        borderBottom: '1px solid ' + OVS.lineSoft, background: OVS.surface, cursor: 'grab', userSelect: 'none' },
+      ovHeadTitle: { flex: '0 0 auto', fontSize: '12.5px', fontWeight: 700, letterSpacing: '.2px', color: OVS.fg },
+      ovHeadTier: { flex: '0 0 auto', fontSize: '10px', fontWeight: 700, letterSpacing: '.4px', padding: '1px 6px',
+        marginLeft: '8px', borderRadius: '5px', background: OVS.acc12, color: OVS.acc, border: '1px solid ' + OVS.acc22 },
+      ovRun: { display: 'flex', flexDirection: 'column', gap: '9px', padding: '10px 14px' },
+      ovRunStatus: { display: 'flex', alignItems: 'center', gap: '8px', padding: '2px 0', fontSize: '10.5px',
+        letterSpacing: '.2px', color: OVS.fg3 },
+      ovPane: { border: '1px solid ' + OVS.lineSoft, borderRadius: '8px', padding: '8px 10px',
+        maxHeight: '120px', overflow: 'auto', background: 'transparent' },
+      ovPaneBody: { whiteSpace: 'pre-wrap', fontSize: '12.5px', lineHeight: '1.65', color: OVS.fg2, wordBreak: 'break-word' },
+      ovReviewText: { width: '100%', boxSizing: 'border-box', minHeight: '130px', maxHeight: '280px',
+        overflowY: 'auto', resize: 'vertical', whiteSpace: 'pre-wrap', background: OVS.bg1,
+        color: OVS.fg, border: '1px solid ' + OVS.lineSoft, borderRadius: '8px', padding: '8px 10px',
+        fontSize: '12.5px', lineHeight: '1.65', fontFamily: 'inherit' },
+      ovActions: { display: 'flex', gap: '8px', padding: '10px 14px', alignItems: 'center' },
+      ovBtn: { flex: '1 1 0', minWidth: 0, height: '28px', borderRadius: '8px', border: '1px solid ' + OVS.lineSoft,
+        background: 'transparent', color: OVS.fg2, fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap',
+        overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'inherit', fontWeight: 500, letterSpacing: '.2px' },
+      ovBtnPrimary: { borderColor: 'transparent', background: OVS.acc, color: '#fff', fontWeight: 600 },
+      ovFoldHead: { display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px',
+        border: 'none', background: 'transparent', color: OVS.fg3, fontSize: '11px', textAlign: 'left',
+        cursor: 'pointer', fontFamily: 'inherit' },
+      ovFoldText: { margin: '0 10px 8px', padding: '8px 10px', borderRadius: '10px',
+        background: OVS.bg1, color: OVS.fg2, fontSize: '12px', lineHeight: '1.6',
+        whiteSpace: 'pre-wrap', maxHeight: 'min(220px,34vh)', overflowY: 'auto', overflowX: 'hidden',
+        scrollbarWidth: 'none', msOverflowStyle: 'none' },
+    })
+
     const PROV_TEXT = { user: L('你说过','you said'), machine: L('机器补充','machine-added'), unsourced: L('无出处','unsourced') }
 
     function Options({ value, onChange, options, labels }) {
@@ -3002,6 +3139,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 ? { left: optPos.left + 'px', bottom: optPos.bottom + 'px', ...(optPos.width ? { width: optPos.width + 'px' } : null) }
                 : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(300, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
               h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options'))),
+              h('div', { style: S.sectionLabel }, L('优化行为', 'OPTIMIZATION')),
               // ① 档位（从第一行搬来；分段控件本身没变）
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('档位', 'Tier')),
                 h(Segmented, {
@@ -3081,6 +3219,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 onClick: () => { if (tierOff) return; save({ historyMode: historyMode === 'full' ? 'turns' : 'full' }) },
               }, historyMode === 'full' ? L('全文', 'Full') : L('回合', 'Turns')),
             ),
+            h('div', { style: S.sectionLabel }, L('常驻能力', 'ALWAYS ON')),
             // ⑤ 读项目文件：**永远可用**（不受档位影响）；三态纪律见上面的注释
             h('button', {
               type: 'button', 'data-po06': 'readtools',
@@ -3126,6 +3265,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             },
               h('span', {}, L('内置 Bash', 'Built-in Bash')),
               h('span', { style: S.optVal(bashKnown && bashOn) }, bashKnown ? (bashOn ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
+            h('div', { style: S.sectionLabel }, L('交互', 'INTERACTION')),
             // ⑤c 双击 Enter 跳过本轮优化（2026-10-19 用户要求，放在 Bash 与详情之间）。
             // 语义与面板上的「跳过」一致：不发包、直接按原文发出；只是省掉一次点击。
             h('button', {
@@ -3889,7 +4029,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '[data-po06] button{transition:background-color .13s ease,border-color .13s ease,color .13s ease,transform .12s ease,opacity .13s ease}',
             '[data-po06] button:hover{background-color:var(--po06-hover)}',
             '[data-po06] button:active{transform:translateY(.5px)}',
-            '[data-po06] button:focus-visible{outline:2px solid ' + OVS.acc + ';outline-offset:1px}',
+            '[data-po06] button:focus-visible{outline:2px solid ' + OVS.acc + ';outline-offset:2px}',
+            // 数值类徽标（字数 / token / 用时）用等宽数字，跳动时不抖
+            '[data-po06] [data-po06="inject-card-chars"],[data-po06] [data-po06="injection-row-chars"]{font-variant-numeric:tabular-nums}',
             '[data-po06] button:disabled{opacity:.45;cursor:not-allowed;transform:none}',
             '[data-po06="bar"] button{background-color:transparent}',
             '[data-po06="bar"] button:hover{background-color:var(--po06-hover)!important}',
