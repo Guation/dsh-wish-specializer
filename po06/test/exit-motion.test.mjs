@@ -18,10 +18,12 @@ test('统一的退出钩子：先打 closing 标记，过动画时长再卸载',
 })
 
 test('四个主要浮层都接了退场：选项面板 / 帮助 / 提示弹窗 / 拦截浮层', () => {
-  for (const k of ['optExit', 'helpExit', 'noticeExit', 'ovExit']) {
+  for (const k of ['optExit', 'helpExit', 'ovExit']) {
     assert.ok(CLIENT_SRC.includes('const ' + k + ' = useExit('), '缺少退出钩子：' + k)
     assert.ok(CLIENT_SRC.includes(k + '.closing'), '缺少 closing 标记使用：' + k)
   }
+  // 预设弹窗改为 body 级命令式浮层（React 渲染会被输入区裁剪）⇒ 它自己负责淡出后再移除
+  assert.ok(CLIENT_SRC.includes("el.style.transition = 'opacity .12s ease'"), '提示弹窗自己淡出')
   assert.ok(CLIENT_SRC.includes("'data-po06-closing'") || CLIENT_SRC.includes('"data-po06-closing"'), '要写到 DOM 上')
 })
 

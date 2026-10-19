@@ -90,10 +90,14 @@ test('进入非 Wish/PTC 会话弹一次，且不会"乱弹"（无 MutationObser
 })
 
 test('客户端：弹窗有主题色点缀与两个出口', () => {
-  assert.ok(CLIENT_SRC.includes("'data-po06': 'preset-notice'"), '要有弹窗节点')
-  assert.ok(CLIENT_SRC.includes("'data-po06': 'notice-accent'"), '要有主题色信号点')
+  // 2026-10-19 第三次踩坑：React 渲染在输入区里的 fixed 浮层会被祖先裁掉 ⇒ 改为命令式画到 body
+  assert.ok(CLIENT_SRC.includes("card.setAttribute('data-po06', 'preset-notice')"), '要有弹窗节点')
+  assert.ok(CLIENT_SRC.includes("dot.setAttribute('data-po06', 'notice-accent')"), '要有主题色信号点')
+  assert.ok(CLIENT_SRC.includes('document.body.appendChild(el)'), '画到 body 上（不被输入区裁剪）')
+  assert.ok(CLIENT_SRC.includes('z-index:2147482000'), '层级高于面板')
   assert.ok(CLIENT_SRC.includes("L('知道了', 'Got it')"), '知道了')
   assert.ok(CLIENT_SRC.includes("L('以后不再显示', 'Do not show again')"), '以后不再显示')
+  assert.ok(CLIENT_SRC.includes('notice-ok') && CLIENT_SRC.includes('notice-never'), '两个出口的锚点保留')
   assert.ok(/apiGet\('\/preset\?(via=enter&)?session='/.test(CLIENT_SRC), '回车前要先问 /preset')
   assert.ok(/apiPost\('\/notice'/.test(CLIENT_SRC), '要能回写（关掉这一次 / 以后不再显示）')
   // 2026-10-19 用户要求：弹窗必须发生在**开始优化之前**，不是发出去之后

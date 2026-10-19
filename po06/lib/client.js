@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 22:10'
+    const CLIENT_BUILD = '10-19 22:35'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     const PRESET_NOTICE_SEEN = new Map()
     // 预设登记表（id ↔ 显示名）：由宿主从 agentPresets 服务转出来。
@@ -2681,6 +2681,69 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const timer = setInterval(tick, 2500)
         return () => { stopped = true; clearInterval(timer) }
       }, [sessionId])
+      // 预设提示：**画到 document.body 上**（2026-10-19 第三次踩同一个坑）。
+      // 之前用 React 渲染在输入区里，position:fixed 在带 transform/overflow 的祖先下会被裁掉或错位，
+      // 真机上就是"notice 拿到了但屏幕上看不见"。这里改成命令式浮层：进来必有、层级最高、卸载即清。
+      React.useEffect(() => {
+        if (!notice || typeof document === 'undefined') return undefined
+        const el = document.createElement('div')
+        el.setAttribute('data-po06', 'preset-notice-backdrop')
+        el.style.cssText = 'position:fixed;inset:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;' +
+          'background:rgba(0,0,0,.42);padding:16px;'
+        const card = document.createElement('div')
+        card.setAttribute('data-po06', 'preset-notice')
+        card.setAttribute('role', 'dialog')
+        card.setAttribute('aria-modal', 'true')
+        card.style.cssText = 'width:min(380px,92vw);box-sizing:border-box;padding:16px 18px 14px;border-radius:12px;' +
+          'background:' + OVS.surface + ';border:1px solid ' + OVS.lineSoft + ';box-shadow:0 18px 44px -20px rgba(0,0,0,.6);' +
+          'color:' + OVS.fg + ';font-size:12.5px;line-height:1.6;'
+        const head = document.createElement('div')
+        head.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px'
+        const dot = document.createElement('span')
+        dot.setAttribute('data-po06', 'notice-accent')
+        dot.style.cssText = 'flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:' + OVS.acc
+        const title = document.createElement('strong')
+        title.style.cssText = 'font-size:13.5px;font-weight:700;letter-spacing:.2px'
+        title.textContent = L('建议切换到 Wish 或 PTC 预设', 'Switch to the Wish or PTC preset')
+        head.appendChild(dot); head.appendChild(title)
+        const body = document.createElement('p')
+        body.style.cssText = 'margin:0 0 6px;color:' + OVS.fg2
+        body.textContent = L('许愿特化器在 Wish / PTC 预设下发挥最好，其他预设可能表现不佳。',
+          'This plugin works best on the Wish or PTC preset; other presets may behave poorly.')
+        const hint = document.createElement('p')
+        hint.style.cssText = 'margin:0 0 10px;color:' + OVS.fg3 + ';font-size:11px'
+        hint.textContent = L('当前预设：', 'Current preset: ') + String(notice.preset || '?')
+        const actions = document.createElement('div')
+        actions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end'
+        const mk = (label, primary, onClick, attr) => {
+          const b = document.createElement('button')
+          b.type = 'button'
+          b.setAttribute('data-po06', attr)
+          b.textContent = label
+          b.style.cssText = 'height:28px;padding:0 12px;border-radius:8px;font:inherit;cursor:pointer;' +
+            (primary ? 'border:1px solid transparent;background:' + OVS.acc + ';color:#fff;font-weight:600'
+              : 'border:1px solid ' + OVS.lineSoft + ';background:transparent;color:' + OVS.fg2)
+          b.onclick = onClick
+          actions.appendChild(b)
+          return b
+        }
+        mk(L('知道了', 'Got it'), false, () => dismissNotice(false), 'notice-ok')
+        mk(L('以后不再显示', 'Do not show again'), true, () => dismissNotice(true), 'notice-never')
+        card.appendChild(head); card.appendChild(body); card.appendChild(hint); card.appendChild(actions)
+        el.appendChild(card)
+        document.body.appendChild(el)
+        // 退场：先淡出 + 轻微下沉，再移除（与其他弹层同一套语言）
+        return () => {
+          try {
+            el.style.transition = 'opacity .12s ease'
+            el.style.opacity = '0'
+            card.style.transition = 'opacity .1s ease, transform .12s ease'
+            card.style.transform = 'translateY(4px) scale(.98)'
+            setTimeout(() => { try { el.remove() } catch { /* 忽略 */ } }, 130)
+          } catch { try { el.remove() } catch { /* 忽略 */ } }
+        }
+      }, [notice])
+
       const dismissNotice = (forever) => {
         setNotice(null)
         apiPost('/notice', forever ? { forever: true } : { session: sessionId }).catch(() => {})
@@ -3365,25 +3428,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const ovShown = useLast(shown)
 
       return h(React.Fragment, null,
-        // 预设提示弹窗（2026-10-19）：非 Wish / PTC 时出现；两个出口都要能真的关掉。
-        noticeExit.mounted && noticeShown ? h('div', { ...themeAttrs(), 'data-po06': 'preset-notice-backdrop', 'data-po06-closing': noticeExit.closing ? '1' : '0', style: S.noticeBackdrop },
-          h('div', {
-            'data-po06': 'preset-notice', role: 'dialog', 'aria-modal': 'true',
-            'aria-label': L('预设提示', 'Preset hint'), style: S.noticeCard,
-          },
-            h('div', { style: S.noticeHead },
-              h('span', { 'data-po06': 'notice-accent', style: S.noticeAccent }),
-              h('strong', { style: S.noticeTitle }, L('建议切换到 Wish 或 PTC 预设', 'Switch to the Wish or PTC preset'))),
-            h('p', { style: S.noticeBody }, L(
-              '许愿特化器在 Wish / PTC 预设下发挥最好，其他预设可能表现不佳。',
-              'This plugin works best on the Wish or PTC preset; other presets may behave poorly.')),
-            h('p', { style: S.noticeHint }, L('当前预设：', 'Current preset: ') + String(noticeShown.preset || '?')),
-            h('div', { style: S.noticeActions },
-              h('button', { type: 'button', 'data-po06': 'notice-ok', style: S.noticeBtn, onClick: () => dismissNotice(false) },
-                L('知道了', 'Got it')),
-              h('button', { type: 'button', 'data-po06': 'notice-never', style: S.noticeBtnPrimary, onClick: () => dismissNotice(true) },
-                L('以后不再显示', 'Do not show again')))),
-        ) : null,
         // 控件栏分两层：第一行放"设定类"，第二行放"范围类"。
         // 外层靠上对齐（**不要**用 alignSelf:'flex-end'，那会被输入区的发送按钮顶上去、底部留空）。
         h('div', { ...themeAttrs(), 'data-po06': 'bar', ref: rootRef,
