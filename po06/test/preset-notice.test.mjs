@@ -38,6 +38,14 @@ test('控制面：GET /notice 与 POST /notice（forever 写设置）', () => {
   assert.ok(/getNotice: \(p\) => adapter\.getPresetNotice/.test(INDEX_SRC), '宿主要把读取口接上')
 })
 
+test('回车闸门的口径：只有非 Wish 且非 PTC 才提醒（用户 2026-10-19 确认）', () => {
+  const line = API_SRC.split('\n').find((l) => l.includes('const notice = preset &&'))
+  assert.ok(line, '要有 notice 判据')
+  assert.ok(line.includes("preset !== 'wish'"), 'Wish 不提示（它本身就是推荐态）')
+  assert.ok(line.includes("preset !== 'ptc'"), 'PTC 也不提示')
+  assert.ok(line.includes('!dismissed'), '点过「以后不再显示」后一律不提示')
+})
+
 test('客户端：弹窗有主题色点缀与两个出口', () => {
   assert.ok(CLIENT_SRC.includes("'data-po06': 'preset-notice'"), '要有弹窗节点')
   assert.ok(CLIENT_SRC.includes("'data-po06': 'notice-accent'"), '要有主题色信号点')
