@@ -752,6 +752,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       dis: { opacity: .45, filter: 'grayscale(1)', cursor: 'not-allowed' },
       // ⑦ 帮助弹层
       helpPop: { position: 'fixed', right: '16px', bottom: '84px', width: 'min(520px, 92vw)', maxHeight: '70vh',
+        contain: 'content',
         overflow: 'auto', background: OVS.surface, color: OVS.fg, border: '1px solid ' + OVS.lineSoft,
         borderRadius: '12px', padding: '14px 16px', zIndex: OV_Z.help, boxShadow: SHADOW.float,
         fontSize: '12px', lineHeight: '18px' },
@@ -817,9 +818,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      *   · 拖动、方向键、点击三条交互不变（命中判定仍按整条轨道等分）。
      */
     const TIER_FX = {
-      light:    { color: '#3fbf7f', dots: 6,  speed: '7s' },
-      standard: { color: '#4a8bff', dots: 10, speed: '4.6s' },
-      heavy:    { color: '#a06bff', dots: 16, speed: '2.4s' },
+      // 2026-10-19 用户改口径：轻度只要底色；标准是"无序随机线性飘动"；重度是白色流星从右往左冲
+      light:    { color: '#3fbf7f', dots: 0,  motion: 'none' },
+      standard: { color: '#4a8bff', dots: 9,  motion: 'drift' },
+      heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff' },
     }
     function Segmented({ name, value, options, label, disabled, title, onPick, failTick }) {
       const box = React.useRef(null)
@@ -874,17 +876,36 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         pick(options[Math.max(0, Math.min(options.length - 1, next))])
       }
       const fx = name === 'tier' && !disabled ? TIER_FX[value] : null
-      const dots = fx ? Array.from({ length: fx.dots }, (_, i) => {
-        // 固定伪随机：同一次渲染里粒子位置稳定，不会每次重渲染乱跳
-        const a = (i * 37) % 100, b = (i * 53) % 100, c = (i * 71) % 100
+      const dots = fx && fx.dots ? Array.from({ length: fx.dots }, (_, i) => {
+        // 固定伪随机（同一个 i 永远得到同一组参数）：位置/时长/延迟稳定，重渲染不跳
+        const a = (i * 37) % 97, b = (i * 61) % 90 + 5, c = (i * 71) % 100
+        if (fx.motion === 'meteor') {
+          // 流星：短横条 + 白色渐变，从右向左快速穿过，长度/速度/延迟各不相同
+          const len = 7 + (i * 5) % 9
+          const dur = 1.1 + ((i * 29) % 100) / 100   // 1.1s ~ 2.1s
+          return h('span', {
+            key: i, 'data-po06': 'tier-dot', 'data-po06-motion': 'meteor', 'aria-hidden': 'true',
+            style: {
+              position: 'absolute', left: a + '%', top: b + '%',
+              width: len + 'px', height: '1.5px', borderRadius: '999px',
+              background: 'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.95))',
+              animation: 'po06-meteor ' + dur.toFixed(2) + 's linear infinite',
+              animationDelay: (c / 100 * 1.6).toFixed(2) + 's',
+            },
+          })
+        }
+        // 飘动：每个粒子一个自己的方向向量与时长，来回漂（alternate），整体是无序的
+        const dx = ((i * 43) % 26) - 13
+        const dy = ((i * 67) % 18) - 9
+        const dur = 2.6 + ((i * 31) % 100) / 40   // 2.6s ~ 5.1s
         return h('span', {
-          key: i, 'data-po06': 'tier-dot', 'aria-hidden': 'true',
+          key: i, 'data-po06': 'tier-dot', 'data-po06-motion': 'drift', 'aria-hidden': 'true',
           style: {
-            position: 'absolute', left: a + '%', top: b + '%', width: '3px', height: '3px',
-            borderRadius: '50%', background: fx.color, opacity: .55,
-            filter: 'blur(.4px)',
-            animation: 'po06-turb ' + fx.speed + ' ease-in-out infinite',
-            animationDelay: (c / 100 * 0.9) + 's',
+            position: 'absolute', left: a + '%', top: b + '%', width: '2.5px', height: '2.5px',
+            borderRadius: '50%', background: fx.color, opacity: .7,
+            animation: 'po06-drift ' + dur.toFixed(2) + 's linear infinite alternate',
+            animationDelay: (c / 100 * 0.8).toFixed(2) + 's',
+            '--dx': dx + 'px', '--dy': dy + 'px',
           },
         })
       }) : null
@@ -2404,12 +2425,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const abortRef = React.useRef(null)
       const canArmRef = React.useRef(false)
       const [catalog, reloadCatalog] = useOnce(React.useCallback(() => apiGet('/models'), []))
-      // 只在打开时才去读帮助（关着的时候不发请求）。
+      // 帮助**预取**（2026-10-19）：点开时才发请求 ⇒ 弹层先空后满，视觉上就是"卡一下"。
+      // 现在挂载时按当前语言取一次（很小），点开即有内容；换语言时再取一次。
       // **把当前界面语言带上去**（用户 2026-09-22："英文 UI 适配应与 dsh 的语言对应"）：
       // 语言只有一个来源 —— DSH 的「语言」设置（见 detectLocale / ctx.locale），插件里没有自己的语言开关。
       const [help] = useOnce(React.useCallback(
-        () => (helpOpen ? apiGet('/help?lang=' + (LOCALE === 'en' ? 'en' : 'zh')) : Promise.resolve(null)),
-        [helpOpen, LOCALE]))
+        () => apiGet('/help?lang=' + (LOCALE === 'en' ? 'en' : 'zh')),
+        [LOCALE]))
 
       const data = status.data
       const s = (data && data.settings) || {}
@@ -4012,11 +4034,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '@keyframes po06-pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}',
             '@keyframes po06-row{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}',
             // 档位特效（2026-10-19）：粒子湍流 + 重度档的轻微颤抖
-            '@keyframes po06-turb{0%{transform:translate3d(0,0,0) scale(1);opacity:.35}25%{transform:translate3d(3px,-2px,0) scale(1.5);opacity:.75}50%{transform:translate3d(-2px,3px,0) scale(.9);opacity:.5}75%{transform:translate3d(2px,1px,0) scale(1.3);opacity:.8}100%{transform:translate3d(0,0,0) scale(1);opacity:.35}}',
+            // 标准档：无序随机线性飘动（方向/时长由每个粒子的内联变量决定，alternate 来回）
+            '@keyframes po06-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--dx,10px),var(--dy,-8px),0)}}',
+            // 重度档：白色流星从右向左穿过（顿挫感由 linear + 不同时长制造）
+            '@keyframes po06-meteor{from{transform:translate3d(0,0,0);opacity:.95}to{transform:translate3d(-320px,0,0);opacity:.12}}',
+            // 帮助弹层单独用一条更轻的入场（大块文字 + 阴影一起做 scale 会顿）
+            '@keyframes po06-help{from{opacity:0;transform:translate3d(0,4px,0)}to{opacity:1;transform:none}}',
             '@keyframes po06-shake{0%,100%{transform:translate3d(0,0,0)}20%{transform:translate3d(.5px,-.4px,0)}40%{transform:translate3d(-.4px,.5px,0)}60%{transform:translate3d(.4px,.3px,0)}80%{transform:translate3d(-.3px,-.4px,0)}}',
             // 弹层（2026-10-19）：按用途给不同入场——面板从按钮方向浮起、帮助从右下滑入、弹窗带一点回弹
             '[data-po06="options-pop"],[data-po06="inject-card"]{animation:po06-pop .2s cubic-bezier(.2,.8,.2,1) both}',
-            '[data-po06="help-pop"]{animation:po06-pop .18s cubic-bezier(.2,.8,.2,1) both}',
+            '[data-po06="help-pop"]{animation:po06-help .14s ease-out both;will-change:opacity,transform}',
             '[data-po06="preset-notice-backdrop"]{animation:po06-fade-in .16s ease-out both}',
             '[data-po06="preset-notice"]{animation:po06-pop .26s cubic-bezier(.2,.9,.25,1.04) both}',
             // 面板内容逐行浮现（错开 18ms，最多 10 行）：像"一点点展开"，而不是整块砸下来

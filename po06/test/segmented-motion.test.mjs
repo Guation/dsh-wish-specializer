@@ -1,8 +1,9 @@
-// 分段控件的动效与档位特效（2026-10-19 用户要求）。
+// 分段控件的动效与档位特效（2026-10-19 用户要求，同日二次调整）。
 //
-// 目标：点击档位/英文等分段控件时，选中指示器**滑过去**；档位另有主题特效：
-//   关闭 = 无特效；轻度 = 绿 + 少量粒子；标准 = 蓝 + 粒子；重度 = 紫 + 强湍流 + 轻微颤抖。
-// 不靠百分比硬算位置（padding/gap 会差 1~2px），而是量真实格子。
+// 目标：
+//   · 点击档位/英文等分段控件时，选中指示器**滑过去**；
+//   · 档位特效：关闭无；轻度只有绿色底（**无粒子**）；标准蓝色 + 无序随机线性飘动；
+//     重度紫色底 + **白色粒子从右向左像流星一样冲** + 轨道轻微颤抖。
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -19,23 +20,31 @@ test('选中指示器是滑动药丸：量真实格子 + left/width 过渡', () 
   assert.ok(/itemRefs\.current\[k\] = el/.test(CLIENT_SRC), '每个格子要有 ref')
 })
 
-test('档位四档：关闭无特效，轻/标准/重度的颜色与粒子数递增', () => {
+test('四档：关闭无特效；轻度只有底色；标准飘动；重度白色流星', () => {
   const at = CLIENT_SRC.indexOf('const TIER_FX = {')
-  const block = CLIENT_SRC.slice(at, at + 400)
-  assert.ok(block.includes("light:    { color: '#3fbf7f', dots: 6"), '轻度=绿')
-  assert.ok(block.includes("standard: { color: '#4a8bff', dots: 10"), '标准=蓝')
-  assert.ok(block.includes("heavy:    { color: '#a06bff', dots: 16"), '重度=紫')
-  assert.ok(!block.includes('off:'), '关闭档不要特效')
+  const block = CLIENT_SRC.slice(at, at + 500)
+  assert.ok(block.includes("light:    { color: '#3fbf7f', dots: 0"), '轻度不要粒子')
+  assert.ok(block.includes("standard: { color: '#4a8bff', dots: 9,  motion: 'drift'"), '标准=飘动')
+  assert.ok(block.includes("heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff'"), '重度=白色流星')
   assert.ok(CLIENT_SRC.includes("name === 'tier' && !disabled ? TIER_FX[value]"), '只有档位控件挂特效')
-  assert.ok(/data-po06-fx/.test(CLIENT_SRC), '要有可核对的标记')
 })
 
-test('湍流与颤抖：重度才有 shake，粒子有 turb 动画', () => {
-  assert.ok(CLIENT_SRC.includes('po06-turb'), '粒子湍流关键帧')
-  assert.ok(CLIENT_SRC.includes('po06-shake'), '颤抖关键帧')
-  const re = /value === 'heavy' \? \{ animation: 'po06-shake 1\.1s ease-in-out infinite' \}/
-  assert.ok(re.test(CLIENT_SRC), '只有重度档加颤抖')
-  assert.ok(/animation: 'po06-turb ' \+ fx\.speed/.test(CLIENT_SRC), '粒子按档位速度跑')
+test('两种粒子运动各有自己的关键帧与参数', () => {
+  assert.ok(CLIENT_SRC.includes('po06-drift'), '飘动关键帧')
+  assert.ok(CLIENT_SRC.includes('po06-meteor'), '流星关键帧')
+  assert.equal(CLIENT_SRC.includes('po06-turb'), false, '旧的湍流关键帧应已退出')
+  assert.ok(/animation: 'po06-meteor ' \+ dur\.toFixed\(2\)/.test(CLIENT_SRC), '流星按各自时长跑')
+  assert.ok(/animation: 'po06-drift ' \+ dur\.toFixed\(2\)/.test(CLIENT_SRC), '飘动按各自时长跑')
+  assert.ok(CLIENT_SRC.includes("'--dx': dx + 'px'") && CLIENT_SRC.includes("'--dy': dy + 'px'"), '飘动方向由每个粒子自己决定')
+  assert.ok(/gradient\(90deg, rgba\(255,255,255,0\)/.test(CLIENT_SRC), '流星是白色拖尾')
+  assert.ok(CLIENT_SRC.includes('translate3d(-320px'), '流星从右向左')
+})
+
+test('重度才有颤抖；帮助弹层用更轻的入场（避免大块文字重绘卡顿）', () => {
+  assert.ok(/value === 'heavy' \? \{ animation: 'po06-shake 1\.1s ease-in-out infinite' \}/.test(CLIENT_SRC), '只有重度档加颤抖')
+  assert.ok(CLIENT_SRC.includes('po06-help'), '帮助弹层单独一条轻动画')
+  assert.ok(CLIENT_SRC.includes('animation:po06-help'), '帮助弹层不再用带缩放的 po06-pop')
+  assert.ok(CLIENT_SRC.includes("contain: 'content'"), '帮助弹层做渲染隔离')
 })
 
 test('无障碍与降级：区域仍可键盘操作，减少动效时全部停掉', () => {
