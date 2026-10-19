@@ -2577,6 +2577,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const cmd = (props && props.node) || {}
       const [rec, setRec] = React.useState(null)
       const [open, setOpen] = React.useState(false)
+      // ⚠ 必须在**所有早退之前**调用：记录到达前后是两次渲染，钩子数量不一致会被 React 判成
+      //   "Rendered more hooks than during the previous render" ⇒ 整张卡直接消失（2026-10-19 真机）。
+      const body = useExit(open, 140)
       useLocaleLive()
       useThemeLive()
       const recordId = (() => {
@@ -2593,7 +2596,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }, [recordId])
       if (!rec || typeof rec.injected !== 'string' || !rec.injected.trim()) return null
       const chars = Number(rec.chars) > 0 ? rec.chars : rec.injected.length
-      const body = useExit(open, 140)
       return h('div', { 'data-po06': 'injection-row', style: S.injRow },
         h('button', {
           type: 'button', 'data-po06': 'injection-row-head', 'data-open': open ? '1' : '0',
