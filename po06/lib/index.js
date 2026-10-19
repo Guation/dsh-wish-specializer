@@ -2433,7 +2433,15 @@ export function apply(ctx, config) {
         if (svc && typeof svc.list === 'function') list = svc.list()
         else if (Array.isArray(svc)) list = svc
         else if (svc && Array.isArray(svc.presets)) list = svc.presets
-        else if (svc && typeof svc.values === 'function') list = svc.values()
+        else if (svc && typeof svc.values === 'function') list = Array.from(svc.values())
+        // 真机看到的服务形状：{ ctx, name, config, owner, definitions, generations, bindings, switches }
+        // ⇒ definitions 才是登记表（Map 或 普通对象）
+        else if (svc && svc.definitions) {
+          const d = svc.definitions
+          if (d instanceof Map) list = Array.from(d.values())
+          else if (Array.isArray(d)) list = d
+          else list = Object.values(d)
+        }
         out.debug.listType = Array.isArray(list) ? 'array:' + list.length : typeof list
         if (Array.isArray(list)) {
           out.presets = list.map((x) => ({
