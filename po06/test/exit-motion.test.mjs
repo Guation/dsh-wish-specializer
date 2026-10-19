@@ -68,3 +68,27 @@ test('拦截面板：果冻式逐组件入场/退场（只动 transform/opacity�
   const seg = CLIENT_SRC.slice(i, i + 900)
   assert.equal(seg.includes('will-change'), false, '不要给孩子加 will-change')
 })
+
+test('逐渐展开：正文 clip-path 自上而下揭开 + 按钮/输入区逐个浮现', () => {
+  assert.ok(CLIENT_SRC.includes('@keyframes po06-unfold{'), '揭开关键帧')
+  assert.ok(/intercept-scroll"\]\{animation:po06-unfold/.test(CLIENT_SRC), '正文按 clip-path 揭开')
+  assert.ok(/button,\[data-po06="intercept"\]\[data-po06-closing="0"\] textarea\{animation:po06-jelly-in/.test(CLIENT_SRC), '按钮/输入区也走果冻入场')
+  assert.ok(CLIENT_SRC.includes('button:nth-of-type(2){animation-delay:205ms}'), '按钮逐个错峰')
+  assert.ok(CLIENT_SRC.includes('button:nth-of-type(n+4){animation-delay:270ms}'), '超过 4 个统一收口（总时长不膨胀）')
+  // 揭开只裁可见区域、不改尺寸 ⇒ 与"大小自适应"不冲突
+  assert.ok(CLIENT_SRC.includes('clip-path:inset(0 0 100% 0)'), '从头往下揭开')
+})
+
+test('完成发送 / 跳过发送：状态切换与离场都有性格（收束 vs 放行）', () => {
+  // 离场种类写到 DOM 上，CSS 才能分性格
+  assert.ok(CLIENT_SRC.includes("'data-po06-exit': props.exitKind || 'none'"), '面板要标记离场种类')
+  assert.ok(CLIENT_SRC.includes("setOvExitKind(mark === 'skipped' ? 'skipped' : 'sent')"), '发送/跳过分别标记')
+  assert.ok(CLIENT_SRC.includes("setOvExitKind('cancel')") && CLIENT_SRC.includes("setOvExitKind('collapse')"), '取消/收起也标记')
+  // 状态切换本身也要软（不是文字突然换掉）
+  assert.ok(CLIENT_SRC.includes('@keyframes po06-settle{'), '定住关键帧')
+  assert.ok(/data-po06-phase="sent"\] \[data-po06="intercept-foot"\]/.test(CLIENT_SRC), '发送后 footer 收一下')
+  // 两条出口的性格差异
+  assert.ok(CLIENT_SRC.includes('@keyframes po06-release{'), '放行关键帧（向上弹开）')
+  assert.ok(/data-po06-exit="skipped"\][^{]*\{animation:po06-release/.test(CLIENT_SRC), '跳过用放行曲线')
+  assert.ok(/data-po06-exit="sent"\][^{]*\{animation:po06-jelly-out/.test(CLIENT_SRC), '发送用收束曲线')
+})

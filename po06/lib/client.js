@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 20:35'
+    const CLIENT_BUILD = '10-19 21:05'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     const PRESET_NOTICE_SEEN = new Map()
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
@@ -2275,6 +2275,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       return h('div', {
         ...themeAttrs(), ref: rootRef, 'data-po06': 'intercept', 'data-po06-phase': phase, 'data-po06-view': 'panel',
         'data-po06-closing': props['data-po06-closing'] || '0',
+        'data-po06-exit': props.exitKind || 'none',
         'data-po06-drag': dragging ? '1' : '0', 'data-po06-size': sizing ? '1' : '0',
         style: {
           ...S.ov,
@@ -2694,6 +2695,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // P11 浮层的**呈现状态**（0.5 把这两态放在 store.overlay / store.ball；0.6 不引入全局 store，
       // 用组件状态即可，但语义照抄：面板 = 拦截现场，球 = 放行之后仍可回看的那一份）。
       const [ovOpen, setOvOpen] = React.useState(false)
+      // 离场种类（2026-10-19）：完成发送 = 收束、跳过发送 = 放行、取消/收起 = 各自一套。
+      // 面板据此换用不同的软体退场曲线（同一种语言，性格不同）。
+      const [ovExitKind, setOvExitKind] = React.useState('sent')
       const [ovGeom, setOvGeom] = React.useState({ pos: null, size: { w: null, h: null } })
       const [ovBall, setOvBall] = React.useState(null)  // {visible, pos, sent, phase}
       const [ovLast, setOvLast] = React.useState(null)  // 最近一次**已终结**的拦截（0.5 球里存的那份 run）
@@ -2819,6 +2823,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
        *  所以这里无条件对齐一次（草稿本来就一样时，写回是幂等的）。 */
       const releaseHold = (text, h, mark) => {
         try {
+          setOvExitKind(mark === 'skipped' ? 'skipped' : 'sent')
           // 名单内命令的守门（0.8）：审查浮层可以改内容，但**不允许把命令本身换掉**。
           // 换掉就不再是原命令了 ⇒ 退回用户按下发送时的那一条原话，交还宿主自行处理。
           let outgoing = text
@@ -2889,6 +2894,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
        * 与「跳过并直接发送」的区别：跳过是"发，但不带包"；取消是"不发"。
        */
       const cancelHold = () => {
+        setOvExitKind('cancel')
         holdSeq.current += 1                                  // 让在飞的那次结果作废
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 断不掉也要作废世代 */ }
         abortRef.current = null
@@ -3009,6 +3015,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
        *  连球都不留；这里只要**还有一次拦截挂着**就留球（优化中收起也有球，标着"优化中"），
        *  否则用户收起后就再也看不见"消息还被拦着"这件事（那是吞消息的隐患）。 */
       const collapseToBall = () => {
+        setOvExitKind('collapse')
         const h = hold || ovLastRef.current
         setOvOpen(false)
         if (!h) { setOvBall(null); return }
@@ -3631,7 +3638,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         //   · hold 已被 0.6 的 clearHoldSoon 清掉、而面板还开着 ⇒ 显示最后那一份快照（只读回看）
         ovExit.mounted && ovShown ? h(InterceptPanel, {
           'data-po06-closing': ovExit.closing ? '1' : '0',
-          hold: ovShown, phase: ovShown.phase, permission, tier, count: interceptCount,
+          hold: ovShown, phase: ovShown.phase, permission, tier, count: interceptCount, exitKind: ovExitKind,
           prog: prog, pos: ovGeom.pos, size: ovGeom.size,
           onMove: (p) => setOvGeom((g) => ({ ...g, pos: p })),
           onResize: (z) => setOvGeom((g) => ({ ...g, size: z })),
@@ -4359,6 +4366,31 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '[data-po06="intercept"][data-po06-closing="1"] > *:nth-child(2){animation-delay:24ms}',
             '[data-po06="intercept"][data-po06-closing="1"] > *:nth-child(n+3){animation-delay:48ms}',
             '[data-po06="intercept"][data-po06-closing="1"] [data-po06="intercept-scroll"] > *{animation:po06-jelly-out .15s ease-in both;animation-delay:18ms}',
+            // 「逐渐展开」（2026-10-19）：面板正文用 clip-path 自上而下揭开，像把内容"放出来"，
+            // 不改宽高（尺寸自适应不受影响），只裁可见区域；配合下面的逐按钮浮现。
+            '@keyframes po06-unfold{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}',
+            '[data-po06="intercept"][data-po06-closing="0"] [data-po06="intercept-scroll"]{animation:po06-unfold .38s cubic-bezier(.2,.9,.3,1) both;animation-delay:70ms}',
+            // 各个按钮/输入区也跟着逐个浮现（每个父容器内按顺序错峰，读起来是"一层层打开"）
+            '[data-po06="intercept"][data-po06-closing="0"] button,[data-po06="intercept"][data-po06-closing="0"] textarea{animation:po06-jelly-in .34s cubic-bezier(.2,.9,.3,1) both;animation-delay:170ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] button:nth-of-type(2){animation-delay:205ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] button:nth-of-type(3){animation-delay:240ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] button:nth-of-type(n+4){animation-delay:270ms}',
+            '[data-po06="intercept"][data-po06-closing="1"] button,[data-po06="intercept"][data-po06-closing="1"] textarea,[data-po06="intercept"][data-po06-closing="1"] [data-po06="intercept-scroll"]{animation:po06-jelly-out .15s ease-in both;animation-delay:14ms}',
+            // 完成/跳过后的**状态切换**也要软：footer 与正文区块「收一下再定住」，
+            // 而不是文字突然换掉（用户 2026-10-19："完成发送/跳过发送时也要灵动"）。
+            '@keyframes po06-settle{0%{opacity:.55;transform:translate3d(0,5px,0) scale(.985,.94)}58%{opacity:1;transform:translate3d(0,-1px,0) scale(1.006,1.02)}100%{opacity:1;transform:none}}',
+            '[data-po06="intercept"][data-po06-phase="sent"] [data-po06="intercept-foot"],' +
+              '[data-po06="intercept"][data-po06-phase="skipped"] [data-po06="intercept-foot"]{animation:po06-settle .34s cubic-bezier(.2,.9,.3,1) both}',
+            '[data-po06="intercept"][data-po06-phase="sent"] [data-po06="intercept-scroll"] > *,' +
+              '[data-po06="intercept"][data-po06-phase="skipped"] [data-po06="intercept-scroll"] > *{animation:po06-settle .32s cubic-bezier(.2,.9,.3,1) both}',
+            // 离场分性格：完成发送 = 收束（向下软塌、稍慢）；跳过发送 = 放行（向上弹开、干脆）
+            '@keyframes po06-release{0%{opacity:1;transform:none}55%{opacity:.72;transform:translate3d(0,-2px,0) scale(1.012,.93)}100%{opacity:0;transform:translate3d(0,-5px,0) scale(.985,.88)}}',
+            '[data-po06="intercept"][data-po06-closing="1"][data-po06-exit="sent"] > *,' +
+              '[data-po06="intercept"][data-po06-closing="1"][data-po06-exit="sent"] button,' +
+              '[data-po06="intercept"][data-po06-closing="1"][data-po06-exit="sent"] [data-po06="intercept-scroll"] > *{animation:po06-jelly-out .2s ease-in both !important}',
+            '[data-po06="intercept"][data-po06-closing="1"][data-po06-exit="skipped"] > *,' +
+              '[data-po06="intercept"][data-po06-closing="1"][data-po06-exit="skipped"] button,' +
+              '[data-po06="intercept"][data-po06-closing="1"][data-po06-exit="skipped"] [data-po06="intercept-scroll"] > *{animation:po06-release .15s cubic-bezier(.3,.7,.4,1) both !important}',
             '@keyframes po06-out-fade{from{opacity:1}to{opacity:0}}',
             '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .16s ease-in both}',
             // 档位特效（2026-10-19）：粒子湍流 + 重度档的轻微颤抖
