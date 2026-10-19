@@ -811,6 +811,32 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         scrollbarWidth: 'none', msOverflowStyle: 'none' },
     })
 
+    /**
+     * 退场动效（2026-10-19 用户：很多 UI 直接消失，太硬）。
+     * 组件在 show=false 时**先留在树上**打 closing 标记，过了动画时长再卸载；
+     * CSS 用 [data-po06-closing="1"] 播放 po06-out。
+     */
+    function useExit(show, ms) {
+      const [mounted, setMounted] = React.useState(!!show)
+      const [closing, setClosing] = React.useState(false)
+      const alive = React.useRef(!!show)
+      React.useEffect(() => { alive.current = mounted }, [mounted])
+      React.useEffect(() => {
+        if (show) { setMounted(true); setClosing(false); return undefined }
+        if (!alive.current) return undefined
+        setClosing(true)
+        const t = setTimeout(() => { setMounted(false); setClosing(false) }, ms)
+        return () => clearTimeout(t)
+      }, [show, ms])
+      return { mounted, closing }
+    }
+    // 退场期间内容仍需可读：记住最后一次非空的值
+    function useLast(value) {
+      const ref = React.useRef(value)
+      if (value != null) ref.current = value
+      return ref.current
+    }
+
     const PROV_TEXT = { user: L('你说过','you said'), machine: L('机器补充','machine-added'), unsourced: L('无出处','unsourced') }
 
     /**
@@ -886,7 +912,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           document.removeEventListener('keydown', onKey, true)
           window.removeEventListener('scroll', close, true)
           window.removeEventListener('resize', close)
-          try { layer.remove() } catch { /* 忽略 */ }
+          // 退场：先淡出 + 轻微下移，再移除（直接 remove 太硬）
+          try {
+            layer.style.transition = 'opacity .12s ease, transform .12s ease'
+            layer.style.opacity = '0'
+            layer.style.transform = 'translateY(3px)'
+            setTimeout(() => { try { layer.remove() } catch { /* 忽略 */ } }, 130)
+          } catch { try { layer.remove() } catch { /* 忽略 */ } }
           layerRef.current = null
         }
       }, [open])
@@ -1193,7 +1225,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           width: (pct * 100) + '%', height: '6px', borderRadius: '999px',
           background: disabled ? OVS.fg3 : 'linear-gradient(90deg, ' + OVS.acc22 + ', ' + OVS.acc + ')',
           boxShadow: dragging ? '0 0 10px ' + OVS.acc22 : 'none',
-          transition: dragging ? 'none' : 'width .18s cubic-bezier(.22,.8,.24,1)' } }),
+          transition: dragging ? 'none' : 'width .26s cubic-bezier(.22,.8,.24,1)' } }),
         ...[0, 0.5, 1].map((t) => h('span', { key: 'tick' + t, 'aria-hidden': 'true',
           style: { position: 'absolute', left: 'calc(' + (t * 100) + '% - 1px)', top: '50%', marginTop: '-1px',
             width: '2px', height: '2px', borderRadius: '50%', background: OVS.fg3, opacity: .55 } })),
@@ -1203,7 +1235,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           background: disabled ? OVS.fg3 : OVS.acc, border: '2px solid ' + OVS.surface,
           boxShadow: '0 2px 6px rgba(0,0,0,.35)',
           transform: dragging ? 'scale(1.12)' : 'scale(1)',
-          transition: dragging ? 'transform .12s ease' : 'left .18s cubic-bezier(.22,.8,.24,1), transform .12s ease' } }))
+          transition: dragging ? 'transform .12s ease' : 'left .26s cubic-bezier(.22,.8,.24,1), transform .12s ease' } }))
     }
 
     // ── 控制表单（浮层与设置页共用）──────────────────────────────────
@@ -2219,6 +2251,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
       return h('div', {
         ...themeAttrs(), ref: rootRef, 'data-po06': 'intercept', 'data-po06-phase': phase, 'data-po06-view': 'panel',
+        'data-po06-closing': props['data-po06-closing'] || '0',
         'data-po06-drag': dragging ? '1' : '0', 'data-po06-size': sizing ? '1' : '0',
         style: {
           ...S.ov,
@@ -3220,9 +3253,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         : (data.enabled ? (on ? L('自动辅助', 'auto') : L('只记录', 'record')) : L('未启用', 'off'))
       const offTip = L('档位为「关闭」时不生效', 'Has no effect while the tier is Off')
 
+      // 退场动效：面板 / 帮助 / 提示弹窗 / 拦截浮层，关闭时先播 160ms 收起动画再卸载
+      const optExit = useExit(optOpen, 160)
+      const helpExit = useExit(helpOpen, 140)
+      const noticeExit = useExit(!!notice, 170)
+      const noticeShown = useLast(notice)
+      const ovExit = useExit(!!shown, 160)
+      const ovShown = useLast(shown)
+
       return h(React.Fragment, null,
         // 预设提示弹窗（2026-10-19）：非 Wish / PTC 时出现；两个出口都要能真的关掉。
-        notice ? h('div', { ...themeAttrs(), 'data-po06': 'preset-notice-backdrop', style: S.noticeBackdrop },
+        noticeExit.mounted && noticeShown ? h('div', { ...themeAttrs(), 'data-po06': 'preset-notice-backdrop', 'data-po06-closing': noticeExit.closing ? '1' : '0', style: S.noticeBackdrop },
           h('div', {
             'data-po06': 'preset-notice', role: 'dialog', 'aria-modal': 'true',
             'aria-label': L('预设提示', 'Preset hint'), style: S.noticeCard,
@@ -3233,7 +3274,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             h('p', { style: S.noticeBody }, L(
               '许愿特化器在 Wish / PTC 预设下发挥最好，其他预设可能表现不佳。',
               'This plugin works best on the Wish or PTC preset; other presets may behave poorly.')),
-            h('p', { style: S.noticeHint }, L('当前预设：', 'Current preset: ') + String(notice.preset || '?')),
+            h('p', { style: S.noticeHint }, L('当前预设：', 'Current preset: ') + String(noticeShown.preset || '?')),
             h('div', { style: S.noticeActions },
               h('button', { type: 'button', 'data-po06': 'notice-ok', style: S.noticeBtn, onClick: () => dismissNotice(false) },
                 L('知道了', 'Got it')),
@@ -3312,8 +3353,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           // 2026-10-19：原来这里还有一块"本次注入"的展开面板；随胶囊一起移除（对话流卡片已覆盖）。
           // ── 第二行 = **弹出面板**（点「优化选项」才展开）：设定类 + 范围类都收在这里 ──────
           //    只有打开时才渲染 ⇒ 关闭时控件栏就是**一行**（用户要的"更简洁"）。
-          optOpen ? h('div', { 'data-po06': 'bar-row-2', style: { position: 'relative' } },
-            h('div', { ...themeAttrs(), 'data-po06': 'options-pop',
+          optExit.mounted ? h('div', { 'data-po06': 'bar-row-2', style: { position: 'relative' } },
+            h('div', { ...themeAttrs(), 'data-po06': 'options-pop', 'data-po06-closing': optExit.closing ? '1' : '0',
               // ⚠ 坐标**必须真的用上**：`S.optPop` 是 `position: fixed`，而 fixed 元素在没给
               //   `left/top/bottom` 时会退回到"流里的位置"——实测就是**看不见任何弹窗**
               //   （用户 2026-09-22："点击优化选项没有任何弹窗出现"）。
@@ -3498,7 +3539,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         !data && status.error ? h('span', { 'data-po06': 'status-error', style: { ...S.muted, color: T('err') } },
           L('读状态失败：', 'Status unavailable: ') + errorText(status.error)) : null,
         // 「?」帮助弹层（要求②）：正文来自宿主 GET /help；读不到就如实说，并给出文件路径
-        helpOpen ? h('div', { ...themeAttrs(), 'data-po06': 'help-pop', style: { ...S.helpPop, ...(region ? { right: Math.max(0, Math.round(((typeof window !== 'undefined' && window.innerWidth) || 800) - region.right) + 16) + 'px', width: Math.min(560, Math.max(120, region.w - 32)) + 'px' } : null) } },
+        helpExit.mounted ? h('div', { ...themeAttrs(), 'data-po06': 'help-pop', 'data-po06-closing': helpExit.closing ? '1' : '0', style: { ...S.helpPop, ...(region ? { right: Math.max(0, Math.round(((typeof window !== 'undefined' && window.innerWidth) || 800) - region.right) + 16) + 'px', width: Math.min(560, Math.max(120, region.w - 32)) + 'px' } : null) } },
           h('div', { style: { ...S.row, margin: '0 0 6px' } },
             h('strong', {}, L('使用帮助（怎么用 / 档位 / 权限 / 推荐组合）', 'Help (how to use / tier / permission / recommended combos)')),
             h('span', { style: S.muted }, (data && data.version) || ''),
@@ -3530,16 +3571,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // 这里只做两件事：把**该显示的那一份**挑出来，把**既有处理函数**接上去。
         //   · `hold` 活着 ⇒ 显示它（拦截现场）
         //   · hold 已被 0.6 的 clearHoldSoon 清掉、而面板还开着 ⇒ 显示最后那一份快照（只读回看）
-        shown ? h(InterceptPanel, {
-          hold: shown, phase: shown.phase, permission, tier, count: interceptCount,
+        ovExit.mounted && ovShown ? h(InterceptPanel, {
+          'data-po06-closing': ovExit.closing ? '1' : '0',
+          hold: ovShown, phase: ovShown.phase, permission, tier, count: interceptCount,
           prog: prog, pos: ovGeom.pos, size: ovGeom.size,
           onMove: (p) => setOvGeom((g) => ({ ...g, pos: p })),
           onResize: (z) => setOvGeom((g) => ({ ...g, size: z })),
           onEdit: (e) => {
             // 审查态里用户改的那份就是**本轮注入的包**（既有逻辑不变，只是搬到新面板里）
             const v = e.target.value
-            holdRef.current = { ...(holdRef.current || shown), edited: v }
-            setHold((x) => ({ ...(x || shown), edited: v }))
+            holdRef.current = { ...(holdRef.current || ovShown), edited: v }
+            setHold((x) => ({ ...(x || ovShown), edited: v }))
           },
           onConfirm: confirmHold,      // 确认提交
           onRollback: rollbackHold,    // 回退上一版包（包级历史，宿主侧保留 10 版）
@@ -4233,6 +4275,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // 2026-10-19 观感收口：弹出层/提示卡入场做**短促的浮起**（位移只在这一层，不碰带内联 transform 的面板）
             '@keyframes po06-pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}',
             '@keyframes po06-row{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}',
+            '@keyframes po06-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(4px) scale(.99)}}',
+            '[data-po06-closing="1"]{animation:po06-out .16s ease-in both;pointer-events:none}',
+            '@keyframes po06-out-fade{from{opacity:1}to{opacity:0}}',
+            '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .16s ease-in both}',
             // 档位特效（2026-10-19）：粒子湍流 + 重度档的轻微颤抖
             // 标准档：无序随机线性飘动（方向/时长由每个粒子的内联变量决定，alternate 来回）
             '@keyframes po06-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--dx,10px),var(--dy,-8px),0)}}',
