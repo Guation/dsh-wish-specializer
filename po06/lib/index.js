@@ -1487,9 +1487,8 @@ async function decideEnableFor(agentId) {
 }
 
 export const name = '@dsh-external/dsh-wish-specializer'
-// 预设登记表（agentPresets）是 DSH 的核心服务。cordis 里**不声明 inject 就访问 ctx.agentPresets 会抛**
-// （"cannot get property agentPresets without inject"）。用 optional 形式：拿不到也不影响插件加载。
-export const inject = { optional: ['agentPresets'] }
+// ⚠ 不要再声明 inject：实测这个静态导出会让插件加载失败（控制面整片 404）。
+// 预设判定已经整体移除，登记表也不再需要，保持不注入。
 /** 版本号从**随包发行的 package.json** 读，不写死（写死就会漂——本项目栽过这类跟头）。 */
 const PKG_VERSION = (() => {
   try { return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8')).version } catch { return null }
