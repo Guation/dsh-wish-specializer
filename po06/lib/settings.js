@@ -132,6 +132,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   applyToSubagents: false,
   // 2026-10-19：非 Wish/PTC 预设时的提示条。点"以后不再显示"就置 true。
   presetNoticeDismissed: false,
+  // 2026-10-19：点「跳过并直接发送」时提示"开双击 Enter 跳过"的那张卡，点过"以后不再显示"就置 true。
+  skipHintDismissed: false,
   // 0.8：**斜杠命令允许列表**（命令名不带斜杠）。
   // 默认空 = 所有斜杠命令照旧交还宿主（与改动前完全一致）。
   // 为什么不直接放开斜杠：宿主自己的 /clear、/model、/compact 一旦被审查浮层接管，
@@ -153,6 +155,7 @@ export const SETTINGS_KEYS = Object.freeze([
   'doubleEnterSkip',
   'applyToSubagents',
   'presetNoticeDismissed',
+  'skipHintDismissed',
   'effortByModel',
   'bySession',
   'framing',
@@ -305,6 +308,7 @@ export function normalizeSettings(raw) {
     doubleEnterSkip: pickBool('doubleEnterSkip', DEFAULT_SETTINGS.doubleEnterSkip),
     applyToSubagents: pickBool('applyToSubagents', DEFAULT_SETTINGS.applyToSubagents),
     presetNoticeDismissed: pickBool('presetNoticeDismissed', DEFAULT_SETTINGS.presetNoticeDismissed),
+    skipHintDismissed: pickBool('skipHintDismissed', DEFAULT_SETTINGS.skipHintDismissed),
     slashReview: pickSlashReview(),
   }
   // model：null / 缺省 = 跟随会话；给了就必须是 { provider, model } 两个非空字符串

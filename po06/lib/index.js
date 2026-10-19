@@ -1825,6 +1825,29 @@ class DshAdapter {
     this.presetsAt.set(sid, Date.now())
   }
 
+  /**
+   * 会话里真的跑过一轮之后，再问一次 sessionController（2026-10-19 用户提议）：
+   * 有些会话是"选预设之前就存在"的老会话，头里写的是默认值；但只要在里面说过话，
+   * 宿主那边的会话元数据就有机会反映真实预设 —— 这条就是去把它捞回来。
+   */
+  async refreshSessionPreset(sid) {
+    const key = String(sid || '')
+    if (!key) return
+    if (!this._presetRefreshAt) this._presetRefreshAt = new Map()
+    const last = this._presetRefreshAt.get(key) || 0
+    if (Date.now() - last < 4000) return          // 每 4 秒最多问一次
+    this._presetRefreshAt.set(key, Date.now())
+    try {
+      const sc = this.services && this.services.sessionController
+      if (!sc || typeof sc.inspect !== 'function') return
+      const info = await sc.inspect(key)
+      const p = (info && info.meta && info.meta.agentPreset)
+        || (info && info.header && info.header.agentPreset)
+        || (info && info.agentPreset)
+      if (typeof p === 'string' && p) this.notePreset(key, p)
+    } catch { /* 读不到就算了，下一轮再试 */ }
+  }
+
   /** 该会话"最后一次预设选择"的时间：客户端据此判断"预设真的变了"，不靠自己轮询的基线。 */
   presetAtOf(sessionId) {
     try { return (this.presetsAt && this.presetsAt.get(String(sessionId))) || null } catch { return null }
@@ -2726,7 +2749,7 @@ export function apply(ctx, config) {
           // 顺序无关紧要（这些事件不是回合边界），但"先收后判"省得日后加事件类型时漏收。
           try {
             if (sid) {
-              if(isRealUserInput(event))adapter.english?.bind(sid,extractMessageId(event),extractUserText(event))
+              if(isRealUserInput(event)){adapter.english?.bind(sid,extractMessageId(event),extractUserText(event));void adapter.refreshSessionPreset(sid)}
                const changed=adapter.capability.observe(session,event)
               if(changed==='new-input'){adapter.intentBySession.delete(sid);adapter.reviewedPackets.delete(sid)}
               sessionHistory.observe(sid, event)

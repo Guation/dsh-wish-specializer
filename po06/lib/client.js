@@ -2622,6 +2622,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [open, setOpen] = React.useState(false)
       // 预设提示（2026-10-19）：非 Wish / PTC 预设时弹一次，两个按钮（知道了 / 以后不再显示）。
       const [notice, setNotice] = React.useState(null)
+      // 「跳过并发送」时提示双击 Enter 的卡片（2026-10-19 用户要求；开关已开或点过"以后不再显示"就不弹）
+      const [skipHint, setSkipHint] = React.useState(false)
       // 预设被**在会话开始前**拨过（用户 2026-10-19 的真机情形）：宿主给会话头的是默认预设，
       // 光在回车时判定是看不出来的。所以盯着输入区，预设一变就问一次宿主"现在算哪个预设"，
       // 变了且不是 Wish/PTC 就当场把提示弹出来（不用等下一次发送）。
@@ -2752,6 +2754,66 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           } catch { try { el.remove() } catch { /* 忽略 */ } }
         }
       }, [notice])
+
+      // 双击 Enter 的提示卡：与预设提示同一套 body 级浮层（不再受输入区裁剪影响）
+      React.useEffect(() => {
+        if (!skipHint || typeof document === 'undefined') return undefined
+        apiPost('/client-log', { event: 'skip-hint-mount', sid: sessionId }).catch(() => {})
+        const el = document.createElement('div')
+        el.setAttribute('data-po06', 'skip-hint-backdrop')
+        el.style.cssText = 'position:fixed;inset:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;' +
+          'background:rgba(0,0,0,.42);padding:16px;'
+        const card = document.createElement('div')
+        card.setAttribute('data-po06', 'skip-hint')
+        card.setAttribute('role', 'dialog')
+        card.style.cssText = 'width:min(380px,92vw);box-sizing:border-box;padding:16px 18px 14px;border-radius:12px;' +
+          'background:' + OVS.surface + ';border:1px solid ' + OVS.lineSoft + ';box-shadow:0 18px 44px -20px rgba(0,0,0,.6);' +
+          'color:' + OVS.fg + ';font-size:12.5px;line-height:1.6;'
+        const head = document.createElement('div')
+        head.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px'
+        const dot = document.createElement('span')
+        dot.setAttribute('data-po06', 'skip-hint-accent')
+        dot.style.cssText = 'flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:' + OVS.acc
+        const title = document.createElement('strong')
+        title.style.cssText = 'font-size:13.5px;font-weight:700;letter-spacing:.2px'
+        title.textContent = L('双击 Enter 也能跳过', 'Double Enter can skip too')
+        head.appendChild(dot); head.appendChild(title)
+        const body = document.createElement('p')
+        body.style.cssText = 'margin:0 0 6px;color:' + OVS.fg2
+        body.textContent = L('开启「双击 Enter 跳过」后，即可双击 Enter 来直接跳过优化。',
+          'Turn on "Double Enter skip" and you can press Enter twice to skip the optimization.')
+        const hint = document.createElement('p')
+        hint.style.cssText = 'margin:0 0 10px;color:' + OVS.fg3 + ';font-size:11px'
+        hint.textContent = L('位置：优化选项 → 双击 Enter 跳过', 'Where: Options → Double Enter skip')
+        const actions = document.createElement('div')
+        actions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end'
+        const mk = (label, primary, onClick, attr) => {
+          const b = document.createElement('button')
+          b.type = 'button'
+          b.setAttribute('data-po06', attr)
+          b.textContent = label
+          b.style.cssText = 'height:28px;padding:0 12px;border-radius:8px;font:inherit;cursor:pointer;' +
+            (primary ? 'border:1px solid transparent;background:' + OVS.acc + ';color:#fff;font-weight:600'
+              : 'border:1px solid ' + OVS.lineSoft + ';background:transparent;color:' + OVS.fg2)
+          b.onclick = onClick
+          actions.appendChild(b)
+        }
+        mk(L('知道了', 'Got it'), false, () => setSkipHint(false), 'skip-hint-ok')
+        mk(L('以后不再显示', 'Do not show again'), true, () => {
+          setSkipHint(false)
+          save({ skipHintDismissed: true })
+        }, 'skip-hint-never')
+        card.appendChild(head); card.appendChild(body); card.appendChild(hint); card.appendChild(actions)
+        el.appendChild(card)
+        document.body.appendChild(el)
+        return () => {
+          try {
+            el.style.transition = 'opacity .12s ease'
+            el.style.opacity = '0'
+            setTimeout(() => { try { el.remove() } catch { /* 忽略 */ } }, 130)
+          } catch { try { el.remove() } catch { /* 忽略 */ } }
+        }
+      }, [skipHint])
 
       const dismissNotice = (forever) => {
         setNotice(null)
@@ -3744,7 +3806,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onRollback: rollbackHold,    // 回退上一版包（包级历史，宿主侧保留 10 版）
           onOriginal: sendOriginal,    // 按原文发出（审查态里就是 0.5 的「‹ 回退」，见面板注记②）
           onRegen: doRegen,            // 重新生成 / 重试
-          onSkip: skipHold,            // 跳过并直接发送
+          // 跳过并直接发送：开双击跳过前先提示一次（点过"以后不再显示"就不再提）
+          onSkip: () => {
+            if (!doubleEnterSkip && (s.skipHintDismissed !== true)) setSkipHint(true)
+            skipHold()
+          },
           onCancel: cancelHold,        // 取消（中止、什么都不发）
           onCollapse: collapseToBall,  // 收起为球
           onCloseSent: closeSent,      // foot-sent 的「关闭」
