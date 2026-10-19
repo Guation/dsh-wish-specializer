@@ -19,10 +19,10 @@ test('设置：默认提示，且能持久关闭', () => {
   assert.ok(CLIENT_SRC.includes('forever: true'), 'forever 走宿主持久设置')
 })
 
-test('触发：切会话 / 打开 DSH 就提示一次（不再判断预设）', () => {
-  assert.ok(CLIENT_SRC.includes('const PRESET_NOTICE_ONCE = new Set()'), '要有本次运行的已提示集合')
-  assert.ok(CLIENT_SRC.includes('if (PRESET_NOTICE_ONCE.has(sessionId)) return'), '同一会话只提示一次')
-  assert.ok(CLIENT_SRC.includes('PRESET_NOTICE_ONCE.add(sessionId)'), '提示后记录')
+test('触发：一次 DSH 运行进程最多提示一次（不再判断预设）', () => {
+  assert.ok(CLIENT_SRC.includes('let PRESET_NOTICE_SHOWN = false'), '进程级标记')
+  assert.ok(CLIENT_SRC.includes('if (!sessionId || PRESET_NOTICE_SHOWN) return'), '已经提示过就不再弹')
+  assert.ok(CLIENT_SRC.includes('PRESET_NOTICE_SHOWN = true'), '提示/或已关闭后都要标记')
   assert.ok(/\}, \[sessionId, s && s\.presetNoticeDismissed\]\)/.test(CLIENT_SRC), '会话变化即触发，并尊重 dismissed')
   // 不再为弹窗去问 /preset（也不再拿预设做判据）
   assert.equal(CLIENT_SRC.includes("apiGet('/preset?via=enter"), false, '发送路径不再被预设闸门拦住')

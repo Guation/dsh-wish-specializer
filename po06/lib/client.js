@@ -136,7 +136,8 @@ window.__ModuleLoader__.load({
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
     const CLIENT_BUILD = '10-19 22:50'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
-    const PRESET_NOTICE_ONCE = new Set()   // 本次运行里哪些会话已经提示过（切会话才再提示）
+    // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
+    let PRESET_NOTICE_SHOWN = false
     // 预设登记表（id ↔ 显示名）：由宿主从 agentPresets 服务转出来。
     // 磁盘上会话头永远是 ptc，所以"用户眼前这个会话选了什么"只能看输入区按钮的文案。
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
@@ -2642,26 +2643,26 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         card.setAttribute('data-po06', 'preset-notice')
         card.setAttribute('role', 'dialog')
         card.setAttribute('aria-modal', 'true')
-        card.style.cssText = 'width:min(380px,92vw);box-sizing:border-box;padding:16px 18px 14px;border-radius:12px;' +
-          'background:' + OVS.surface + ';border:1px solid ' + OVS.lineSoft + ';box-shadow:0 18px 44px -20px rgba(0,0,0,.6);' +
-          'color:' + OVS.fg + ';font-size:12.5px;line-height:1.6;'
+        card.style.cssText = 'width:min(430px,92vw);box-sizing:border-box;padding:20px 22px 18px;border-radius:14px;' +
+          'background:' + OVS.surface + ';border:1px solid ' + OVS.lineSoft + ';box-shadow:0 22px 54px -22px rgba(0,0,0,.65);' +
+          'color:' + OVS.fg + ';font-size:14px;line-height:1.6;'
         const head = document.createElement('div')
-        head.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px'
+        head.style.cssText = 'display:flex;align-items:center;gap:9px;margin-bottom:10px'
         const dot = document.createElement('span')
         dot.setAttribute('data-po06', 'notice-accent')
         dot.style.cssText = 'flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:' + OVS.acc
         const title = document.createElement('strong')
-        title.style.cssText = 'font-size:13.5px;font-weight:700;letter-spacing:.2px'
+        title.style.cssText = 'font-size:15px;font-weight:700;letter-spacing:.2px'
         title.textContent = L('许愿特化器', 'Wish Specializer')
         head.appendChild(dot); head.appendChild(title)
         const body = document.createElement('p')
-        body.style.cssText = 'margin:0 0 6px;color:' + OVS.fg2
-        body.textContent = L('它会把一句话的愿望补成方向性要求，再交给工作 AI；在 Wish / PTC 预设下效果最好。另外：输入框里连按两次 Enter 可以直接跳过本轮优化。',
-          'It turns a one-line wish into directional requirements before the work starts; best on the Wish or PTC preset. Tip: press Enter twice in the composer to skip a round.')
+        // 用户 2026-10-19：直击要害，别铺太多
+        body.style.cssText = 'margin:0 0 8px;color:' + OVS.fg + ';font-size:14px;font-weight:500'
+        body.textContent = L('此插件建议使用 PTC 和 Wish 预设，其他预设可能表现不佳。',
+          'This plugin works best with the PTC and Wish presets; other presets may underperform.')
         const hint = document.createElement('p')
-        hint.style.cssText = 'margin:0 0 10px;color:' + OVS.fg3 + ';font-size:11px'
-        hint.textContent = L('档位 / 权限 / 上下文都在「优化选项」里；不想看就点「以后不再显示」。',
-          'Tier, permission and context live in Options; choose "Do not show again" to stop this.')
+        hint.style.cssText = 'margin:0 0 12px;color:' + OVS.fg3 + ';font-size:11.5px'
+        hint.textContent = L('点「以后不再显示」可永久关闭此提示。', 'Choose "Do not show again" to stop seeing this.')
         const actions = document.createElement('div')
         actions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end'
         const mk = (label, primary, onClick, attr) => {
@@ -2706,11 +2707,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const card = document.createElement('div')
         card.setAttribute('data-po06', 'skip-hint')
         card.setAttribute('role', 'dialog')
-        card.style.cssText = 'width:min(380px,92vw);box-sizing:border-box;padding:16px 18px 14px;border-radius:12px;' +
-          'background:' + OVS.surface + ';border:1px solid ' + OVS.lineSoft + ';box-shadow:0 18px 44px -20px rgba(0,0,0,.6);' +
-          'color:' + OVS.fg + ';font-size:12.5px;line-height:1.6;'
+        card.style.cssText = 'width:min(430px,92vw);box-sizing:border-box;padding:20px 22px 18px;border-radius:14px;' +
+          'background:' + OVS.surface + ';border:1px solid ' + OVS.lineSoft + ';box-shadow:0 22px 54px -22px rgba(0,0,0,.65);' +
+          'color:' + OVS.fg + ';font-size:14px;line-height:1.6;'
         const head = document.createElement('div')
-        head.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px'
+        head.style.cssText = 'display:flex;align-items:center;gap:9px;margin-bottom:10px'
         const dot = document.createElement('span')
         dot.setAttribute('data-po06', 'skip-hint-accent')
         dot.style.cssText = 'flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:' + OVS.acc
@@ -2844,10 +2845,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 只要切换会话（或刚打开 DSH）就提示一次——它的目的只是告诉新用户有这个特性；
       // 觉得烦就点「以后不再显示」，写进设置后永久闭嘴。每个会话在本次运行里只提示一次。
       React.useEffect(() => {
-        if (!sessionId) return
-        if (s && s.presetNoticeDismissed === true) return
-        if (PRESET_NOTICE_ONCE.has(sessionId)) return
-        PRESET_NOTICE_ONCE.add(sessionId)
+        if (!sessionId || PRESET_NOTICE_SHOWN) return
+        // 点过「以后不再显示」⇒ 直接标记，之后连判断都不做
+        if (s && s.presetNoticeDismissed === true) { PRESET_NOTICE_SHOWN = true; return }
+        PRESET_NOTICE_SHOWN = true
         setNotice({ preset: '', intro: true })
       }, [sessionId, s && s.presetNoticeDismissed])
       const d = (data && data.described) || null
