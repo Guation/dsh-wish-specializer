@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -659,6 +659,20 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         if (!id && !sid) return send(400, { ok: false, reason: 'id-or-session-required' })
         const row = typeof getInjection === 'function' ? getInjection(id ? { id } : { sessionId: sid }) : null
         return send(200, { ok: true, injection: row || null })
+      }
+      if (method === 'GET' && path === API_PREFIX + '/preset') {
+        // 预设闸门（2026-10-19）：客户端在**按下回车、开始优化之前**问一次。
+        // 宿主这边优先问 sessionController 拿会话头（最新、最准），拿不到再用事件里记下的。
+        const sid = String(query.get('session') || '').trim()
+        if (!sid) return send(400, { ok: false, reason: 'session-required' })
+        let preset = null
+        try {
+          if (typeof inspectPreset === 'function') preset = await inspectPreset(sid)
+        } catch { preset = null }
+        if (!preset && typeof getPreset === 'function') preset = getPreset(sid)
+        const dismissed = typeof presetDismissed === 'function' ? presetDismissed() === true : false
+        const notice = preset && preset !== 'wish' && preset !== 'ptc' && !dismissed ? { preset } : null
+        return send(200, { ok: true, preset: preset || null, notice })
       }
       if (method === 'GET' && path === API_PREFIX + '/notice') {
         // 预设提示（2026-10-19）：非 Wish / PTC 预设时给客户端一条提示。

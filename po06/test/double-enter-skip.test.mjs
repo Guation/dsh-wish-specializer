@@ -29,14 +29,17 @@ test('界面：开关在「内置 Bash」与「详情」之间', () => {
   const detailAt = CLIENT_SRC.indexOf("'data-po06': 'detail'")
   assert.ok(bashAt > 0 && desAt > 0 && detailAt > 0, '三个控件都要在')
   assert.ok(bashAt < desAt && desAt < detailAt, '顺序必须是 bash → 双击 Enter → 详情')
-  assert.ok(CLIENT_SRC.includes('双击 Enter 跳过:'), '按钮文案')
+  // 2026-10-19：设置行改成「左标签 + 右状态值」两段式（设计感），冒号没了
+  assert.ok(CLIENT_SRC.includes("L('双击 Enter 跳过', 'Double Enter skip')"), '按钮文案')
+  assert.ok(CLIENT_SRC.includes('optVal(desKnown && doubleEnterSkip)'), '状态值用主题色')
   assert.ok(CLIENT_SRC.includes("save({ doubleEnterSkip: !doubleEnterSkip })"), '点击要保存设置')
 })
 
 test('行为：600ms 内的第二次 Enter 放弃本轮优化、按原文发出', () => {
   const at = CLIENT_SRC.indexOf("markSeen('key:intercepted')")
   assert.ok(at > 0, '找不到 Enter 拦截入口')
-  const body = CLIENT_SRC.slice(at, at + 900)
+  // 2026-10-19：回车路径上多了"预设闸门"那一段（先问宿主再决定要不要优化），窗口放宽。
+  const body = CLIENT_SRC.slice(at, at + 1800)
   assert.ok(/enterAtRef/.test(body), '要记录上一次 Enter 时间')
   assert.ok(/now - prevAt < 600/.test(body), '判定窗口 600ms')
   assert.ok(/holdRef\.current\.phase === 'optimizing'/.test(body), '只有正在优化时才允许双击跳过')

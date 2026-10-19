@@ -2358,6 +2358,27 @@ export function apply(ctx, config) {
     getInjection: (p) => adapter.getInjection(p),
     // 预设提示（2026-10-19）：GET 读、POST 清（forever 会写进设置）。
     getNotice: (p) => adapter.getPresetNotice(p && p.sessionId),
+    // 回车前的预设闸门（2026-10-19）：优先问 sessionController 的会话头，其次用事件里记下的。
+    getPreset: (sid) => adapter.presetOf(sid),
+    inspectPreset: async (sid) => {
+      const sc = adapter.services && adapter.services.sessionController
+      if (!sc || typeof sc.inspect !== 'function') return null
+      try {
+        const info = await sc.inspect(sid)
+        const preset = info && info.meta && info.meta.agentPreset
+        if (typeof preset === 'string' && preset) {
+          adapter.notePreset(sid, preset)
+          return preset
+        }
+      } catch { /* 读不到就当不知道 */ }
+      return null
+    },
+    presetDismissed: () => {
+      try {
+        const p = adapter.policyNow ? adapter.policyNow('') : null
+        return !!(p && p.presetNoticeDismissed === true)
+      } catch { return false }
+    },
     clearNotice: (sid) => adapter.clearPresetNotice(sid),
     clearNotices: () => adapter.clearAllPresetNotices(),
           // P11：包级回退（宿主侧保存了每会话最近 10 版非空包）

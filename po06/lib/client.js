@@ -435,7 +435,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         background: 'transparent', color: 'inherit', cursor: 'pointer' },
       // ── 「优化选项」入口与弹出面板（极简：一个按钮 + 一块克制的卡片）──────────
       optBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '4px 11px 4px 9px',
-        borderRadius: '10px', border: '1px solid ' + OVS.line, background: 'transparent',
+        borderRadius: '10px', border: '1px solid ' + OVS.line, background: T('chip'),
         color: 'inherit', cursor: 'pointer', fontSize: '12px', lineHeight: '18px' },
       optBtnOn: { background: T('hover'), borderColor: OVS.acc, boxShadow: '0 0 0 2px ' + OVS.acc12 },
       optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
@@ -459,7 +459,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       noticeBody: { margin: 0, fontSize: '12.5px', lineHeight: '1.65', color: OVS.fg2 },
       noticeHint: { margin: 0, fontSize: '11px', color: OVS.fg3 },
       noticeActions: { display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' },
-      noticeBtn: { padding: '6px 14px', borderRadius: '10px', border: '1px solid ' + OVS.line, background: 'transparent',
+      noticeBtn: { padding: '6px 14px', borderRadius: '10px', border: '1px solid ' + OVS.line,
         color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
       noticeBtnPrimary: { padding: '6px 14px', borderRadius: '10px', border: '1px solid transparent',
         background: OVS.acc, color: '#fff', font: 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
@@ -476,9 +476,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       optRow: { display: 'grid', gridTemplateColumns: '64px 1fr', alignItems: 'center', gap: '10px' },
       optLabel: { color: OVS.fg3, fontSize: '12px', whiteSpace: 'nowrap' },
       // 面板里的按钮（只读工具 / 详情）也**铺满整格**：点击范围与看到的格子一致，不留死区
+      // C：整行按钮要有**色域**（色块感），否则和纯文本没区别（2026-10-19 用户截图反馈）
       optWide: { width: '100%', boxSizing: 'border-box', textAlign: 'center',
         padding: '8px 10px', borderRadius: '10px', border: '1px solid transparent',
-        background: 'transparent', color: 'inherit', font: 'inherit', fontSize: '12.5px', cursor: 'pointer' },
+        background: T('chip'), color: 'inherit', font: 'inherit', fontSize: '12.5px', cursor: 'pointer' },
+      // 设置行（2026-10-19 观感）：左侧标签、右侧状态值；整行有底色，状态值用主题色
+      optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
+        justifyContent: 'space-between', gap: '10px', padding: '8px 12px',
+        borderRadius: '10px', border: '1px solid transparent', background: T('chip'),
+        color: 'inherit', font: 'inherit', fontSize: '12.5px', cursor: 'pointer', textAlign: 'left' },
+      optVal: (on) => ({ color: on ? OVS.acc : OVS.fg3, fontWeight: 600, letterSpacing: '.2px' }),
       optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
         paddingTop: '4px', marginTop: '0' },
       // 实验性分区：一条实线 + 小字标题，和上面的常规设置明确分开（用户要求写得像"另一块区域"）
@@ -2115,24 +2122,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 会话窗宽度没有现成的常量可读，所以**量输入卡片**：侧栏一开，会话列变窄、卡片跟着变窄。
       // 观察点用 ResizeObserver 而不是只听 window.resize：侧栏开关时窗口尺寸不变，变的是列宽。
       const [region, setRegion] = React.useState(null)
-      // 预设提示：挂载时读一次，之后每 10 秒轻量复查（顾问/装配都是异步发生的）。
-      React.useEffect(() => {
-        if (!sessionId) return undefined
-        let live = true
-        const load = () => apiGet('/notice?session=' + encodeURIComponent(sessionId)).then((r) => {
-          if (!live) return
-          if (r && r.ok === true) setNotice(r.notice || null)
-        }, () => { /* 读不到就静默；提示是旁路 */ })
-        load()
-        const timer = setInterval(load, 4000)
-        const onFocus = () => { try { load() } catch { /* 旁路 */ } }
-        try { window.addEventListener('focus', onFocus) } catch { /* 无 window */ }
-        return () => {
-          live = false
-          clearInterval(timer)
-          try { window.removeEventListener('focus', onFocus) } catch { /* 无 window */ }
-        }
-      }, [sessionId])
+      // 预设闸门（2026-10-19 用户要求）：**按回车、优化还没开始**的时候就问宿主一次。
+      // 不再做后台轮询——不希望在"发出去之后"才弹。一个会话只问一次（问过就放行，避免每次回车都打接口）。
+      const presetGateRef = React.useRef('')
       const dismissNotice = (forever) => {
         setNotice(null)
         apiPost('/notice', forever ? { forever: true } : { session: sessionId }).catch(() => {})
@@ -2703,6 +2695,21 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           e.preventDefault(); e.stopPropagation()
           if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation()
           markSeen('key:intercepted')
+          // 预设闸门：档位不是关闭、本会话还没问过 ⇒ 先问宿主，再决定"弹提示"还是"开始优化"。
+          if (!tierOff && presetGateRef.current !== sessionId) {
+            const draft = draftNow()
+            apiGet('/preset?session=' + encodeURIComponent(sessionId)).then((r) => {
+              if (r && r.ok === true && r.notice) {          // 弹窗；不开始优化、不发送
+                presetGateRef.current = sessionId
+                setNotice(r.notice)
+                return
+              }
+              // 只有真的知道预设了才记"问过"：宿主还不知道（新会话）时，下次回车再问一次
+              if (r && r.ok === true && r.preset) presetGateRef.current = sessionId
+              beginHold(draft, 'key')
+            }, () => { beginHold(draftNow(), 'key') })
+            return
+          }
           // 双击 Enter 跳过（2026-10-19）：第一次 Enter 已拦下并开始解释；600ms 内的第二次
           // 表示"这轮别等了" ⇒ 放弃解释、按原文立即发出（与面板「跳过」同一语义，不发包、不出卡片）。
           const now = Date.now()
@@ -3078,7 +3085,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             h('button', {
               type: 'button', 'data-po06': 'readtools',
               'data-po06-value': rtKnown ? (readTools ? 'on' : 'off') : 'unknown',
-              style: { ...S.optWide, ...(rtKnown ? null : { opacity: .6 }) },
+              style: { ...S.optRowBtn, ...(rtKnown ? null : { opacity: .6 }) },
               title: rtKnown
                 ? L('读项目文件：每轮先看几个项目文件再写要求（会多花时间与 token）',
                   'Read project files: read a few project files before writing requirements (costs time and tokens)')
@@ -3091,15 +3098,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 }
                 save({ readTools: !readTools })
               },
-            }, L('只读工具:', 'Read-only tools: ')
-              + (rtKnown ? (readTools ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
+            },
+              h('span', {}, L('只读工具', 'Read-only tools')),
+              h('span', { style: S.optVal(rtKnown && readTools) }, rtKnown ? (readTools ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
             // ⑤b 内置 Bash（0.7.1）：它随本插件装配即提供（无需另装插件）。
             // 与"只读工具"的区别：那个决定 po06 自己派不派**只读轮次**，这个决定一台**真正的 shell**
             // 是否交到模型手里 —— 所以关掉时是**不注册该工具**（模型看不到），而不是注册了再拒绝执行。
             h('button', {
               type: 'button', 'data-po06': 'bash',
               'data-po06-value': bashKnown ? (bashOn ? 'on' : 'off') : 'unknown',
-              style: { ...S.optWide, ...(bashKnown ? null : { opacity: .6 }) },
+              style: { ...S.optRowBtn, ...(bashKnown ? null : { opacity: .6 }) },
               title: bashKnown
                 ? (bashOn
                   ? L('内置 Bash：已交给模型 —— 它可以直接跑命令（可随时关掉）',
@@ -3115,14 +3123,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 }
                 save({ bash: !bashOn })
               },
-            }, L('内置 Bash:', 'Built-in Bash: ')
-              + (bashKnown ? (bashOn ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
+            },
+              h('span', {}, L('内置 Bash', 'Built-in Bash')),
+              h('span', { style: S.optVal(bashKnown && bashOn) }, bashKnown ? (bashOn ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
             // ⑤c 双击 Enter 跳过本轮优化（2026-10-19 用户要求，放在 Bash 与详情之间）。
             // 语义与面板上的「跳过」一致：不发包、直接按原文发出；只是省掉一次点击。
             h('button', {
               type: 'button', 'data-po06': 'double-enter',
               'data-po06-value': desKnown ? (doubleEnterSkip ? 'on' : 'off') : 'unknown',
-              style: { ...S.optWide, ...(desKnown ? null : { opacity: .6 }) },
+              style: { ...S.optRowBtn, ...(desKnown ? null : { opacity: .6 }) },
               title: desKnown
                 ? (doubleEnterSkip
                   ? L('双击 Enter 跳过：开着 —— 600ms 内再按一次回车，本轮不再等优化，按原文立即发出',
@@ -3138,19 +3147,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 }
                 save({ doubleEnterSkip: !doubleEnterSkip })
               },
-            }, L('双击 Enter 跳过:', 'Double Enter skip: ')
-              + (desKnown ? (doubleEnterSkip ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
+            },
+              h('span', {}, L('双击 Enter 跳过', 'Double Enter skip')),
+              h('span', { style: S.optVal(desKnown && doubleEnterSkip) }, desKnown ? (doubleEnterSkip ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
             // 详情入口（用户 2026-09-21 要求：文字直接叫「详情」，**保留灰绿状态灯**；
             // 面板里不再重复"它在替我做什么 / 最近几轮"——拦截界面已经让人看见模型替我们做了什么）
             h('button', {
               type: 'button', 'data-po06': 'detail', 'data-po06-open': open ? '1' : '0',
               // 状态灯的颜色语义不变，只是不再靠按钮文字去承载：title 里说清现在是什么状态
-              style: { ...S.optWide, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' },
+              style: { ...S.optRowBtn },
               title: L('详情：控制 / 解释层提示词（当前状态：' + statusLabel + '）', 'Details: controls / explainer prompt (state: ' + statusLabel + ')'),
               onClick: () => setOpen((v) => !v),
             },
-              h('span', { 'data-po06': 'state-dot', 'data-po06-value': statusLabel, style: S.dot(on) }),
-              h('span', {}, L('详情', 'Details')),
+              h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } },
+                h('span', { 'data-po06': 'state-dot', 'data-po06-value': statusLabel, style: S.dot(on) }),
+                h('span', {}, L('详情', 'Details'))),
+              h('span', { 'aria-hidden': 'true', style: { color: OVS.fg3 } }, open ? '▾' : '›'),
             ),
             // 2026-10-18 用户指定：隐藏实验性功能（「快速增强」= 固定 3+3 循环推理/择优）。
             // 判定不变：它成倍增加调用与等待，且没有可复现的提升证据。代码保留，入口不再渲染。Tick}),
@@ -3880,7 +3892,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '[data-po06] button:focus-visible{outline:2px solid ' + OVS.acc + ';outline-offset:1px}',
             '[data-po06] button:disabled{opacity:.45;cursor:not-allowed;transform:none}',
             '[data-po06="bar"] button{background-color:transparent}',
-            '[data-po06="bar"] button:hover{background-color:var(--po06-hover)}',
+            '[data-po06="bar"] button:hover{background-color:var(--po06-hover)!important}',
             // ④ 极简动效：面板入场只做**透明度** · 跑起来时状态灯呼吸 · 思维层新内容淡入
             // ⚠⚠ **绝对不要给 `[data-po06="intercept"]` 加带 transform 的动画**：它的位置就是内联的
             //   `transform: translate3d(...)`（拖拽写进去的那一条），而 **CSS 动画的填充会盖过内联样式**
@@ -3907,6 +3919,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             //   （见 THEME_TOKENS 顶部那段说明：题目是"颜色由主题驱动"，不是"给浅色打补丁"。）
             themeTokensCss(),
             '[data-po06] button:hover{border-color:color-mix(in srgb, var(--po06-acc) 45%, transparent)}',
+            '[data-po06="options-pop"] button:hover{background-color:var(--po06-hover)!important;border-color:var(--po06-acc20,rgba(127,127,127,.22))}',
             '[data-po06="options-btn"]:hover{color:var(--po06-acc)}',
             '[data-po06="intercept-scroll"]:focus-visible,[data-po06] [role="slider"]:focus-visible{outline:2px solid var(--po06-acc);outline-offset:1px}',
             // ⑦ 原生下拉的**面板**配色：深色主题下不能白底白字（Chromium 认这几条）
