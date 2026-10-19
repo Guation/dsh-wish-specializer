@@ -2264,6 +2264,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 避免"没读到就当关"把用户的设置误写回去。
       const bashKnown = !!(data && (hasOwn(s, 'bash') || hasOwn(d, 'bash')))
       const bashOn = bashKnown ? !!(hasOwn(s, 'bash') ? s.bash : d.bash) : true
+      // 双击 Enter 跳过本轮优化（2026-10-19，默认关）。与 bash 同款三态：没读到就是关，
+      // 但**不发**这个字段，免得把"没读到"写成"用户选了关"。
+      const desKnown = !!(data && (hasOwn(s, 'doubleEnterSkip') || hasOwn(d, 'doubleEnterSkip')))
+      const doubleEnterSkip = desKnown ? !!(hasOwn(s, 'doubleEnterSkip') ? s.doubleEnterSkip : d.doubleEnterSkip) : false
+      const desRef = React.useRef(false)
+      desRef.current = doubleEnterSkip
+      const enterAtRef = React.useRef(0)   // 上一次被拦截的 Enter 时间（双击判定用）
 
       const save = async (patch) => {
         setBusy(true); setMsg(null)
@@ -2643,6 +2650,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           e.preventDefault(); e.stopPropagation()
           if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation()
           markSeen('key:intercepted')
+          // 双击 Enter 跳过（2026-10-19）：第一次 Enter 已拦下并开始解释；600ms 内的第二次
+          // 表示"这轮别等了" ⇒ 放弃解释、按原文立即发出（与面板「跳过」同一语义，不发包、不出卡片）。
+          const now = Date.now()
+          const prevAt = enterAtRef.current
+          enterAtRef.current = now
+          if (desRef.current && prevAt && now - prevAt < 600
+            && holdRef.current && holdRef.current.phase === 'optimizing') {
+            markSeen('key:double-skip')
+            skipHold()
+            return
+          }
           // 计数在 beginHold 里、去重之后加（同一次发送可能同时命中 Enter 与 click，见那里的注释）
           beginHold(draftNow(), 'key')
         }
@@ -3026,6 +3044,29 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               },
             }, L('内置 Bash:', 'Built-in Bash: ')
               + (bashKnown ? (bashOn ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
+            // ⑤c 双击 Enter 跳过本轮优化（2026-10-19 用户要求，放在 Bash 与详情之间）。
+            // 语义与面板上的「跳过」一致：不发包、直接按原文发出；只是省掉一次点击。
+            h('button', {
+              type: 'button', 'data-po06': 'double-enter',
+              'data-po06-value': desKnown ? (doubleEnterSkip ? 'on' : 'off') : 'unknown',
+              style: { ...S.optWide, ...(desKnown ? null : { opacity: .6 }) },
+              title: desKnown
+                ? (doubleEnterSkip
+                  ? L('双击 Enter 跳过：开着 —— 600ms 内再按一次回车，本轮不再等优化，按原文立即发出',
+                    'Double Enter skip: on — press Enter twice within 600ms to send the original immediately')
+                  : L('双击 Enter 跳过：关 —— 每次发送都会先跑优化',
+                    'Double Enter skip: off — every send runs the optimizer first'))
+                : L('双击 Enter 跳过：还没读到当前设置，这次不会发送这个字段',
+                  'Double Enter skip: current setting not read yet; this field will not be sent'),
+              onClick: () => {
+                if (!desKnown) {
+                  setMsg({ kind: 'warn', text: L('还没读到当前设置，这次没有发送', 'Current setting not read yet; nothing was sent') })
+                  return
+                }
+                save({ doubleEnterSkip: !doubleEnterSkip })
+              },
+            }, L('双击 Enter 跳过:', 'Double Enter skip: ')
+              + (desKnown ? (doubleEnterSkip ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
             // 详情入口（用户 2026-09-21 要求：文字直接叫「详情」，**保留灰绿状态灯**；
             // 面板里不再重复"它在替我做什么 / 最近几轮"——拦截界面已经让人看见模型替我们做了什么）
             h('button', {

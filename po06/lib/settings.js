@@ -121,6 +121,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // 0.7.1：内置 Bash（随本插件装配即提供）。默认 **开**——它是"内置功能"，
   // 关掉＝不把 bash 工具注册给模型（模型看不到它），不是在工具内部做软拦截。
   bash: true,
+  // 2026-10-19 用户要求：**双击 Enter 跳过本轮优化**，默认关。
+  // 开着时：第一次 Enter 正常拦截并开始解释；600ms 内再按一次 Enter ⇒ 放弃本轮解释、
+  // 按原文立即发出（与面板上的「跳过」同一语义：不发包、不出注入卡片）。
+  doubleEnterSkip: false,
   // 0.8：**斜杠命令允许列表**（命令名不带斜杠）。
   // 默认空 = 所有斜杠命令照旧交还宿主（与改动前完全一致）。
   // 为什么不直接放开斜杠：宿主自己的 /clear、/model、/compact 一旦被审查浮层接管，
@@ -139,6 +143,7 @@ export const SETTINGS_KEYS = Object.freeze([
   'assist', 'detail', 'budget', 'model',
   'permission', 'historyMode', 'turns', 'readTools',
   'bash',
+  'doubleEnterSkip',
   'effortByModel',
   'bySession',
   'framing',
@@ -288,6 +293,7 @@ export function normalizeSettings(raw) {
     turns: pickInt('turns', TURNS_MIN, TURNS_MAX, DEFAULT_SETTINGS.turns),
     readTools: pickBool('readTools', DEFAULT_SETTINGS.readTools),
     bash: pickBool('bash', DEFAULT_SETTINGS.bash),
+    doubleEnterSkip: pickBool('doubleEnterSkip', DEFAULT_SETTINGS.doubleEnterSkip),
     slashReview: pickSlashReview(),
   }
   // model：null / 缺省 = 跟随会话；给了就必须是 { provider, model } 两个非空字符串
@@ -511,5 +517,7 @@ export function describeSettings(settings) {
     turns: s.turns,
     readTools: s.readTools,
     readToolsLabel: s.readTools ? '开（会读项目文件后再写要求）' : '关（只依据你的话与上下文）',
+    doubleEnterSkip: s.doubleEnterSkip,
+    doubleEnterSkipLabel: s.doubleEnterSkip ? '开（600ms 内再按回车＝跳过本轮优化）' : '关',
   }
 }
