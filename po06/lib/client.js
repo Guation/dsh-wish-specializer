@@ -132,6 +132,9 @@ window.__ModuleLoader__.load({
     // 正常情况下档位直接用宿主推导好的 `/status.described.tier`；
     // 只有当 `described` 缺失（老宿主 / 接口改过）时才用下面这张表自己推。
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
+    // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
+    // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
+    const CLIENT_BUILD = '10-19 18:22'
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
     // ⚠ 必须与 settings.js 的 TIER_PRESETS **逐项一致**：这里是拿三项反推档位（tierOfSettings）。
     // 2026-10-19 修：此前这一份和宿主侧不一致（light/standard 的 detail、budget 错位），
@@ -3393,7 +3396,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               style: { ...S.optPop, ...(optPos
                 ? { left: optPos.left + 'px', bottom: optPos.bottom + 'px', ...(optPos.width ? { width: optPos.width + 'px' } : null) }
                 : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(300, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
-              h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options'))),
+              h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options')),
+                h('span', { 'data-po06': 'client-build', title: L('客户端构建时间（重启后应变成最新一版）', 'Client build time (should update after restart)'),
+                  style: { marginLeft: 'auto', fontSize: '10px', fontWeight: 400, color: OVS.fg3, letterSpacing: '0' } }, CLIENT_BUILD)),
               // ① 档位（从第一行搬来；分段控件本身没变）
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('档位', 'Tier')),
                 h(Segmented, {
