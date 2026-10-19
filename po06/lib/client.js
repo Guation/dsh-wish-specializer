@@ -37,10 +37,15 @@ window.__ModuleLoader__.load({
     //   review—— 跑完了且**成功**：贴回审查态，可提交
     //   none  —— 没有可恢复的：调用方应 clearPending
     //   retry —— **查不到**（请求失败/超时）：不能当成 gone，保留 pending 下次再试
-    function resolveRestore(saved, progress) {
+    function resolveRestore(saved, progress, opts) {
+      const o = opts || {}
       if (!saved || typeof saved !== 'object') return { action: 'none', reason: 'no-pending' }
       const rid = typeof saved.requestId === 'string' ? saved.requestId : ''
       if (!rid) return { action: 'none', reason: 'invalid-pending' }
+      // ⚠ **已经确认发出去了**的轮次不是"待恢复任务"：不管 progress 说什么都不能贴回面板。
+      //   真机 2026-10-19：正常发送成功后 pending 按设计保留（留给下次点击的 /sent-check 裁决），
+      //   而挂载恢复没有问 sent-check ⇒ 每次重挂载都把旧轮次的结果弹回面板。
+      if (o.arrived === true) return { action: 'none', reason: 'already-sent' }
       if (!progress || typeof progress !== 'object') return { action: 'retry', reason: 'progress-missing' }
       if (progress.ok !== true) return { action: 'retry', reason: 'progress-unavailable' }
       const pid = typeof progress.requestId === 'string' ? progress.requestId : ''
@@ -63,7 +68,7 @@ window.__ModuleLoader__.load({
     /** 纯构造：返回要贴回面板的 hold 对象；不该恢复时返回 null。 */
     function buildRestoredHold(saved, progress, opts) {
       const o = opts || {}
-      const d = resolveRestore(saved, progress)
+      const d = resolveRestore(saved, progress, { arrived: o.arrived === true })
       if (d.action !== 'poll' && d.action !== 'review') return null
       const at = typeof o.now === 'function' ? o.now() : Date.now()
       const base = {
@@ -2241,8 +2246,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       /** 把上一次的结果原样贴回面板（review 可提交 / optimizing 继续轮询）。 */
       // 判定与载荷构造都在 factory 作用域的纯函数里（见 resolveRestore / buildRestoredHold），
       // 这里只剩副作用：贴回面板。
-      const applyRestoredHold = (pending, p) => {
-        const h = buildRestoredHold(pending, p, { englishMode: englishRef.current })
+      const applyRestoredHold = (pending, p, opts) => {
+        const h = buildRestoredHold(pending, p, { englishMode: englishRef.current, arrived: !!(opts && opts.arrived) })
         if (!h) return false
         holdRef.current = h; setHold(h)
         return true
@@ -2394,6 +2399,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const sendOriginal = async () => {
         const h = holdRef.current || hold
         if (!h) return
+        // 「按原文发出」= 明确不要这一轮的结果 ⇒ 和在飞的那一轮脱钩（与取消/跳过同一条纪律）。
+        // 少了这三行，优化迟到的结果会绕过 startOptimize 里的世代守卫，把面板又弹回来。
+        holdSeq.current += 1
+        try { if (h.requestId) Promise.resolve(apiPost('/interpret-cancel', { requestId: h.requestId })).catch(() => {}) } catch { /* 尽力而为 */ }
+        try { if (abortRef.current) abortRef.current.abort() } catch { /* 同上 */ }
+        abortRef.current = null
         // ⚠ 清包**必须真的成功**才放行：失败还标 sent 就是「伪成功」——界面说按原文发了，
         //   而上一轮的包继续被注入（本项目最忌的那类失败）。与「确认提交」分支同一条纪律。
         const r = await apiPost('/packet', { sessionId, text: '' })
@@ -2428,13 +2439,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         let alive = true
         const rid = pending.requestId
         const base = { text: String(pending.text || ''), via: 'restore', t0: Number(pending.startedAt) || Date.now(), requestId: rid }
-        apiGet('/interpret-progress?requestId=' + encodeURIComponent(rid)).then((p) => {
+        // ⚠ 先问"上一轮到底发出去没有"。已发出的轮次不是待恢复任务——否则每个成功发送过的
+        //   会话在下次挂载时都会把旧结果贴回来（真机 2026-10-19 报障：面板自弹、显示上一段对话的结果）。
+        //   两个查询并行发出：sent-check 便宜，progress 本来也要查。
+        const sentCheck = Promise.resolve(apiGet('/sent-check?requestId=' + encodeURIComponent(rid))).catch(() => null)
+        const progressQ = Promise.resolve(apiGet('/interpret-progress?requestId=' + encodeURIComponent(rid))).catch(() => null)
+        Promise.all([sentCheck, progressQ]).then((pair) => {
           if (!alive || holdRef.current) return
-          if (!p || p.ok !== true) return
-          if (applyRestoredHold(pending, p)) return
+          const s = pair[0], p = pair[1]
+          const arrived = !!(s && s.ok === true && s.state === 'arrived')
+          // arrived ⇒ 判定返回 none/already-sent ⇒ 不贴回；随后清掉这条陈旧 pending
+          if (applyRestoredHold(pending, p, { arrived })) return
+          if (arrived) { clearPending(); return }
+          if (!p || p.ok !== true) return          // 进度查不到 ⇒ 保留 pending，下次挂载再试
           // gone / failed / cancelled：没什么可恢复的，把痕迹清掉（避免每次挂载都白查一次）
           clearPending()
-        }, () => { /* 读不到就当作没有；pending 留着，下次挂载再试 */ })
+        })
         return () => { alive = false }
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [sessionId])

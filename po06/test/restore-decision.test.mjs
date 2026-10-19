@@ -81,6 +81,18 @@ await t('done + result.ok=false ⇒ none/failed-round（修掉的缺陷：以前
   eq(resolveRestore(SAVED, { ok: true, requestId: 'r1', state: 'done', result: null }),
     { action: 'none', reason: 'failed-round' })
 })
+await t('已确认发出（arrived）⇒ none/already-sent —— 不管 progress 说什么都不能贴回', () => {
+  // 真机 2026-10-19：正常发送成功后 pending 按设计保留，挂载恢复若只查 progress，
+  // 会把一个**早已发送成功**的旧轮次当成"待恢复任务"重新弹回面板。
+  eq(resolveRestore(SAVED, DONE, { arrived: true }), { action: 'none', reason: 'already-sent' })
+  eq(resolveRestore(SAVED, { ok: true, requestId: 'r1', state: 'running' }, { arrived: true }),
+    { action: 'none', reason: 'already-sent' }, 'arrived 优先于一切')
+  eq(buildRestoredHold(SAVED, DONE, { arrived: true }), null, 'arrived ⇒ 不构造 hold')
+})
+await t('arrived 缺省/false 时行为不变（不误伤正常恢复）', () => {
+  eq(resolveRestore(SAVED, DONE), { action: 'review', reason: 'done' })
+  eq(resolveRestore(SAVED, DONE, { arrived: false }), { action: 'review', reason: 'done' })
+})
 await t('cancelled / gone / 未知 state ⇒ none', () => {
   eq(resolveRestore(SAVED, { ok: true, requestId: 'r1', state: 'cancelled' }), { action: 'none', reason: 'cancelled' })
   eq(resolveRestore(SAVED, { ok: true, requestId: 'r1', state: 'gone' }), { action: 'none', reason: 'gone' })

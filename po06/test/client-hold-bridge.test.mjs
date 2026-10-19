@@ -60,11 +60,28 @@ test('桥不可用时静默降级，不影响本轮（不抛）', () => {
 })
 
 test('切换会话不再中止宿主的解释请求（issue #19 的原始成因已被移除）', () => {
-  // 0.7.8 的成因是**组件卸载的 cleanup 里 abort**；现在 abort 只应出现在三处用户/去重动作里：
-  //   beginHold（新一轮先断上一轮）、cancelHold（用户点取消）、skipHold（用户点跳过）。
-  const aborts = source.match(/abortRef\.current\.abort\(\)/g) || []
-  assert.equal(aborts.length, 3, 'abort 应恰好 3 处（去重/取消/跳过）；多出来很可能又是在卸载里中止：' + aborts.length)
-  const clears = source.match(/abortRef\.current = null/g) || []
-  assert.equal(clears.length, 2, 'abortRef 置空应恰好 2 处（取消/跳过）')
+  // 0.7.8 的成因是**组件卸载的 cleanup 里 abort**。判据从"数数量"改成"查归属"：
+  //   · 旧写法数 3 处，但**合法新增**时也会红（例如 2026-10-19 给「按原文发出」补上了与
+  //     取消/跳过同样的作废动作），逼人把数字改到绿 ⇒ 守卫会慢慢退化成形式。
+  //   · 现在登记允许出现的位置：任何新增都要在这里显式登记，而"又有人在卸载里中止"
+  //     仍然会红（归属不在名单里 + 下面的 cleanup 断言）。
+  const ALLOWED_ABORT_IN = ['startOptimize', 'cancelHold', 'skipHold', 'sendOriginal']
+  const ALLOWED_NULL_IN = ['cancelHold', 'skipHold', 'sendOriginal']
+  const ownersOf = (needle) => {
+    let fn = '(module)'
+    const owners = []
+    for (const line of source.split('\n')) {
+      const m = /^\s{6}const ([A-Za-z0-9_]+) = /.exec(line)
+      if (m) fn = m[1]
+      if (line.includes(needle)) owners.push(fn)
+    }
+    return owners
+  }
+  const abortOwners = ownersOf('abortRef.current.abort()')
+  const nullOwners = ownersOf('abortRef.current = null')
+  assert.deepEqual([...abortOwners].sort(), [...ALLOWED_ABORT_IN].sort(),
+    'abort 只允许出现在明确的用户/去重动作里。允许：' + JSON.stringify(ALLOWED_ABORT_IN) + '；实际：' + JSON.stringify(abortOwners))
+  assert.deepEqual([...nullOwners].sort(), [...ALLOWED_NULL_IN].sort(),
+    'abortRef 置空只允许在取消/跳过/按原文发出。允许：' + JSON.stringify(ALLOWED_NULL_IN) + '；实际：' + JSON.stringify(nullOwners))
   assert.ok(!/return \(\) => \{[^}]*abortRef/.test(source), 'effect cleanup 里不该出现 abortRef（那正是切会话被取消的成因）')
 })
