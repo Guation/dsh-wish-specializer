@@ -38,7 +38,11 @@ window.__ModuleLoader__.load({
     // 现在把桥收敛成三个函数：写入即广播，订阅者按 sessionId 认领。
     // 它**只按会话隔离**（绝不把 A 会话的拦截态显示到 B 会话），且桥不可用时静默降级（不影响本轮）。
     const HOLD_BRIDGE_EVENT = NS + ':hold'
-    function holdBridgeRead(sessionId) {
+    // 谁是"当前面板上的会话"：由 ControlBar 每次渲染更新。切会话时旧实例可能还活着，
+// 但它的 sessionId 已经不等于这个值 ⇒ 它不再往桥上写、也不在这里提交（2026-10-19 真机）。
+let LAST_MOUNTED_SID = ''
+
+function holdBridgeRead(sessionId) {
       try { return (window.__PO06_HOLD__ || {})[sessionId] || null } catch { return null }
     }
     function holdBridgeWrite(sessionId, value) {
@@ -2836,12 +2840,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 原因：控件栏是 per-session 挂载的，切会话会重挂 ⇒ 组件内的 hold 归零。
       // 而"消息还被我拦着"这件事**必须跨会话切换活下来** ⇒ hold 同时写一份到 window 上，
       // 重挂时按 sessionId 取回（只认同一会话，绝不把 A 会话的拦截态显示到 B 会话）。
+      LAST_MOUNTED_SID = String(sessionId || '')
       const [hold, _setHold] = React.useState(() => holdBridgeRead(sessionId))
       const setHold = React.useCallback((v) => {
         _setHold(v)
         // ⚠ 旧实例（会话已切走）不许再往桥上写：它的 clearHoldSoon 会把**别的会话**的拦截态清掉，
         // 用户看到的就是"优化自己消失"（2026-10-19 真机）。跨会话的结果由完成回调直接写回发起会话。
-        if (!isActiveInstance()) return
+        if (String(sessionId || '') !== LAST_MOUNTED_SID) return
         holdBridgeWrite(sessionId, v)   // 写桥即广播（issue #19）：别的挂载/后台完成的那一份也能被认领
       }, [sessionId])
       const [tick, setTick] = React.useState(0)        // 只用于"已用 N 秒"重新渲染
@@ -3072,7 +3077,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           // 进度面（prog）在离开 optimizing 那一刻就被清空，用量若只存那里，界面永远读不到。
           // 用户已经切到别的会话：结果写回**发起那一轮**的桥，别写进当前会话；
           // 自动模式下也**不能**在这里提交（会把别的会话的草稿发出去）——回到该会话时再补发。
-          if (startSid !== liveSidRef.current || !isActiveInstance()) {
+          if (startSid !== LAST_MOUNTED_SID) {
             holdBridgeWrite(startSid, { ...h, phase: 'review', outgoingText: r.outgoingText || text,
               done: true, pendingAuto: permissionRef.current !== 'review', englishMode: r.englishMode === true })
             return
