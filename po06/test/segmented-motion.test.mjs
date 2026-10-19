@@ -49,7 +49,13 @@ test('重度：流星在右边界激起白色浪（2026-10-19 用户要求）', 
   assert.ok(CLIENT_SRC.includes("'data-po06': 'tier-shock'"), '要有激浪层')
   assert.ok(CLIENT_SRC.includes('@keyframes po06-shock{'), '激浪关键帧')
   assert.ok(/shown === 'heavy' \? h\('span', \{ 'data-po06': 'tier-shock'/.test(CLIENT_SRC), '只有重度才画')
-  assert.ok(/rgba\(255,255,255,\.62\)/.test(CLIENT_SRC), '白色渐变')
+  assert.ok(/rgba\(255,255,255,\.85\)/.test(CLIENT_SRC), '白色渐变（够亮才看得见）')
+  // 真机：画在选中药丸**下面**时亮部被盖住 ⇒ 必须 zIndex 更高、且在 items 之后渲染
+  const i = CLIENT_SRC.indexOf("'data-po06': 'tier-shock'")
+  const items = CLIENT_SRC.indexOf('options.map((k) => h(\'span\'')
+  assert.ok(items > 0 && i > items, '激浪要画在选项之后（最上层）')
+  assert.ok(CLIENT_SRC.includes("'data-po06': 'tier-shock-rim'"), '右缘亮线')
+  assert.ok(CLIENT_SRC.includes('@keyframes po06-shock-rim{'), '亮线关键帧')
 })
 
 test('重度才有颤抖；帮助弹层用更轻的入场（避免大块文字重绘卡顿）', () => {

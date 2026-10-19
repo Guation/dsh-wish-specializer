@@ -48,5 +48,23 @@ test('下拉浮层自己淡出后再 remove（不直接消失）', () => {
 test('退场动画必须带 !important（入场是 fill:both，会一直占着 animation 槽）', () => {
   // 2026-10-19 真机：优化选项 / 帮助 / 拦截面板"没有退场"，根因就是这条同优先级规则被后面的入场规则盖住
   assert.ok(/\[data-po06-closing="1"\]\{animation:po06-out \.16s ease-in both !important/.test(CLIENT_SRC), '通用退场要 !important')
-  assert.ok(/\[data-po06="intercept"\]\[data-po06-closing="1"\]\{animation:po06-out-fade \.16s ease-in both !important/.test(CLIENT_SRC), '拦截浮层淡出也要 !important')
+  assert.ok(/\[data-po06="intercept"\]\[data-po06-closing="1"\]\{animation:po06-out-fade \.\d+s ease-in both !important/.test(CLIENT_SRC), '拦截浮层淡出也要 !important')
+})
+
+test('拦截面板：果冻式逐组件入场/退场（只动 transform/opacity，不碰尺寸）', () => {
+  assert.ok(CLIENT_SRC.includes('@keyframes po06-jelly-in{'), '入场关键帧')
+  assert.ok(CLIENT_SRC.includes('@keyframes po06-jelly-out{'), '退场关键帧')
+  // 挤压—拉伸：scale 的 x/y 不同步，才是"软体"而不是等比弹跳
+  assert.ok(/scale\(\.94,\.88\)/.test(CLIENT_SRC), '压缩起始（xy 不同步）')
+  assert.ok(/scale\(1\.014,1\.028\)/.test(CLIENT_SRC), '回弹过冲')
+  // 逐组件错峰且间隔不等距
+  assert.ok(CLIENT_SRC.includes('> *:nth-child(2){animation-delay:55ms}'), '第二个组件 55ms')
+  assert.ok(CLIENT_SRC.includes('> *:nth-child(3){animation-delay:120ms}'), '第三个 120ms')
+  assert.ok(CLIENT_SRC.includes('intercept-scroll"\] > *{animation:po06-jelly-in'), '滚动区内部区块也逐个')
+  // 退场窗口与错峰对齐
+  assert.ok(CLIENT_SRC.includes('const ovExit = useExit(!!shown, 240)'), '退场窗口 240ms')
+  // 性能：不给这些子元素加 will-change（数量多时反而更贵），只靠 transform/opacity 合成
+  const i = CLIENT_SRC.indexOf('[data-po06="intercept"][data-po06-closing="0"] > *{')
+  const seg = CLIENT_SRC.slice(i, i + 900)
+  assert.equal(seg.includes('will-change'), false, '不要给孩子加 will-change')
 })

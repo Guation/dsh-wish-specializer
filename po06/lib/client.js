@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 20:05'
+    const CLIENT_BUILD = '10-19 20:35'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     const PRESET_NOTICE_SEEN = new Map()
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
@@ -1133,12 +1133,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // 粒度层：档位才有的扰动粒子（在指示器下面，文字上面留出对比）
         fx ? h('span', { 'data-po06': 'tier-fx', 'aria-hidden': 'true',
           style: { position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' } }, dots) : null,
-        // 重度：流星撞上右边界形成的白色激浪（2026-10-19 用户要求）
-        shown === 'heavy' ? h('span', { 'data-po06': 'tier-shock', 'aria-hidden': 'true',
-          style: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '52%', pointerEvents: 'none',
-            background: 'linear-gradient(270deg, rgba(255,255,255,.62), rgba(255,255,255,.18) 42%, rgba(255,255,255,0))',
-            filter: 'blur(5px)', mixBlendMode: 'screen',
-            animation: 'po06-shock 1.5s ease-in-out infinite' } }) : null,
         // 滑动指示器：位置由真实格子量出来，切换/拖动时滑过去
         h('span', { 'data-po06': 'seg-ind', 'aria-hidden': 'true',
           style: {
@@ -1154,7 +1148,20 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           ref: (el) => { if (el) itemRefs.current[k] = el },
           style: { ...S.segItem, position: 'relative', zIndex: 1,
             ...(k === shown ? { color: '#fff', fontWeight: 600 } : null) },
-        }, label ? label(k) : k)))
+        }, label ? label(k) : k)),
+        // 重度：流星撞在右边界激起的白色浪（2026-10-19）。
+        // ⚠ 必须画在**最上层**：选中药丸是不透明的，画在下面时浪的亮部正好被"重度"那格盖住，
+        //   真机上看到的就是"没有效果"。这里用 screen 混合压在文字上，只提亮不遮挡。
+        shown === 'heavy' ? h('span', { 'data-po06': 'tier-shock', 'aria-hidden': 'true',
+          style: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '62%', pointerEvents: 'none', zIndex: 2,
+            background: 'linear-gradient(270deg, rgba(255,255,255,.85), rgba(255,255,255,.34) 38%, rgba(255,255,255,0))',
+            filter: 'blur(6px)', mixBlendMode: 'screen',
+            animation: 'po06-shock 1.5s ease-in-out infinite' } }) : null,
+        // 边缘亮线：让"冲击点"在最右缘有一条明确的亮边
+        shown === 'heavy' ? h('span', { 'data-po06': 'tier-shock-rim', 'aria-hidden': 'true',
+          style: { position: 'absolute', right: '1px', top: '3px', bottom: '3px', width: '2px', pointerEvents: 'none', zIndex: 2,
+            borderRadius: '2px', background: 'rgba(255,255,255,.85)', filter: 'blur(1px)',
+            animation: 'po06-shock-rim 1.5s ease-in-out infinite' } }) : null)
     }
 
     /**
@@ -3308,7 +3315,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const helpExit = useExit(helpOpen, 140)
       const noticeExit = useExit(!!notice, 170)
       const noticeShown = useLast(notice)
-      const ovExit = useExit(!!shown, 160)
+      const ovExit = useExit(!!shown, 240)   // 与拦截面板的果冻退场（错峰 48ms + 160ms）对齐
       const ovShown = useLast(shown)
 
       return h(React.Fragment, null,
@@ -4332,7 +4339,26 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             //   而入场动画是 fill-mode:both（播完仍占着 animation 槽）。不加 !important 时退场动画根本不会接管，
             //   元素就"啪一下消失"——2026-10-19 真机就是这个问题（优化选项 / ? / 拦截面板都没有退场）。
             '[data-po06-closing="1"]{animation:po06-out .16s ease-in both !important;pointer-events:none}',
-            '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .16s ease-in both !important}',
+            '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .24s ease-in both !important}',
+            // 拦截面板的「果冻」入场/退场（2026-10-19 用户要求）：
+            //   · 挤压—拉伸—回弹（不是等比缩放弹跳），且回弹收敛到静止；
+            //   · **逐组件**错峰，间隔不等距（0/55/120/175ms），滚动区里的区块再往后压；
+            //   · 只动 transform/opacity（不碰尺寸），所以自适应用户拉大拉小都不受影响；
+            //   · 退场更短促：先轻微软塌再淡出，总时长控制在 260ms 内（与 ovExit 对齐）。
+            '@keyframes po06-jelly-in{0%{opacity:0;transform:translate3d(0,7px,0) scale(.94,.88)}55%{opacity:1;transform:translate3d(0,-1px,0) scale(1.014,1.028)}76%{transform:translate3d(0,.5px,0) scale(.997,.992)}100%{opacity:1;transform:none}}',
+            '@keyframes po06-jelly-out{0%{opacity:1;transform:none}55%{opacity:.62;transform:translate3d(0,2px,0) scale(1.008,.96)}100%{opacity:0;transform:translate3d(0,6px,0) scale(.97,.9)}}',
+            '[data-po06="intercept"][data-po06-closing="0"] > *{animation:po06-jelly-in .42s cubic-bezier(.2,.9,.3,1) both}',
+            '[data-po06="intercept"][data-po06-closing="0"] > *:nth-child(2){animation-delay:55ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] > *:nth-child(3){animation-delay:120ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] > *:nth-child(n+4){animation-delay:175ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] [data-po06="intercept-scroll"] > *{animation:po06-jelly-in .4s cubic-bezier(.2,.9,.3,1) both;animation-delay:95ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] [data-po06="intercept-scroll"] > *:nth-child(2){animation-delay:145ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] [data-po06="intercept-scroll"] > *:nth-child(3){animation-delay:195ms}',
+            '[data-po06="intercept"][data-po06-closing="0"] [data-po06="intercept-scroll"] > *:nth-child(n+4){animation-delay:245ms}',
+            '[data-po06="intercept"][data-po06-closing="1"] > *{animation:po06-jelly-out .16s ease-in both}',
+            '[data-po06="intercept"][data-po06-closing="1"] > *:nth-child(2){animation-delay:24ms}',
+            '[data-po06="intercept"][data-po06-closing="1"] > *:nth-child(n+3){animation-delay:48ms}',
+            '[data-po06="intercept"][data-po06-closing="1"] [data-po06="intercept-scroll"] > *{animation:po06-jelly-out .15s ease-in both;animation-delay:18ms}',
             '@keyframes po06-out-fade{from{opacity:1}to{opacity:0}}',
             '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .16s ease-in both}',
             // 档位特效（2026-10-19）：粒子湍流 + 重度档的轻微颤抖
@@ -4341,7 +4367,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // 重度档：白色流星从右向左穿过（顿挫感由 linear + 不同时长制造）
             // 流星：从右侧外面进来（left:100%），行程由每个粒子自己的 --dist 决定，末端淡出
             // 流星撞右边界：亮度与横向拉伸一起起伏，像被冲击推起的浪
-            '@keyframes po06-shock{0%,100%{opacity:.16;transform:scaleX(.88) translateX(5px)}45%{opacity:.55;transform:scaleX(1.1) translateX(0)}70%{opacity:.34;transform:scaleX(.98) translateX(2px)}}',
+            '@keyframes po06-shock{0%,100%{opacity:.22;transform:scaleX(.9) translateX(6px)}45%{opacity:.95;transform:scaleX(1.12) translateX(0)}70%{opacity:.55;transform:scaleX(.99) translateX(3px)}}',
+            '@keyframes po06-shock-rim{0%,100%{opacity:.25;transform:scaleY(.9)}45%{opacity:.95;transform:scaleY(1.05)}70%{opacity:.5;transform:scaleY(.97)}}',
             '@keyframes po06-meteor{0%{transform:translate3d(0,0,0);opacity:0}8%{opacity:.95}70%{opacity:.7}100%{transform:translate3d(var(--dist,-320px),0,0);opacity:0}}',
             // 帮助弹层单独用一条更轻的入场（大块文字 + 阴影一起做 scale 会顿）
             '@keyframes po06-help{from{opacity:0;transform:translate3d(0,4px,0)}to{opacity:1;transform:none}}',
