@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -659,6 +659,27 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         if (!id && !sid) return send(400, { ok: false, reason: 'id-or-session-required' })
         const row = typeof getInjection === 'function' ? getInjection(id ? { id } : { sessionId: sid }) : null
         return send(200, { ok: true, injection: row || null })
+      }
+      if (method === 'GET' && path === API_PREFIX + '/notice') {
+        // 预设提示（2026-10-19）：非 Wish / PTC 预设时给客户端一条提示。
+        const sid = String(query.get('session') || '').trim()
+        if (!sid) return send(400, { ok: false, reason: 'session-required' })
+        const row = typeof getNotice === 'function' ? getNotice({ sessionId: sid }) : null
+        return send(200, { ok: true, notice: row || null })
+      }
+      if (method === 'POST' && path === API_PREFIX + '/notice') {
+        const body = await readBody(req)
+        if (!body.ok) return send(400, { ok: false, reason: body.reason })
+        const v = body.value || {}
+        if (v.forever === true) {
+          // 「以后不再显示」= 一条持久的用户设置（不是会话级），写盘失败要如实报。
+          const r = writeSettings({ path: cfgPath, patch: { presetNoticeDismissed: true }, now: now() })
+          if (!r || r.ok !== true) return send(500, { ok: false, reason: (r && r.reason) || 'settings-write-failed' })
+          if (typeof clearNotices === 'function') clearNotices()
+          return send(200, { ok: true, forever: true })
+        }
+        if (typeof clearNotice === 'function') clearNotice(String(v.session || ''))
+        return send(200, { ok: true })
       }
       if (method === 'POST' && path === API_PREFIX + '/rollback') {
         const body = await readBody(req)

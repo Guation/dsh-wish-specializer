@@ -434,32 +434,49 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       btn: { padding: '4px 10px', borderRadius: '6px', border: '1px solid ' + OVS.line,
         background: 'transparent', color: 'inherit', cursor: 'pointer' },
       // ── 「优化选项」入口与弹出面板（极简：一个按钮 + 一块克制的卡片）──────────
-      optBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px 3px 8px',
-        borderRadius: '9px', border: '1px solid ' + OVS.line, background: 'transparent',
+      optBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '4px 11px 4px 9px',
+        borderRadius: '10px', border: '1px solid ' + OVS.line, background: 'transparent',
         color: 'inherit', cursor: 'pointer', fontSize: '12px', lineHeight: '18px' },
       optBtnOn: { background: T('hover'), borderColor: OVS.acc },
       optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
       // 对话流里的「本次注入」卡片（宿主 chat row）：一条克制的横条，点开才是三段
       injRow: { border: '1px solid ' + OVS.lineSoft, borderRadius: '10px', background: 'transparent', overflow: 'hidden' },
-      injHead: { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box',
-        padding: '5px 10px', border: 'none', background: 'transparent', color: 'inherit', font: 'inherit',
+      injHead: { display: 'flex', alignItems: 'center', gap: '7px', width: '100%', boxSizing: 'border-box',
+        padding: '6px 11px', border: 'none', background: 'transparent', color: 'inherit', font: 'inherit',
         fontSize: '12px', lineHeight: '18px', textAlign: 'left', cursor: 'pointer' },
       injBody: { display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 10px 10px', borderTop: '1px solid ' + OVS.line2 },
+      // ── 预设提示弹窗（2026-10-19）：主题色只点在"信号点 + 主动作"上，其余保持克制 ──
+      noticeBackdrop: { position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', background: 'rgba(8,10,14,.42)', backdropFilter: 'blur(2px)' },
+      noticeCard: { width: 'min(420px, 92vw)', boxSizing: 'border-box', padding: '18px 18px 14px', borderRadius: '14px',
+        background: OVS.surface, color: OVS.fg, border: '1px solid ' + OVS.acc22, boxShadow: T('shadow'),
+        display: 'flex', flexDirection: 'column', gap: '8px' },
+      noticeHead: { display: 'flex', alignItems: 'center', gap: '8px' },
+      noticeAccent: { flex: '0 0 auto', width: '8px', height: '8px', borderRadius: '50%', background: OVS.acc,
+        boxShadow: '0 0 0 3px ' + OVS.acc12 },
+      noticeTitle: { fontSize: '14px', fontWeight: 700, letterSpacing: '.2px' },
+      noticeBody: { margin: 0, fontSize: '12.5px', lineHeight: '1.65', color: OVS.fg2 },
+      noticeHint: { margin: 0, fontSize: '11px', color: OVS.fg3 },
+      noticeActions: { display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' },
+      noticeBtn: { padding: '5px 12px', borderRadius: '9px', border: '1px solid ' + OVS.line, background: 'transparent',
+        color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
+      noticeBtnPrimary: { padding: '5px 12px', borderRadius: '9px', border: '1px solid ' + OVS.acc22,
+        background: OVS.acc12, color: OVS.acc, font: 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
       // ⚠ 用**颜色**压暗，不用 opacity：浅色底上 `opacity:.65` 会变成看不清的浅灰细字（用户截图）。
       optSummary: { color: OVS.fg3, fontSize: '11px', whiteSpace: 'nowrap' },
       optCaret: { color: OVS.fg3, fontSize: '10px', lineHeight: 1 },
       optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '300px', maxHeight: 'min(62vh, 460px)', overflowY: 'auto',
-        display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 12px',
+        display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px 14px',
         background: OVS.surface, color: OVS.fg,
-        border: '1px solid ' + OVS.line, borderRadius: '12px',
+        border: '1px solid ' + OVS.line, borderRadius: '14px',
         boxShadow: T('shadow') },
       optPopHead: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600,
         color: OVS.fg, paddingBottom: '2px' },
-      optRow: { display: 'grid', gridTemplateColumns: '58px 1fr', alignItems: 'center', gap: '8px' },
-      optLabel: { color: OVS.fg3, fontSize: '11.5px', whiteSpace: 'nowrap' },
+      optRow: { display: 'grid', gridTemplateColumns: '64px 1fr', alignItems: 'center', gap: '10px' },
+      optLabel: { color: OVS.fg3, fontSize: '12px', whiteSpace: 'nowrap' },
       // 面板里的按钮（只读工具 / 详情）也**铺满整格**：点击范围与看到的格子一致，不留死区
       optWide: { width: '100%', boxSizing: 'border-box', textAlign: 'center',
-        padding: '4px 8px', borderRadius: '8px', border: '1px solid ' + OVS.line,
+        padding: '5px 9px', borderRadius: '10px', border: '1px solid ' + OVS.line,
         background: 'transparent', color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
       optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
         borderTop: '1px solid ' + OVS.line2, paddingTop: '8px', marginTop: '2px' },
@@ -477,7 +494,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       bar: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', fontSize: '12px',
         lineHeight: '18px', color: 'inherit' },
       // 控件栏分两层：每层各自横排、可换行（行内间距沿用原来的 6px）
-      barRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' },
+      barRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' },
       grp: { display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' },
       // 分段控件：**铺满整格**（用户 2026-09-22："这几个按钮都没有布满区域,而且实际点击区域和反应区域还不一样"）。
       // 判据两条：① 容器 `width:100%` + 每项 `flex:1 1 0` ⇒ 视觉上填满；② 命中判定本来就按**容器矩形**等分
@@ -486,7 +503,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         border: '1px solid ' + OVS.line, borderRadius: '10px', overflow: 'hidden',
         background: T('chip'),
         fontSize: '12px', lineHeight: '18px', userSelect: 'none', touchAction: 'none' },
-      segItem: { flex: '1 1 0', textAlign: 'center', padding: '4px 6px', whiteSpace: 'nowrap',
+      segItem: { flex: '1 1 0', textAlign: 'center', padding: '5px 7px', whiteSpace: 'nowrap',
         color: OVS.fg2, cursor: 'inherit' },
       // 选中态：用 **DSH 的主题副色**（原版就是蓝）——只染底色与文字，克制、不加粗边框
       segOn: { background: OVS.acc12, color: OVS.acc, fontWeight: 600,
@@ -2086,6 +2103,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const { sessionId, inputActions } = props || {}
       const [status, refreshStatus] = useStatus(sessionId)
       const [open, setOpen] = React.useState(false)
+      // 预设提示（2026-10-19）：非 Wish / PTC 预设时弹一次，两个按钮（知道了 / 以后不再显示）。
+      const [notice, setNotice] = React.useState(null)
       // 「优化选项」弹出面板（用户 2026-09-22：档位这些收进一个按钮里）
       const [optOpen, setOptOpen] = React.useState(false)
       const [optPos, setOptPos] = React.useState(null)
@@ -2094,6 +2113,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 会话窗宽度没有现成的常量可读，所以**量输入卡片**：侧栏一开，会话列变窄、卡片跟着变窄。
       // 观察点用 ResizeObserver 而不是只听 window.resize：侧栏开关时窗口尺寸不变，变的是列宽。
       const [region, setRegion] = React.useState(null)
+      // 预设提示：挂载时读一次，之后每 10 秒轻量复查（顾问/装配都是异步发生的）。
+      React.useEffect(() => {
+        if (!sessionId) return undefined
+        let live = true
+        const load = () => apiGet('/notice?session=' + encodeURIComponent(sessionId)).then((r) => {
+          if (!live) return
+          if (r && r.ok === true) setNotice(r.notice || null)
+        }, () => { /* 读不到就静默；提示是旁路 */ })
+        load()
+        const timer = setInterval(load, 10000)
+        return () => { live = false; clearInterval(timer) }
+      }, [sessionId])
+      const dismissNotice = (forever) => {
+        setNotice(null)
+        apiPost('/notice', forever ? { forever: true } : { session: sessionId }).catch(() => {})
+      }
       React.useEffect(() => {
         const reflow = () => {
           const rg = composerRegion(optBtnRef.current)
@@ -2819,6 +2854,25 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const offTip = L('档位为「关闭」时不生效', 'Has no effect while the tier is Off')
 
       return h(React.Fragment, null,
+        // 预设提示弹窗（2026-10-19）：非 Wish / PTC 时出现；两个出口都要能真的关掉。
+        notice ? h('div', { ...themeAttrs(), 'data-po06': 'preset-notice-backdrop', style: S.noticeBackdrop },
+          h('div', {
+            'data-po06': 'preset-notice', role: 'dialog', 'aria-modal': 'true',
+            'aria-label': L('预设提示', 'Preset hint'), style: S.noticeCard,
+          },
+            h('div', { style: S.noticeHead },
+              h('span', { 'data-po06': 'notice-accent', style: S.noticeAccent }),
+              h('strong', { style: S.noticeTitle }, L('建议切换到 Wish 或 PTC 预设', 'Switch to the Wish or PTC preset'))),
+            h('p', { style: S.noticeBody }, L(
+              '许愿特化器在 Wish / PTC 预设下发挥最好，其他预设可能表现不佳。',
+              'This plugin works best on the Wish or PTC preset; other presets may behave poorly.')),
+            h('p', { style: S.noticeHint }, L('当前预设：', 'Current preset: ') + String(notice.preset || '?')),
+            h('div', { style: S.noticeActions },
+              h('button', { type: 'button', 'data-po06': 'notice-ok', style: S.noticeBtn, onClick: () => dismissNotice(false) },
+                L('知道了', 'Got it')),
+              h('button', { type: 'button', 'data-po06': 'notice-never', style: S.noticeBtnPrimary, onClick: () => dismissNotice(true) },
+                L('以后不再显示', 'Do not show again')))),
+        ) : null,
         // 控件栏分两层：第一行放"设定类"，第二行放"范围类"。
         // 外层靠上对齐（**不要**用 alignSelf:'flex-end'，那会被输入区的发送按钮顶上去、底部留空）。
         h('div', { ...themeAttrs(), 'data-po06': 'bar', ref: rootRef,
@@ -3814,7 +3868,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // ③ 交互反馈：所有插件按钮统一 130ms 过渡；悬停一层极淡底色；按下轻微下沉；键盘焦点有描边；禁用降透明
             '[data-po06] button{transition:background-color .13s ease,border-color .13s ease,color .13s ease,transform .12s ease,opacity .13s ease}',
             '[data-po06] button:hover{background-color:var(--po06-hover)}',
-            '[data-po06] button:active{transform:translateY(1px)}',
+            '[data-po06] button:active{transform:translateY(.5px)}',
             '[data-po06] button:focus-visible{outline:2px solid ' + OVS.acc + ';outline-offset:1px}',
             '[data-po06] button:disabled{opacity:.45;cursor:not-allowed;transform:none}',
             '[data-po06="bar"] button{background-color:transparent}',
@@ -3828,6 +3882,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '@keyframes po06-fade-in{from{opacity:0}to{opacity:1}}',
             '@keyframes po06-breathe{0%,100%{opacity:1}50%{opacity:.42}}',
             '@keyframes po06-fade{from{opacity:.4}to{opacity:1}}',
+            // 2026-10-19 观感收口：弹出层/提示卡入场做**短促的浮起**（位移只在这一层，不碰带内联 transform 的面板）
+            '@keyframes po06-pop{from{opacity:0;transform:translateY(4px) scale(.985)}to{opacity:1;transform:none}}',
+            '[data-po06="options-pop"],[data-po06="inject-card"],[data-po06="help-pop"]{animation:po06-pop .16s ease-out both}',
+            '[data-po06="preset-notice-backdrop"]{animation:po06-fade-in .14s ease-out both}',
+            '[data-po06="preset-notice"]{animation:po06-pop .18s ease-out both}',
             '[data-po06="intercept"]{animation:po06-fade-in .16s ease-out both}',
             '[data-po06="intercept"] [data-po06="intercept-head"]{animation:po06-fade-in .22s ease-out both}',
             '[data-po06="intercept"][data-po06-phase="optimizing"] [data-po06="state-dot"],'

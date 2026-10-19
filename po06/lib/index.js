@@ -1512,6 +1512,7 @@ class DshAdapter {
     // 只保留每会话最近一条；客户端通过 /po06/api/injection 取回，刷新/重开还能看见。
     this.injections = new Map()
     this.injectionById = new Map()
+    this.presetNotices = new Map()
     // 落盘：记录放插件自己的 state 目录（**不进会话日志**），重启后对话流卡片还能取到正文。
     this.injectionFile = join(DSH_HOME, 'po06-state', 'injections.json')
     this.injectionSaveTimer = null
@@ -1814,6 +1815,26 @@ class DshAdapter {
     return directive ? [base, directive].filter(Boolean).join('\n\n') : base
   }
 
+  /** 预设提示（2026-10-19）：非 Wish / PTC 预设时，per-session 记一条，客户端据此弹提示。 */
+  notePresetNotice(sessionId, preset) {
+    const sid = String(sessionId == null ? '' : sessionId)
+    if (!sid || !preset) return
+    this.presetNotices.set(sid, { preset: String(preset), at: Date.now() })
+  }
+
+  getPresetNotice(sessionId) {
+    const row = this.presetNotices.get(String(sessionId == null ? '' : sessionId))
+    return row ? { ...row } : null
+  }
+
+  clearPresetNotice(sessionId) {
+    this.presetNotices.delete(String(sessionId == null ? '' : sessionId))
+  }
+
+  clearAllPresetNotices() {
+    this.presetNotices.clear()
+  }
+
   /** 记下一次注入（每会话保留最近一条；**不进会话日志**）。返回这条记录的 id。 */
   noteInjection(sessionId, row) {
     const sid = String(sessionId == null ? '' : sessionId)
@@ -1916,6 +1937,12 @@ class DshAdapter {
                 if (pol && pol.injectPacket !== true) return ''
                 // 子代理默认不注入（2026-10-19）：它们的任务是父代理派下来的，再叠一层优化通常只是白花 token。
                 if (isSubagentSession(session) && pol && pol.applyToSubagents !== true) return ''
+                // 预设提示（2026-10-19）：只在 Wish / PTC 上效果最好；别的预设就记一条，客户端弹一次。
+                try {
+                  const preset = session && session.header && session.header.agentPreset
+                  if (typeof preset === 'string' && preset && preset !== 'wish' && preset !== 'ptc'
+                    && !(pol && pol.presetNoticeDismissed === true)) adapter.notePresetNotice(sid, preset)
+                } catch { /* 提示是旁路，绝不打断装配 */ }
                 // Tool presence alone did not cause a review in the tank test. Keep the working
                 // workflow available even when the interpreter has no new intent items.
                 this.capability.seed(session)
@@ -2315,6 +2342,10 @@ export function apply(ctx, config) {
         // ⚠ 必须**整包转发**：控制面有两种查询（?id= 给对话流卡片、?session= 给输入栏胶囊），
     // 早先这里只取了 p.sessionId ⇒ 按 id 查永远 null ⇒ 对话流里的卡片成了空行（2026-10-19 实测）。
     getInjection: (p) => adapter.getInjection(p),
+    // 预设提示（2026-10-19）：GET 读、POST 清（forever 会写进设置）。
+    getNotice: (p) => adapter.getPresetNotice(p && p.sessionId),
+    clearNotice: (sid) => adapter.clearPresetNotice(sid),
+    clearNotices: () => adapter.clearAllPresetNotices(),
           // P11：包级回退（宿主侧保存了每会话最近 10 版非空包）
           rollbackPacket: (p) => {
             const r = adapter.rollbackPacket(p && p.sessionId)
