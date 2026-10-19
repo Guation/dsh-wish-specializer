@@ -2805,8 +2805,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         h('pre', { 'data-po06': 'inject-body', style: { ...S.ovPaneBody, margin: 0, maxHeight: '180px', overflow: 'auto', fontFamily: 'inherit' } },
           body || L('（空）', '(empty)')),
         note ? h('div', { 'data-po06': 'inject-note', style: S.ovHintQuiet }, note) : null)
-      const statusLabel = !data ? L('0.6 ?', '0.6 ?')
-        : (data.enabled ? (on ? L('0.6 自动', '0.6 auto') : L('0.6 只记录', '0.6 record')) : L('0.6 未启用', '0.6 off'))
+      // 2026-10-19：产品名与状态标签不再带 "0.6"（那是 0.6 时代的遗留前缀，版本号由 /status 单独显示）。
+      const statusLabel = !data ? L('读取中', 'loading')
+        : (data.enabled ? (on ? L('自动辅助', 'auto') : L('只记录', 'record')) : L('未启用', 'off'))
       const offTip = L('档位为「关闭」时不生效', 'Has no effect while the tier is Off')
 
       return h(React.Fragment, null,
@@ -3148,7 +3149,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         }) : null,
         open ? h('div', { ...themeAttrs(), 'data-po06': 'panel', style: { ...S.panel, ...(region ? { right: Math.max(0, Math.round(((typeof window !== 'undefined' && window.innerWidth) || 800) - region.right) + 16) + 'px', width: Math.min(420, Math.max(120, region.w - 32)) + 'px' } : null) } },
           h('div', { style: S.row },
-            h('strong', {}, L('提示词优化器 0.6','Prompt Optimizer 0.6')),
+            h('strong', {}, L('提示词优化器','Prompt Optimizer')),
             h('span', { style: S.muted }, (data && data.version) || ''),
             h('button', { style: { ...S.btn, marginLeft: 'auto' }, onClick: () => setOpen(false) }, L('关闭','Close')),
           ),

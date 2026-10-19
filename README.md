@@ -1,4 +1,4 @@
-# dsh-arbiter-wf **v0.8.4-stable** · 独立裁判层（DSH Web 插件）
+# dsh-arbiter-wf **v0.9.0-beta-1**（开发中）· 独立裁判层（DSH Web 插件）
 
 **中文** ｜ [English](README.en.md)
 

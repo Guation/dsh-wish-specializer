@@ -208,7 +208,10 @@ await t('handler：GET /status 与 GET /prompt、GET /turns', async () => {
   const hp = await GET(h, API_PREFIX + '/help')
   eq(hp.status, 200, '/help 200')
   eq(hp.body.source, 'file', '默认路径要能读到包里的 HELP-0.6.md：' + JSON.stringify(hp.body.note || hp.body.path))
-  ok(hp.body.chars > 500, '帮助正文不该是空的：' + hp.body.chars)
+  // 2026-10-19 帮助改写为"一屏能看完"的短版（用户要求"尽可能简短"），阈值随之下调；
+  // 仍然要挡住"空 / 只剩标记"这种坏情况。
+  ok(hp.body.chars > 300, '帮助正文不该是空的：' + hp.body.chars)
+  ok(hp.body.text.includes('# 提示词优化器'), '正文要从标题开始（标记行已被剥掉）')
   ok(!/〔依据|不要显示给用户|实现时/.test(hp.body.text), '实现者注记不得漏给用户')
   eq((await GET(h, API_PREFIX + '/nope')).status, 404, '未知端点 404')
 })

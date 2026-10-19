@@ -1,4 +1,4 @@
-# dsh-arbiter-wf（**0.8.4-stable**）
+# dsh-arbiter-wf（**0.9.0-beta-1** 开发中；最新发布 0.8.4-stable）
 
 ## 0.8.0-preview：独立裁判层（改名首版）
 

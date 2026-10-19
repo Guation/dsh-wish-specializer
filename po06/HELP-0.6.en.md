@@ -1,111 +1,26 @@
-# Prompt Optimizer · User help (0.6)
+<!-- po06:help-start 下面是用户可见正文；标记本身不会显示 -->
 
-<!-- po06:help-start —— 下面这行标记之后才是**用户可见**的正文（上面的说明与文中的〔依据〕都由宿主剥掉）-->
+# Prompt Optimizer
 
-## In one line
+You say one line; it adds the requirements you did not spell out but that decide the result — aesthetic register, light and material, composition, setting, interaction, the acceptance bar. **Your words are never rewritten**; the additions ship alongside them.
 
-You keep talking normally. **Before** your message goes out, it works out *what this round is really asking for* and hands that reading to the working AI — **your own words are never rewritten and never dropped**.
+## What happens
 
-## How to use it (three steps)
+Enter → held → optimized → you confirm (or it auto-releases) → your text goes out, the additions go into context.
 
-1. Type in the input box as usual.
-2. Press Enter / click send — the message **pauses** while it thinks. While you wait, the panel shows **what it is doing and what it is writing right now** (not a bare progress bar).
-3. When it is done your **own words** go out; the working AI has that reading from **the very first step of this round** — no waiting for the next round.
+## Common actions
 
-In a hurry? Click **Skip and send** any time while it is working.
-
-> If it cannot produce a reading (model unavailable, etc.): the **Auto** permission sends your original text and explains why in the panel;
-> the **Review** permission **never sends by itself** — the panel stops in an error state and waits for you to click *Send original* or *Retry*. Your message stays in the box.
-
-## The options
-
-**Tier** (Off / Light / Standard / Heavy)
-
-- **Off** — no interception, no waiting, nothing injected (use it to switch the optimizer off for a while).
-- **Light** — clarify the original meaning, including references, scope and conditions that could be misunderstood; identify necessary questions.
-- **Standard** — **recommended**: clarify the wording and fill the gaps that matter most, offering key useful suggestions.
-- **Heavy** — broadly develop positive additions, ideas and methods that serve the existing goal; expose uncertain premises and consequential tradeoffs.
-- All tiers preserve the original intent. They differ in purpose, not item counts, length quotas or a fixed workflow. Reasoning effort remains a separate setting; the compact protocol does not automatically lower Max.
-
-**Permission** (Review / Auto)
-
-- **Auto** — sends your message as soon as the reading is ready.
-- **Review** — shows you what will be injected first; you can **edit it directly**, then click *Confirm*. It **never auto-sends** — not even when the reading fails.
-
-**English mode** (Off / On, off by default)
-
-- When on, **this turn's task, the optimizer instructions and the assistance text are translated into English** before they reach
-  the model — the UI and the stored state stay Chinese (requirement text falls back to your original wording).
-- Code blocks, paths, URLs, JSON literals and **verbatim quoted phrases** are never translated; commands starting with `/` are not
-  translated either (allowlisted ones still go through interception).
-- **It does not ask for a response language on your behalf**: the language the model answers in is still decided by your own words.
-- Cost: one extra translation call per turn (cached), so it is off by default.
-
-**Built-in Bash is Windows-only** (the bundled runtime is a Windows MSYS2 build); on other platforms the model does not get this tool.
-
-**Solution and result-improvement advisors**
-
-The local `advisor-loop-1` candidate associates evidence with actual citations. Uncited supplemental gaps do not veto a stated local claim; cited clipped content still needs a complete targeted read. Visual review observes actual images independently before useful source support. Source cannot certify appearance or runtime behavior. Optional `subjectPaths` binds the actual artifact version.
-
-Improvement consultations retain only previously observed excerpts and image attachments within the same session, request, object and focus. Different versions do not establish a benefit; `keep` is not acceptance. One recorded, no-value-change advisory JSON repair is supported; acceptance JSON stays strict.
-
-An additive turn-tail annotation can show known defects, verification pending, scoped review, and advisory/comparison state. It does not block file sharing or prevent assistant wording. It uses exact turn records and current evidence versions, offers manual refresh, and remains explicitly unavailable on unsupported hosts or unreadable data.
-
-- Before a consequential approach is locked, the working AI can use `consult_task(mode="develop_approach")` for independent, directly usable methods and content.
-- With a first result, `improve_result` identifies quality bottlenecks and supplies implementable changes. Send actual text as `currentResult`, or files/images with authorized read-only access enabled.
-- Improving an already acceptable result is useful. `keep` retains current when no substantive gain is found; quality advice is not acceptance and does not close defects.
-- Both modes reuse the optimizer model and reasoning effort; no stronger fallback model is introduced. For Route A, choose the same weak model for the main and optimizer roles (for example DeepSeek Flash).
-- Calls are task-dependent, not guaranteed every turn. Apply useful contributions and compare actual old/new results; recommendations alone do not prove improvement.
-
-**Quick enhancement** (experimental, off by default)
-
-- One on/off switch, fixed 3+3 fast profile: prepare three brief public directions concurrently, then continue normal generation by the original worker. 3+3 is the retained configuration notation, not three actual correction loops within one step. No slow/full-round/reply-loop route or separate selector remains; legacy settings normalize to this profile.
-- Directions have no tools and prefer catalog-declared off/none, then minimal/low. The output cap is 1024 tokens with reasoning disabled or bounded to 4096 if reasoning must remain, never raising a smaller original limit. The original worker effort, tools, complete messages and native stream are preserved. Each direction has a 15-second wait limit and preparation a 30-second limit; keep usable results and continue. Main generation has no such limit.
-- Recent actual tool results, current issues and retained invocation incidents are separate. A new invocation source is highlighted once, acknowledged only after the actual worker finishes normally; failure, cancellation or early closure does not consume it. Delivered does not mean fixed, and raw pending records remain unchanged.
-- Actual product-check failures and omitted failure details remain active until fresh same-check/same-tool/same-object evidence closes them. Unrelated PASS or model statements cannot clear them. Bounded acknowledgements survive restart; a new real user input starts another evidence epoch. Concurrent in-flight generations may both see a new incident. This is context, not an acceptance or delivery gate.
-- Simulated tool protocols, actual HTML/code implementations and delivery reports are rejected as directions; an isolated inline reference to a single tag or API is not a whole implementation. The v5 trace shows usable/rejected directions, recent results, active issues and retained incidents. Old traces keep their original recorded semantics.
-- ⚠ **Universal quality improvement remains unproven.** Three directions still add calls and latency. Compare actual session records and the final artifact, not merely a green process indicator.
-
-**Context** (turns 0–10 / full)
-
-- It reads your **recent turns** to understand what you are doing; more turns = better context, slower.
-- **Full** means "read everything I still hold"; the control becomes Off / On.
-- Not sure? ~6 turns is a good default.
-
-**Read-only tools** (On / Off)
-
-- When on, it may read a few files **inside your working directory** to check facts (read-only: no writes, no commands).
-- The cost is time and tokens, so it defaults to **off**.
-
-## Bits of the UI
-
-- **Options** — one button in the input bar. It carries the current tier/permission summary; click it for all the settings above.
-- **Details** — the grey-green dot is the state (auto / record-only / disabled). *Details* opens the optimizer core editor (with undo and restore). It separates the full current-settings preview from the last actual request for this session, including characters and reasoning effort.
-- **`?`** — this page.
-- **Overlay** — the small window during interception. Drag it by its title bar, resize from the bottom-right corner, collapse it into a small ball and reopen it when needed.
-
-## Recommended combinations
-
-| Situation | Suggestion |
+| I want to | Do this |
 |---|---|
-| First time | Tier **Standard** + permission **Review** (you can see exactly what it did) |
-| Daily work | Tier **Standard** + permission **Auto** |
-| Fast and cheap | Tier **Light** + context **2–4 turns** |
-| Complex / easy to misread | Tier **Heavy** + **read-only tools** on |
-| Just record, don't touch | Tier **Off** |
+| Send normally | Press Enter, confirm in the panel |
+| Skip this round | Double-press Enter (enable it under Options first), or hit Skip |
+| See what was injected | The "Injected" card under your message |
+| Change strength / permission | Options: tier, review or auto, English mode |
 
-## FAQ
+## Three switches
 
-**How long does it take?** Usually 20–60 s (tier, context and model all matter). That wait is it doing the thinking.
+- **Read-only tools**: read a few project files before writing requirements. More accurate, slower.
+- **Advisor**: a separate read-only model reviews independently; its findings come back as must-do requirements.
+- **Double-Enter skip**: off by default. When on, pressing Enter twice within 600ms sends this round unoptimized.
 
-**Will my message be changed?** No. What changes is *the reading it hands to the working AI*; the text you send is the text you wrote.
-
-**Can it lose my message?** No. If it fails or runs out of ideas it sends your original text and tells you why.
-
-**Does it remember last round's goals?** No — every round is re-derived from **your message this round plus the context it read this round**. Last round's goals are retired (kept for the record), so you will **not** see "a problem I already fixed demanded again". The cost: long-lived constraints are re-derived from the context each round, so do not shrink the **Context** window too far.
-
-**Does it invent requirements for me?** It tries to write only what you said or what the context shows. Items with no source are flagged in red in the review panel.
-
-**Can reading project files touch my stuff?** No: read-only, limited to your working directory, anything outside is refused.
-
-**Credit**: author 啃轮胎的西狐 ｜ version shown at the top of the panel ｜ built for `dsh-0.1.6-alpha.1`
+> No injection, no card: skipped, switched off, or failed — it never pretends something was injected.
