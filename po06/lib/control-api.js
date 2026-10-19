@@ -677,7 +677,10 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         } catch { preset = null }
         if (!preset && typeof getPreset === 'function') preset = getPreset(sid)
         const dismissed = typeof presetDismissed === 'function' ? presetDismissed() === true : false
-        const notice = preset && preset !== 'wish' && preset !== 'ptc' && !dismissed ? { preset } : null
+        // 2026-10-19 用户实测：会话就是 PTC ⇒ 按"wish/ptc 都不提示"的旧口径永远不弹，用户以为没实现。
+        // 现在只把 **Wish** 当"无需提示"（PTC 也提示一次，知道就行）。
+        const notice = preset && preset !== 'wish' && !dismissed ? { preset } : null
+        traceApi({ k: 'preset', sid: sid.slice(0, 48), preset: preset || null, notice: notice ? notice.preset : null, dismissed })
         const payload = { ok: true, preset: preset || null, notice }
         // ?debug=1 ⇒ 透出"宿主到底看到了什么"（真机上判断为什么没弹窗）
         if (String(query.get('debug') || '') === '1') {
