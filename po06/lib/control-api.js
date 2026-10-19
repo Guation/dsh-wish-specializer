@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -365,6 +365,7 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
       }
       // 界面取证（临时）：记录浏览器实际发来的读写，用于判定"点击没反应"卡在哪一环。
       // 写到独立文件而不是 wire 台账：形状简单、可直接读、不影响既有台账消费方。
+      let lastWatchTraceAt = 0
       const traceApi = (rec) => {
         try {
           const p = join(H, 'po06-api-trace.jsonl')
@@ -682,14 +683,23 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         const pendingPreset = pending && pending.preset ? String(pending.preset) : null
         const preset = eventPreset || pendingPreset || headerPreset
         const presetSource = eventPreset ? 'event' : (pendingPreset ? 'pending' : (headerPreset ? 'header' : 'unknown'))
+        // 这次"预设真的变了"的时间：客户端用它去重，避免自己维护基线（挂载时机不同会漏事件）
+        const eventAt = typeof getPresetAt === 'function' ? getPresetAt(sid) : null
+        const presetAt = eventAt || (pending && pending.at) || null
         const dismissed = typeof presetDismissed === 'function' ? presetDismissed() === true : false
         // 2026-10-19 用户确认口径：**只有非 Wish 且非 PTC 才提醒**（这两个预设本身就是推荐态）。
         // 注意：PTC 会话按此口径不会弹窗——那不是"没实现"，是设计如此（debug 里 preset 会有值）。
         const notice = preset && preset !== 'wish' && preset !== 'ptc' && !dismissed ? { preset } : null
         // via=watch 是"盯着输入区"的探测（打字每几百毫秒一次）⇒ 不进台账；只记真正的回车询问与调试查询
         const via = String(query.get('via') || 'direct')
-        if (via !== 'watch') traceApi({ k: 'preset', via, sid: sid.slice(0, 48), preset: preset || null, source: presetSource, notice: notice ? notice.preset : null, dismissed })
-        const payload = { ok: true, preset: preset || null, notice, source: presetSource }
+        if (via !== 'watch') {
+          traceApi({ k: 'preset', via, sid: sid.slice(0, 48), preset: preset || null, source: presetSource, presetAt, notice: notice ? notice.preset : null, dismissed })
+        } else if (Date.now() - lastWatchTraceAt > 20000) {
+          // 盯输入区的探测：20 秒最多留一条，用来确认"客户端到底有没有在看"
+          lastWatchTraceAt = Date.now()
+          traceApi({ k: 'preset-watch', sid: sid.slice(0, 48), preset: preset || null, source: presetSource, presetAt, notice: notice ? notice.preset : null })
+        }
+        const payload = { ok: true, preset: preset || null, notice, source: presetSource, presetAt }
         // ?debug=1 ⇒ 透出"宿主到底看到了什么"（真机上判断为什么没弹窗）
         if (String(query.get('debug') || '') === '1') {
           payload.debug = { inspect: debug, header: headerPreset, events: eventPreset, pending: pendingPreset, source: presetSource, dismissed }

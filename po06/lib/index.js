@@ -1821,6 +1821,13 @@ class DshAdapter {
     const sid = String(sessionId == null ? '' : sessionId)
     if (!sid || !preset) return
     this.presetsBySession.set(sid, String(preset))
+    if (!this.presetsAt) this.presetsAt = new Map()
+    this.presetsAt.set(sid, Date.now())
+  }
+
+  /** 该会话"最后一次预设选择"的时间：客户端据此判断"预设真的变了"，不靠自己轮询的基线。 */
+  presetAtOf(sessionId) {
+    try { return (this.presetsAt && this.presetsAt.get(String(sessionId))) || null } catch { return null }
   }
 
   presetOf(sessionId) {
@@ -1837,12 +1844,18 @@ class DshAdapter {
     const p = String(preset || '')
     if (!p) return
     this.presetPending = { preset: p, at: Date.now(), sid: sessionId ? String(sessionId) : '' }
+    // **落盘**（2026-10-19 真机）：重启会把内存里的选择抹掉 ⇒ 重启后新会话又变回默认预设。
+    try { writeFileSync(join(DSH_HOME, 'po06-preset-pending.json'), JSON.stringify(this.presetPending), 'utf8') } catch { /* 旁路 */ }
   }
 
   pendingPreset() {
-    const row = this.presetPending
-    if (!row) return null
-    if (Date.now() - row.at > 15 * 60 * 1000) return null
+    const row = this.presetPending || (() => {
+      // 惰性读盘：进程刚起来时也要能记得"重启前刚拨过的预设"
+      try { return JSON.parse(readFileSync(join(DSH_HOME, 'po06-preset-pending.json'), 'utf8')) } catch { return null }
+    })()
+    if (!row || !row.preset) return null
+    if (Date.now() - Number(row.at || 0) > 15 * 60 * 1000) return null
+    this.presetPending = row
     return { ...row }
   }
 
@@ -2391,6 +2404,7 @@ export function apply(ctx, config) {
     // 回车前的预设闸门（2026-10-19）：优先问 sessionController 的会话头，其次用事件里记下的。
     getPreset: (sid) => adapter.presetOf(sid),
     getPresetPending: () => adapter.pendingPreset(),
+    getPresetAt: (sid) => adapter.presetAtOf(sid),
     inspectPreset: async (sid) => {
       // 返回 { preset, debug }：debug 只在 ?debug=1 时透出（真机上"为什么没弹窗"必须能查）。
       // ⚠ 不同版本/不同入口的 inspect 结果形状不一样（header / meta / session.header …），

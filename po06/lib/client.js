@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 18:22'
+    const CLIENT_BUILD = '10-19 18:58'
     const TIER_KEYS = ['off', 'light', 'standard', 'heavy']
     // ⚠ 必须与 settings.js 的 TIER_PRESETS **逐项一致**：这里是拿三项反推档位（tierOfSettings）。
     // 2026-10-19 修：此前这一份和宿主侧不一致（light/standard 的 detail、budget 错位），
@@ -2586,7 +2586,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 预设被**在会话开始前**拨过（用户 2026-10-19 的真机情形）：宿主给会话头的是默认预设，
       // 光在回车时判定是看不出来的。所以盯着输入区，预设一变就问一次宿主"现在算哪个预设"，
       // 变了且不是 Wish/PTC 就当场把提示弹出来（不用等下一次发送）。
-      const presetWatchRef = React.useRef({ armed: false, last: null })
+      const presetWatchRef = React.useRef({ armed: false, lastAt: null })
       // 「优化选项」弹出面板（用户 2026-09-22：档位这些收进一个按钮里）
       const [optOpen, setOptOpen] = React.useState(false)
       const [optPos, setOptPos] = React.useState(null)
@@ -2598,28 +2598,41 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 预设闸门（2026-10-19 用户要求）：**按回车、优化还没开始**的时候就问宿主一次。
       // 不再做后台轮询——不希望在"发出去之后"才弹。一个会话只问一次（问过就放行，避免每次回车都打接口）。
       const presetGateRef = React.useRef('')
-      // 盯输入区：预设按钮一动就问宿主（`via=watch` 不进 trace，避免打字时刷满台账）
+      // 盯输入区：预设按钮一动就问宿主（via=watch 不进台账；宿主的 presetAt 变了才算"真的变了"）
       React.useEffect(() => {
-        const card = composerCard(rootRef.current)
-        const host = (card && card.parentElement) || card
-        if (!host || typeof MutationObserver !== 'function') return undefined
-        let timer = null
         let stopped = false
-        const check = () => {
-          apiGet('/preset?via=watch&session=' + encodeURIComponent(sessionId)).then((r) => {
-            if (stopped || !r || r.ok !== true) return
-            const st = presetWatchRef.current
-            const p = r.preset || null
-            if (!st.armed) { st.armed = true; st.last = p; return }
-            if (p === st.last) return
-            st.last = p
-            if (r.notice) setNotice(r.notice)
-          }).catch(() => {})
+        let obs = null
+        let timer = null
+        let tries = 0
+        const arm = () => {
+          if (stopped) return
+          const card = composerCard(rootRef.current)
+          const host = (card && card.parentElement) || card
+          if (!host) {
+            // 挂载时可能还没进输入区：重试（最多 20 次 × 500ms）
+            if (tries++ < 20) setTimeout(arm, 500)
+            return
+          }
+          const check = () => {
+            apiGet('/preset?via=watch&session=' + encodeURIComponent(sessionId)).then((r) => {
+              if (stopped || !r || r.ok !== true) return
+              const st = presetWatchRef.current
+              const at = r.presetAt || null
+              if (!st.armed) { st.armed = true; st.lastAt = at; return }
+              if (!at || at === st.lastAt) return
+              st.lastAt = at
+              if (r.notice) setNotice(r.notice)   // 非 Wish/PTC 且没被"以后不再显示"
+            }).catch(() => {})
+          }
+          const fire = () => { clearTimeout(timer); timer = setTimeout(check, 700) }
+          try {
+            obs = new MutationObserver(fire)
+            obs.observe(host, { subtree: true, childList: true, characterData: true, attributes: true })
+          } catch { return }
+          check()
         }
-        const obs = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(check, 700) })
-        try { obs.observe(host, { subtree: true, childList: true, characterData: true }) } catch { return undefined }
-        check()
-        return () => { stopped = true; clearTimeout(timer); try { obs.disconnect() } catch { /* 忽略 */ } }
+        arm()
+        return () => { stopped = true; clearTimeout(timer); try { if (obs) obs.disconnect() } catch { /* 忽略 */ } }
       }, [sessionId])
       const dismissNotice = (forever) => {
         setNotice(null)
