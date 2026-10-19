@@ -1194,6 +1194,7 @@ const MUTANTS = [
   },
   {
     name: 'verifier: candidates-machine-wide-only',
+    onlyOn: 'win32',   // 断言本身是"Windows 上必须有 %LOCALAPPDATA% 候选"，非 Windows 无意义
     file: 'lib/verifier-html.js',
     testFile: 'test/verifier-html.test.mjs',
     from: "  process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'Microsoft/Edge/Application/msedge.exe') : null,\n  process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'Google/Chrome/Application/chrome.exe') : null,",
@@ -2194,6 +2195,14 @@ for (const tf of testFiles) {
 
 const restored = new Map()
 for (const m of MUTANTS) {
+  // ── 平台限定（2026-10-19）────────────────────────────────────────────
+  // 有极少数护栏**只在某个平台上存在**（例：Windows 的 %LOCALAPPDATA% 候选路径）。
+  // 在别的平台上跑同一变异，被测断言本就是"非 Windows 时跳过" ⇒ 永远抓不到。
+  // 那不是"测试变弱"，把它记成漏捕会逼人去削弱断言。记 SKIPPED-PLATFORM 并明说。
+  if (m.onlyOn && process.platform !== m.onlyOn) {
+    results.push({ name: m.name, skipped: 'platform:' + process.platform, caught: null })
+    continue
+  }
   const abs = path.join(ROOT, m.file)
   if (!restored.has(abs)) restored.set(abs, fs.readFileSync(abs, 'utf8'))
   const original = restored.get(abs)
@@ -2265,6 +2274,7 @@ console.log(JSON.stringify({
   // 覆盖到**几个源文件**：文档里长期写着一个"20 个源文件"，而实际是 24——
   // 因为这个数字**没有任何检查**（计数检查只认"项测试/套/个变异"）。
   // 由变异器自己报出来，再进 release-check.json，检查器才有权威值可比（EV-0115）。
+  skippedByPlatform: results.filter((r) => r.skipped).map((r) => r.name),
   sourceFiles: [...new Set(MUTANTS.map((m) => m.file))].length,
   sourceFileList: [...new Set(MUTANTS.map((m) => m.file))].sort(),
   restoredByteIdentical: byteIdentical,

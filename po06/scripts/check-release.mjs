@@ -184,10 +184,13 @@ if (existsSync(mutPath)) {
     //   · ANCHOR-MISSING = 变异根本没被写进源码（锚点文本过期）⇒ 它证明的是"守卫失效"；
     //   · 其余 = 变异真的写进去了、测试却没红 ⇒ 那才是"测试变弱"。
     //   混成一句"未被捕获"会让人以为要补测试，实际要修的是锚点——方向错了会白花一整天。
-    const missedAll = j.mutants.filter((m) => m.caught !== true)
+    // 平台跳过的变异体不算漏捕（例：Windows 专属的 %LOCALAPPDATA% 护栏在 Linux 上无从验证）——
+    // 把它们当成漏捕会逼人去删掉那条断言，那才是真的把守卫变弱。
+    const missedAll = j.mutants.filter((m) => m.caught !== true && !m.skipped)
     const anchorMissing = missedAll.filter((m) => m.status === 'ANCHOR-MISSING').map((m) => m.name)
     const escaped = missedAll.filter((m) => m.status !== 'ANCHOR-MISSING').map((m) => m.name)
-    mutation = { total: j.mutants.length, sourceFiles: j.sourceFiles || null, missed: missedAll.map((m) => m.name), anchorMissing, escaped, verdict: j.verdict }
+    mutation = { total: j.mutants.length, sourceFiles: j.sourceFiles || null, missed: missedAll.map((m) => m.name),
+      skipped: (j.skippedByPlatform || []), anchorMissing, escaped, verdict: j.verdict }
     if (anchorMissing.length > 0) problems.push('变异锚点已失效（源码改了、变异没被应用 ⇒ 这条守卫等于不存在）：' + anchorMissing.join(', '))
     if (escaped.length > 0) problems.push('变异未被执行捕获（变异已生效但测试没红 ⇒ 测试变弱）：' + escaped.join(', '))
   } catch {
