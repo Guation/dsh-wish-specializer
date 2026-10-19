@@ -676,20 +676,26 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       optBtnOn: { background: T('hover'), borderColor: OVS.acc, boxShadow: '0 0 0 3px ' + OVS.acc12 },
       optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
       // ② 弹出面板：288 宽、12/14 内距，紧凑但不挤
-      optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '288px', maxHeight: 'min(72vh, 540px)', overflowY: 'auto',
-        display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px 8px',
+      optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '348px', maxHeight: 'min(76vh, 620px)', overflowY: 'auto',
+        display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px 16px 10px',
         background: OVS.surface, color: OVS.fg,
         border: '1px solid ' + OVS.lineSoft, borderRadius: '12px', boxShadow: SHADOW.float },
       optPopHead: { display: 'flex', alignItems: 'center', gap: '7px', ...TYPE.title, paddingBottom: '0' },
-      optRow: { display: 'grid', gridTemplateColumns: '48px 1fr', alignItems: 'center', gap: '8px', minHeight: '24px' },
+      optRow: { display: 'grid', gridTemplateColumns: '60px 1fr', alignItems: 'center', gap: '10px', minHeight: '30px' },
       // 行标签要看得清：用 fg2 而不是 fg3（用户 2026-10-19：小标题太淡）
       optLabel: { color: OVS.fg2, fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' },
       // 设置行：左标签 + 右状态值，整行是有底色的可点区域（紧凑版）
       optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
-        justifyContent: 'space-between', gap: '8px', padding: '5px 10px',
-        borderRadius: '8px', border: '1px solid transparent', background: T('chip'),
+        justifyContent: 'space-between', gap: '8px', padding: '7px 12px',
+        borderRadius: '10px', border: '1px solid transparent', background: T('chip'),
         color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer', textAlign: 'left' },
-      optVal: (on) => ({ color: on ? OVS.acc : OVS.fg3, fontSize: '12px', fontWeight: 650, letterSpacing: '.2px' }),
+      // 右侧状态：开 = 主题色药丸；关 = 空心淡字（不用"开关控件"，保持一眼可读）
+      optVal: (on) => ({ color: on ? OVS.acc : OVS.fg3, fontSize: '11.5px', fontWeight: 650, letterSpacing: '.2px',
+        padding: '1px 8px', borderRadius: '999px',
+        background: on ? OVS.acc12 : 'transparent',
+        border: '1px solid ' + (on ? OVS.acc22 : 'transparent') }),
+      // 分组细线：替代小标题，只做节奏分隔
+      divider: { height: '1px', background: OVS.line2, margin: '2px 0' },
       optWide: { width: '100%', boxSizing: 'border-box', textAlign: 'center',
         padding: '6px 10px', borderRadius: '8px', border: '1px solid transparent',
         background: T('chip'), color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
@@ -700,13 +706,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         border: '1px solid ' + OVS.lineSoft, background: OVS.bg1, color: OVS.fg,
         font: 'inherit', fontSize: '12px', cursor: 'pointer' },
       // ③ 分段控件：选中 = 实心主题色；其余安静
+      // 分段控件（2026-10-19 重设计）：整条是一条**内嵌轨道**，选中项是轨道里的一颗实心药丸。
       seg: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'stretch',
         border: '1px solid ' + OVS.lineSoft, borderRadius: '10px', overflow: 'hidden',
-        background: T('chip'), fontSize: '12px', lineHeight: '18px', userSelect: 'none', touchAction: 'none' },
-      segItem: { flex: '1 1 0', textAlign: 'center', padding: '2px 6px', whiteSpace: 'nowrap',
-        color: OVS.fg2, cursor: 'inherit',
+        background: OVS.bg1, padding: '2px', gap: '2px',
+        fontSize: '12px', lineHeight: '18px', userSelect: 'none', touchAction: 'none' },
+      segItem: { flex: '1 1 0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        textAlign: 'center', padding: '3px 8px', borderRadius: '7px', whiteSpace: 'nowrap',
+        color: OVS.fg3, cursor: 'inherit',
         transition: 'background-color .16s ease, color .16s ease, box-shadow .16s ease' },
-      segOn: { background: OVS.acc, color: '#fff', fontWeight: 600 },
+      segOn: { background: OVS.acc, color: '#fff', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,.22)' },
       // ④ 注入卡片：紧凑一行头 + 展开正文
       injRow: { border: '1px solid transparent', borderLeft: '2px solid ' + OVS.acc,
         borderRadius: '10px', background: OVS.bg1, overflow: 'hidden' },
@@ -3106,6 +3115,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 onClick: () => { if (tierOff) return; save({ historyMode: historyMode === 'full' ? 'turns' : 'full' }) },
               }, historyMode === 'full' ? L('全文', 'Full') : L('回合', 'Turns')),
             ),
+            h('div', { style: S.divider }),
             // ⑤ 读项目文件：**永远可用**（不受档位影响）；三态纪律见上面的注释
             h('button', {
               type: 'button', 'data-po06': 'readtools',
@@ -3175,6 +3185,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             },
               h('span', {}, L('双击 Enter 跳过', 'Double Enter skip')),
               h('span', { style: S.optVal(desKnown && doubleEnterSkip) }, desKnown ? (doubleEnterSkip ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
+            h('div', { style: S.divider }),
             // 详情入口（用户 2026-09-21 要求：文字直接叫「详情」，**保留灰绿状态灯**；
             // 面板里不再重复"它在替我做什么 / 最近几轮"——拦截界面已经让人看见模型替我们做了什么）
             h('button', {
