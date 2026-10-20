@@ -445,6 +445,11 @@ export function createAdvisor({ resolveRuntime, log = () => {}, progress = null,
     const session = exec?.agent?.session
     const sid = String(session?.id || '')
     if (!sid) return { ok: false, reason: 'session-unavailable' }
+    // 入口归一必须放在**最前面**：后面的 mode 校验与提示词选择都读 args.mode。
+    {
+      const entry = normalizeEntry(args.entry, args.mode)
+      args = { ...args, entry, mode: ENTRY_TO_MODE[entry] }
+    }
     if (!ADVISOR_MODES.includes(args?.mode) || typeof args.question !== 'string' || !args.question.trim() || args.question.length > 4000) return { ok: false, reason: 'invalid-advisor-input' }
     if (args.currentResult !== undefined && (args.mode !== 'improve_result' || typeof args.currentResult !== 'string' || !args.currentResult.trim() || args.currentResult.length > 48000)) return { ok: false, reason: 'invalid-current-result' }
     let stageSpec=null
@@ -472,11 +477,6 @@ export function createAdvisor({ resolveRuntime, log = () => {}, progress = null,
     let stallTimer = null
     const stallLimitMs = effectiveAdvisorStallMs(stallMs, timeoutMs)
     const external = exec?.signal
-    // 入口归一：老调用方传 mode，新调用方传 entry；下游仍用 mode 选提示词。
-    {
-      const entry = normalizeEntry(args.entry, args.mode)
-      args = { ...args, entry, mode: ENTRY_TO_MODE[entry] }
-    }
     const inputProblem = validateMaterialInput(args)
     if (inputProblem) {
       busy.delete(sid); controllers.delete(controller)
