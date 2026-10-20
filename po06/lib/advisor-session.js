@@ -47,7 +47,11 @@ export function createAdvisorWrapper({ ledger, policyFor }) {
             if (c && c.status === 'failed') ledger.add(sid, { claim: c.criterion, kind: 'check', authority: 'check', severity: 'major', evidence: c.evidenceRefs || [] })
           }
           for (const f of Array.isArray(rep.findings) ? rep.findings : []) {
-            if (f && f.text) ledger.add(sid, { claim: f.text, kind: 'finding', authority: 'proposal', severity: 'minor', evidence: f.evidenceRefs || [] })
+            if (!f || !f.text) continue
+            // 严重度按文本看：顾问的贡献条目里"缺陷：…"是明确的坏，按 major 记；
+            // 其余观察按 minor（提示）。这样台账里的 concern/hint 与用户的口径一致。
+            const severe = /^\s*(缺陷|bug|defect)[:：]/i.test(String(f.text))
+            ledger.add(sid, { claim: f.text, kind: 'finding', authority: severe ? 'concern' : 'proposal', severity: severe ? 'major' : 'minor', evidence: f.evidenceRefs || [] })
           }
           if (Array.isArray(rep.resolvedClaims)) ledger.applyUpdates(sid, rep.resolvedClaims)
         }

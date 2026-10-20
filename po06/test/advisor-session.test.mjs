@@ -67,3 +67,17 @@ test('顾问关掉：清账，且不改 question', async () => {
   assert.equal(seen.question, '原问题', '关掉时不许注入')
   assert.equal(ledger.open('s1').length, 0, '关掉即清账')
 })
+
+test('finding 的严重度按文本判：缺陷 ⇒ major/concern，其余 ⇒ minor/proposal', async () => {
+  const ledger = createLedger()
+  const wrap = createAdvisorWrapper({ ledger, policyFor: () => ({ advisor: true }) })
+  const wrapped = wrap(async () => ({ ok: true, report: { checks: [], findings: [{ text: '缺陷：后轮穿进车体' }, { text: '阴影可以再软一点' }] } }))
+  await wrapped({ question: 'q' }, execOf('s1'))
+  const rows = ledger.open('s1')
+  const defect = rows.find((r) => r.claim.includes('后轮'))
+  const hint = rows.find((r) => r.claim.includes('阴影'))
+  assert.equal(defect.severity, 'major', '缺陷是 major')
+  assert.equal(defect.authority, 'concern')
+  assert.equal(hint.severity, 'minor', '观察是 minor')
+  assert.equal(hint.authority, 'proposal')
+})
