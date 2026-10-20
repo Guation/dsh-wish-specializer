@@ -35,7 +35,8 @@
     "po06/HELP-0.6.md",
     "po06/HELP-0.6.en.md",
     "po06/eval/HOLDOUT-v2.md",
-    "po06/eval/HOLDOUT-v1.md"
+    "po06/eval/HOLDOUT-v1.md",
+    "po06/presets"
   ],
   "dsh": {
     "bundle": {
