@@ -47,3 +47,21 @@ test('没话说就是空串（调用方据此整段不出现）', () => {
   assert.equal(renderAdvisorVoice(null), '')
   assert.equal(renderAdvisorVoice({}), '')
 })
+
+test('中文里混进来的裸标识符也要被清掉（真机实测：unknownOf / summary 会漏）', () => {
+  const d = renderAdvisorVoice({
+    verdict: 'gaps',
+    summary: '现在 understandingOf 只取 summary，所以理解段只能是状态复述。',
+    contribution: '1. 把 summary 和 findings 合成一句因果判断',
+    checks: [],
+  })
+  assert.ok(!d.includes('understandingOf'), 'camelCase 标识符要清掉')
+  assert.ok(!d.includes('summary'), '中文里裸英文词也要清掉')
+  assert.ok(!d.includes('findings'))
+  assert.ok(d.includes('因果判断'), '正文保留')
+})
+
+test('英文文本不误伤正常单词', () => {
+  const d = renderAdvisorVoice({ verdict: 'gaps', summary: 'The surface reads as plastic because the highlight is uniform.', checks: [] }, { english: true })
+  assert.ok(d.includes('surface'), '英文单词要留着')
+})

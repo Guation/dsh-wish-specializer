@@ -27,9 +27,18 @@ export function estimateTokens(text) {
 
 /** 去施工图：代码块整段删掉，行内代码脱掉反引号，命令式前缀降级为陈述。 */
 export function deBuild(text) {
-  return String(text == null ? '' : text)
+  const src = String(text == null ? '' : text)
+  // 中文里的裸标识符（summary / understandingOf / findings）同样是施工：真机实测会漏进来。
+  // 只在"以中文为主"的文本里做，避免误伤英文正常单词。
+  const cjk = (src.match(CJK) || []).length
+  const ascii = (src.match(/[A-Za-z]/g) || []).length
+  const chinese = cjk > 0 && ascii > 0 && cjk / (cjk + ascii) > 0.3
+  return src
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`[^`]*`/g, ' ')   // 行内代码＝技术标识符：连内容一起丢，别让 "别用 XxxMaterial" 这种句子漏进来
+    .replace(/\b[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*\b/g, ' ')   // camelCase
+    .replace(/\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g, ' ')        // snake_case
+    .replace(chinese ? /\b[A-Za-z_][A-Za-z0-9_]{2,}\b/g : /$^/, ' ')
     .replace(/^\s*(?:必须修|必须执行|必须|务必)[:：]?\s*/, '')
     .replace(/\s+/g, ' ')
     .trim()
