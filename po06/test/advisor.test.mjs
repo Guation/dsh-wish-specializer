@@ -145,7 +145,7 @@ test('注册入口、实际调用沿用模型档位、且不把假设交给成�
   registerAdvisorTool({tools:{register:d=>{definition=d; return ()=>{}}}},()=>{})
   assert.equal(definition.name,'consult_task')
   assert.equal(definition.parameters.type,'object')
-  assert.deepEqual(definition.parameters.required,['mode','question'])
+  assert.deepEqual(definition.parameters.required,['question'], 'mode 已降为别名，不再是必填')
   const invoke = createAdvisor({resolveRuntime:async()=>({...runtime,llm:{stream:o=>{opts=o;return streamOf(JSON.stringify(report()))}}})})
   const out = await invoke({mode:'review_result',question:'审运行条件',hypothesis:'绝对完美'},exec)
   assert.equal(out.ok,true)

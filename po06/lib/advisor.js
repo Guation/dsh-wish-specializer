@@ -88,6 +88,8 @@ export const ADVISOR_SYSTEM = [
   '只返回 JSON，不返回 markdown。',
   '**短**：能一句话说清就不写第二句。summary 两三句以内；findings 最多 3 条、每条一句话；checks 只写阶段契约里的项。',
   '回答要点到为止：只写决定成败的观察与结论；不要罗列小修小补清单（细节执行者自己会做）。',
+  '写 summary 用这个句式：现在……，是因为……，所以你应当……——一句话说透病因，不复述现象。',
+  '建议只给方向与判断：不写代码、不写命令行、不写数值参数、不写操作步骤。你是点拨，不是施工。',
   '{"verdict":"continue|narrow|change|need_user|pass|gaps|unverified","summary":"简短结论",',
   '"findings":[{"text":"偏差或假设","evidenceRefs":["E编号或F编号或read:相对路径"]}],',
   '"checks":[{"checkId":"stageContract提供的ID（非阶段时省略）","criterion":"原话中的验收点","status":"satisfied|failed|unverified","evidenceRefs":[]}],',
@@ -98,10 +100,37 @@ export const ADVISOR_SYSTEM = [
 
 export const ADVISOR_MODES = ['diagnose_failure','review_result','develop_approach','improve_result']
 
+// ── 三个入口（2026-10-20 重构）──────────────────────────────────────
+// 用户看图定的：顾问只在三个位置被叫——不明白怎么做 / 自评不过关 / 返工。
+// 内部仍复用原来的 mode 去选提示词（省得一次改穿全部下游），但**对外只讲入口**：
+//   understand = 不明白 → develop_approach 的提示词
+//   improve    = 自评不过关 → improve_result
+//   rework     = 返工/反复失败 → diagnose_failure
+//   verify     = 核对已声明的验收项 → review_result
+export const ADVISOR_ENTRIES = ['understand', 'improve', 'rework', 'verify']
+export const ENTRY_TO_MODE = Object.freeze({
+  understand: 'develop_approach',
+  improve: 'improve_result',
+  rework: 'diagnose_failure',
+  verify: 'review_result',
+})
+export function entryFromMode(mode) {
+  const m = String(mode || '')
+  for (const [entry, mapped] of Object.entries(ENTRY_TO_MODE)) if (mapped === m) return entry
+  return ''
+}
+/** 入口归一：显式 entry 优先；否则由旧 mode 反推；都没有就按 improve（最常用的那种）。 */
+export function normalizeEntry(entry, mode) {
+  const e = String(entry || '')
+  if (ADVISOR_ENTRIES.includes(e)) return e
+  return entryFromMode(mode) || 'improve'
+}
+
 export const ADVISOR_PARAMETERS = {
   type: 'object', additionalProperties: false,
-  required: ['mode', 'question'],
+  required: ['question'],
   properties: {
+    entry: { type: 'string', enum: ADVISOR_ENTRIES, description: '顾问入口（三选一，verify 只在核对已声明验收项时用）：understand=不明白怎么做；improve=自评不过关；rework=返工/反复失败；verify=核对已声明的验收项。' },
     mode: { type: 'string', enum: ADVISOR_MODES, description: 'develop_approach在关键方案确定前给方向性要求（往上抬，不是小修小补）；improve_result针对实际产物指出最该抬的一处并给方向，也可保留当前版本；diagnose_failure诊断试错；review_result核验成果。方向与质量建议不计入验收通过。' },
     taskId: {type:'string',description:'可选阶段复核：advisor_stage返回的taskId；与stageId一起传'},
     stageId: {type:'string',description:'可选阶段复核：advisor_stage返回的stageId；scope/focus从阶段契约取，不重命名检查项'},
@@ -442,6 +471,11 @@ export function createAdvisor({ resolveRuntime, log = () => {}, progress = null,
     let stallTimer = null
     const stallLimitMs = effectiveAdvisorStallMs(stallMs, timeoutMs)
     const external = exec?.signal
+    // 入口归一：老调用方传 mode，新调用方传 entry；下游仍用 mode 选提示词。
+    {
+      const entry = normalizeEntry(args.entry, args.mode)
+      args = { ...args, entry, mode: ENTRY_TO_MODE[entry] }
+    }
     const inputProblem = validateMaterialInput(args)
     if (inputProblem) {
       busy.delete(sid); controllers.delete(controller)
@@ -806,7 +840,7 @@ export function registerAdvisorTool(scope, execute) {
   try { if (typeof execute?.dispose === 'function') losslessExecute.dispose = execute.dispose } catch { /* 只读属性就算了 */ }
   return scope.tools.register({
     name: 'consult_task',
-    description: '返回值里的 directive 是**必做指令**（会随注入文进入上下文）：先按它改再继续；只有拿得出反驳证据时才能偏离，并在回复里说明理由。顾问是独立只读复核者（沿用优化 AI 配置，不改文件）。关键方案确定前用 develop_approach：要 3–5 条把成果往上抬的方向（往上抬，不是小修小补；不写代码/数值/步骤）——质变优先，宁少勿细，不必先失败。产物形成后用 improve_result：指出最该抬的那一处并给方向，可带 currentResult 或 files/images；只有明确缺陷才写成「缺陷：…」（最多 2 条），其余保持方向级。两种贡献都不记验收通过；diagnose_failure 与 review_result 保持原义（同样点到为止）。一次一个 scope+focus；视觉先审图再追源码；交付用 delivery 核对覆盖与版本；小任务general兼容。重复失败且没有新证据时用 diagnose_failure：先判断信息增量，再决定继续/缩小实验/换路线。首次准备宣称成果完成时，先取得原始验证证据并自验，再调用 review_result 独立复核；不要提交自己的通过结论。用户指出偏差或关键成果变化后重审相关部分，普通小测试不要重复咨询。分歧应通过针对性证据或用户判断解决，不靠模型投票。默认不设顾问总截止；显式DSH_PO06_ADVISOR_TIMEOUT_MS才设置截止，用户取消与只读轮次上限仍生效；关闭提示词辅助时不可用。',
+    description: '顾问是流程里的**点拨节点**，不是验收闸门：不明白怎么做（entry=understand）、自评不过关（improve）、返工或反复失败（rework）时调它；只有核对**已声明**的验收项才用 verify。它返回两段式：[顾问的理解]（现在…是因为…所以应当…）与 [具体建议]（1..n）。建议是建议，不是要求，可以忽略；它不写代码、不给步骤、不改文件，也不是新增授权。',
     parameters: ADVISOR_PARAMETERS,
     output: {
       schema: { type: 'object', additionalProperties: true },
