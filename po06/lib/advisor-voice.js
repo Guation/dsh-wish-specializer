@@ -10,7 +10,7 @@
 //   ③ 上限 512 token：超了先砍例子、再砍次要建议，**保住"病因 + 最关键一条"**。
 // 开关关掉时调用方根本不会走到这里；这里只负责"有话说时怎么说"。
 
-import { decideDelivery, renderDeliveryGate } from './advisor-delivery-gate.js'
+import { decideDelivery, renderDeliveryGate, isVerificationShaped } from './advisor-delivery-gate.js'
 
 export const ADVISOR_TOKEN_LIMIT = 512
 
@@ -38,7 +38,7 @@ export function deBuild(text) {
     .replace(/`[^`]*`/g, ' ')   // 行内代码＝技术标识符：连内容一起丢，别让 "别用 XxxMaterial" 这种句子漏进来
     .replace(/\b[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*\b/g, ' ')   // camelCase
     .replace(/\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g, ' ')        // snake_case
-    .replace(chinese ? /\b[A-Za-z_][A-Za-z0-9_]{2,}\b/g : /$^/, ' ')
+    // ⚠ 不要再"中文里删所有英文词"：真机把 "verdict = pass" 挖成 "= /"，残句比术语更糟。
     .replace(/^\s*(?:必须修|必须执行|必须|务必)[:：]?\s*/, '')
     .replace(/\s+/g, ' ')
     .trim()
@@ -102,7 +102,10 @@ export function renderAdvisorVoice(report, { english = false } = {}) {
   }
 
   // 交付判断（证据表）：pass→可以交付；failed→先改；unverified 且影响大→让模型 ask 用户。
-  const gateLine = report.__noGate === true ? '' : renderDeliveryGate(decideDelivery(report), english)
+  // 方向/建议类报告（suggestion/continue/…）不谈交付——那正是"把顾问当闸门"的旧病。
+  const gateLine = report.__noGate === true || !isVerificationShaped(report)
+    ? ''
+    : renderDeliveryGate(decideDelivery(report), english)
   let text = [build(understanding, advice), gateLine].filter(Boolean).join('\n\n')
   // 超上限：先砍建议（从尾部），只剩一条还超就压理解句。
   while (estimateTokens(text) > ADVISOR_TOKEN_LIMIT && advice.length > 1) {

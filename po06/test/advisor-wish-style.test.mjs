@@ -48,7 +48,7 @@ test('没话说就是空串（调用方据此整段不出现）', () => {
   assert.equal(renderAdvisorVoice({}), '')
 })
 
-test('中文里混进来的裸标识符也要被清掉（真机实测：unknownOf / summary 会漏）', () => {
+test('camelCase 标识符要清掉，但普通英文词不能删（删除会挖出残句）', () => {
   const d = renderAdvisorVoice({
     verdict: 'gaps',
     summary: '现在 understandingOf 只取 summary，所以理解段只能是状态复述。',
@@ -56,8 +56,9 @@ test('中文里混进来的裸标识符也要被清掉（真机实测：unknownO
     checks: [],
   })
   assert.ok(!d.includes('understandingOf'), 'camelCase 标识符要清掉')
-  assert.ok(!d.includes('summary'), '中文里裸英文词也要清掉')
-  assert.ok(!d.includes('findings'))
+  // 真机教训：把"中文里所有英文词"删掉会把句子挖成 "让 = / / / 且无 检查项" 这种残句，
+  // 比留着术语更糟。所以普通英文词原样保留。
+  assert.ok(d.includes('summary'), '普通英文词保留，不做整词删除')
   assert.ok(d.includes('因果判断'), '正文保留')
 })
 

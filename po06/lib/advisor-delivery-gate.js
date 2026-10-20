@@ -13,6 +13,13 @@ export const DELIVERY_ACTIONS = Object.freeze(['deliver', 'fix', 'ask', 'deliver
 /**
  * @returns {{action:string, failed:string[], unverified:string[], ask?:{question:string,options:Array<{label:string,value:string}>}}}
  */
+/** 只有"验收形状"的报告才谈得上交付：有 checks，或 verdict 是 pass/gaps/unverified。 */
+export function isVerificationShaped(report) {
+  const checks = Array.isArray(report && report.checks) ? report.checks : []
+  if (checks.length) return true
+  return ['pass', 'gaps', 'unverified'].includes(String((report && report.verdict) || ''))
+}
+
 export function decideDelivery(report) {
   const checks = Array.isArray(report && report.checks) ? report.checks : []
   const failed = checks.filter((c) => c && c.status === 'failed')
