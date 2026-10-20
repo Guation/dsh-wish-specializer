@@ -1018,7 +1018,12 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const workState = adapter.capability.observer(sessionId,pol.englishMode?'en':null,{omitCurrent:true,contextText:rendered.text || ''})
         const combinedContext = [rendered.text, workState].filter(Boolean).join('\n\n')
         renderedCtx = combinedContext
-        const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,translationInput:preparedTranslation?.masked })
+        const styleHint = pol.strategy && pol.strategy.subConcepts === 'rich'
+          ? '每条补充都以「——比如：A、B」结尾，列出 1–2 个更小的具体概念（现象、手法、效果的名字）；没有例子的条目不要写。'
+          : pol.strategy && pol.strategy.subConcepts === 'one'
+            ? '最关键的 1–2 条以「——比如：A」结尾，点出一个更小的具体概念。'
+            : ''
+        const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
         const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
