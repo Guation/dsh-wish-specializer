@@ -10,6 +10,8 @@
 //   ③ 上限 512 token：超了先砍例子、再砍次要建议，**保住"病因 + 最关键一条"**。
 // 开关关掉时调用方根本不会走到这里；这里只负责"有话说时怎么说"。
 
+import { decideDelivery, renderDeliveryGate } from './advisor-delivery-gate.js'
+
 export const ADVISOR_TOKEN_LIMIT = 512
 
 const CJK = /[\u3400-\u9fff\uf900-\ufaff]/g
@@ -90,15 +92,17 @@ export function renderAdvisorVoice(report, { english = false } = {}) {
     return lines.join('\n\n')
   }
 
-  let text = build(understanding, advice)
+  // 交付判断（证据表）：pass→可以交付；failed→先改；unverified 且影响大→让模型 ask 用户。
+  const gateLine = report.__noGate === true ? '' : renderDeliveryGate(decideDelivery(report), english)
+  let text = [build(understanding, advice), gateLine].filter(Boolean).join('\n\n')
   // 超上限：先砍建议（从尾部），只剩一条还超就压理解句。
   while (estimateTokens(text) > ADVISOR_TOKEN_LIMIT && advice.length > 1) {
     advice = advice.slice(0, -1)
-    text = build(understanding, advice)
+    text = [build(understanding, advice), gateLine].filter(Boolean).join('\n\n')
   }
   if (estimateTokens(text) > ADVISOR_TOKEN_LIMIT) {
     const short = clip(understanding, 120)
-    text = build(short, advice.slice(0, 1))
+    text = [build(short, advice.slice(0, 1)), gateLine].filter(Boolean).join('\n\n')
   }
   return text
 }

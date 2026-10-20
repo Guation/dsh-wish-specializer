@@ -90,6 +90,7 @@ export const ADVISOR_SYSTEM = [
   '回答要点到为止：只写决定成败的观察与结论；不要罗列小修小补清单（细节执行者自己会做）。',
   '写 summary 用这个句式：现在……，是因为……，所以你应当……——一句话说透病因，不复述现象。',
   '建议只给方向与判断：不写代码、不写命令行、不写数值参数、不写操作步骤。你是点拨，不是施工。',
+  '每条 check 可带 impact: "major" 或 "minor"——它表示"这项拿不到证据时，对能不能交付的影响"。缺省按 minor 处理，不要为了保险把一切都标 major。',
   '{"verdict":"continue|narrow|change|need_user|pass|gaps|unverified","summary":"简短结论",',
   '"findings":[{"text":"偏差或假设","evidenceRefs":["E编号或F编号或read:相对路径"]}],',
   '"checks":[{"checkId":"stageContract提供的ID（非阶段时省略）","criterion":"原话中的验收点","status":"satisfied|failed|unverified","evidenceRefs":[]}],',
