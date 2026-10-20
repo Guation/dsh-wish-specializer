@@ -1021,9 +1021,9 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         // 档位 → 用户消息里的**格式要求**（实测：写在 system 里的规则模型会忽略，写在这里才跟）。
         // 两个轴：subConcepts（举例力度）+ decide（待你拍板的岔路，必须真的问出来）。
         const decideHint = pol.strategy && pol.strategy.tier === 'heavy'
-          ? '并在 decide 里给 1–3 条必须由用户拍板的岔路，格式“问题｜选项A / 选项B｜未定时假设：X”；原话没留空的就别硬造。'
+          ? '只有在原话缺了会改变结果的信息、且你无法推断时，才在 decide 里写 1–3 条“问题｜选项A / 选项B｜未定时假设：X”；能推断或可自由发挥的，就不要问、也不要写死。'
           : pol.strategy && pol.strategy.tier === 'standard'
-            ? '若存在会改变成品的关键岔路，在 decide 里给一条（问题｜选项｜未定时假设）。'
+            ? '若存在原话没给、又无法推断、且会改变成品的关键岔路，才在 decide 里写一条（问题｜选项｜未定时假设）；否则留空。'
             : ''
         const exampleHint = pol.strategy && pol.strategy.subConcepts === 'rich'
           ? '每条补充都以「——比如：A、B」结尾，列出 1–2 个更小的具体概念（现象、手法、效果的名字）；没有例子的条目不要写。'

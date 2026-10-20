@@ -3,7 +3,8 @@
 //   ② 这些岔路要**真的问出来**（add_question），而不是只写在注入文里让执行者默认。
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { renderOptimizerPacket, parseOptimizerValue } from '../lib/optimizer-protocol.js'
+import { renderOptimizerPacket, parseOptimizerValue, composeOptimizerSystem } from '../lib/optimizer-protocol.js'
+import { strategyForTier } from '../lib/strategy.js'
 
 const optimizer = {
   intent: { text: '做一颗 O 型蓝超巨星', relation: 'new' },
@@ -34,4 +35,12 @@ test('decide 会变成带选项的提问（add_question）', () => {
   assert.equal(qs.length, 1, '一个 decide 对应一个问题')
   assert.ok(qs[0].question.text.includes('15–25 M☉'))
   assert.ok(qs[0].question.text.includes('未定时按 20 M☉'))
+})
+
+test('待拍板是条件式的：不许为了问而问', () => {
+  const heavy = renderOptimizerPacket({ intent: { text: 'x', relation: 'new' }, clarify: [], add: ['a'], decide: [], ask: [] }, 'zh', { userText: 'x' })
+  assert.ok(!heavy.includes('待你拍板'), '没有待拍板就不该出现这一节')
+  const sys = composeOptimizerSystem({ strategy: strategyForTier('heavy') }).text
+  assert.ok(sys.includes('只在真的缺信息时才问'), '重度档要写成条件式')
+  assert.ok(!/必须给 1–3 条/.test(sys), '不许强制模型产出待拍板')
 })
