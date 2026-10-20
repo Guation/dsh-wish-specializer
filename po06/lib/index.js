@@ -2307,8 +2307,11 @@ export function apply(ctx, config) {
         if (sidIn && polNow && polNow.advisor !== false) {
           adapter.advisorLedger.tick(sidIn)
           priorText = adapter.advisorLedger.render(sidIn, polNow.englishMode === true)
-          if (priorText && args[1] && typeof args[1].question === 'string') {
-            args = [...args.slice(0, 1), { ...args[1], question: priorText + '\n\n' + args[1].question }, ...args.slice(2)]
+          // ⚠ 注册器传进来的是 (toolArgs, exec)：台账要写进 **args[0].question**，
+          //   写成 args[1] 会去改 exec 对象（真机两次都"没有旧账"，就是这一行写错了）。
+          const toolArgs = args[0]
+          if (priorText && toolArgs && typeof toolArgs.question === 'string') {
+            args = [{ ...toolArgs, question: priorText + '\n\n' + toolArgs.question }, ...args.slice(1)]
           }
         }
       } catch { /* 台账坏掉不影响咨询本身 */ }
