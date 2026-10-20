@@ -63,6 +63,7 @@ import {createContributionMemory,renderContributionFeedback} from './advisor-con
 import { createAdvisorStages } from './advisor-stages.js'
 import { registerAdvisorStageTool } from './advisor-stage-tool.js'
 import { strategyInstructions } from './strategy.js'
+import { createLedger } from './advisor-ledger.js'
 // 0.7.1：内置 Bash —— 原独立插件 dsh-bash-runtime 的实现已并入本包 `lib/bash/`，
 // 运行时随包分发在 `<plugin>/runtime/`。装配即提供；详情里的开关决定是否注册给模型。
 import { apply as applyBashTool } from './bash/index.js'
@@ -2292,11 +2293,38 @@ export function apply(ctx, config) {
     // 顾问的 directive 不只是返回值：记进 adapter，随后随注入文进系统上下文（20 分钟 TTL）。
     // 用户 2026-10-18 的要求是"让顾问真正有作用"，这一步把它的分量从工具结果提到上下文层。
     const executeWithDirective = async (...args) => {
+      // ── 台账（2026-10-20 重构 2/4）────────────────────────────────────────
+      // 调之前：把"上一轮你留下的未结结论"塞进 question，让顾问**先结旧账**；
+      // 调之后：把这次的失败项/观察记进账，并应用它自己给的 resolved/obsolete（只认它的话，不机械作废）。
+      const sidOf = (a) => String(a && a[1] && a[1].agent && a[1].agent.session && a[1].agent.session.id || '')
+      const sidIn = sidOf(args)
+      let priorText = ''
+      try {
+        const polNow = sidIn ? readPolicy({ home: DSH_HOME, sessionId: sidIn }) : null
+        if (sidIn && polNow && polNow.advisor === false) adapter.advisorLedger.clear(sidIn)   // 关掉即清账
+        if (sidIn && polNow && polNow.advisor !== false) {
+          adapter.advisorLedger.tick(sidIn)
+          priorText = adapter.advisorLedger.render(sidIn, polNow.englishMode === true)
+          if (priorText && args[1] && typeof args[1].question === 'string') {
+            args = [...args.slice(0, 1), { ...args[1], question: priorText + '\n\n' + args[1].question }, ...args.slice(2)]
+          }
+        }
+      } catch { /* 台账坏掉不影响咨询本身 */ }
+
       const out = await execute(...args)
       try {
-        const sid = String(args && args[1] && args[1].agent && args[1].agent.session && args[1].agent.session.id || '')
-        if (sid && out && out.ok === true && typeof out.directive === 'string' && out.directive.trim()) {
-          adapter.noteAdvisorDirective(sid, out.directive)
+        if (sidIn && out && out.ok === true) {
+          const rep = out.report || {}
+          const checks = Array.isArray(rep.checks) ? rep.checks : []
+          for (const c of checks) {
+            if (c && c.status === 'failed') adapter.advisorLedger.add(sidIn, { claim: c.criterion, kind: 'check', authority: 'check', severity: 'major', evidence: c.evidenceRefs || [] })
+          }
+          const findings = Array.isArray(rep.findings) ? rep.findings : []
+          for (const f of findings) if (f && f.text) adapter.advisorLedger.add(sidIn, { claim: f.text, kind: 'finding', authority: 'proposal', severity: 'minor', evidence: f.evidenceRefs || [] })
+          if (Array.isArray(rep.resolvedClaims)) adapter.advisorLedger.applyUpdates(sidIn, rep.resolvedClaims)
+        }
+        if (sidIn && out && out.ok === true && typeof out.directive === 'string' && out.directive.trim()) {
+          adapter.noteAdvisorDirective(sidIn, out.directive)
         }
       } catch { /* 记不上也不影响这次答复 */ }
       return out
@@ -2330,6 +2358,7 @@ export function apply(ctx, config) {
     steps: {},
   }
 
+  adapter.advisorLedger = createLedger()
   adapter.services.agents = ctx.get('agents') || null
   adapter.services.sessionController = ctx.get('sessionController') || null
   // 插件自己的按会话状态存储（EV-0081：状态由我们自己拥有，不写会话日志）
