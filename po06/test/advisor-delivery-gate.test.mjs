@@ -45,3 +45,20 @@ test('渲染进顾问块：证据齐全时带"可以交付"，有 failed 时带"
   const bad = renderAdvisorVoice({ verdict: 'gaps', summary: '现在轮廓还是玩具感。', checks: [c('轮廓', 'failed')] })
   assert.match(bad, /还不能交付/)
 })
+
+test('没有 checks 时按 verdict 兜底：unverified ⇒ 问用户，gaps ⇒ 先改', () => {
+  const ask = decideDelivery({ verdict: 'unverified', checks: [] })
+  assert.equal(ask.action, 'ask')
+  const fix = decideDelivery({ verdict: 'gaps', checks: [] })
+  assert.equal(fix.action, 'fix')
+  const ok = decideDelivery({ verdict: 'pass', checks: [] })
+  assert.equal(ok.action, 'deliver')
+})
+
+test('ask 的选项要真的渲染出来（模型照着问，不自己编）', () => {
+  const d = decideDelivery({ checks: [c('材质分区', 'unverified', { impact: 'major' })] })
+  const text = renderDeliveryGate(d)
+  assert.match(text, /接受风险/)
+  assert.match(text, /先补证据|先去补证据|先补证/)
+  assert.match(text, /口径/)
+})

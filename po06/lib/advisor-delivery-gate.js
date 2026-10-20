@@ -21,7 +21,27 @@ export function decideDelivery(report) {
   if (failed.length) {
     return { action: 'fix', failed: failed.map((c) => String(c.criterion || '')).filter(Boolean), unverified: [] }
   }
-  if (!unverified.length) return { action: 'deliver', failed: [], unverified: [] }
+  // 没有 checks 时按 verdict 兜底：顾问明说"验不了"就该问用户，别默认放行。
+  if (!unverified.length) {
+    const verdict = String((report && report.verdict) || '')
+    if (verdict === 'unverified') {
+      return {
+        action: 'ask',
+        failed: [],
+        unverified: ['（顾问没有给出可核验的检查项）'],
+        ask: {
+          question: '顾问这次没有给出可核验的证据，没法确认能不能交付。你想怎么处理？',
+          options: [
+            { label: '接受风险，按现状交付', value: 'accept' },
+            { label: '先去补证据', value: 'fix' },
+            { label: '换一种可验证的验收口径', value: 'redefine' },
+          ],
+        },
+      }
+    }
+    if (verdict === 'gaps') return { action: 'fix', failed: ['（顾问判定有缺口，但没有列出具体检查项）'], unverified: [] }
+    return { action: 'deliver', failed: [], unverified: [] }
+  }
 
   // 拿不到证据：只有"影响大"才问用户；impact/severity 缺省算 minor（不要为了保险把什么都升级成阻塞）
   const major = unverified.filter((c) => c.impact === 'major' || c.severity === 'major')
@@ -54,9 +74,11 @@ export function renderDeliveryGate(decision, english = false) {
       : '【交付判断】还不能交付：' + decision.failed.join('；') + ' 仍未通过。'
   }
   if (decision.action === 'ask') {
+    const opts = (decision.ask && Array.isArray(decision.ask.options) ? decision.ask.options : [])
+      .map((o) => '· ' + o.label).join('\n')
     return english
-      ? '[Delivery gate] Some evidence is unobtainable — ask the user before delivering: ' + decision.unverified.join('; ')
-      : '【交付判断】有证据拿不到，交付前先问用户（用 ask 工具，带选项）：' + decision.unverified.join('；') + '。'
+      ? '[Delivery gate] Some evidence is unobtainable — ask the user before delivering: ' + decision.unverified.join('; ') + (opts ? '\nAsk with these options:\n' + opts : '')
+      : '【交付判断】有证据拿不到，交付前先问用户（用 ask 工具，选项照下面给）：' + decision.unverified.join('；') + (opts ? '\n' + opts : '')
   }
   if (decision.action === 'deliver-with-note') {
     return english

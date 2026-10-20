@@ -64,3 +64,13 @@ test('渲染成顾问输入的一段，没有未结项就返回空串', () => {
   L.add('s1', { claim: '地面接触阴影缺失' }, { turn: 1 })
   assert.match(L.render('s1'), /你上次留下的未结结论[\s\S]*地面接触阴影缺失/)
 })
+
+test('顾问报告里的 resolvedClaims 会原样保留（供台账销账）', async () => {
+  const { parseAdvisorReport } = await import('../lib/advisor.js')
+  const parsed = parseAdvisorReport(JSON.stringify({
+    verdict: 'gaps', summary: '现在还有两处没结。', findings: [], checks: [],
+    resolvedClaims: [{ id: 'adv-1', status: 'resolved', note: '已按新材质重做' }],
+  }), [], 'review_result')
+  assert.equal(parsed.ok, true)
+  assert.deepEqual(parsed.report.resolvedClaims, [{ id: 'adv-1', status: 'resolved', note: '已按新材质重做' }])
+})
