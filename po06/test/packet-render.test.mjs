@@ -25,10 +25,11 @@ test('补充按重要性编号；没有硬上限（用户明确不要）', () =>
   assert.equal((text.match(/^\d+\. /gm) || []).length, 16)
 })
 
-test('反问不进注入文（机器的问题不许混进上下文）', () => {
+test('反问以「待你拍板」小节进注入文（2026-10-20 改口径：它是给人的选择题）', () => {
   const text = renderOptimizerPacket({ ...base, ask: ['要展厅还是赛道？'] }, 'zh')
-  assert.equal(text.includes('要展厅还是赛道？'), false)
-  assert.equal(text.includes('需要反问的点'), false)
+  assert.ok(text.includes('要展厅还是赛道？'), '选项要让人看见')
+  assert.ok(text.includes('待你拍板'), '要有独立小节')
+  assert.equal(text.includes('需要反问的点'), false, '旧的"反问"标题不再出现')
 })
 
 test('技术名词降级成效果词（只动机器文本）', () => {

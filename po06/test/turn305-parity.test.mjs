@@ -79,12 +79,19 @@ test('unchanged capability/contribution authority stays historical; claim-policy
  // 与历史的差异必须**逐项列出来**（本测试的用处就是"看不出来的漂移"为零）。现在有三处：
  //   subjectPaths（新增，只绑定版本不新增验收目标）、requiredScopes/requiredReviews（GitHub #33A）。
  // 2026-10-19：贡献改成"方向性要求"后，mode 的描述也改了（与历史有意不同；枚举集合不变）。
- const {subjectPaths,requiredScopes,requiredReviews,mode:currentMode,...properties}=ADVISOR_PARAMETERS.properties
+ // 2026-10-20：顾问入口化 —— 新增 entry、required 从 ['mode','question'] 降为 ['question']。漂移显式列出。
+ const {subjectPaths,requiredScopes,requiredReviews,mode:currentMode,entry:_entry,...properties}=ADVISOR_PARAMETERS.properties
  // 历史那一侧也要把同样三项摘掉再比 —— 否则比的是"谁少两个键"，不是"其余是否逐字一致"。
  const {requiredScopes:_hScopes,requiredReviews:_hReviews,mode:historicalMode,...historicalProperties}=historicalAdvisor.ADVISOR_PARAMETERS.properties
  assert.deepEqual(currentMode.enum,historicalMode.enum,'模式集合不变')
  assert.ok(currentMode.description.includes('方向性要求')&&historicalMode.description.includes('贡献具体解法'),'mode 描述是有意改的')
- assert.deepEqual({...ADVISOR_PARAMETERS,properties},{...historicalAdvisor.ADVISOR_PARAMETERS,properties:historicalProperties});assert.ok(subjectPaths)
+ assert.deepEqual(ADVISOR_PARAMETERS.required,['question'],'mode 降为别名后不再是必填（有意漂移）')
+ assert.deepEqual(historicalAdvisor.ADVISOR_PARAMETERS.required,['mode','question'],'历史是 mode 必填')
+ assert.ok(ADVISOR_PARAMETERS.properties.entry,'entry 是新增参数（有意漂移）')
+ // required 已在上面单独比过，这里摘掉再比其余字段（否则比的是"谁少一个键"）。
+ const {required:_curRequired,...currentRest}=ADVISOR_PARAMETERS
+ const {required:_hisRequired,...historicalRest}=historicalAdvisor.ADVISOR_PARAMETERS
+ assert.deepEqual({...currentRest,properties},{...historicalRest,properties:historicalProperties});assert.ok(subjectPaths)
  // GitHub #33A：这两个参数的**全部**消费方都在 delivery 分支内，非 delivery 下是纯 no-op。
  // 历史实现按硬错误拒掉整次调用（真机某会话 21 连败 0 成功），而 schema 的 enum 又把 8 个值全给 ⇒ 照 schema 选值必被拒。
  // 现在：enum 收紧到"delivery 里真正允许的维度"、描述写明 no-op 与拒绝理由；其余字段逐项与历史一致。

@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-19T14:42:48.390Z",
+  "at": "2026-10-20T12:17:17.879Z",
   "summary": {
-    "suites": 123,
-    "passed": 123,
+    "suites": 132,
+    "passed": 132,
     "failed": 0,
-    "passTotal": 1326,
+    "passTotal": 1373,
     "failing": []
   },
   "results": [
@@ -44,8 +44,29 @@
       "ok": true
     },
     {
+      "file": "advisor-delivery-gate.test.mjs",
+      "pass": 8,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "advisor-delivery.test.mjs",
       "pass": 11,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-e2e-contract.test.mjs",
+      "pass": 3,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-entries.test.mjs",
+      "pass": 4,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -74,6 +95,13 @@
     {
       "file": "advisor-host-registration.test.mjs",
       "pass": 1,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-ledger.test.mjs",
+      "pass": 8,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -135,6 +163,13 @@
       "ok": true
     },
     {
+      "file": "advisor-session.test.mjs",
+      "pass": 5,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "advisor-stage-card.test.mjs",
       "pass": 11,
       "fail": 0,
@@ -170,8 +205,15 @@
       "ok": true
     },
     {
+      "file": "advisor-switch.test.mjs",
+      "pass": 2,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "advisor-wish-style.test.mjs",
-      "pass": 4,
+      "pass": 7,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -653,6 +695,13 @@
       "ok": true
     },
     {
+      "file": "pending-decisions.test.mjs",
+      "pass": 4,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "pipeline.test.mjs",
       "pass": 23,
       "fail": 0,
@@ -682,6 +731,13 @@
     },
     {
       "file": "preset-notice.test.mjs",
+      "pass": 3,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "preset-packaging.test.mjs",
       "pass": 3,
       "fail": 0,
       "exit": 0,
@@ -821,6 +877,13 @@
       "ok": true
     },
     {
+      "file": "tier-subconcepts.test.mjs",
+      "pass": 5,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "tool-note.test.mjs",
       "pass": 3,
       "fail": 0,
@@ -843,7 +906,7 @@
     },
     {
       "file": "verifier-html.test.mjs",
-      "pass": 1,
+      "pass": 3,
       "fail": 0,
       "exit": 0,
       "ok": true
