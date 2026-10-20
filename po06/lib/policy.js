@@ -92,6 +92,9 @@ export function policyFor(settings, sessionId) {
     readTools: s.readTools,
     // 0.7.1：内置 Bash 的开关（host 侧据此决定是否把 bash 工具注册给模型）。
     bash: s.bash,
+    // 2026-10-20：顾问开关。**不加这一行，pol.advisor 永远是 undefined**，
+    // 于是"关掉顾问"既不会拦工具、也不会停注入——一个死开关（真机测试抓到的）。
+    advisor: s.advisor !== false,
     // 0.7.5：**按模型的思考档位表**（{ "provider/model": "effortId" }）。
     // ⚠ 必须出现在这里——引擎读的是 pol.*，政策里没有的字段会静默变 undefined，
     // 于是"档位设置"就成了又一个死开关（P10 那三个死开关的教训，见上面那段注释）。
