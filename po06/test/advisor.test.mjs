@@ -207,7 +207,7 @@ test('预先取消不调用模型，卸载会取消在途顾问', async () => {
   await started;active.dispose()
   assert.equal((await pending).reason,'advisor-cancelled')
 })
-test('顾问指令：把报告压成可执行的要求，而不是一段"仅供参考"', () => {
+test('顾问指令：两段式（理解 + 具体建议），不再输出祈使命令', () => {
   const directive = advisorDirective({
     verdict: 'gaps',
     summary: '两处阴影偏差尚未修复。',
@@ -216,14 +216,15 @@ test('顾问指令：把报告压成可执行的要求，而不是一段"仅供�
     nextStep: '先修曲面连续性，再拍同角度截图对比',
     stopCondition: '同角度前后对比无硬边',
   }, 'review_result')
-  assert.ok(directive.includes('必须修：车身曲面连续'), '未通过的验收项要变成"必须修"')
-  assert.ok(directive.includes('注意：车门接缝处有明显硬边'), '观察项要进指令')
-  assert.ok(directive.includes('下一步：先修曲面连续性'), '下一步要进指令')
-  assert.ok(directive.includes('停止条件：'), '停止条件要进指令')
-  assert.ok(directive.includes('不是“仅供参考”'), '要明确它不是摆设')
-  // 降级报告：注记格式不完整，但不冒充通过
+  assert.ok(directive.includes('【顾问的理解】'), '要有理解段')
+  assert.ok(directive.includes('【具体建议】'), '要有建议段')
+  assert.ok(directive.includes('车身曲面连续'), '未通过的验收项要进建议')
+  assert.ok(directive.includes('车门接缝处有明显硬边'), '观察项要进建议')
+  assert.ok(!directive.includes('必须修'), '不再用祈使前缀')
+  assert.ok(!directive.includes('【顾问指令'), '旧的"顾问指令 · 必须执行"退出')
+  // 降级报告：照样只给两段式，不冒充通过
   const degraded = advisorDirective({ verdict: 'unverified', summary: '画面发灰。', degraded: true, checks: [], findings: [] }, 'review_result')
-  assert.ok(degraded.includes('已降级采纳'))
+  assert.ok(degraded.includes('【顾问的理解】'))
   assert.ok(!degraded.includes('必须修'))
 })
 

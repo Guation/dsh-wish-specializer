@@ -30,8 +30,9 @@ t('默认政策随新装默认（重度）：预算 2000、一批 3 个问题、
   eq(p.assist, DEFAULT_ASSIST, '默认自动辅助')
   eq(p.detail, 'detailed', '默认档位（2026-10-18 起默认重度）')
   eq(p.budget, 'generous', '默认预算档（2026-10-18 起默认重度）')
-  eq(p.packetBudgetChars, DETAIL_BUDGET.detailed, '包预算 = detailed（2026-10-18 起默认重度）')
-  eq(p.packetBudgetChars, 2000, '字面值也钉住：改它必须是有意识的动作')
+  eq(p.packetBudgetTokens, 2048, 'token 预算 = 2048（2026-10-20 用户定）')
+  eq(p.packetBudgetChars, Math.round(2048 * 1.4), '字符预算是 token 的中文换算值（宿主只认字符）')
+  eq(p.packetBudgetChars, Math.round(2048 * 1.4), '字面值也钉住：改它必须是有意识的动作')
   eq(p.maxQuestions, 3, '提问配额默认 3（generous，2026-10-18 起）')
 })
 
@@ -48,7 +49,7 @@ t('detail 三档 → 三档预算，且单调（minimal < standard < detailed）
   const b = policyFor({ detail: 'standard' }).packetBudgetChars
   const c = policyFor({ detail: 'detailed' }).packetBudgetChars
   ok(a < b && b < c, '必须单调递增：' + [a, b, c].join(' < '))
-  eq(a, DETAIL_BUDGET.minimal, 'minimal 值')
+  eq(a, Math.round(512 * 1.4), 'minimal 值（512 token 的中文换算）')
   eq(policyFor({ detail: 'nonsense' }).packetBudgetChars, c, '非法值 ⇒ 回落默认（detailed）')
 })
 
@@ -65,16 +66,16 @@ t('readPolicy：缺文件/坏 JSON/字段乱写 ⇒ 一律默认政策（绝不�
   const home = dir
   const p0 = readPolicy({ home })
   eq(p0.source, 'default', '没有配置文件 ⇒ 来源是 default')
-  eq(p0.packetBudgetChars, 2000, '默认预算（重度）')
+  eq(p0.packetBudgetTokens, 2048, '默认预算（重度）')
 
   writeFileSync(join(home, 'po06.json'), '{ 坏的', 'utf8')
   const p1 = readPolicy({ home })
-  eq(p1.packetBudgetChars, 2000, '坏 JSON ⇒ 默认（不猜、不放宽）')
+  eq(p1.packetBudgetTokens, 2048, '坏 JSON ⇒ 默认（不猜、不放宽）')
 
   writeFileSync(join(home, 'po06.json'), JSON.stringify({ settingsVersion: 1, enabled: true, detail: 'detailed', budget: 'minimal', assist: 'off' }), 'utf8')
   const p2 = readPolicy({ home })
   eq(p2.source, 'config', '有配置 ⇒ 来源是 config')
-  eq(p2.packetBudgetChars, DETAIL_BUDGET.detailed, '读到了 detailed 的预算')
+  eq(p2.packetBudgetTokens, 2048, '读到了 detailed 的预算')
   eq(p2.maxQuestions, 1, '读到了 minimal 的配额')
   eq(p2.injectPacket, false, '读到了 assist=off')
 })
@@ -83,7 +84,7 @@ t('readPolicy：缺文件/坏 JSON/字段乱写 ⇒ 一律默认政策（绝不�
 t('readPolicy 接受注入的 readFile（便于测试与替换 IO）', () => {
   const fake = readPolicy({ home: 'X:/nope', readFile: () => JSON.stringify({ detail: 'minimal' }) })
   eq(fake.source, 'config', '注入了读函数 ⇒ 走 config')
-  eq(fake.packetBudgetChars, DETAIL_BUDGET.minimal, '值来自注入内容')
+  eq(fake.packetBudgetTokens, 512, '值来自注入内容（minimal = 512 token）')
   const nul = readPolicy({ home: 'X:/nope', readFile: () => null })
   eq(nul.source, 'default', '读不到 ⇒ default')
 })

@@ -1030,7 +1030,12 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
           : pol.strategy && pol.strategy.subConcepts === 'one'
             ? '最关键的 1–2 条以「——比如：A」结尾，点出一个更小的具体概念。'
             : ''
-        const styleHint = [exampleHint, decideHint].filter(Boolean).join(' ')
+        // 预算按 token 计（2048 重度）：换算成"大约多少字"写进提示词，避免模型按字数无意识膨胀。
+        const budgetTokens = pol.packetBudgetTokens || 2048
+        const budgetHint = pol.englishMode
+          ? '补充总量控制在 ' + budgetTokens + ' token 以内（英文约 ' + Math.round(budgetTokens * 0.75) + ' 词）。'
+          : '补充总量控制在 ' + budgetTokens + ' token 以内（中文约 ' + Math.round(budgetTokens * 1.4) + ' 字）。'
+        const styleHint = [exampleHint, decideHint, budgetHint].filter(Boolean).join(' ')
         const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
         const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
@@ -1827,7 +1832,9 @@ class DshAdapter {
     const packet=this.getIntentText(sessionId)
     const base = this.reviewedPackets.has(String(sessionId)) ? [packet,feedback].filter(Boolean).join('\n\n')
       : this.capability.render(String(sessionId),packet,feedback,this.policyNow(sessionId)?.englishMode?'en':null)
-    const directive = this.activeAdvisorDirective(sessionId)
+    // 顾问开关关掉时**整段不出现**（用户 2026-10-20：关掉要退化成线性流程，不留半截结构）。
+    const advisorOn = this.policyNow(sessionId)?.advisor !== false
+    const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
     return directive ? [base, directive].filter(Boolean).join('\n\n') : base
   }
 

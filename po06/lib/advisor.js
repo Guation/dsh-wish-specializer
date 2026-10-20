@@ -1,3 +1,4 @@
+import { renderAdvisorVoice } from './advisor-voice.js'
 import { runReadOnlyToolLoop } from './read-tools.js'
 import {traceReadMaterials,mergeReadMaterialVersions} from './advisor-read-materials.js'
 import {drainAdvisor,combineAdvisorUsage} from './advisor-stream.js'
@@ -357,7 +358,13 @@ export function parseAdvisorReport(text, evidenceIds, mode, resultIds = evidence
  * 把顾问报告压成一段**可直接执行的要求**（用户 2026-10-18：顾问不该只是个摆设）。
  * 它不新增结论，只把 report 里已经有的东西排成祈使句：先做什么、什么算没改完、何时停。
  */
+// ⚠ 2026-10-20 重构：顾问的声音统一走 advisor-voice（两段式、512 token、禁施工图）。
+// 名字保留给既有调用方；mode 不再影响形态——"方向指引"与"产出拔高"是同一件事。
 export function advisorDirective(report, mode = 'review_result') {
+  return renderAdvisorVoice(report)
+}
+
+function legacyAdvisorDirective(report, mode = 'review_result') {
   if (!report || typeof report !== 'object') return ''
   const clip1 = (s, n) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, n)
   const lines = ['【顾问指令 · 必须执行】']
