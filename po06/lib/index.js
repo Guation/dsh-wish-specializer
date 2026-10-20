@@ -64,6 +64,7 @@ import { createAdvisorStages } from './advisor-stages.js'
 import { registerAdvisorStageTool } from './advisor-stage-tool.js'
 import { strategyInstructions } from './strategy.js'
 import { createLedger } from './advisor-ledger.js'
+import { createAdvisorWrapper } from './advisor-session.js'
 // 0.7.1：内置 Bash —— 原独立插件 dsh-bash-runtime 的实现已并入本包 `lib/bash/`，
 // 运行时随包分发在 `<plugin>/runtime/`。装配即提供；详情里的开关决定是否注册给模型。
 import { apply as applyBashTool } from './bash/index.js'
@@ -2294,47 +2295,12 @@ export function apply(ctx, config) {
     })
     // 顾问的 directive 不只是返回值：记进 adapter，随后随注入文进系统上下文（20 分钟 TTL）。
     // 用户 2026-10-18 的要求是"让顾问真正有作用"，这一步把它的分量从工具结果提到上下文层。
-    const executeWithDirective = async (...args) => {
-      // ── 台账（2026-10-20 重构 2/4）────────────────────────────────────────
-      // 调之前：把"上一轮你留下的未结结论"塞进 question，让顾问**先结旧账**；
-      // 调之后：把这次的失败项/观察记进账，并应用它自己给的 resolved/obsolete（只认它的话，不机械作废）。
-      const sidOf = (a) => String(a && a[1] && a[1].agent && a[1].agent.session && a[1].agent.session.id || '')
-      const sidIn = sidOf(args)
-      let priorText = ''
-      try {
-        const polNow = sidIn ? readPolicy({ home: DSH_HOME, sessionId: sidIn }) : null
-        if (sidIn && polNow && polNow.advisor === false) adapter.advisorLedger.clear(sidIn)   // 关掉即清账
-        if (sidIn && polNow && polNow.advisor !== false) {
-          adapter.advisorLedger.tick(sidIn)
-          priorText = adapter.advisorLedger.render(sidIn, polNow.englishMode === true)
-          // ⚠ 注册器传进来的是 (toolArgs, exec)：台账要写进 **args[0].question**，
-          //   写成 args[1] 会去改 exec 对象（真机两次都"没有旧账"，就是这一行写错了）。
-          const toolArgs = args[0]
-          if (priorText && toolArgs && typeof toolArgs.question === 'string') {
-            args = [{ ...toolArgs, question: priorText + '\n\n' + toolArgs.question }, ...args.slice(1)]
-          }
-        }
-      } catch { /* 台账坏掉不影响咨询本身 */ }
+    // 台账接线抽到 lib/advisor-session.js（可测；真机两次"没有旧账"就是这段写错 args 下标）
+    const executeWithDirective = createAdvisorWrapper({
+      ledger: adapter.advisorLedger,
+      policyFor: (sid) => readPolicy({ home: DSH_HOME, sessionId: sid }),
+    })(execute)
 
-      const out = await execute(...args)
-      try {
-        if (sidIn && out && out.ok === true) {
-          const rep = out.report || {}
-          const checks = Array.isArray(rep.checks) ? rep.checks : []
-          for (const c of checks) {
-            if (c && c.status === 'failed') adapter.advisorLedger.add(sidIn, { claim: c.criterion, kind: 'check', authority: 'check', severity: 'major', evidence: c.evidenceRefs || [] })
-          }
-          const findings = Array.isArray(rep.findings) ? rep.findings : []
-          for (const f of findings) if (f && f.text) adapter.advisorLedger.add(sidIn, { claim: f.text, kind: 'finding', authority: 'proposal', severity: 'minor', evidence: f.evidenceRefs || [] })
-          if (Array.isArray(rep.resolvedClaims)) adapter.advisorLedger.applyUpdates(sidIn, rep.resolvedClaims)
-        }
-        if (sidIn && out && out.ok === true && typeof out.directive === 'string' && out.directive.trim()) {
-          adapter.noteAdvisorDirective(sidIn, out.directive)
-        }
-      } catch { /* 记不上也不影响这次答复 */ }
-      return out
-    }
-    try { if (typeof execute.dispose === 'function') executeWithDirective.dispose = execute.dispose } catch { /* 只读就算了 */ }
     scope.effect(() => {
       const dispose = registerAdvisorTool(scope, executeWithDirective)
       const stageDispose = registerAdvisorStageTool(scope, advisorStages, {
