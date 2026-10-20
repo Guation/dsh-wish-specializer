@@ -19,18 +19,18 @@ export const OPTIMIZER_TIERS = Object.freeze({
     // 仍然禁止代码、参数、步骤，也禁止据此替用户拍板。
     "light": "轻度：只补 2–3 条（宁少勿多）最影响成品观感或可用性的方向要求（例如质感、光影、结构比例），保持简洁；**只给方向，不展开更小的子概念或例子**；不做实现指导，也不重复原话。",
     "standard": "标准：4–6 条，覆盖审美基调、光影与材质、构图与层次、场景与交互的关键方向，并给一句验收口径；其中**最关键的那 1–2 条**在末尾用「——比如：A」点出一个更小的具体概念（一种现象、一种手法、一种效果的名字），把方向往下发散一层；具体怎么实现交给工作模型。",
-    "heavy": "重度：条数与标准相当（4–6 条），把最决定成败的几条写透（不凑维度、不逐项罗列）。**每一条都必须带例子**：在该条末尾用「——比如：A、B」列出 1–2 个**更小的具体概念**（现象、手法、效果的名字），（讲光就点名丁达尔效应、逆光轮廓、湿地面反射、体积光里的浮尘这类；讲材质就点名铸件砂眼、补漆色差、雨水流痕这类）；没有例子的条目宁可不写；示范一条：“主光要能勾出体积——比如：丁达尔光束、湿润地面的反光斑、逆光下的轮廓”。允许因此覆盖**更多大方向**（审美 / 光 / 材质 / 构图 / 叙事 / 交互 / 声音 / 物理 / 氛围都可用），但**仍然不写代码、不写数值参数、不写实现步骤，也不据此替用户选定具体对象或方案**；再加一条阶段拆分建议，提醒别在局部过度打磨。",
+    "heavy": "重度：条数与标准相当（4–6 条），把最决定成败的几条写透（不凑维度、不逐项罗列）。**每一条都必须带例子**：在该条末尾用「——比如：A、B」列出 1–2 个**更小的具体概念**（现象、手法、效果的名字），（讲光就点名丁达尔效应、逆光轮廓、湿地面反射、体积光里的浮尘这类；讲材质就点名铸件砂眼、补漆色差、雨水流痕这类）；没有例子的条目宁可不写；示范一条：“主光要能勾出体积——比如：丁达尔光束、湿润地面的反光斑、逆光下的轮廓”。允许因此覆盖**更多大方向**（审美 / 光 / 材质 / 构图 / 叙事 / 交互 / 声音 / 物理 / 氛围都可用），但**仍然不写代码、不写数值参数、不写实现步骤，也不据此替用户选定具体对象或方案**；再加一条阶段拆分建议，提醒别在局部过度打磨。**必须给 1–3 条 ask**：把原话没给、但会改变成品的岔路（对象/规模/形态/技术路线/结局）写成\"问题｜选项A / 选项B｜未定时假设：X\"，交给用户拍板；没有就留空，绝不在补充里写死。",
   },
   "en": {
     "light": "Light: add only 2–3 directional requirements (fewer is fine) that most affect how the result looks or works (texture, light, proportion). Keep it short; give directions only, no smaller sub-concepts or examples; no implementation guidance, no restating.",
     "standard": "Standard: 4–6 items covering aesthetic register, light and material, composition and depth, setting and interaction, plus one line defining the acceptance bar. For the 1–2 most important items, end with \"-- e.g. A\" naming ONE smaller concrete concept (a phenomenon, technique or effect) to push the direction one level down. Leave implementation to the working model.",
-    "heavy": "Heavy: keep the item count comparable to Standard (4–6) and write the few decisive demands in depth (no dimension checklist, no one-line-per-dimension). **Every item must carry an example**: end the item with \"-- e.g. A, B\" naming 1–2 **smaller concrete concepts** (phenomena, techniques, effect names); for light that means things like Tyndall shafts, backlit rim, wet-ground reflections, dust in volumetric light; if an item has no example, drop it. This may legitimately cover **more big directions** (aesthetics / light / material / composition / narrative / interaction / sound / physics / atmosphere). Still no code, no numeric parameters, no implementation steps, and never use this to pick the specific object or approach for the user. Add one note to stage the work so no single detail is over-polished.",
+    "heavy": "Heavy: keep the item count comparable to Standard (4–6) and write the few decisive demands in depth (no dimension checklist, no one-line-per-dimension). **Every item must carry an example**: end the item with \"-- e.g. A, B\" naming 1–2 **smaller concrete concepts** (phenomena, techniques, effect names); for light that means things like Tyndall shafts, backlit rim, wet-ground reflections, dust in volumetric light; if an item has no example, drop it. This may legitimately cover **more big directions** (aesthetics / light / material / composition / narrative / interaction / sound / physics / atmosphere). Still no code, no numeric parameters, no implementation steps, and never use this to pick the specific object or approach for the user. Add one note to stage the work so no single detail is over-polished. **Always return 1–3 ask entries**: forks the original leaves open that would change the result (object / scale / form / approach / outcome), written as \"question | option A / option B | assumption if unanswered\"; leave empty when there is none, and never hard-code an answer in the additions.",
   }
 })
 
 export const OPTIMIZER_FORMAT = Object.freeze({
-  "zh": "只输出 JSON：{\"intent\":{\"text\":\"本轮意图\",\"relation\":\"continue\"},\"clarify\":[],\"add\":[],\"ask\":[]}。relation 为 new/continue/uncertain，明确换任务才 new。add 的每一项是一条**方向性要求**（一两句，直接可执行），不是实现步骤或代码；无内容留空或省略。理解、澄清、建议与反问都不构成新增用户授权。",
-  "en": "Return JSON only: {\"intent\":{\"text\":\"current intent\",\"relation\":\"continue\"},\"clarify\":[],\"add\":[],\"ask\":[]}. relation is new/continue/uncertain; use new only for a clear task switch. Array entries are natural-language strings with brief examples, reasons or premises when useful; empty arrays may be omitted. Interpretations, clarifications, advice and questions do not add user authorization."
+  "zh": "只输出 JSON：{\"intent\":{\"text\":\"本轮意图\",\"relation\":\"continue\"},\"clarify\":[],\"add\":[],\"decide\":[],\"ask\":[]}。decide 只放**必须由用户拍板**的岔路，每条写成\"问题｜选项A / 选项B / 选项C｜未定时假设：X\"（1–3 条即可，没有就留空数组）。relation 为 new/continue/uncertain，明确换任务才 new。add 的每一项是一条**方向性要求**（一两句，直接可执行），不是实现步骤或代码；无内容留空或省略。理解、澄清、建议与反问都不构成新增用户授权。",
+  "en": "Return JSON only: {\"intent\":{\"text\":\"current intent\",\"relation\":\"continue\"},\"clarify\":[],\"add\":[],\"decide\":[],\"ask\":[]}. decide holds only forks the USER must settle: \"question | option A / option B / option C | assumption if unanswered\" (one to three; empty array when none). relation is new/continue/uncertain; use new only for a clear task switch. Array entries are natural-language strings with brief examples, reasons or premises when useful; empty arrays may be omitted. Interpretations, clarifications, advice and questions do not add user authorization."
 })
 
 export const OPTIMIZER_OPTIONS = Object.freeze({
@@ -97,12 +97,29 @@ export function parseOptimizerValue(value, { sessionId, messageId, baseRevision,
   const relation = ['new', 'continue', 'uncertain'].includes(intent.relation) ? intent.relation : 'uncertain'
   if (relation !== intent.relation) warnings.push('intent.relation missing or invalid; kept uncertain')
   const optimizer = { version: OPTIMIZER_PROTOCOL_VERSION, intent: { text: intent.text.trim(), relation } }
-  for (const field of ['clarify', 'add', 'ask']) {
+  // decide 要有容错：模型经常给**对象**（{question, options, assumption}），
+  // 严格判"必须是字符串"会让整轮被判非法、注入文退化成空的（真机 2026-10-19 连空两次）。
+  // 这里统一压成"问题｜选项A / 选项B｜未定时假设：X"；坏条目丢弃，不连坐整轮。
+  if (Array.isArray(value.decide)) {
+    value.decide = value.decide.map((x) => {
+      if (typeof x === 'string') return x.trim()
+      if (x && typeof x === 'object') {
+        const q = String(x.question || x.q || x.text || '').trim()
+        const opts = Array.isArray(x.options) ? x.options.map((o) => String(o)).join(' / ') : String(x.options || '').trim()
+        const asm = String(x.assumption || x.default || x.otherwise || '').trim()
+        return [q, opts, asm ? ('未定时假设：' + asm) : ''].filter(Boolean).join('｜')
+      }
+      return ''
+    }).filter(Boolean)
+  }
+  for (const field of ['clarify', 'add', 'ask', 'decide']) {
     if (value[field] !== undefined && !Array.isArray(value[field])) return bad(field + ' must be an array of strings')
     if ((value[field] || []).some(s => typeof s !== 'string')) return bad(field + ' must contain natural-language strings')
     optimizer[field] = (value[field] || []).map(s => s.trim()).filter(Boolean)
   }
   if (value.ops !== undefined || value.understanding !== undefined || value.support !== undefined) warnings.push('legacy metadata ignored in a v3 response; host assigns provenance and state')
+  // decide：每条 "问题｜选项A / 选项B｜未定时假设：X" —— 结构化"待你拍板"，直接变成带选项的问题。
+  optimizer.decide = (optimizer.decide || []).filter(Boolean)
   const scope = createHash('sha256').update(JSON.stringify([sessionId, messageId, baseInputRevision, causeId])).digest('hex').slice(0, 16)
   const ops = []
   for (const [field, kind] of [['clarify', 'quality_interpretation'], ['add', 'proposal'], ['ask', 'unknown']]) {
@@ -118,6 +135,20 @@ export function parseOptimizerValue(value, { sessionId, messageId, baseRevision,
       } })
     })
   }
+  // decide → 真的**问出来**（用户 2026-10-19：未拍板的项要直接 ask，并给出选项）。
+  // 走与 ask 同一条通路（add_item + add_question），只是 optimizerSection 标成 decide，
+  // 文本里保留"选项 A / B / C"和"未定时假设"，界面因此能直接让用户挑。
+  optimizer.decide.forEach((text, i) => {
+    const id = 'opt3-' + scope + '-decide-' + i
+    const item = { id, kind: 'unknown', text, provenance: 'machine', optimizerSection: 'decide',
+      sourceRefs: [{ kind: 'model', sessionId: String(sessionId || '') }], unknownClass: 'user_preference', blocksAction: false }
+    ops.push({ op: 'add_item', item })
+    ops.push({ op: 'add_question', question: {
+      id: 'q-' + id, decisionId: id, itemId: id, text, status: 'proposed',
+      turnId: 'turn:' + String(messageId || ''),
+      whyNeeded: 'Optimizer marked this as a decision only you can make; nothing was assumed.',
+    } })
+  })
   return { ok: true, protocolVersion: OPTIMIZER_PROTOCOL_VERSION, optimizer,
     understanding: { summary: optimizer.intent.text, relation, action: relation === 'continue' ? 'continue' : 'execute', focus: '' },
     support: { mode: 'none' }, claims: [], warnings, dropped: [], hardNote: '', hardOn: [],
@@ -160,7 +191,7 @@ const quoteVerbatim = (text) => String(text).trim().split(/\r?\n/).map((l) => '>
 export function renderOptimizerPacket(optimizer, language = 'zh', opts = {}) {
   if (!optimizer) return ''
   const en = language === 'en'
-  const hasBody = ['clarify', 'add'].some((k) => optimizer[k]?.length)
+  const hasBody = ['clarify', 'add', 'decide'].some((k) => optimizer[k]?.length)
   const userText = typeof opts.userText === 'string' ? opts.userText.trim() : ''
   // 没有机器内容就不发包（原话由宿主自己带着，不需要我们重复）；有内容时原话才逐字置顶。
   if (!hasBody) return ''
@@ -178,7 +209,19 @@ export function renderOptimizerPacket(optimizer, language = 'zh', opts = {}) {
     const body = key === 'add' ? list.map((s, i) => (i + 1) + '. ' + s).join('\n') : list.map((s) => '- ' + s).join('\n')
     lines.push(titles[key] + '\n' + body)
   }
-  // ask（需要反问的点）**不再进注入文**：机器提的问题混在上下文里，模型容易自问自答。
-  // 它们仍在 patch 的 add_question 里，由界面提问。
+  // 待你拍板（2026-10-19 用户）：结构化列出必须由用户决定的岔路 + 未定时的假设。
+  // 它不是"要求"，所以放在最后单独成节，并明确写"没定之前按假设走"。
+  // ask 与 decide 合并成同一节：ask 是 core 已知字段（不会被上游过滤器丢掉），
+  // decide 是本地扩展；两者语义一致——"必须由用户拍板"。
+  const decide = [...new Set([
+    ...(optimizer.decide || []),
+    ...(optimizer.ask || []).map((x) => (typeof x === 'string' ? x : '')),
+  ].map((x) => sanitizeMachineText(x, language)).filter(Boolean))]
+  if (decide.length) {
+    const head = en ? 'Pending your decision (not decided for you; assumptions apply until you pick)' : '待你拍板（不替你选；未定之前按假设走）'
+    lines.push(head + '\n' + decide.map((x) => '- ' + x).join('\n'))
+  }
+  // ask 现在进「待你拍板」这一节（2026-10-19 用户要求）：它带着选项，是**给人的选择题**，
+  // 不是让执行模型自问自答的问题。它们同时仍在 patch 的 add_question 里，界面可直接让用户选。
   return lines.join('\n\n')
 }

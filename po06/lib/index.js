@@ -1018,11 +1018,19 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const workState = adapter.capability.observer(sessionId,pol.englishMode?'en':null,{omitCurrent:true,contextText:rendered.text || ''})
         const combinedContext = [rendered.text, workState].filter(Boolean).join('\n\n')
         renderedCtx = combinedContext
-        const styleHint = pol.strategy && pol.strategy.subConcepts === 'rich'
+        // 档位 → 用户消息里的**格式要求**（实测：写在 system 里的规则模型会忽略，写在这里才跟）。
+        // 两个轴：subConcepts（举例力度）+ decide（待你拍板的岔路，必须真的问出来）。
+        const decideHint = pol.strategy && pol.strategy.tier === 'heavy'
+          ? '并在 decide 里给 1–3 条必须由用户拍板的岔路，格式“问题｜选项A / 选项B｜未定时假设：X”；原话没留空的就别硬造。'
+          : pol.strategy && pol.strategy.tier === 'standard'
+            ? '若存在会改变成品的关键岔路，在 decide 里给一条（问题｜选项｜未定时假设）。'
+            : ''
+        const exampleHint = pol.strategy && pol.strategy.subConcepts === 'rich'
           ? '每条补充都以「——比如：A、B」结尾，列出 1–2 个更小的具体概念（现象、手法、效果的名字）；没有例子的条目不要写。'
           : pol.strategy && pol.strategy.subConcepts === 'one'
             ? '最关键的 1–2 条以「——比如：A」结尾，点出一个更小的具体概念。'
             : ''
+        const styleHint = [exampleHint, decideHint].filter(Boolean).join(' ')
         const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
         const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)

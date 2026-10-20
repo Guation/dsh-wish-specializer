@@ -79,10 +79,11 @@ test('new path preserves long suggestions, more than twelve items and every prop
   assert.equal(out.outcome, 'committed'); assert.equal(out.state.items.length, 21)
   assert.equal(a.intentStateOf(session).questions.length, 5)
   assert.equal(out.packet.dropped.length, 0)
-  // 2026-10-19：反问（ask）**不再进注入文**——机器提的问题混在上下文里会被模型自问自答；
-  // 它们仍然进 state.questions（上面已断言 5 条）与 patch 的 add_question，由界面提问。
+  // 2026-10-19 改口径：反问改成**给用户的选择题**，进注入文的「待你拍板」小节
+  // （用户要求"未拍板要直接 ask 并给选项"）；同时仍进 state.questions 与 add_question。
   for (const s of adds) assert.ok(out.packet.text.includes(s), '补充条目仍要原样进注入')
-  for (const s of asks) assert.equal(out.packet.text.includes(s), false, '反问不注入')
+  assert.ok(out.packet.text.includes('待你拍板'), '要有独立的待拍板小节')
+  for (const s of asks) assert.ok(out.packet.text.includes(s), '待拍板的选项要写进注入文')
   assert.match(out.packet.text, /\n1\. /, '补充按重要性编号')
   assert.equal(a.getWorkingText('s1'), out.packet.text)
 })
