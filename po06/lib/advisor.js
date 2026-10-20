@@ -718,6 +718,7 @@ export function createAdvisor({ resolveRuntime, log = () => {}, progress = null,
         if(output.report)output.report={...output.report,verdict:'unverified',checks:output.report.checks.map(c=>c.status==='satisfied'?{...c,status:'unverified'}:c)}
       }
       if (args.mode === 'review_result') output = { mode: args.mode, ...output, ...reviewOutcome(output) }
+      output = { ...output, entry: args.entry }   // 入口随结果一起返回（用户要求"只讲入口"）
       if (stageSpec) {
         try {
           output.stageRecording=stageAttempt?.ok && (output.ok===true || output.visualObservation&&output.report) ? stages.recordReview({sessionId:sid,taskId:stageSpec.taskId,stageId:stageSpec.stage.id,reviewId:uiRunId || String(exec?.callId || Date.now()),report:output.report,materials:materialRows,subjects:stageAttempt.subjects,attemptId:stageAttempt.attemptId,partial:output.partial===true||output.ok!==true}) : {ok:false,reason:output.reason || stageAttempt?.reason || 'review-unavailable'}
@@ -785,8 +786,10 @@ export function createAdvisor({ resolveRuntime, log = () => {}, progress = null,
       ? contributionOutcome(args.mode, output)
       : args?.mode === 'review_result' && output.invocationSucceeded === undefined
         ? {...output, ...reviewOutcome(output), completionClaimAllowed:false} : output
+    // 入口要能被调用方看到（用户要求"只讲入口"，卡片与台账都按 entry 归档）。
     // PTC and presentation consumers require lossless JSON, including optional trace fields.
-    return JSON.parse(JSON.stringify(result))
+    // 注意：args 是**外层**参数（invoke 内部归一的是它自己的副本），所以这里要用 result.entry 兜底。
+    return JSON.parse(JSON.stringify({ ...result, entry: result.entry || normalizeEntry(args?.entry, args?.mode) }))
   }
   execute.dispose = () => { for (const controller of controllers) controller.abort() }
   return execute
