@@ -31,6 +31,10 @@ test('顾问关掉：注入文里不出现顾问块（线性退化）', async ()
     mod.adapter.noteAdvisorDirective('s1', '【顾问的理解】\n这段在开关关掉时不该出现。')
     const text = String(mod.adapter.getWorkingText('s1') || '')
     assert.ok(!text.includes('这段在开关关掉时不该出现'), '顾问块必须整段不出现')
+    // 关掉时台账也要清（设置是全局的，留着旧账会在下次打开时"翻旧账"）
+    mod.adapter.advisorLedger.add('s1', { claim: '旧结论' }, { turn: 1 })
+    mod.adapter.getWorkingText('s1')
+    assert.equal(mod.adapter.advisorLedger.open('s1').length, 0, '关掉顾问后台账应被清空')
   } finally {
     if (old === undefined) delete process.env.DSH_HOME
     else process.env.DSH_HOME = old

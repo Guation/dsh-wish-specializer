@@ -92,6 +92,10 @@ export function createLedger() {
     clear(sessionId) {
       bySession.delete(String(sessionId || ''))
     },
+    /** 全部清空：顾问开关被关掉时用（这个设置是全局的，账也该全局清）。 */
+    clearAll() {
+      bySession.clear()
+    },
     /** 渲染成顾问输入里的那一段（空则返回 ''）。 */
     render(sessionId, english = false) {
       const rows = this.open(sessionId)

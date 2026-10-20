@@ -1835,6 +1835,8 @@ class DshAdapter {
       : this.capability.render(String(sessionId),packet,feedback,this.policyNow(sessionId)?.englishMode?'en':null)
     // 顾问开关关掉时**整段不出现**（用户 2026-10-20：关掉要退化成线性流程，不留半截结构）。
     const advisorOn = this.policyNow(sessionId)?.advisor !== false
+    // 关掉即清账（设置是全局的，账也不该留着）：下一次打开从零开始记。
+    if (!advisorOn) { try { this.advisorLedger?.clear(String(sessionId || '')) } catch { /* 清不掉不影响注入 */ } }
     const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
     return directive ? [base, directive].filter(Boolean).join('\n\n') : base
   }
