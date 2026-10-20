@@ -218,8 +218,21 @@ export function renderOptimizerPacket(optimizer, language = 'zh', opts = {}) {
     ...(optimizer.ask || []).map((x) => (typeof x === 'string' ? x : '')),
   ].map((x) => sanitizeMachineText(x, language)).filter(Boolean))]
   if (decide.length) {
-    const head = en ? 'Pending your decision (not decided for you; assumptions apply until you pick)' : '待你拍板（不替你选；未定之前按假设走）'
-    lines.push(head + '\n' + decide.map((x) => '- ' + x).join('\n'))
+    // ⚠ 这一段是**给执行模型的指令**，不是给用户的展示：必须让模型知道"要去问"。
+    // 真机反馈（2026-10-20）：只写"待你拍板"，模型会当成背景信息、直接按假设开做，不会调提问工具。
+    const head = en
+      ? 'Pending your decision — ASK THE USER FIRST with the ask tool (ask_user_question), copying the options; do not decide for them. Assumptions apply only until they answer.'
+      : '待你拍板 —— **先用提问工具（ask_user_question）逐条问用户**，选项照抄；用户没答之前才按下面的假设走，不要自己拍板。'
+    const rows = decide.map((raw, i) => {
+      const parts = String(raw).split(/[｜|]/).map((x) => x.trim()).filter(Boolean)
+      if (parts.length <= 1) return (i + 1) + '. ' + (parts[0] || String(raw))
+      const [q, opts, ...rest] = parts
+      const out = [(i + 1) + '. ' + q]
+      if (opts) out.push('   选项：' + opts)
+      if (rest.length) out.push('   ' + rest.join('｜'))
+      return out.join('\n')
+    })
+    lines.push(head + '\n' + rows.join('\n'))
   }
   // ask 现在进「待你拍板」这一节（2026-10-19 用户要求）：它带着选项，是**给人的选择题**，
   // 不是让执行模型自问自答的问题。它们同时仍在 patch 的 add_question 里，界面可直接让用户选。

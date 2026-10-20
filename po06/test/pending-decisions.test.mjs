@@ -14,10 +14,13 @@ const optimizer = {
   ask: [],
 }
 
-test('注入文里出现「待你拍板」小节，并带选项与未定假设', () => {
+test('注入文里出现「待你拍板」小节，并**明确要求模型去问用户**（带选项与未定假设）', () => {
   const text = renderOptimizerPacket(optimizer, 'zh', { userText: '做一颗 O 型蓝超巨星' })
   assert.ok(text.includes('待你拍板'), '必须有独立小节')
-  assert.ok(text.includes('15–25 M☉'), '选项要写出来')
+  // 真机 bug（2026-10-20）：只写"待你拍板"，模型当成背景信息直接开做，不会调提问工具。
+  assert.ok(text.includes('ask_user_question'), '必须点名提问工具，模型才知道要问')
+  assert.ok(/先用提问工具[\s\S]*问用户/.test(text), '要有祈使的"去问"指令')
+  assert.ok(text.includes('选项：15–25 M☉'), '选项单独一行，便于照抄')
   assert.ok(text.includes('未定时按 20 M☉'), '未定假设要写出来')
   assert.ok(text.indexOf('待你拍板') > text.indexOf('正向补充'), '放在补充之后')
 })
