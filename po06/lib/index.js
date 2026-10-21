@@ -34,6 +34,7 @@ import { createState } from './schema.js'
 import { handleUserInput } from './pipeline.js'
 import { buildUserMessage, extractJson, readEnglishInterpretation } from './interpreter.js'
 import { composeOptimizerSystem, OPTIMIZER_PROTOCOL_VERSION } from './optimizer-protocol.js'
+import { captureToolboxContext } from './toolbox-context.js'
 import { drain } from './eval-llm.js'
 import { createStateStore, inheritStateForFork } from './store.js'
 import {
@@ -646,13 +647,13 @@ export function syncBashTool(ctx) {
 }
 
 /** 组装这次解释要用的 system：用户覆盖优先，拼上工具说明、（可选）会话上下文、以及**档位策略**。 */
-export async function buildInterpreterProtocol({ home, toolsEnabled, strategy, framing, englishMode = false, llm, cfg, signal }) {
+export async function buildInterpreterProtocol({ home, toolsEnabled, strategy, framing, englishMode = false, toolboxMode = 'off', llm, cfg, signal }) {
   const source = resolvePrompt({ home })
   // Resolve and translate the custom core once for both the tool and fallback requests.
   const core = source.source === 'file'
     ? (englishMode ? (await adapter.english.translate(source.text, { llm, cfg, signal, kind: 'custom-interpreter-v3' })).text : source.text)
     : undefined
-  const settings = { language: englishMode ? 'en' : 'zh', core, strategy, framing, englishMode }
+  const settings = { language: englishMode ? 'en' : 'zh', core, strategy, framing, englishMode, toolboxMode }
   const assembled = composeOptimizerSystem({ ...settings, toolsEnabled })
   return { ...assembled, source: source.source, noToolsText: toolsEnabled ? composeOptimizerSystem({ ...settings, toolsEnabled: false }).text : assembled.text }
 }
@@ -793,7 +794,7 @@ export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTo
         llm, cfg, system: sys, messages, root: tools.root, count: tools.count,englishMode,
         // The compact system already contains the authorized read note; do not append it twice.
         systemNote: '',
-        finalNote: englishMode ? 'Read budget reached. Return intent/clarify/add/ask JSON from existing evidence.' : '只读预算已到，基于现有材料返回 intent/clarify/add/ask JSON。',
+        finalNote: englishMode ? 'Read budget reached. Return JSON using the current system output contract, including any relevant optional fields, from existing evidence.' : '只读预算已到，基于现有材料按当前 system 的输出契约返回 JSON，保留相关的可选字段。',
         shape: llmT, mod: llmT && llmT.mod ? llmT.mod : null,
         // 思维层：工具路径也要把流式片段接到进度面（否则开着工具时界面只剩"已用 N 秒"）
         onDelta,
@@ -1013,7 +1014,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         // 不记的话，"这一轮解析不到 cwd"的会话会在整条会话里永远用不上工具。
         if (cwd) sessionHistory.setCwd(sessionId, cwd)
         const tools = readToolsFor({ readTools: pol.readTools, cwd: cwd || sessionHistory.getCwd(sessionId) })
-        const protocol = await buildInterpreterProtocol({ englishMode: pol.englishMode, llm, cfg, signal: message.signal || null, home: DSH_HOME, toolsEnabled: tools.enabled, strategy: pol.strategy, framing: pol.framing })
+        const protocol = await buildInterpreterProtocol({ englishMode: pol.englishMode, llm, cfg, signal: message.signal || null, home: DSH_HOME, toolsEnabled: tools.enabled, strategy: pol.strategy, framing: pol.framing, toolboxMode: pol.toolboxMode })
         const sys = protocol.text
         const sysNoTools = protocol.noToolsText
         renderedCtx = String(rendered.text || '')      // 供解析阶段校验"引文来自上下文"
@@ -1038,8 +1039,9 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
           ? '补充总量控制在 ' + budgetTokens + ' token 以内（英文约 ' + Math.round(budgetTokens * 0.75) + ' 词）。'
           : '补充总量控制在 ' + budgetTokens + ' token 以内（中文约 ' + Math.round(budgetTokens * 1.4) + ' 字）。'
         const styleHint = [exampleHint, decideHint, budgetHint].filter(Boolean).join(' ')
-        const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
-        const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
+        const capabilitySummary = pol.toolboxMode === 'auto' ? await adapter.toolboxContextFor(session) : null
+        const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked,capabilitySummary })
+        const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, toolboxMode: pol.toolboxMode, capabilitySummary, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
         const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null,englishMode:pol.englishMode })
@@ -1523,6 +1525,7 @@ class DshAdapter {
     this.intentEpochBySession = new Map()
     this.reviewedPackets = new Set()
     this.capability = createCapability({ home: DSH_HOME, namespace: process.env.DSH_PROFILE_DIR || process.env.DSH_PROFILE || 'default' })
+    this.toolboxContexts = new Map()
     /** P11 包级回退：每会话最近 10 版**非空**包（旧到新）。 */
     this.packetHistory = new Map()
     // 第 5 项之后的新增（2026-10-18 用户要求）：顾问不该只是个摆设。
@@ -1746,6 +1749,14 @@ class DshAdapter {
    * 产品入口：处理一次用户输入（解释 → 提交 → 编译 → 写入动态上下文）。
    * `interpret` 是**注入**的解释函数；真实实现接 LLM，测试/自检传桩。
    */
+  async toolboxContextFor(session) {
+    const sid = String(session?.id || '')
+    const value = await captureToolboxContext({ sessionId: sid, workspace: cwdOf(session) || sessionHistory.getCwd(sid), agents: this.services.agents, tools: this.services.tools })
+    this.toolboxContexts.set(sid, value)
+    while (this.toolboxContexts.size > 200) this.toolboxContexts.delete(this.toolboxContexts.keys().next().value)
+    return value
+  }
+
   async handleInput(session, input) {
     const agents = this.services.agents
     if (!agents || typeof agents.get !== 'function') return { outcome: 'no-agents-service', trace: [] }
@@ -1759,6 +1770,7 @@ class DshAdapter {
     scoped.checkItems=[]
     scoped.framing=input.policy?.framing || 'neutral'
     scoped.language=input.policy?.englishMode?'en':null
+    scoped.toolboxEnabled=input.policy?.toolboxMode !== 'off' && input.policy?.assist !== 'off'
     scoped.framingNote=null; scoped.framingNoteRaw=null; scoped.collaboration=null
     const current=()=>this.capability.isCurrent(sid,token)
     scoped.commit=(s,p)=>current()?this.commit(s,p):{ok:false,code:'STALE_INPUT',reason:'superseded-input'}
@@ -2331,6 +2343,7 @@ export function apply(ctx, config) {
 
   adapter.advisorLedger = createLedger()
   adapter.services.agents = ctx.get('agents') || null
+  adapter.services.tools = ctx.get('tools') || null
   adapter.services.sessionController = ctx.get('sessionController') || null
   // 插件自己的按会话状态存储（EV-0081：状态由我们自己拥有，不写会话日志）
   try {

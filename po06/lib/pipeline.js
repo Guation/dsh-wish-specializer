@@ -98,6 +98,7 @@ export async function handleUserInput(adapter, session, input) {
       contextText: typeof input.contextText === 'function' ? input.contextText() : input.contextText,
       userText: text,
       englishMode:input.policy?.englishMode===true,
+      toolboxEnabled: input.policy?.toolboxMode !== 'off' && input.policy?.assist !== 'off',
       translatedText:typeof input.englishTask==='function'?input.englishTask():null,
       sessionId,
       // 宿主替模型补 `human.messageId` 时要用它（引文逐字来自这条原话才补，可机械核对）
@@ -162,7 +163,7 @@ export async function handleUserInput(adapter, session, input) {
     return finish(trace, base, null, outcome, adapter, session)
   }
 
-  adapter.collaboration = { understanding: parsed.understanding || null, support: parsed.support || null, claims: parsed.claims || [], zeroAddition: !parsed.patch, ...(parsed.optimizer ? { optimizer: parsed.optimizer, protocolVersion: parsed.protocolVersion } : {}) }
+  adapter.collaboration = { understanding: parsed.understanding || null, support: parsed.support || null, claims: parsed.claims || [], zeroAddition: !parsed.patch && !parsed.optimizer?.toolbox?.recommendation?.match(/^(reuse|build|inspect)$/), noStatePatch: !parsed.patch, ...(parsed.optimizer ? { optimizer: parsed.optimizer, protocolVersion: parsed.protocolVersion } : {}) }
   // 4) 无操作：理解可以完成而无需新增条目。
   if (!parsed.patch) {
     planAndRecordClarification(adapter, session, trace, input)
@@ -240,7 +241,7 @@ function finish(trace, state, _unused, outcome, adapter, session, userText = '')
     if (cur && adapter.collaboration?.optimizer && ['committed', 'understood', 'noop'].includes(outcome)) {
       const optimizer = adapter.collaboration.optimizer
       // 原话逐字置顶（2026-10-19）：渲染需要的用户原话由调用方带进来（finish 的第 7 个参数）。
-      const text = renderOptimizerPacket(optimizer, adapter.language, { userText })
+      const text = renderOptimizerPacket(optimizer, adapter.language, { userText, toolboxEnabled: adapter.toolboxEnabled !== false })
       packet = { ok: true, text, chars: text.length, sections: [], dropped: [], problems: [], overBudget: false, overBy: 0, budget: null, protocolVersion: optimizer.version }
       adapter.setIntentText(session.id, text)
       trace.push({ step: 'setContext', sessionId: String(session.id), chars: text.length, dropped: 0, protocolVersion: optimizer.version })

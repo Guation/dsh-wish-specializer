@@ -95,6 +95,7 @@ export function policyFor(settings, sessionId) {
     // 2026-10-20：顾问开关。**不加这一行，pol.advisor 永远是 undefined**，
     // 于是"关掉顾问"既不会拦工具、也不会停注入——一个死开关（真机测试抓到的）。
     advisor: s.advisor !== false,
+    toolboxMode: s.assist === 'off' ? 'off' : s.toolboxMode,
     // 0.7.5：**按模型的思考档位表**（{ "provider/model": "effortId" }）。
     // ⚠ 必须出现在这里——引擎读的是 pol.*，政策里没有的字段会静默变 undefined，
     // 于是"档位设置"就成了又一个死开关（P10 那三个死开关的教训，见上面那段注释）。
@@ -121,7 +122,7 @@ export function policyFor(settings, sessionId) {
  */
 export function packetShapeOf(pol) {
   if (!pol) return ''
-  return [pol.assist, pol.detail, pol.budget, pol.framing,pol.englishMode?'en':'original'].join('|')
+  return [pol.assist, pol.detail, pol.budget, pol.framing,pol.englishMode?'en':'original',pol.toolboxMode || 'off'].join('|')
 }
 
 /** 写盘前后形状不同 ⇒ 已存的包文本必须作废（下一次拦截会重编译）。两侧都取不到时不作废。 */

@@ -232,13 +232,13 @@ export const HARD_NOTE_SYSTEM = [
   '  一条真实 id 都写不出 ⇒ 整段不予采用（退回纯骨架），所以别编 id。',
 ].join('\n')
 
-export function parseInterpreterOutput(raw, { userText, contextText, stateText, sessionId, messageId, baseRevision, baseInputRevision, causeId,englishMode=false,translatedText=null }) {
+export function parseInterpreterOutput(raw, { userText, contextText, stateText, sessionId, messageId, baseRevision, baseInputRevision, causeId,englishMode=false,translatedText=null,toolboxEnabled=true }) {
   const ex = extractJson(raw)
   if (!ex.ok) return { ok: false, code: ex.code, reason: ex.reason }
   const obj = ex.value
   // v3 is adapted by the host, without legacy item truncation or user-authority promotion.
   if (obj && typeof obj === 'object' && Object.hasOwn(obj, 'intent')) {
-    return parseOptimizerValue(obj, { sessionId, messageId, baseRevision, baseInputRevision, causeId })
+    return parseOptimizerValue(obj, { sessionId, messageId, baseRevision, baseInputRevision, causeId, toolboxEnabled })
   }
   if (!obj || typeof obj !== 'object' || !Array.isArray(obj.ops)) {
     return { ok: false, code: 'BAD_SHAPE', reason: 'expected {"ops":[...]}' }

@@ -2,6 +2,8 @@
 
 import { createHash } from 'node:crypto'
 import { renderAskInstruction } from './ask-instruction.js'
+import { TOOLBOX_PROMPT, normalizeToolbox, hasToolboxContent, renderToolboxProposal } from './toolbox-proposal.js'
+import { summarizeToolboxContext } from './toolbox-context.js'
 
 export const OPTIMIZER_PROTOCOL_VERSION = '3'
 export const OPTIMIZER_PROMPT_REVISION = 'advisor-loop-1'
@@ -60,7 +62,7 @@ export function optimizerTier(strategy = {}) {
   return strategy.depth === 'brief' ? 'light' : strategy.depth === 'deep' ? 'heavy' : 'standard'
 }
 
-export function composeOptimizerSystem({ language = 'zh', core, strategy, tier, toolsEnabled = false, framing = 'neutral', englishMode = false } = {}) {
+export function composeOptimizerSystem({ language = 'zh', core, strategy, tier, toolsEnabled = false, framing = 'neutral', englishMode = false, toolboxMode = 'off' } = {}) {
   const lang = language === 'en' ? 'en' : 'zh'
   const selected = ['light', 'standard', 'heavy'].includes(tier) ? tier : optimizerTier(strategy)
   const parts = [
@@ -68,20 +70,22 @@ export function composeOptimizerSystem({ language = 'zh', core, strategy, tier, 
     { key: 'tier', text: OPTIMIZER_TIERS[lang][selected] },
     { key: 'format', text: OPTIMIZER_FORMAT[lang] },
   ]
+  if (toolboxMode === 'auto') parts.push({ key: 'toolbox', text: TOOLBOX_PROMPT[lang] })
   if (toolsEnabled) parts.push({ key: 'tools', text: OPTIMIZER_OPTIONS[lang].tools })
   if (framing === 'hard') parts.push({ key: 'tone', text: OPTIMIZER_OPTIONS[lang].hardTone })
   if (englishMode) parts.push({ key: 'translation', text: OPTIMIZER_OPTIONS[lang].english })
   const text = parts.map(p => p.text).join('\n\n')
-  return { version: OPTIMIZER_PROTOCOL_VERSION, revision: OPTIMIZER_PROMPT_REVISION, tier: selected, language: lang, text, chars: text.length,
+  return { version: OPTIMIZER_PROTOCOL_VERSION, revision: toolboxMode === 'auto' ? 'task-toolbox-1' : OPTIMIZER_PROMPT_REVISION, toolboxMode, tier: selected, language: lang, text, chars: text.length,
     parts: parts.map(p => ({ key: p.key, chars: p.text.length })) }
 }
 
-export function buildOptimizerUserMessage({ userText, context, observations, englishMode = false, translationInput, retryEmpty, emptyReason, styleHint } = {}) {
+export function buildOptimizerUserMessage({ userText, context, observations, englishMode = false, translationInput, retryEmpty, emptyReason, styleHint, capabilitySummary } = {}) {
   return JSON.stringify({
     originalText: String(userText ?? ''),
     // 档位的"举例力度"放在**用户消息**里：system 里那条规则实测被模型忽略（2026-10-19 三轮 A/B 全 0 命中）。
     ...(styleHint ? { styleHint: String(styleHint) } : {}),
     ...(context ? { context: String(context) } : {}),
+    ...(capabilitySummary ? { capabilitySummary: summarizeToolboxContext(capabilitySummary) } : {}),
     ...(Array.isArray(observations) && observations.length ? { observations } : {}),
     ...(englishMode ? { translationInput: translationInput ?? String(userText ?? '') } : {}),
     ...(retryEmpty ? { retry: String(emptyReason || 'No valid interpretation was returned; a valid intent with empty additions is sufficient.') } : {}),
@@ -89,7 +93,7 @@ export function buildOptimizerUserMessage({ userText, context, observations, eng
 }
 
 /** Strict structure, open content: no count/length quotas and no authority from model-supplied metadata. */
-export function parseOptimizerValue(value, { sessionId, messageId, baseRevision, baseInputRevision, causeId } = {}) {
+export function parseOptimizerValue(value, { sessionId, messageId, baseRevision, baseInputRevision, causeId, toolboxEnabled = true } = {}) {
   const bad = reason => ({ ok: false, code: 'BAD_OPTIMIZER_SHAPE', reason })
   if (!value || typeof value !== 'object' || Array.isArray(value)) return bad('expected an optimizer object')
   const intent = value.intent
@@ -98,6 +102,9 @@ export function parseOptimizerValue(value, { sessionId, messageId, baseRevision,
   const relation = ['new', 'continue', 'uncertain'].includes(intent.relation) ? intent.relation : 'uncertain'
   if (relation !== intent.relation) warnings.push('intent.relation missing or invalid; kept uncertain')
   const optimizer = { version: OPTIMIZER_PROTOCOL_VERSION, intent: { text: intent.text.trim(), relation } }
+  const toolbox = normalizeToolbox(value.toolbox, { enabled: toolboxEnabled })
+  if (toolbox.proposal) optimizer.toolbox = toolbox.proposal
+  warnings.push(...toolbox.warnings)
   // decide 要有容错：模型经常给**对象**（{question, options, assumption}），
   // 严格判"必须是字符串"会让整轮被判非法、注入文退化成空的（真机 2026-10-19 连空两次）。
   // 这里统一压成"问题｜选项A / 选项B｜未定时假设：X"；坏条目丢弃，不连坐整轮。
@@ -122,6 +129,10 @@ export function parseOptimizerValue(value, { sessionId, messageId, baseRevision,
   // decide：每条 "问题｜选项A / 选项B｜未定时假设：X" —— 结构化"待你拍板"，直接变成带选项的问题。
   optimizer.decide = (optimizer.decide || []).filter(Boolean)
   const scope = createHash('sha256').update(JSON.stringify([sessionId, messageId, baseInputRevision, causeId])).digest('hex').slice(0, 16)
+  if (hasToolboxContent(optimizer.toolbox)) optimizer.toolboxBinding = {
+    proposalId: 'toolbox-' + scope, sessionId: String(sessionId || ''), inputId: String(messageId || ''),
+    source: 'model', status: 'proposed',
+  }
   const ops = []
   for (const [field, kind] of [['clarify', 'quality_interpretation'], ['add', 'proposal'], ['ask', 'unknown']]) {
     optimizer[field].forEach((text, i) => {
@@ -192,7 +203,8 @@ const quoteVerbatim = (text) => String(text).trim().split(/\r?\n/).map((l) => '>
 export function renderOptimizerPacket(optimizer, language = 'zh', opts = {}) {
   if (!optimizer) return ''
   const en = language === 'en'
-  const hasBody = ['clarify', 'add', 'decide', 'ask'].some((k) => optimizer[k]?.length)
+  const toolboxText = opts.toolboxEnabled === false ? '' : renderToolboxProposal(optimizer.toolbox, language)
+  const hasBody = ['clarify', 'add', 'decide', 'ask'].some((k) => optimizer[k]?.length) || !!toolboxText
   const userText = typeof opts.userText === 'string' ? opts.userText.trim() : ''
   // 没有机器内容就不发包（原话由宿主自己带着，不需要我们重复）；有内容时原话才逐字置顶。
   if (!hasBody) return ''
@@ -215,6 +227,7 @@ export function renderOptimizerPacket(optimizer, language = 'zh', opts = {}) {
     lines.push((en ? '[Action required for the working model · do this before starting; this is not the user\'s text and changes none of it]'
       : '【给工作模型 · 本轮先做的动作（不是用户原话，也不改变用户要求）】') + '\n' + askText)
   }
+  if (toolboxText) lines.push(toolboxText)
   // 辅助段：仍然明确服从原话——它是建议，不是要求。
   const advice = [en ? '[Prompt assistance: machine interpretation and advice; the original user text remains authoritative.]'
     : '【提示词辅助 · 机器解释与建议，以完整用户原话为准】']
