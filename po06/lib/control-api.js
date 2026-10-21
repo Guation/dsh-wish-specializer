@@ -332,7 +332,8 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         const sid = String(query.get('session') || '').trim()
         if (!sid) return send(400, { ok: false, reason: 'session-required', model: null })
         let m = null
-        try { m = (typeof sessionModel === 'function') ? sessionModel(sid) : null } catch { m = null }
+        // 回调可能是 async（要问宿主“此刻”的选择），这里必须 await，否则拿到的是 Promise
+try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null } catch { m = null }
         return send(200, { ok: true, provider: (m && m.provider) || null, model: (m && m.model) || null })
       }
       // 档位按需查（0.7.5）：宿主仅在 resolveModelInfo 里给 reasoning（listModels 会剥掉它），

@@ -59,6 +59,45 @@ await t('ensureModelRoute：已观测到模型 ⇒ 直接用（source=observed�
   eq(modelFor(sid).model, 'm-obs', '还是原来那条路由')
 })
 
+await t('宿主投影里“待生效的选择”优先：用户刚换模型、还没发出消息时就该用新值', async () => {
+  isolate()
+  const sid = 's-pending'
+  observeModel(sid, { provider: 'p-old', model: 'm-old' })
+  const prevAgents = adapter.services.agents
+  try {
+    adapter.services.agents = { get: () => ({ session: { id: sid }, ctx: { get: (k) => (k === 'sessionProjections' ? {
+      stateOf: () => ({ pending: { provider: 'p-pend', model: 'm-pend' } }) } : null) } }) }
+    const r = await ensureModelRoute({ get: () => null }, sid)
+    eq(r.source, 'session', '来源是会话此刻的待生效选择')
+    eq(modelFor(sid), { provider: 'p-pend', model: 'm-pend' }, '缓存被更新成投影里的新模型')
+  } finally { adapter.services.agents = prevAgents }
+})
+
+await t('没有任何“本会话”来源时，宿主默认**不许**覆盖已缓存的会话模型', async () => {
+  isolate()
+  const sid = 's-keep'
+  observeModel(sid, { provider: 'p-mine', model: 'm-mine' })
+  const ctx = { get: (k) => (k === 'agentDefaultModel' ? { currentSelection: async () => ({ provider: 'p-def', model: 'm-def' }) } : null) }
+  const r = await ensureModelRoute(ctx, sid)
+  eq(r.source, 'observed', '本会话缓存仍然胜出')
+  eq(modelFor(sid), { provider: 'p-mine', model: 'm-mine' }, '绝不能被全局默认覆盖')
+})
+
+await t('ensureModelRoute：缓存是上一轮的模型、宿主此刻已换 ⇒ 必须用**此刻**的（用户实测的回锚）', async () => {
+  isolate()
+  const sid = 's-switched'
+  // 上一轮观测到 A（缓存），随后用户在宿主界面换成 B，下一条消息立刻被前置拦截。
+  observeModel(sid, { provider: 'p-old', model: 'm-old' })
+  const prevSvc = adapter.services.sessionController
+  try {
+    adapter.services.sessionController = { modelSelection: async () => ({ provider: 'p-new', model: { model: 'm-new' } }) }
+    const r = await ensureModelRoute({ get: () => null }, sid)
+    eq(r.source, 'session', '来源是会话此刻的选择，不是缓存')
+    eq(r.refreshed, true, '要标出这是一次刷新（台账可核）')
+    eq(modelFor(sid), { provider: 'p-new', model: 'm-new' }, '缓存被更新成此刻的模型')
+  } finally { adapter.services.sessionController = prevSvc }
+})
+
 await t('ensureModelRoute：没观测到 ⇒ 先问会话自己的模型选择（source=session）', async () => {
   isolate()
   const sid = 's-sel'

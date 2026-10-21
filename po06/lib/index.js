@@ -1246,39 +1246,80 @@ function pickProviderModel(v) {
  *   ① 已观测到（最准）→ ② 会话自己的模型选择 → ③ 宿主的**默认模型服务** → ④ 才轮到清单第一条。
  * 无论走哪条，台账都记 `route` 来源；④ 还会在界面上明说"这轮用的是兜底模型"。
  */
-async function ensureModelRoute(ctx, sid) {
-  const own = ownModelFor(sid)
-  if (own) return { ok: true, source: 'observed' }
-  // ⚠ `modelFor` 还会回**全局兜底**（别的会话最近一次观测到的模型）。它能让解释跑起来，
-  //   但**不是这个会话的模型** ⇒ 来源必须记成 `observed-global`，界面据此提示"用的是别的会话的模型"。
-  if (modelFor(sid)) return { ok: true, source: 'observed-global', picked: JSON.stringify(modelFor(sid)) }
-  // ② 会话自己的模型选择（最贴近"用户在用什么"）
+/**
+ * 问宿主“**此刻**这个会话用的是哪个模型”。
+ *
+ * 为什么必须单独有这个查询（2026-10-21 用户实测：跟随会话模型调用的不是此刻的模型）：
+ * 缓存里的观测值来自**上一轮**的 request/header。用户中途在宿主界面换了模型后，
+ * 下一条消息被我们**前置拦截**——那一刻还没有新的 header，缓存仍是旧模型。
+ * 只看缓存 ⇒ 这一轮会拿旧模型去优化（档位也按旧模型取）。
+ * 这里直接问 sessionController / agentDefaultModel，拿到的是宿主当下的选择。
+ */
+async function querySessionSelection(ctx, sid) {
+  // ① 宿主**此刻的待生效选择**就在投影里（宿主自己也是这么读的：
+  //    dsh-api-session-controller 用 sessionProjections.stateOf(agent.session,'modelSelection').pending）。
+  //    这条最准时：用户刚在输入框旁换了模型、消息还没发出去时，pending 已经是新值。
+  try {
+    const ag = adapter.services.agents && typeof adapter.services.agents.get === 'function'
+      ? adapter.services.agents.get(String(sid || '')) : null
+    const svc = (ag && ag.ctx && typeof ag.ctx.get === 'function' ? ag.ctx.get('sessionProjections') : null)
+      || (adapter.services && adapter.services.sessionProjections) || null
+    if (ag && ag.session && svc && typeof svc.stateOf === 'function') {
+      const st = svc.stateOf(ag.session, 'modelSelection')
+      const pending = st && st.pending
+      const picked = pending == null ? null : pickProviderModel(pending)
+      if (picked) return { p: picked, from: 'session' }
+    }
+  } catch { /* 投影读不到就继续问服务 */ }
   try {
     const sc = adapter.services.sessionController
-    for (const fn of ['modelSelection', 'selection', 'model']) {
+    for (const fn of ['inspect', 'modelSelection', 'selection', 'model']) {
       if (!sc || typeof sc[fn] !== 'function') continue
-      const p = pickProviderModel(await sc[fn](sid))
-      if (p) { observeModel(sid, p); return { ok: true, source: 'session' } }
+      let raw = null
+      try { raw = await sc[fn](sid) } catch { continue }
+      const p = pickProviderModel(raw) || pickProviderModel(raw && (raw.selection || raw.modelSelection))
+      if (p) return { p, from: 'session' }
     }
-  } catch { /* 拿不到就继续往下兜 */ }
-  // ③ 宿主的默认模型服务（Agent 没有会话级选择时，宿主自己会用的那条）
+  } catch { /* 拿不到就继续 */ }
+  return null
+}
+
+/** 宿主的默认模型服务（不针对某个会话，只在会话没有自己的选择时使用）。 */
+async function queryHostDefault(ctx) {
   try {
-    const adm = ctx.get('agentDefaultModel')
-    // ⚠ 2026-09-26 修（用户反馈）：方法名原先写的是 current/read/get/selection ——**四个都不存在**，
-    // 于是这一整段空转，直接掉到下面的第④步"清单第一条"，新会话首条消息便用一个与会话无关的模型
-    // 去优化（用户实测：选「跟随会话模型」时复现；之后的消息正常，因为那时已从 request/header 观测到）。
-    // 实测该服务的真方法是 **currentSelection()**（返回 {provider, model} 形状，正好能被 pickProviderModel 解析），
-    // 另有 saveSelection()。旧名一并保留在后面，便于宿主改名时仍能兜住。
+    const adm = ctx && typeof ctx.get === 'function' ? ctx.get('agentDefaultModel') : null
     for (const fn of ['currentSelection', 'current', 'read', 'get', 'selection']) {
       if (adm && typeof adm[fn] === 'function') {
         const p = pickProviderModel(await adm[fn]())
-        if (p) { observeModel(sid, p); return { ok: true, source: 'host-default' } }
+        if (p) return p            // 只返回模型本身：调用方会把它当成路由缓存
       }
     }
-    const p2 = pickProviderModel(adm)
-    if (p2) { observeModel(sid, p2); return { ok: true, source: 'host-default' } }
-  } catch { /* 同上 */ }
-  // ④ 最后的兜底：宿主 llm 服务的第一条路由（**会在界面上明说**）
+  } catch { /* 拿不到就回 null，交给下一级兜底 */ }
+  return null
+}
+
+
+async function ensureModelRoute(ctx, sid) {
+  // 解析顺序**从最局部到最兜底**（2026-10-21 用户实测：跟随时调用的不是此刻的模型）：
+  //   ① 宿主投影里"待生效的选择"（用户刚换的模型就在这里，最准时）
+  //   ② 会话自己的选择（sessionController.inspect）
+  //   ③ 本会话缓存（上一轮 request/header 观测到的）
+  //   ④ 其它会话最近观测到的（全局兜底，必须自报 observed-global）
+  //   ⑤ 宿主默认模型服务
+  //   ⑥ 清单第一条（界面会明说这是兜底）
+  // ⚠ ⑤ 绝不能排在 ③ 前面：那会拿"全局默认"覆盖一个本来正确的会话模型。
+  const fresh = await querySessionSelection(ctx, sid)
+  if (fresh && fresh.p) {
+    const cached = ownModelFor(sid)
+    observeModel(sid, fresh.p)
+    const same = cached && cached.provider === fresh.p.provider && cached.model === fresh.p.model
+    return { ok: true, source: same ? 'observed' : 'session', refreshed: !same }
+  }
+  const own = ownModelFor(sid)
+  if (own) return { ok: true, source: 'observed' }
+  if (modelFor(sid)) return { ok: true, source: 'observed-global', picked: JSON.stringify(modelFor(sid)) }
+  const dflt = await queryHostDefault(ctx)
+  if (dflt) { observeModel(sid, dflt); return { ok: true, source: 'host-default' } }
   try {
     const llm = ctx.get('llm')
     if (!llm || typeof llm.listProviders !== 'function') return { ok: false, reason: 'no-llm-service' }
@@ -2598,8 +2639,10 @@ export function apply(ctx, config) {
            * 当前会话用的模型（0.7.5）。「跟随会话模型」那一档要能配档位，界面就必须知道
            * 会话模型是谁——po06 本来就一直在观测（modelFor），这里只是把它暴露出来。
            */
-          sessionModel: (sid) => {
-            try { return modelFor(String(sid || '')) || null } catch { return null }
+          sessionModel: async (sid) => {
+            const s0 = String(sid || '')
+            try { const f = await queryCurrentSessionModel(ctx, s0); if (f && f.p) { observeModel(s0, f.p); return f.p } } catch { /* 退回缓存 */ }
+            try { return modelFor(s0) || null } catch { return null }
           },
           resolveEfforts: async (provider, model) => {
             const llm = ctx.get('llm')

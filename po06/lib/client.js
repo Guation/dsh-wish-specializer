@@ -3398,6 +3398,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const routes = Array.isArray(cat.models) ? cat.models.slice() : []
       const mkey = (r) => JSON.stringify([r.provider, r.model])
       const curKey = (s.model && typeof s.model === 'object') ? mkey(s.model) : 'inherit'
+      // 模型清单是**异步**到的（catalog）。没有这一行，清单晚到时下面的解析 effect 不会重跑，
+      // 于是 effortTarget 永远为 null —— 用户看到的就是“思考档位整行消失”（2026-10-21 定位）。
+      const routeSig = routes.map(mkey).join('|')
       if (s.model && typeof s.model === 'object' && !routes.some((r) => mkey(r) === curKey)) {
         // 当前值不在清单里也要显示出来，否则 select 会显示成第一项——那是界面在撒谎
         routes.push({ provider: s.model.provider, model: s.model.model, label: s.model.provider + ' / ' + s.model.model })
@@ -3412,25 +3415,30 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 当前值与可选项都按**真正会被调用的那个模型**取：
       //   选了具体模型 ⇒ 就是它；「跟随会话模型」⇒ 先问 /session-model 拿会话模型再按它取。
       const [effortsForModel, setEffortsForModel] = React.useState([])
+      // 解析不出目标模型时，行还要在（否则用户以为功能没了，也不知道为什么）
+      const [effortMiss, setEffortMiss] = React.useState(false)
       const [effortTarget, setEffortTarget] = React.useState(null)
       React.useEffect(() => {
         let alive = true
         const resolve = async () => {
           if (curKey !== 'inherit') {
             const r = routes.find((x) => mkey(x) === curKey)
-            if (alive) setEffortTarget(r ? { provider: r.provider, model: r.model } : null)
+            if (alive) { setEffortTarget(r ? { provider: r.provider, model: r.model } : null); setEffortMiss(!r) }
             return
           }
           if (!sessionId) { if (alive) setEffortTarget(null); return }
           try {
             const p = await apiGet('/session-model?session=' + encodeURIComponent(sessionId))
-            if (alive) setEffortTarget((p && p.provider && p.model) ? { provider: p.provider, model: p.model } : null)
-          } catch { if (alive) setEffortTarget(null) }
+            if (alive) {
+              const t = (p && p.provider && p.model) ? { provider: p.provider, model: p.model } : null
+              setEffortTarget(t); setEffortMiss(!t)
+            }
+          } catch { if (alive) { setEffortTarget(null); setEffortMiss(true) } }
         }
         void resolve()
         return () => { alive = false }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [curKey, sessionId])
+      }, [curKey, sessionId, routeSig])
       // ⚠ 键格式**必须**是 "provider/model"：这是后端 normalizeSettings 的校验口径
       // （settings.js 的 pickEffortMap 要求键含 /），也是 wire.js 查表用的格式。
       // 之前这里写成 JSON.stringify([p, m]) ⇒ 每次保存都被判 not-a-route 丢弃并回默认，
@@ -3458,7 +3466,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
        */
       const effortRow = (() => {
         const efforts = Array.isArray(effortsForModel) ? effortsForModel : []
-        if (!effortKey) return null
+        if (!effortKey) {
+          // 不静默消失：跟随模式下正在读会话模型 / 读不到，都要能看见
+          const why = curKey === 'inherit'
+            ? (effortMiss ? L('没读到会话模型（宿主还没观测到）', 'Session model not observed yet')
+              : L('正在读取会话模型…', 'Resolving the session model…'))
+            : L('该模型不在清单里，档位无从取', 'Model missing from the list; no levels to show')
+          return h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('✳', L('思考档位', 'Thinking effort'))),
+            h('span', { 'data-po06': 'effort-state', 'data-po06-value': effortMiss ? 'missing' : 'resolving', style: S.muted }, why))
+        }
         const map = (s.effortByModel && typeof s.effortByModel === 'object') ? s.effortByModel : {}
         const curEffort = (typeof map[effortKey] === 'string') ? map[effortKey] : ''
         const onPick = (v) => {
