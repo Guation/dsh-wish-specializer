@@ -20,15 +20,13 @@ test('可见控件里不再使用原生 select：模型/思考档位一律走自
   assert.equal((CLIENT_SRC.match(/h\(Options,/g) || []).length >= 5, true, '模型/档位/表单都在用自绘下拉')
 })
 
-test('菜单画在 body 上的独立浮层里（不被面板裁剪、不和别的行叠字）', () => {
-  assert.ok(CLIENT_SRC.includes("'data-po06', 'picker-layer'"), '浮层节点')
-  assert.ok(CLIENT_SRC.includes('document.body.appendChild(layer)'), '挂在 body 上而不是面板内部')
-  assert.ok(CLIENT_SRC.includes("'position:fixed'") && CLIENT_SRC.includes("'z-index:2147483000'"), '浮层脱离裁剪与层级')
-  // 用户 2026-10-19：怀疑字号读错导致选项叠在一起 ⇒ 显式钉住字号与行高
-  assert.ok(CLIENT_SRC.includes("'font-size:12px'") && CLIENT_SRC.includes("'line-height:18px'"), '显式字号/行高，不继承')
-  assert.ok(CLIENT_SRC.includes('layer.remove()'), '关闭/卸载要移除浮层（不留孤儿节点）')
-  assert.ok(CLIENT_SRC.includes('getBoundingClientRect'), '按触发器实测位置摆放')
+test('菜单在面板内联展开：撑开并推下后续行，不再挂在 body 上压住别的行', () => {
+  // 2026-10-21 用户实测：挂在 body 的浮层会盖住“思考档位”及其下的工具行，读作“列表重叠”。
+  // 因此改成**内联展开**：节点仍在面板里，结构上不可能与任何行重叠。
+  assert.ok(CLIENT_SRC.includes("'data-po06': 'picker-layer'"), '菜单节点仍在')
+  assert.equal(CLIENT_SRC.includes('document.body.appendChild(layer)'), false, '不再把浮层挂到 body')
 })
+
 
 test('键盘可用：Enter/空格/↓ 打开，Esc 关闭；展开状态可读', () => {
   for (const key of ["'Enter'", "' '", "'ArrowDown'", "'Escape'"]) {

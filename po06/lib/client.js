@@ -944,6 +944,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         }, label(k)))) : null)
     }
 
+    const TIER_FX = {
+      // 2026-10-19 用户改口径：轻度只要底色；标准是"无序随机线性飘动"；重度是白色流星从右往左冲
+      light:    { color: '#3fbf7f', dots: 0,  motion: 'none' },
+      standard: { color: '#4a8bff', dots: 9,  motion: 'drift' },
+      heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff' },
+    }
+
     function Segmented({ name, value, options, label, disabled, title, onPick, failTick, tones }) {
       const box = React.useRef(null)
       const last = React.useRef(null)
@@ -4536,7 +4543,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // ⚠ !important 是必须的：入场规则（po06-pop/po06-help）与这条**同优先级**且写在后面，
             //   而入场动画是 fill-mode:both（播完仍占着 animation 槽）。不加 !important 时退场动画根本不会接管，
             //   元素就"啪一下消失"——2026-10-19 真机就是这个问题（优化选项 / ? / 拦截面板都没有退场）。
-            '[data-po06-closing="1"]{animation:po06-out .16s ease-in both !important;pointer-events:none}',
+            '[data-po06="picker-layer"]{animation:po06-jelly-in .16s ease-out both}[data-po06-closing="1"]{animation:po06-out .16s ease-in both !important;pointer-events:none}',
             '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .24s ease-in both !important}',
             // 拦截面板的「果冻」入场/退场（2026-10-19 用户要求）：
             //   · 挤压—拉伸—回弹（不是等比缩放弹跳），且回弹收敛到静止；
