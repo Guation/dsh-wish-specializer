@@ -85,7 +85,8 @@ if(mode==='prepare'){
    let requests=0
    while(rt.records.length<BOUND){
     if(arm==='C'){
-     const fact=renderToolboxFacts(store.status({sessionId,workspace:dir}),{english:true})
+     const stopWhen=JSON.parse(readFileSync(join(root,'prepared.json'),'utf8')).optimizer.find(x=>x.label==='candidate')?.parsed?.toolbox?.stopWhen||null
+     const fact=renderToolboxFacts({...store.status({sessionId,workspace:dir}),stopWhen},{english:true})
      if(fact){messages.push(rt.notice(fact));record.contextInjections.push({phase,atRequest:rt.records.length+1,text:fact})}
     }
     const r=await rt.complete({system,messages,tools:schemas},{label:arm+'-'+phase+'-'+(++requests)})

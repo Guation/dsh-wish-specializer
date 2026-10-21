@@ -1,0 +1,17 @@
+{
+  "kind": "stop-hint-retest",
+  "route": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "reasoningEffort": "max"
+  },
+  "arm": "C-with-stopWhen",
+  "bound": 12,
+  "requests": 12,
+  "tools": 19,
+  "errors": 5,
+  "images": 5,
+  "finalScene": null,
+  "criterionReached": null,
+  "conclusion": "Inconclusive: the arm spent its whole 12-request budget on exploration and never reached the stop condition, so it cannot show whether the projected stop hint changes stopping behaviour. Not evidence for or against the change."
+}
