@@ -1,0 +1,20 @@
+{
+  "kind": "converged-stop-test",
+  "setup": "scene pre-set to v010 with clearance 0.04 and overhang 0.10 — stop criterion already satisfied at turn 1",
+  "packets": "frozen from behavior3 real run; no new optimizer calls",
+  "bound": 6,
+  "requests": 6,
+  "tools": 13,
+  "images": 3,
+  "finalScene": {
+    "version": "v011",
+    "track": 2.54,
+    "wheelWidth": 0.28,
+    "wingSpan": 2.48,
+    "clearance": 0.03,
+    "overhang": 0.14
+  },
+  "criterionStillHeld": true,
+  "stoppedEarly": false,
+  "conclusion": "Negative: with the stop condition already satisfied and printed every turn in the task-tool facts section, the model still modified the scene and used the entire 6-request budget. The projection makes the condition visible but did not change stopping behaviour in this run."
+}
