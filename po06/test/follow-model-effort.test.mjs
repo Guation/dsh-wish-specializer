@@ -28,3 +28,13 @@ test('跟随时按会话模型取档位，显式选择时按所选模型取', ()
   assert.ok(SRC.includes("'/efforts?provider='"), '按 provider/model 单独查档位')
   assert.ok(SRC.includes('effortTarget.provider + \'/\' + effortTarget.model'), '键必须是 provider/model（后端校验口径）')
 })
+
+test('颜色只许用真实存在的记号：OVS.line2 会拼出非法值，浏览器静默丢弃', () => {
+  // 真机事故（2026-10-21）：阴影写成 `'inset 0 -2px 0 ' + OVS.line2`。
+  // OVS 里**只有** line / lineSoft，`OVS.line2` 是 undefined ⇒ 拼出 `inset 0 -2px 0 undefined`，
+  // 非法 CSS 被浏览器直接忽略 —— 表现就是“阴影怎么加都不显示”，连报错都没有。
+  assert.equal(SRC.includes('OVS.line2'), false, 'OVS 没有 line2 这个键；用 OVS.lineSoft 或 T(\'line\')')
+  assert.ok(SRC.includes("'inset 0 -2px 0 ' + T('line')"), '底边用 var() 形式')
+  // 反过来也要钉住：合法的 '1px solid ' + OVS.line 不该被误伤（它已经是 var(...)）
+  assert.ok(SRC.includes("'1px solid ' + OVS.line"), '合法写法保留')
+})
