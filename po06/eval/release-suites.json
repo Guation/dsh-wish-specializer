@@ -1,11 +1,15 @@
 {
-  "at": "2026-10-21T13:57:02.950Z",
+  "at": "2026-10-21T15:38:55.293Z",
   "summary": {
     "suites": 133,
-    "passed": 133,
-    "failed": 0,
-    "passTotal": 1382,
-    "failing": []
+    "passed": 130,
+    "failed": 3,
+    "passTotal": 1379,
+    "failing": [
+      "exit-motion.test.mjs",
+      "segmented-motion.test.mjs",
+      "ui-picker.test.mjs"
+    ]
   },
   "results": [
     {
@@ -493,10 +497,10 @@
     },
     {
       "file": "exit-motion.test.mjs",
-      "pass": 9,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
+      "pass": 8,
+      "fail": 1,
+      "exit": 1,
+      "ok": false
     },
     {
       "file": "feedback.test.mjs",
@@ -822,10 +826,10 @@
     },
     {
       "file": "segmented-motion.test.mjs",
-      "pass": 7,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
+      "pass": 6,
+      "fail": 1,
+      "exit": 1,
+      "ok": false
     },
     {
       "file": "session-tier.test.mjs",
@@ -906,10 +910,10 @@
     },
     {
       "file": "ui-picker.test.mjs",
-      "pass": 4,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
+      "pass": 3,
+      "fail": 1,
+      "exit": 1,
+      "ok": false
     },
     {
       "file": "verifier-html.test.mjs",
@@ -940,5 +944,72 @@
       "ok": true
     }
   ],
-  "failed": []
+  "failed": [
+    {
+      "file": "exit-motion.test.mjs",
+      "pass": 8,
+      "fail": 1,
+      "exit": 1,
+      "ok": false,
+      "unparsable": false,
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1402:25)",
+        "      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)",
+        "      at Test.postRun (node:internal/test_runner/test:1542:19)",
+        "      at Test.run (node:internal/test_runner/test:1467:12)",
+        "      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: '==',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "file": "segmented-motion.test.mjs",
+      "pass": 6,
+      "fail": 1,
+      "exit": 1,
+      "ok": false,
+      "unparsable": false,
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1402:25)",
+        "      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)",
+        "      at Test.postRun (node:internal/test_runner/test:1542:19)",
+        "      at Test.run (node:internal/test_runner/test:1467:12)",
+        "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: '==',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "file": "ui-picker.test.mjs",
+      "pass": 3,
+      "fail": 1,
+      "exit": 1,
+      "ok": false,
+      "unparsable": false,
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1402:25)",
+        "      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)",
+        "      at Test.postRun (node:internal/test_runner/test:1542:19)",
+        "      at Test.run (node:internal/test_runner/test:1467:12)",
+        "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: '==',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    }
+  ]
 }

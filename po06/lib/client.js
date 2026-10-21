@@ -880,97 +880,30 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      * 下拉选择（2026-10-19 重做）：原生 <select> 的展开面板由系统绘制，跟插件的设计语言完全不搭
      * （截图：黑底 + 系统蓝高亮）。这里换成自己的触发器 + 面板，键鼠都能用。
      */
-    // 同一时刻只允许一个下拉浮层：两个同时开着就会互相压住（反复出现的"模型/思考重叠"）。
-    const OPEN_PICKERS = new Set()
+    // 下拉改成**面板内联展开**（2026-10-21）：此前是挂在 document.body 上的 fixed 浮层，
+    // 展开时会盖住"思考档位"及下面的工具行，看起来就是"列表重叠"。
+    // 现在菜单是面板里的普通块级元素：撑开、把后续行往下推，结构上不可能与任何行重叠。
+    // 同时移除"同一时刻只开一个"的必要性——没有浮层，就没有层叠。
     function Options({ value, onChange, options, labels, disabled, anchor }) {
       const [open, setOpen] = React.useState(false)
       const btnRef = React.useRef(null)
-      const layerRef = React.useRef(null)
-      const idx = Math.max(0, options.indexOf(value))
       const label = (k) => (labels && labels[k]) || k
-
-      /**
-       * 菜单用**独立浮层**画在 document.body 上（2026-10-19 真机修复）：
-       * 之前把菜单渲进选项面板内部，面板是滚动容器 + fixed 定位，菜单要么被裁、要么和别的行叠在一起。
-       * 这里用原生 DOM 直接建一个 fixed 浮层：不参与面板布局，也不会被任何祖先的 overflow/transform 裁掉。
-       */
       React.useEffect(() => {
         if (!open) return undefined
-        const btn = btnRef.current
-        if (!btn || typeof document === 'undefined') { setOpen(false); return undefined }
-        // 先关掉别的浮层，再清掉 HMR/异常路径留下的孤儿层——它们正是"重叠"的来源。
-        for (const other of Array.from(OPEN_PICKERS)) { try { other() } catch { /* 忽略 */ } }
-        OPEN_PICKERS.clear()
-        try { for (const stray of Array.from(document.querySelectorAll('[data-po06="picker-layer"]'))) stray.remove() } catch { /* 忽略 */ }
-        const r = btn.getBoundingClientRect()
-        const vw = (typeof window !== 'undefined' ? window.innerWidth : 800)
-        const w = Math.min(Math.max(180, Math.round(r.width)), Math.max(120, vw - 16))
-        const left = Math.max(8, Math.min(Math.round(r.left), vw - w - 8))
-        const layer = document.createElement('div')
-        layer.setAttribute('data-po06', 'picker-layer')
-        layer.style.cssText = [
-          'position:fixed', 'z-index:2147483000', 'box-sizing:border-box',
-          'display:flex', 'flex-direction:column', 'gap:2px', 'padding:4px',
-          'max-height:260px', 'overflow-y:auto', 'border-radius:10px',
-          'background:' + OVS.surface, 'border:1px solid ' + OVS.lineSoft,
-          'box-shadow:0 14px 34px rgba(0,0,0,.45)', 'font-size:12px', 'line-height:18px',
-          'left:' + left + 'px', 'width:' + w + 'px',
-        ].join(';')
-        const below = ((typeof window !== 'undefined' ? window.innerHeight : 600) - r.bottom) > 240
-        if (below) layer.style.top = Math.round(r.bottom + 4) + 'px'
-        else layer.style.bottom = Math.round(((typeof window !== 'undefined' ? window.innerHeight : 600) - r.top) + 4) + 'px'
-
-        const rows = options.map((k) => {
-          const b = document.createElement('button')
-          b.type = 'button'
-          b.setAttribute('data-po06', 'picker-item')
-          b.setAttribute('data-on', k === value ? '1' : '0')
-          b.textContent = label(k)
-          const on = k === value
-          b.style.cssText = [
-            'display:block', 'width:100%', 'box-sizing:border-box', 'text-align:left',
-            'padding:6px 8px', 'border:1px solid transparent', 'border-radius:6px',
-            'background:' + (on ? OVS.acc12 : 'transparent'),
-            'color:' + (on ? OVS.acc : OVS.fg2),
-            'font:inherit', 'font-size:12px', 'line-height:18px',
-            'white-space:nowrap', 'overflow:hidden', 'text-overflow:ellipsis', 'cursor:pointer',
-          ].join(';')
-          b.onmouseenter = () => { b.style.background = on ? OVS.acc12 : T('hover') }
-          b.onmouseleave = () => { b.style.background = on ? OVS.acc12 : 'transparent' }
-          b.onclick = () => { setOpen(false); if (k !== value) onChange(k) }
-          layer.appendChild(b)
-          return b
-        })
-
-        document.body.appendChild(layer)
-        layerRef.current = layer
-        const closeSelf = () => { setOpen(false) }
-        OPEN_PICKERS.add(closeSelf)
-        // 面板/页面滚动时跟着收起（浮层不跟随滚动，留着就会错位）
-        const close = () => setOpen(false)
-        const onDoc = (e) => { if (!layer.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close() }
-        const onKey = (e) => { if (e && e.key === 'Escape') close() }
+        const onDoc = (e) => {
+          const btn = btnRef.current
+          if (!btn) return
+          const inside = btn.parentNode && btn.parentNode.contains(e.target)
+          if (!inside) setOpen(false)
+        }
+        const onKey = (e) => { if (e && e.key === 'Escape') setOpen(false) }
         document.addEventListener('pointerdown', onDoc, true)
         document.addEventListener('keydown', onKey, true)
-        window.addEventListener('scroll', close, true)
-        window.addEventListener('resize', close)
         return () => {
-          OPEN_PICKERS.delete(closeSelf)
           document.removeEventListener('pointerdown', onDoc, true)
           document.removeEventListener('keydown', onKey, true)
-          window.removeEventListener('scroll', close, true)
-          window.removeEventListener('resize', close)
-          // 退场：先淡出 + 轻微下移，再移除（直接 remove 太硬）
-          try {
-            layer.style.transition = 'opacity .12s ease, transform .12s ease'
-            layer.style.opacity = '0'
-            layer.style.transform = 'translateY(3px)'
-            setTimeout(() => { try { layer.remove() } catch { /* 忽略 */ } }, 130)
-          } catch { try { layer.remove() } catch { /* 忽略 */ } }
-          layerRef.current = null
         }
       }, [open])
-
       const onKeyDown = (e) => {
         if (disabled) return
         if (!open) {
@@ -982,42 +915,35 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         }
         if (e.key === 'Escape') { e.preventDefault(); setOpen(false) }
       }
-      return h('div', { 'data-po06': 'picker', 'data-open': open ? '1' : '0',
-        style: { flex: 1, minWidth: 0, display: 'flex' } },
+      return h('div', { 'data-po06': 'picker', 'data-open': open ? '1' : '0', style: { flex: 1, minWidth: 0 } },
         h('button', {
           ref: btnRef, type: 'button', 'data-po06': anchor || 'picker-btn',
           'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
           disabled: disabled === true,
-          style: { ...S.picker, ...(open ? S.pickerOpen : null), ...(disabled ? S.dis : null),
-            boxShadow: 'inset 0 -2px 0 ' + T('line') },
+          style: { ...S.picker, ...(open ? { borderColor: OVS.acc } : null), ...(disabled ? S.dis : null),
+            boxShadow: 'inset 0 -2px 0 ' + OVS.line },
           onClick: () => { if (!disabled) setOpen((v) => !v) },
           onKeyDown,
         },
           h('span', { style: S.pickerText }, label(value)),
-          h('span', { 'aria-hidden': 'true', style: S.pickerCaret }, open ? '▴' : '▾')))
+          h('span', { 'aria-hidden': 'true', style: S.pickerCaret }, open ? '\u25B4' : '\u25BE')),
+        open ? h('div', {
+          'data-po06': 'picker-layer', role: 'listbox',
+          style: { marginTop: '6px', padding: '4px', borderRadius: '10px',
+            background: OVS.surface2, border: '1px solid ' + OVS.line,
+            boxShadow: 'inset 0 -2px 0 ' + OVS.line, maxHeight: '240px', overflowY: 'auto' },
+        }, options.map((k) => h('button', {
+          key: k, type: 'button', 'data-po06': 'picker-item', 'data-on': k === value ? '1' : '0',
+          style: { display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left',
+            padding: '6px 8px', border: '1px solid transparent', borderRadius: '6px',
+            background: k === value ? OVS.acc12 : 'transparent',
+            color: k === value ? OVS.acc : OVS.fg2,
+            font: 'inherit', fontSize: '12px', lineHeight: '18px',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' },
+          onClick: () => { setOpen(false); if (k !== value) onChange(k) },
+        }, label(k)))) : null)
     }
 
-    /**
-     * 分段控件：**可点 / 可拖 / ←→ 方向键 / Home / End**（档位四格与优化权限两格共用）。
-     *
-     * 两个容易踩的点，都写在这里免得下次重犯：
-     *   · 拖动时"跨到另一格才发请求"（`pick` 里比对 value/last）——否则一次拖动会把同一档位
-     *     反复写好几遍，而每次写盘都是"备份 + 临时文件 + rename + 读回校验"（宿主 settings.js）。
-     *   · 键盘触发的 click（Enter/Space）`detail === 0` 且没有 clientX，照 clientX 算会**一律落到第 0 格**
-     *     （对档位就是"关闭"）——那是危险的误操作，所以这种 click 一律不处理，交给 onKeyDown。
-     */
-    /**
-     * 分段控件（2026-10-19 重做动效）：
-     *   · 选中指示器是**一颗会滑动的药丸**（量真实格子位置，left/width 过渡），不是给格子换底色；
-     *   · 档位这一条额外带**主题特效**：轻度绿 / 标准蓝 / 重度紫，粒子湍流随档位变强，重度还会轻微颤。
-     *   · 拖动、方向键、点击三条交互不变（命中判定仍按整条轨道等分）。
-     */
-    const TIER_FX = {
-      // 2026-10-19 用户改口径：轻度只要底色；标准是"无序随机线性飘动"；重度是白色流星从右往左冲
-      light:    { color: '#3fbf7f', dots: 0,  motion: 'none' },
-      standard: { color: '#4a8bff', dots: 9,  motion: 'drift' },
-      heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff' },
-    }
     function Segmented({ name, value, options, label, disabled, title, onPick, failTick, tones }) {
       const box = React.useRef(null)
       const last = React.useRef(null)
@@ -1183,7 +1109,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             left: (ind ? ind.left : 2) + 'px', width: (ind ? ind.width : 0) + 'px',
             borderRadius: '7px', pointerEvents: 'none',
             background: tone,
-            boxShadow: '0 1px 3px rgba(0,0,0,.25)',
+            // 胶囊自己也要有底边：轨道上的底边只是“框”，用户点的是这颗药丸。
+            boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 -2px 0 rgba(0,0,0,.26)',
             transition: 'left .26s cubic-bezier(.22,.8,.24,1), width .26s cubic-bezier(.22,.8,.24,1), background-color .22s ease',
           } }),
         options.map((k) => h('span', {
