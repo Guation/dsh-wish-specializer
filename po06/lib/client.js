@@ -507,7 +507,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 设置行（2026-10-19 观感）：左侧标签、右侧状态值；整行有底色，状态值用主题色
       optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
         justifyContent: 'space-between', gap: '10px', padding: '8px 12px',
-        borderRadius: '10px', border: '1px solid transparent', background: T('chip'), boxShadow: 'inset 0 -2px 0 ' + OVS.line2,
+        borderRadius: '10px', border: '1px solid transparent', background: T('chip'), boxShadow: 'inset 0 -2px 0 ' + T('line'),
         color: 'inherit', font: 'inherit', fontSize: '12.5px', cursor: 'pointer', textAlign: 'left' },
       optVal: (on) => ({ color: on ? OVS.acc : OVS.fg3, fontWeight: 600, letterSpacing: '.2px' }),
       optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
@@ -724,7 +724,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       divider: { height: '1px', background: OVS.line2, margin: '2px 0' },
       optWide: { width: '100%', boxSizing: 'border-box', textAlign: 'center',
         padding: '6px 10px', borderRadius: '8px', border: '1px solid transparent',
-        background: T('chip'), boxShadow: 'inset 0 -2px 0 ' + OVS.line2, color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
+        background: T('chip'), boxShadow: 'inset 0 -2px 0 ' + T('line'), color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
       optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', paddingTop: '2px' },
       optSummary: { color: OVS.fg3, fontSize: '11px', whiteSpace: 'nowrap' },
       optCaret: { color: OVS.fg3, fontSize: '9px', lineHeight: 1 },
@@ -989,7 +989,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
           disabled: disabled === true,
           style: { ...S.picker, ...(open ? S.pickerOpen : null), ...(disabled ? S.dis : null),
-            boxShadow: 'inset 0 -2px 0 ' + OVS.line2 },
+            boxShadow: 'inset 0 -2px 0 ' + T('line') },
           onClick: () => { if (!disabled) setOpen((v) => !v) },
           onKeyDown,
         },
@@ -1129,7 +1129,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         'data-po06': name, 'data-po06-value': shown || 'none',
         'data-po06-disabled': disabled ? '1' : '0',
         'data-po06-fx': fx ? shown : 'none',
-        title, style: { ...S.seg, ...(disabled ? S.dis : null), cursor: disabled ? 'not-allowed' : 'pointer',
+        title, style: { ...S.seg, ...(disabled ? S.dis : null), boxShadow: 'inset 0 -2px 0 ' + T('line'), cursor: disabled ? 'not-allowed' : 'pointer',
           position: 'relative', overflow: 'hidden',
           ...(fx ? { background: 'color-mix(in srgb, ' + fx.color + ' 16%, ' + OVS.bg1 + ')',
             borderColor: 'color-mix(in srgb, ' + fx.color + ' 34%, transparent)',
@@ -2282,7 +2282,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       //    守卫都按字面量 grep `'data-po06': 'intercept-…'`，拼出来的名字在源码里搜不到。
       const btn = (attrs, text, onClick, kind, tip) => h('button', {
         type: 'button', ...attrs, title: tip || undefined,
-        style: { ...S.ovBtn, ...(kind === 'primary' ? S.ovBtnPrimary : (kind === 'danger' ? S.ovBtnDanger : (kind === 'ghost' ? S.ovBtnGhost : null))) },
+        style: { ...S.ovBtn, boxShadow: 'inset 0 -2px 0 ' + T('line'), ...(kind === 'primary' ? S.ovBtnPrimary : (kind === 'danger' ? S.ovBtnDanger : (kind === 'ghost' ? S.ovBtnGhost : null))) },
         onClick,
       }, text)
       // ⚠ 子元素用**展开**而不是把数组当唯一子节点传：数组子节点在 React 里会被当成列表，
