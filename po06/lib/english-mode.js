@@ -70,7 +70,7 @@ export function prepareEnglishInterpretation(value,originalText,prepared=protect
  }
  // v3 optional assistance is independent from the validated faithful task translation.
  if(output.intent && typeof output.intent === 'object') output.intent.text=prose(output.intent.text,'intent.text')||'The current user input is supplied in English.'
- for(const key of ['clarify','add','ask']) if(Array.isArray(output[key])) output[key]=output[key].map((s,i)=>typeof s==='string'?prose(s,key+'['+i+']'):s).filter(s=>typeof s!=='string'||!!s.trim())
+ for(const key of ['clarify','add','scaffold','ask','decide']) if(Array.isArray(output[key])) output[key]=output[key].map((s,i)=>typeof s==='string'?prose(s,key+'['+i+']'):s).filter(s=>typeof s!=='string'||!!s.trim())
  if(output.consult && typeof output.consult==='object') {
   for(const key of ['focus','reason'])output.consult[key]=prose(output.consult[key],'consult.'+key)
   if(!output.consult.focus || !output.consult.reason) {delete output.consult;warnings.push({reason:'untranslated-consultation-omitted'})}
@@ -149,7 +149,7 @@ function englishAssistanceFields(value){
  const fields=[]
  const add=(owner,key,id)=>{if(owner&&typeof owner[key]==='string'&&owner[key].trim())fields.push({id,source:owner[key],set:text=>{owner[key]=text}})}
  add(value.intent,'text','intent.text')
- for(const key of ['clarify','add','ask'])if(Array.isArray(value[key]))value[key].forEach((_x,i)=>add(value[key],i,key+'['+i+']'))
+ for(const key of ['clarify','add','scaffold','ask','decide'])if(Array.isArray(value[key]))value[key].forEach((_x,i)=>add(value[key],i,key+'['+i+']'))
  for(const key of ['focus','reason'])add(value.consult,key,'consult.'+key)
  for(const key of ['summary','focus'])add(value.understanding,key,'understanding.'+key)
  for(const key of ['target','reason','nextAction','contribution'])add(value.support,key,'support.'+key)

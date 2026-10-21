@@ -64,7 +64,10 @@ test('normal packet and source message are historical, without later consult-opp
   assert.equal(now.includes('问题'),false,'反问不注入')
  }
  const source={userText:'Explicit original task.',context:'Permitted context.',observations:[],retryEmpty:false,englishMode:false}
- assert.equal(actual.buildOptimizerUserMessage(source),original.buildOptimizerUserMessage(source))
+ // User selected a combined 3000-token budget; all unrelated input fields remain historical.
+ const {outputBudgetTokens,...currentUser}=JSON.parse(actual.buildOptimizerUserMessage(source))
+ assert.equal(outputBudgetTokens,3000)
+ assert.deepEqual(currentUser,JSON.parse(original.buildOptimizerUserMessage(source)))
 })
 
 test('unchanged capability/contribution authority stays historical; claim-policy differences are explicit', { skip: SKIP },()=>{

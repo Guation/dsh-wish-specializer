@@ -13,18 +13,16 @@
 // 返工门（P6）的生产触发本来就是默认关闭的，不因为档位而打开——档位不该悄悄放大自主权。
 import { normalizeSettings, tierOf, TIER_PRESETS } from './settings.js'
 import { strategyForTier } from './strategy.js'
+import { OPTIMIZER_OUTPUT_BUDGET_TOKENS } from './optimizer-protocol.js'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** 意图包字符预算：默认与 `compiler.DEFAULT_BUDGET` 一致（1200），避免"没设置就变行为"。 */
-// 预算按 **token** 计（2026-10-20 用户定：2048）。为什么不再用字符：
-// 中文"苹果"2 字符 = English "apple" 5 字符，同语义字符数天然差 2.5–3 倍，
-// 拿字符当预算等于对英文不公平（实测英文 3965 字符 ≈ 991 token，中文 947 字符 ≈ 1231 token）。
-export const DETAIL_TOKENS = Object.freeze({ minimal: 512, standard: 1024, detailed: 2048 })
-/** token → 字符的**语言换算**（只用于向宿主传兼容参数与提示词里的"大约多少字"）。 */
-export const TOKENS_PER_CHAR = Object.freeze({ zh: 1 / 1.4, en: 4 })   // zh：1.4 token/字；en：4 字符/token
-/** 旧名保留：值是**该语言下的字符预算**，由 token 预算换算而来（见 packetBudgetChars）。 */
-export const DETAIL_BUDGET = Object.freeze({ minimal: 512, standard: 1024, detailed: 2048 })
+// All three sections share one 3000-token ceiling. Tiers vary detail, not the cap.
+export const DETAIL_TOKENS = Object.freeze({ minimal: OPTIMIZER_OUTPUT_BUDGET_TOKENS, standard: OPTIMIZER_OUTPUT_BUDGET_TOKENS, detailed: OPTIMIZER_OUTPUT_BUDGET_TOKENS })
+/** Approximate tokenizer ratios for the legacy character-budget compiler only. */
+export const TOKENS_PER_CHAR = Object.freeze({ zh: 1.4, en: 0.25 })
+export const DETAIL_BUDGET = DETAIL_TOKENS
+
 /** 一批最多问几个问题：默认与 `clarifier` 的默认一致（2）。 */
 export const BUDGET_QUESTIONS = Object.freeze({ minimal: 1, standard: 2, generous: 3 })
 /** 未指定（字段缺失）时用的档位，与 settings 的默认一致。 */
@@ -78,8 +76,8 @@ export function policyFor(settings, sessionId) {
     reasoningCandidates: s.reasoningCandidates, reasoningRounds: s.reasoningRounds, reasoningPace:s.reasoningPace,
     injectPacket: s.assist !== 'off',
     packetBudgetTokens: DETAIL_TOKENS[s.detail] || DETAIL_TOKENS.detailed,
-    // 宿主只认字符预算：按解释层语言（中文）换算，保证"2048 token"在中文下约等于 2900 字符。
-    packetBudgetChars: Math.round((DETAIL_TOKENS[s.detail] || DETAIL_TOKENS.detailed) / TOKENS_PER_CHAR.zh),
+    // The legacy compiler accepts a language-based character estimate, not a measured token count.
+    packetBudgetChars: Math.floor((DETAIL_TOKENS[s.detail] || DETAIL_TOKENS.detailed) / TOKENS_PER_CHAR[s.englishMode ? 'en' : 'zh']),
     maxQuestions: BUDGET_QUESTIONS[s.budget],
     // ⚠ P10 补接（真机台账照出来的洞，别删这几行）：
     // 引擎侧（`renderObserverBlock` / `readToolsFor`）读的是 `pol.historyMode` / `pol.turns` / `pol.readTools`，
@@ -121,7 +119,7 @@ export function policyFor(settings, sessionId) {
  */
 export function packetShapeOf(pol) {
   if (!pol) return ''
-  return [pol.assist, pol.detail, pol.budget, pol.framing,pol.englishMode?'en':'original'].join('|')
+  return ['scaffold-directions-1', pol.assist, pol.detail, pol.budget, pol.framing,pol.englishMode?'en':'original'].join('|')
 }
 
 /** 写盘前后形状不同 ⇒ 已存的包文本必须作废（下一次拦截会重编译）。两侧都取不到时不作废。 */

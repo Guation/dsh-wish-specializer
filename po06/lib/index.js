@@ -793,7 +793,7 @@ export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTo
         llm, cfg, system: sys, messages, root: tools.root, count: tools.count,englishMode,
         // The compact system already contains the authorized read note; do not append it twice.
         systemNote: '',
-        finalNote: englishMode ? 'Read budget reached. Return intent/clarify/add/ask JSON from existing evidence.' : '只读预算已到，基于现有材料返回 intent/clarify/add/ask JSON。',
+        finalNote: englishMode ? 'Read budget reached. Follow the current output contract and return intent/add/scaffold/ask JSON from existing evidence.' : '只读预算已到，基于已有材料按当前输出契约返回 intent/add/scaffold/ask JSON。',
         shape: llmT, mod: llmT && llmT.mod ? llmT.mod : null,
         // 思维层：工具路径也要把流式片段接到进度面（否则开着工具时界面只剩"已用 N 秒"）
         onDelta,
@@ -1020,26 +1020,22 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const workState = adapter.capability.observer(sessionId,pol.englishMode?'en':null,{omitCurrent:true,contextText:rendered.text || ''})
         const combinedContext = [rendered.text, workState].filter(Boolean).join('\n\n')
         renderedCtx = combinedContext
-        // 档位 → 用户消息里的**格式要求**（实测：写在 system 里的规则模型会忽略，写在这里才跟）。
-        // 两个轴：subConcepts（举例力度）+ decide（待你拍板的岔路，必须真的问出来）。
-        const decideHint = pol.strategy && pol.strategy.tier === 'heavy'
-          ? '只有在原话缺了会改变结果的信息、且你无法推断时，才在 decide 里写 1–3 条“问题｜选项A / 选项B｜未定时假设：X”；能推断或可自由发挥的，就不要问、也不要写死。'
-          : pol.strategy && pol.strategy.tier === 'standard'
-            ? '若存在原话没给、又无法推断、且会改变成品的关键岔路，才在 decide 里写一条（问题｜选项｜未定时假设）；否则留空。'
+        // The optimizer generates all three direction lists in the same call.
+        const decideHint = pol.englishMode
+          ? 'Return add/scaffold/ask as separate direction lists. Ask contains only genuine questions; the working model will organize choices. Do not infer scaffolds from keywords or omit them simply because no files were read.'
+          : '分别思考并返回 add/scaffold/ask 三类方向。scaffold 聚焦对本目标有价值的临时制作与自反馈能力；不是先查环境的套话。ask 只列确需确认的问题，选项由工作模型自己组织，不写未定时默认答案。'
+        const exampleHint = pol.strategy?.subConcepts === 'rich'
+          ? (pol.englishMode ? 'Use a small effect or capability example where helpful; do not force examples or prescribe implementation steps.' : '有助于说明方向时可用少量现象或能力举例，不强制每条举例，不把例子写成具体实现步骤。')
+          : pol.strategy?.subConcepts === 'one'
+            ? (pol.englishMode ? 'A key direction may name a smaller effect as an example.' : '关键方向可点出一个较小的效果现象作例子。')
             : ''
-        const exampleHint = pol.strategy && pol.strategy.subConcepts === 'rich'
-          ? '每条补充都以「——比如：A、B」结尾，列出 1–2 个更小的具体概念（现象、手法、效果的名字）；没有例子的条目不要写。'
-          : pol.strategy && pol.strategy.subConcepts === 'one'
-            ? '最关键的 1–2 条以「——比如：A」结尾，点出一个更小的具体概念。'
-            : ''
-        // 预算按 token 计（2048 重度）：换算成"大约多少字"写进提示词，避免模型按字数无意识膨胀。
-        const budgetTokens = pol.packetBudgetTokens || 2048
+        const budgetTokens = pol.packetBudgetTokens || 3000
         const budgetHint = pol.englishMode
-          ? '补充总量控制在 ' + budgetTokens + ' token 以内（英文约 ' + Math.round(budgetTokens * 0.75) + ' 词）。'
-          : '补充总量控制在 ' + budgetTokens + ' token 以内（中文约 ' + Math.round(budgetTokens * 1.4) + ' 字）。'
+          ? 'Production, temporary-scaffold and Ask together: at most ' + budgetTokens + ' output tokens, not per section; do not pad to fill the budget.'
+          : '制作建议、临时脚手架建议、Ask 三段合计不超过 ' + budgetTokens + ' token，不是每段分别计算，不为用满预算凑内容。'
         const styleHint = [exampleHint, decideHint, budgetHint].filter(Boolean).join(' ')
         const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
-        const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
+        const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
         const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null,englishMode:pol.englishMode })

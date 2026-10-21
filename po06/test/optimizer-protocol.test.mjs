@@ -82,7 +82,7 @@ test('new path preserves long suggestions, more than twelve items and every prop
   // 2026-10-19 改口径：反问改成**给用户的选择题**，进注入文的「待你拍板」小节
   // （用户要求"未拍板要直接 ask 并给选项"）；同时仍进 state.questions 与 add_question。
   for (const s of adds) assert.ok(out.packet.text.includes(s), '补充条目仍要原样进注入')
-  assert.match(out.packet.text, /需要直接通过 ask 选项询问用户：[\s\S]*ask_user_question/, '注入包要指示工作模型调用提问工具')
+  assert.match(out.packet.text, /【Ask用户\(ask_user_question\)】[\s\S]*自行组织/, '注入包要指示工作模型调用提问工具')
   for (const s of asks) assert.ok(out.packet.text.includes(s), '待拍板的选项要写进注入文')
   assert.match(out.packet.text, /\n1\. /, '补充按重要性编号')
   assert.equal(a.getWorkingText('s1'), out.packet.text)
@@ -97,12 +97,12 @@ test('ask-only packet reaches the intercept preview and working context without 
       clarify: [], add: [], decide: [], ask: [question + '｜' + choices + '｜未定时假设：中置双座楔形超跑'] }),
   })
   assert.equal(out.outcome, 'committed')
-  assert.match(out.packet.text, /给工作模型[\s\S]*需要直接通过 ask 选项询问用户：[\s\S]*请工作模型调用 ask_user_question/)
-  assert.ok(out.packet.text.indexOf('给工作模型') < out.packet.text.indexOf('【提示词辅助'), '执行要求必须排在辅助段之前')
-  assert.ok(out.packet.text.includes('以完整用户原话为准'), '辅助段仍服从原话')
+  assert.match(out.packet.text, /【Ask用户\(ask_user_question\)】[\s\S]*请调用 ask_user_question/)
+  assert.ok(out.packet.text.includes('请优先考虑'), '方向建议获得适度关注权重')
+  assert.ok(out.packet.text.includes('不覆盖用户明确要求'), '建议不能成为新增硬要求')
   assert.ok(out.packet.text.includes(question))
-  assert.ok(out.packet.text.includes('选项：' + choices))
-  assert.match(out.packet.text, /收到用户回答后/)
+  assert.equal(out.packet.text.includes('选项：' + choices), false, '优化器不必列选项；工作模型自行组织')
+  assert.match(out.packet.text, /根据答复决定/)
   assert.doesNotMatch(out.packet.text, /未定时假设|未定之前按假设走|已选：/)
   assert.equal(a.getWorkingText(session.id), out.packet.text, 'preview packet and model context use the same text')
   assert.equal(a.intentStateOf(session).questions[0].status, 'proposed', 'rendering instructions does not mean the user was asked')
@@ -212,4 +212,3 @@ test('control API distinguishes a settings preview from the actual request recor
     assert.equal((await call('s2')).prompt.lastRequest, null)
   } finally { rmSync(home, { recursive: true, force: true }) }
 })
-

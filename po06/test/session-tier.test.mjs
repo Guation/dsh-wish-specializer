@@ -30,8 +30,10 @@ test('会话档位真的改变生效行为，且不影响其它会话与全局',
   assert.equal(tierOf(a), 'heavy', 'A 的推导档位应是 heavy')
   assert.equal(a.detail, 'detailed')
   assert.equal(tierOf(effectiveSettings(raw, B)), 'heavy', 'B 用默认档 heavy（2026-10-18 起）')
-  assert.ok(policyFor({ bySession: { [A]: { tier: 'light' } } }, A).packetBudgetChars < policyFor(raw, B).packetBudgetChars,
-    '档位必须体现到产出预算上，而不只是显示')
+  const lightPolicy=policyFor({ bySession: { [A]: { tier: 'light' } } }, A), heavyPolicy=policyFor(raw, B)
+  assert.equal(lightPolicy.packetBudgetTokens,3000)
+  assert.equal(heavyPolicy.packetBudgetTokens,3000,'三段输出使用同一个总上限')
+  assert.notEqual(lightPolicy.strategy.subConcepts,heavyPolicy.strategy.subConcepts,'档位通过展开程度表达差异')
 })
 
 test('连续点两次档位：第二次必须生效（本轮缺陷回归）', () => {

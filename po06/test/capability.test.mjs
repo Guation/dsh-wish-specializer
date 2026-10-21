@@ -82,9 +82,9 @@ t('策略指令随档位变化，且**不设输出上限**（ADR-0085）', () =>
   const light = strategyInstructions(strategyForTier('light')).join('\n')
   const heavy = strategyInstructions(strategyForTier('heavy')).join('\n')
   // 2026-10-18：档位也改成"愿望扩充"口径——轻=只补最要命的方向，重=覆盖全部维度并提示分阶段。
-  ok(/方向要求/.test(light), 'light adds only the most consequential directional requirements')
-  ok(/阶段拆分/.test(heavy) && /不写代码/.test(heavy), 'heavy covers all dimensions and stages the work, without implementation')
-  ok(/不做实现指导/.test(light), 'light refuses implementation guidance')
+  ok(/制作与临时脚手架方向/.test(light), 'light considers both classes of directional suggestions')
+  ok(/阶段拆分/.test(heavy) && /不把例子写成施工步骤/.test(heavy), 'heavy expands directions without becoming an implementation recipe')
+  ok(/不展开更小的子概念/.test(light), 'light stays at the broad direction level')
   ok(!/maxTokens|max_tokens|maxOutputTokens/.test(light + heavy), '**不许**出现输出 token 上限（ADR-0085）')
   ok(!/条目上限|最多.*条/.test(light + heavy), 'new tier text has no content quotas')
 })

@@ -16,11 +16,11 @@ test('策略轴：轻度 / 标准 / 重度 在 subConcepts 上是三档', () => 
   assert.equal(strategyForTier('heavy').subConcepts, 'rich')
 })
 
-test('重度要求每条带例子（——比如），轻度明确不展开子概念', () => {
+test('重度可用例子说明方向，不强制逐条举例；轻度保持简短', () => {
   const heavy = sys('heavy')
   const light = sys('light')
   assert.ok(heavy.includes('——比如'), '重度必须给出例子格式')
-  assert.ok(/每一条都必须带例子/.test(heavy), '重度要求逐条带例子')
+  assert.ok(heavy.includes('不强迫每条举例'), '例子不成为凑数或施工的硬性配额')
   assert.ok(light.includes('不展开更小的子概念或例子'), '轻度明确不给子概念')
   assert.ok(!light.includes('——比如'), '轻度的提示词里不出现例子格式')
 })

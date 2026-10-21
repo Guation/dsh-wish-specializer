@@ -2,10 +2,17 @@
 // Rendering this text does not itself invoke a tool or collect a user answer.
 export const ASK_TOOL_NAME = 'ask_user_question'
 
-export function renderAskInstruction(questions, { english = false } = {}) {
+export function renderAskInstruction(questions, { english = false, questionsOnly = false } = {}) {
   const items = (Array.isArray(questions) ? questions : []).filter(item =>
     item && typeof item.question === 'string' && item.question.trim())
   if (!items.length) return ''
+  if (questionsOnly) {
+    const heading = english ? '[Ask user (ask_user_question)]' : '【Ask用户(ask_user_question)】'
+    const action = english
+      ? 'For these questions that need confirmation, call ask_user_question with suitable options you organize yourself; use the answers to decide the related matters.'
+      : '对以下确需确认的问题，请调用 ask_user_question，自行组织合适的选项询问用户，再根据答复决定相关事项。'
+    return [heading, action, ...items.map((item, i) => (i + 1) + '. ' + item.question.trim())].join('\n')
+  }
   const heading = english
     ? 'Ask the user directly with selectable options:'
     : '需要直接通过 ask 选项询问用户：'

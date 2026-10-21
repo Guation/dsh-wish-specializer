@@ -162,7 +162,7 @@ export async function handleUserInput(adapter, session, input) {
     return finish(trace, base, null, outcome, adapter, session)
   }
 
-  adapter.collaboration = { understanding: parsed.understanding || null, support: parsed.support || null, claims: parsed.claims || [], zeroAddition: !parsed.patch, ...(parsed.optimizer ? { optimizer: parsed.optimizer, protocolVersion: parsed.protocolVersion } : {}) }
+  adapter.collaboration = { understanding: parsed.understanding || null, support: parsed.support || null, claims: parsed.claims || [], zeroAddition: !parsed.patch && !parsed.optimizer?.scaffold?.length, ...(parsed.optimizer ? { optimizer: parsed.optimizer, protocolVersion: parsed.protocolVersion } : {}) }
   // 4) 无操作：理解可以完成而无需新增条目。
   if (!parsed.patch) {
     planAndRecordClarification(adapter, session, trace, input)

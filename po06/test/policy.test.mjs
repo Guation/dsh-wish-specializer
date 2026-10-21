@@ -9,7 +9,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  policyFor, readPolicy, DETAIL_BUDGET, BUDGET_QUESTIONS, DEFAULT_DETAIL, DEFAULT_BUDGET, DEFAULT_ASSIST,
+  policyFor, readPolicy, DETAIL_BUDGET, TOKENS_PER_CHAR, BUDGET_QUESTIONS, DEFAULT_DETAIL, DEFAULT_BUDGET, DEFAULT_ASSIST,
 } from '../lib/policy.js'
 import { DEFAULT_BUDGET as COMPILER_DEFAULT_BUDGET } from '../lib/compiler.js'
 import { ASSIST_MODES, DETAIL_LEVELS, BUDGET_LEVELS } from '../lib/settings.js'
@@ -30,9 +30,9 @@ t('默认政策随新装默认（重度）：预算 2000、一批 3 个问题、
   eq(p.assist, DEFAULT_ASSIST, '默认自动辅助')
   eq(p.detail, 'detailed', '默认档位（2026-10-18 起默认重度）')
   eq(p.budget, 'generous', '默认预算档（2026-10-18 起默认重度）')
-  eq(p.packetBudgetTokens, 2048, 'token 预算 = 2048（2026-10-20 用户定）')
-  eq(p.packetBudgetChars, Math.round(2048 * 1.4), '字符预算是 token 的中文换算值（宿主只认字符）')
-  eq(p.packetBudgetChars, Math.round(2048 * 1.4), '字面值也钉住：改它必须是有意识的动作')
+  eq(p.packetBudgetTokens, 3000, 'token 预算 = 3000（2026-10-20 用户定）')
+  eq(p.packetBudgetChars, Math.floor(3000 / TOKENS_PER_CHAR.zh), '字符预算是 token 的中文换算值（宿主只认字符）')
+  eq(p.packetBudgetChars, Math.floor(3000 / TOKENS_PER_CHAR.zh), '字面值也钉住：改它必须是有意识的动作')
   eq(p.maxQuestions, 3, '提问配额默认 3（generous，2026-10-18 起）')
 })
 
@@ -44,13 +44,10 @@ t('assist=off ⇒ 不注入（"只记录、不补充"这句话必须是真的）
   eq(policyFor({ assist: 'autoo' }).injectPacket, true, '错拼回落默认（auto）而不是静默关掉整件事')
 })
 
-t('detail 三档 → 三档预算，且单调（minimal < standard < detailed）', () => {
-  const a = policyFor({ detail: 'minimal' }).packetBudgetChars
-  const b = policyFor({ detail: 'standard' }).packetBudgetChars
-  const c = policyFor({ detail: 'detailed' }).packetBudgetChars
-  ok(a < b && b < c, '必须单调递增：' + [a, b, c].join(' < '))
-  eq(a, Math.round(512 * 1.4), 'minimal 值（512 token 的中文换算）')
-  eq(policyFor({ detail: 'nonsense' }).packetBudgetChars, c, '非法值 ⇒ 回落默认（detailed）')
+t('三档共享3000 token上限，差异由方向展开程度表达', () => {
+  for (const detail of ['minimal','standard','detailed']) eq(policyFor({detail}).packetBudgetTokens, 3000, detail)
+  eq(policyFor({detail:'nonsense'}).packetBudgetTokens,3000,'非法detail仍用共享上限')
+  eq(policyFor({englishMode:true}).packetBudgetChars,12000,'英文字符换算只是旧编译器的近似')
 })
 
 t('budget 三档 → 提问配额 1/2/3', () => {
@@ -66,16 +63,16 @@ t('readPolicy：缺文件/坏 JSON/字段乱写 ⇒ 一律默认政策（绝不�
   const home = dir
   const p0 = readPolicy({ home })
   eq(p0.source, 'default', '没有配置文件 ⇒ 来源是 default')
-  eq(p0.packetBudgetTokens, 2048, '默认预算（重度）')
+  eq(p0.packetBudgetTokens, 3000, '默认预算（重度）')
 
   writeFileSync(join(home, 'po06.json'), '{ 坏的', 'utf8')
   const p1 = readPolicy({ home })
-  eq(p1.packetBudgetTokens, 2048, '坏 JSON ⇒ 默认（不猜、不放宽）')
+  eq(p1.packetBudgetTokens, 3000, '坏 JSON ⇒ 默认（不猜、不放宽）')
 
   writeFileSync(join(home, 'po06.json'), JSON.stringify({ settingsVersion: 1, enabled: true, detail: 'detailed', budget: 'minimal', assist: 'off' }), 'utf8')
   const p2 = readPolicy({ home })
   eq(p2.source, 'config', '有配置 ⇒ 来源是 config')
-  eq(p2.packetBudgetTokens, 2048, '读到了 detailed 的预算')
+  eq(p2.packetBudgetTokens, 3000, '读到了 detailed 的预算')
   eq(p2.maxQuestions, 1, '读到了 minimal 的配额')
   eq(p2.injectPacket, false, '读到了 assist=off')
 })
@@ -84,7 +81,7 @@ t('readPolicy：缺文件/坏 JSON/字段乱写 ⇒ 一律默认政策（绝不�
 t('readPolicy 接受注入的 readFile（便于测试与替换 IO）', () => {
   const fake = readPolicy({ home: 'X:/nope', readFile: () => JSON.stringify({ detail: 'minimal' }) })
   eq(fake.source, 'config', '注入了读函数 ⇒ 走 config')
-  eq(fake.packetBudgetTokens, 512, '值来自注入内容（minimal = 512 token）')
+  eq(fake.packetBudgetTokens, 3000, '轻度也使用同一个总token上限')
   const nul = readPolicy({ home: 'X:/nope', readFile: () => null })
   eq(nul.source, 'default', '读不到 ⇒ default')
 })

@@ -115,12 +115,12 @@ test('native English contribution uses no translation call or stronger route', a
 test('optimizer has one compact contract, preserves tier purposes and never forces item quotas', () => {
  for (const language of ['zh', 'en']) for (const tier of ['light', 'standard', 'heavy']) {
   const r = composeOptimizerSystem({ language, tier })
-  assert.equal(r.revision, 'advisor-loop-1'); assert.equal(r.parts.filter(p => p.key === 'format').length, 1)
+  assert.equal(r.revision, 'scaffold-directions-1'); assert.equal(r.parts.filter(p => p.key === 'format').length, 1)
   assert.equal(r.parts.filter(p => p.key === 'tier').length, 1)
   assert.ok(r.text.includes(OPTIMIZER_TIERS[language][tier]))
   assert.doesNotMatch(r.text, /MAX_ITEMS|sourceRefs|最多.*条|At most.*items/)
  }
- assert.match(OPTIMIZER_CORE.zh, /方向性要求/); assert.match(OPTIMIZER_TIERS.zh.light, /方向要求/)
+ assert.match(OPTIMIZER_CORE.zh, /方向性的、大概的指导/); assert.match(OPTIMIZER_TIERS.zh.light, /制作与临时脚手架方向/)
  const previous = ['你是提示词优化助手。结合用户原话与相关上下文，帮助工作 AI 更准确、更完整地满足用户期待，给出本轮真正有价值的澄清、补充与建议。','“不扭曲用户原意”是权威。保留用户的目标、否定、强调、偏好和已明确决定；你的解释与建议不能冒充用户要求。可以推断、补充与发挥，但要说明与原意的关系，把未确定前提和实质取舍显露出来。','按所选档位主动寻找增益，补充力度随任务调整。只把会改变结果、且需要用户回答的分歧列为反问；能从上下文解决、查明或合理决定的，不转嫁给用户。未查明的项目情况保持待核。','交付有用的结论和必要理由，篇幅与任务相称。理解本轮追问和纠正，更新当前意图；未被用户采纳的旧建议不成为要求。重复已有信息通常不增加价值，没有值得补充的内容时可以为空。'].join('\n')
  assert.equal(resolvePrompt({ home: '/unused', readFile: () => previous }).text, OPTIMIZER_CORE.zh)
  assert.equal(resolvePrompt({ home: '/unused', readFile: () => previous + '\n我自己的改动' }).source, 'file')
