@@ -13,6 +13,7 @@ import { reduce, recordUserInput } from '../lib/reducer.js'
 import { normalizeSettings, mergeSettings } from '../lib/settings.js'
 import { policyFor, packetShapeChanged } from '../lib/policy.js'
 import { prepareEnglishInterpretation } from '../lib/english-mode.js'
+import { createTaskToolboxStore } from '../lib/toolbox-state.js'
 
 const proposal = (extra={}) => ({ recommendation:'build', reason:'Repeated shape adjustments need comparable observations.',
   basis:['The task specifies HTML + Three.js; existing tools are not yet known.'],
@@ -23,6 +24,7 @@ const value = (extra={}) => ({intent:{text:'Create the requested HTML model.',re
 function fixture(capability=createCapability()) {
   const a = new productionAdapter.constructor()
   a.capability=capability
+  a.toolboxStore=createTaskToolboxStore()
   a.policyNow=()=>({advisor:false,toolboxMode:'auto'})
   a.services.agents={get:()=>({})}
   const states=new Map()
@@ -173,4 +175,49 @@ test('English task translation stays independent of optional toolbox prose',()=>
   assert.equal(english.value.toolbox.reason,proposal().reason)
   const mixed=prepareEnglishInterpretation({...value({toolbox:proposal({reason:'需要重复观察'})}),englishTask:'Create a model.'},'Create a model.')
   assert.equal(mixed.translation.text,'Create a model.');assert.equal(mixed.value.toolbox,undefined);assert.ok(mixed.warnings.some(w=>w.field==='toolbox'))
+})
+
+test('native and PTC results reach both optimizer capability input and working context, then survive restart',async()=>{
+  const home=mkdtempSync(join(tmpdir(),'toolbox-adapter-'))
+  try{
+    const a=fixture(),s={id:'task-runtime',header:{cwd:home}},entrypoint=join(home,'workshop.mjs'),project=join(home,'artifact')
+    a.toolboxStore=createTaskToolboxStore({home,namespace:'runtime'})
+    a.services.agents={get:id=>({session:{id},ctx:{tools:{schemas:()=>[{name:'bash'}]}}})}
+    await a.handleInput(s,{messageId:'po06-intercept-first',text:'Make a Three.js artifact',policy:{toolboxMode:'auto'},interpret:async()=>JSON.stringify(value({toolbox:proposal()}))})
+    const firstTask=a.toolboxStore.status({sessionId:s.id}).taskId
+    const human={type:'user/message',data:{id:'human-first',source:{kind:'user'},content:[{type:'text',text:'Make a Three.js artifact'}]}}
+    const previousInputId=a.capability.token(s.id).id,changed=a.capability.observe(s,human)
+    assert.equal(changed,'submitted');a.observeToolbox(s,human,{changed,previousInputId})
+    assert.equal(a.toolboxStore.status({sessionId:s.id}).taskId,firstTask)
+    const payload=JSON.stringify({taskToolbox:{version:'1',name:'workshop',entrypoint,project,operation:'capture',status:'ok',artifactVersion:'v1',feedbackRefs:[join(project,'capture.png')]}})
+    for(const [kind,id]of [['native','n1'],['ptc','p1']]){
+      const call={type:kind==='native'?'tool/call':'tool/ptc-dispatch-start',seq:4,data:{name:'bash',arguments:JSON.stringify({command:'node workshop.mjs capture'}),...(kind==='native'?{callId:id}:{subCallId:id})}}
+      const result={type:kind==='native'?'tool/result':'tool/ptc-dispatch',seq:5,data:kind==='native'?{message:{toolCallId:id,content:[{type:'text',text:payload}]}}:{subCallId:id,content:[{type:'text',text:payload}]}}
+      assert.equal(a.observeToolbox(s,call).ok,true);const got=a.observeToolbox(s,result);assert.equal(got.ok,true,JSON.stringify(got))
+    }
+    const snapshot=a.toolboxStore.status({sessionId:s.id});assert.equal(snapshot.entries[0].successCount,2)
+    const context=await a.toolboxContextFor(s)
+    assert.equal(context.taskTools[0].lastResult.callId,'p1');assert.equal(context.taskTools[0].lastResult.imageObserved,false)
+    const working=a.getWorkingText(s.id)
+    assert.ok(working.includes(entrypoint));assert.ok(working.includes('历史调用记录'));assert.ok(working.includes('v1'))
+    assert.doesNotMatch(working,/已验证通过|图像已观察/)
+    a.setIntentText(s.id,'User-edited packet without history',{reviewed:true})
+    assert.equal(a.getWorkingText(s.id),'User-edited packet without history','never reinsert facts removed during review')
+    await a.handleInput(s,{messageId:'next',text:'Keep refining',policy:{toolboxMode:'auto'},interpret:async()=>JSON.stringify(value({intent:{text:'Refine the same artifact',relation:'continue'}}))})
+    assert.equal(a.toolboxStore.status({sessionId:s.id}).taskId,firstTask);assert.ok(a.getWorkingText(s.id).includes(entrypoint))
+    const restored=fixture();restored.toolboxStore=createTaskToolboxStore({home,namespace:'runtime'})
+    assert.ok(restored.getWorkingText(s.id).includes(entrypoint));assert.equal(restored.toolboxStore.status({sessionId:s.id}).entries[0].currentAvailability,'unknown')
+    await a.handleInput(s,{messageId:'different',text:'Switch task',policy:{toolboxMode:'auto'},interpret:async()=>JSON.stringify(value({intent:{text:'A different task',relation:'new'}}))})
+    assert.notEqual(a.toolboxStore.status({sessionId:s.id}).taskId,firstTask);assert.equal(a.getWorkingText(s.id).includes(entrypoint),false)
+  }finally{rmSync(home,{recursive:true,force:true})}
+})
+
+test('turning off projections keeps tool history but does not ingest or expose new reports',async()=>{
+ const a=fixture(),workspace=join(tmpdir(),'toolbox-switch-work'),s={id:'switch',header:{cwd:workspace}}
+ await a.handleInput(s,{messageId:'m1',text:'task',policy:{toolboxMode:'auto'},interpret:async()=>JSON.stringify(value())})
+ const token=a.toolboxStore.status({sessionId:s.id}).taskId
+ a.policyNow=()=>({advisor:false,toolboxMode:'off'})
+ assert.equal(a.observeToolbox(s,{type:'tool/call',data:{name:'bash',callId:'off',arguments:'{"command":"node workshop.mjs"}'}}).reason,'toolbox-off')
+ assert.equal((await a.toolboxContextFor(s)).taskTools.length,0);assert.equal(a.getWorkingText(s.id),'')
+ assert.equal(a.toolboxStore.status({sessionId:s.id}).taskId,token)
 })

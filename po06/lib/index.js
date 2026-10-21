@@ -35,6 +35,8 @@ import { handleUserInput } from './pipeline.js'
 import { buildUserMessage, extractJson, readEnglishInterpretation } from './interpreter.js'
 import { composeOptimizerSystem, OPTIMIZER_PROTOCOL_VERSION } from './optimizer-protocol.js'
 import { captureToolboxContext } from './toolbox-context.js'
+import { createTaskToolboxStore } from './toolbox-state.js'
+import { renderToolboxFacts } from './toolbox-facts.js'
 import { drain } from './eval-llm.js'
 import { createStateStore, inheritStateForFork } from './store.js'
 import {
@@ -1526,6 +1528,8 @@ class DshAdapter {
     this.reviewedPackets = new Set()
     this.capability = createCapability({ home: DSH_HOME, namespace: process.env.DSH_PROFILE_DIR || process.env.DSH_PROFILE || 'default' })
     this.toolboxContexts = new Map()
+    this.toolboxStore = createTaskToolboxStore({ home: DSH_HOME, namespace: process.env.DSH_PROFILE_DIR || process.env.DSH_PROFILE || 'default' })
+    this.toolboxWorkspaces = new Map()
     /** P11 包级回退：每会话最近 10 版**非空**包（旧到新）。 */
     this.packetHistory = new Map()
     // 第 5 项之后的新增（2026-10-18 用户要求）：顾问不该只是个摆设。
@@ -1602,7 +1606,7 @@ class DshAdapter {
   clearIntentTexts(reason) {
     const n = this.intentBySession.size
     if (n > 0) this.intentBySession.clear()
-    this.intentEpochBySession.clear(); this.reviewedPackets.clear(); this.capability.clear()
+    this.intentEpochBySession.clear(); this.reviewedPackets.clear(); this.capability.clear(); this.toolboxStore.cancelPending()
     if (n > 0) {
       try { appendWireLog({ trigger: 'packet-cleared', ok: true, cleared: n, reason: String(reason || '') }) } catch { /* 记账失败不影响清理 */ }
     }
@@ -1749,9 +1753,37 @@ class DshAdapter {
    * 产品入口：处理一次用户输入（解释 → 提交 → 编译 → 写入动态上下文）。
    * `interpret` 是**注入**的解释函数；真实实现接 LLM，测试/自检传桩。
    */
+  observeToolbox(session,event,{changed,previousInputId}={}) {
+    const sid=String(session?.id||'')
+    if(!sid||!event)return {ok:false,reason:'session-unavailable'}
+    const workspace=cwdOf(session)||sessionHistory.getCwd(sid)||this.toolboxWorkspaces.get(sid)
+    if(workspace)this.toolboxWorkspaces.set(sid,workspace)
+    const pol=this.policyNow(sid)
+    if(pol?.assist==='off'||pol?.toolboxMode!=='auto'){this.toolboxStore.cancelPending(sid);return {ok:false,reason:'toolbox-off'}}
+    const d=event.data||{}
+    if(isRealUserInput(event)){
+      const inputId=this.capability.token(sid)?.id||extractMessageId(event)
+      if(changed==='submitted'&&previousInputId)return this.toolboxStore.aliasInput({sessionId:sid,fromId:previousInputId,toId:inputId})
+      if(changed==='new-input'||!this.toolboxStore.status({sessionId:sid}).taskId)return this.toolboxStore.beginInput({sessionId:sid,inputId,workspace})
+      return {ok:true}
+    }
+    if(event.type==='tool/call'||event.type==='tool/ptc-dispatch-start')return this.toolboxStore.captureCall({
+      sessionId:sid,callId:String(d.subCallId||d.callId||''),name:d.name,args:d.arguments,seq:event.seq,
+    })
+    if(event.type==='tool/result'||event.type==='tool/ptc-dispatch')return this.toolboxStore.captureResult({
+      sessionId:sid,callId:String(d.subCallId||d.message?.toolCallId||d.callId||''),
+      result:event.type==='tool/ptc-dispatch'?d.content:d.message?.content,
+      isError:d.isError===true||d.message?.isError===true,seq:event.seq,
+    })
+    return {ok:false,reason:'unrelated-event'}
+  }
+
   async toolboxContextFor(session) {
     const sid = String(session?.id || '')
-    const value = await captureToolboxContext({ sessionId: sid, workspace: cwdOf(session) || sessionHistory.getCwd(sid), agents: this.services.agents, tools: this.services.tools })
+    const workspace = cwdOf(session) || sessionHistory.getCwd(sid) || this.toolboxWorkspaces.get(sid)
+    const snapshot = this.toolboxStore.status({ sessionId: sid, workspace })
+    const taskTools = snapshot.entries.map(entry => ({...entry, taskId: snapshot.taskId, applicability: snapshot.pending ? 'pending-current-input-review' : 'task-scoped-history'}))
+    const value = await captureToolboxContext({ sessionId: sid, workspace, agents: this.services.agents, tools: this.services.tools, taskTools })
     this.toolboxContexts.set(sid, value)
     while (this.toolboxContexts.size > 200) this.toolboxContexts.delete(this.toolboxContexts.keys().next().value)
     return value
@@ -1761,6 +1793,10 @@ class DshAdapter {
     const agents = this.services.agents
     if (!agents || typeof agents.get !== 'function') return { outcome: 'no-agents-service', trace: [] }
     const sid=String(session.id)
+    const workspace = cwdOf(session) || sessionHistory.getCwd(sid) || this.toolboxWorkspaces.get(sid)
+    if (workspace) this.toolboxWorkspaces.set(sid, workspace)
+    const toolboxToken = input.policy?.toolboxMode === 'auto' && input.policy?.assist !== 'off'
+      ? this.toolboxStore.beginInput({sessionId:sid,inputId:String(input.messageId),workspace}) : null
     this.capability.seed(session)
     const token=this.capability.beginInput(sid,String(input.messageId),String(input.text || ''))
     this.intentBySession.delete(sid); this.reviewedPackets.delete(sid)
@@ -1778,8 +1814,11 @@ class DshAdapter {
     scoped.setIntentText=(id,text)=>{if(current())this.setIntentText(id,text)}
     const out=await handleUserInput(scoped,session,input)
     if(!current())return {...out,outcome:'superseded-input'}
-    if(input.signal?.aborted){this.capability.clear(sid);this.intentBySession.delete(sid);return {...out,outcome:'aborted'}}
-    if(['committed','understood','noop'].includes(out.outcome))this.capability.settle(sid,token,out)
+    if(input.signal?.aborted){if(toolboxToken)this.toolboxStore.cancelInput(toolboxToken);this.capability.clear(sid);this.intentBySession.delete(sid);return {...out,outcome:'aborted'}}
+    if(['committed','understood','noop'].includes(out.outcome)){
+      this.capability.settle(sid,token,out)
+      if(toolboxToken)this.toolboxStore.settleInput(toolboxToken,{relation:out.understanding?.relation||'uncertain'})
+    }else if(toolboxToken)this.toolboxStore.cancelInput(toolboxToken)
     return out
   }
 
@@ -1851,7 +1890,10 @@ class DshAdapter {
     // 关掉即清账（设置是全局的，账也不该留着）：下一次打开从零开始记。
     if (!advisorOn) { try { this.advisorLedger?.clear(String(sessionId || '')) } catch { /* 清不掉不影响注入 */ } }
     const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
-    return directive ? [base, directive].filter(Boolean).join('\n\n') : base
+    const toolboxPolicy = this.policyNow(sessionId)
+    const tools = !this.reviewedPackets.has(String(sessionId)) && toolboxPolicy?.assist !== 'off' && toolboxPolicy?.toolboxMode === 'auto'
+      ? renderToolboxFacts(this.toolboxStore.status({sessionId:String(sessionId),workspace:this.toolboxWorkspaces.get(String(sessionId))}),{english:toolboxPolicy?.englishMode===true}) : ''
+    return [base, tools, directive].filter(Boolean).join('\n\n')
   }
 
   /** 会话当前预设（含中途切换）：只用来判断要不要提示，不直接进界面。 */
@@ -2175,6 +2217,7 @@ class DshAdapter {
     this.contextDisposer = null
     this.projectionDisposer = null
     this.controlApiDisposer = null
+    this.toolboxStore.dispose(); this.toolboxContexts.clear(); this.toolboxWorkspaces.clear()
   }
 }
 
@@ -2443,7 +2486,7 @@ export function apply(ctx, config) {
       try {
         adapter.controlApiDisposer = registerControlApi({ webServer: scope.webServer }, {
           home: DSH_HOME, version: PKG_VERSION, now: () => Date.now(),
-           capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url}),
+           capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url,toolbox:sid?adapter.toolboxStore.status({sessionId:String(sid),workspace:adapter.toolboxWorkspaces.get(String(sid))}):null}),
            optimizerStatus: sid => sid ? optimizerRequests.get(String(sid)) || null : null,
           // P11：前置拦截的按需解释（客户端拦下发送后调它；失败即由客户端按原文放行）
           interpret: (p) => runInterceptInput(ctx, p),
@@ -2795,7 +2838,9 @@ export function apply(ctx, config) {
           try {
             if (sid) {
               if(isRealUserInput(event)){adapter.english?.bind(sid,extractMessageId(event),extractUserText(event));void adapter.refreshSessionPreset(sid)}
+               const previousInputId=adapter.capability.token(sid)?.id
                const changed=adapter.capability.observe(session,event)
+               adapter.observeToolbox(session,event,{changed,previousInputId})
               if(changed==='new-input'){adapter.intentBySession.delete(sid);adapter.reviewedPackets.delete(sid)}
               sessionHistory.observe(sid, event)
             }

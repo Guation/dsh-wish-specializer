@@ -52,7 +52,7 @@ export function renderToolboxProposal(value, language = 'zh') {
   if (p.firstUse) lines.push((en ? 'First real use: ' : '首先服务的真实工作：') + p.firstUse)
   if (p.stopWhen) lines.push((en ? 'Stop extending when: ' : '停止扩建的条件：') + p.stopWhen)
   lines.push(en
-    ? 'Working model: check existing capabilities, then reuse, extend, build or decline with evidence. Implement and invoke through available tools, read the actual feedback, correct the artifact and reuse the entry for later changes. Preserve the user’s stack and delivery requirements; a proposal is not an existing tool or a new acceptance criterion.'
-    : '请工作模型核对已有能力，再据实际选择复用、扩展、搭建或有依据地不采用；自行实现并通过现有工具真实调用，读取反馈后修正产物，后续修改复用入口。保持用户技术路线和交付要求；提案不代表工具已可用，也不新增验收目标。')
+    ? 'Working model: check existing capabilities, then reuse, extend, build or decline with evidence. Implement and invoke through available tools, read the actual feedback, correct the artifact and reuse the entry for later changes. Preserve the user’s stack and delivery requirements; a proposal is not an existing tool or a new acceptance criterion. Tools may emit a taskToolbox version 1 result envelope with name, entrypoint, project, operation, status (ok/error), artifactVersion and feedbackRefs. The host binds observed calls as historical reports; an image path does not mean it was read.'
+    : '请工作模型核对已有能力，再据实际选择复用、扩展、搭建或有依据地不采用；自行实现并通过现有工具真实调用，读取反馈后修正产物，后续修改复用入口。保持用户技术路线和交付要求；提案不代表工具已可用，也不新增验收目标。工具执行后可返回 taskToolbox 版本 1 的结果信封，记录 name、entrypoint、project、operation、status（ok/error）、artifactVersion、feedbackRefs；宿主绑定真实调用后保留为历史报告，路径不代表已读图像。')
   return lines.join('\n')
 }

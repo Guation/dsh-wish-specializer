@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-21T02:20:18.153Z",
+  "at": "2026-10-21T03:02:50.904Z",
   "summary": {
-    "suites": 133,
-    "passed": 133,
+    "suites": 134,
+    "passed": 134,
     "failed": 0,
-    "passTotal": 1395,
+    "passTotal": 1412,
     "failing": []
   },
   "results": [
@@ -891,8 +891,15 @@
       "ok": true
     },
     {
+      "file": "toolbox-state.test.mjs",
+      "pass": 15,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "toolbox.test.mjs",
-      "pass": 17,
+      "pass": 19,
       "fail": 0,
       "exit": 0,
       "ok": true
