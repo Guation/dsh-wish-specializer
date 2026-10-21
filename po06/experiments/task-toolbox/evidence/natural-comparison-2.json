@@ -1,0 +1,44 @@
+{
+  "kind": "preregister-2-convergent-comparison",
+  "route": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "reasoningEffort": "max"
+  },
+  "stopRule": "wheelInnerClearance>0 and |wingOverhang|<0.15",
+  "candidateProposal": "inspect",
+  "baselineProposal": null,
+  "A": {
+    "requests": 18,
+    "toolCalls": 23,
+    "erroredToolCalls": 2,
+    "imagesActuallyRead": 4,
+    "finalScene": {
+      "version": "v002",
+      "track": 2.6,
+      "wingSpan": 2.4,
+      "clearance": 0.04,
+      "overhang": 0.1
+    },
+    "reportedCumulativeTokens": 132193
+  },
+  "B": {
+    "requests": 18,
+    "toolCalls": 33,
+    "erroredToolCalls": 5,
+    "imagesActuallyRead": 14,
+    "finalScene": {
+      "version": "v002",
+      "track": 2.76,
+      "wingSpan": 2.3,
+      "clearance": 0.12,
+      "overhang": 0.05
+    },
+    "reportedCumulativeTokens": 62546
+  },
+  "honesty": [
+    "Both arms reached the numeric criterion at scene v002, but neither declared completion before the requested bound; both are recorded as bound-limited rather than \"finished\".",
+    "Baseline spent more reported tokens (132k vs 63k cumulative) while reading fewer images; candidate spent more tool calls and real image reads. Neither is a clean win.",
+    "These are single runs of one task; no statistical claim, no quality/aesthetic winner, and no evidence of general cost savings."
+  ]
+}

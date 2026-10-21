@@ -8,8 +8,8 @@ import { createTrialRuntime } from './trial-runtime.mjs'
 import { composeOptimizerSystem,buildOptimizerUserMessage,parseOptimizerValue,renderOptimizerPacket } from '../../lib/optimizer-protocol.js'
 import { createTaskToolboxStore } from '../../lib/toolbox-state.js'
 import { renderToolboxFacts } from '../../lib/toolbox-facts.js'
-const here=dirname(fileURLToPath(import.meta.url)),[mode='prepare',arm='A']=process.argv.slice(2),root=resolve('.po06-tmp/toolbox-natural/behavior'),dir=resolve(root,arm)
-const task='改进现有 Three.js 概念车辆工程，修正明显不协调的轮组和尾翼装配比例，保留车身与座舱的当前设计。最终保持可独立打开、可旋转预览的单 HTML，完全离线，不加网络依赖。你可以使用或编写本地制作工具，但不要为了工具本身重做一套系统。先完成这轮，我之后还会继续提修改。'
+const here=dirname(fileURLToPath(import.meta.url)),[mode='prepare',arm='A']=process.argv.slice(2),root=resolve(process.env.TB_ROOT||'.po06-tmp/toolbox-natural/behavior'),dir=resolve(root,arm),BOUND=Number(process.env.TB_BOUND||24),SINGLE=process.env.TB_SINGLE==='1'
+const task=process.env.TB_TASK||'改进现有 Three.js 概念车辆工程，修正明显不协调的轮组和尾翼装配比例，保留车身与座舱的当前设计。最终保持可独立打开、可旋转预览的单 HTML，完全离线，不加网络依赖。你可以使用或编写本地制作工具，但不要为了工具本身重做一套系统。先完成这轮，我之后还会继续提修改。'
 const followup='继续同一工程：尾翼高度降低一点，车身改成深蓝色，保持刚才已经修正的轮组关系。输出单 HTML，并实际检查本轮变化，别从头重做。'
 mkdirSync(root,{recursive:true})
 const hash=buffer=>createHash('sha256').update(buffer).digest('hex')
@@ -79,11 +79,11 @@ if(mode==='prepare'){
   return {message:rt.llm.createToolResultMessage({callId:call.id,content:[{type:'text',text:output}],isError}),image}
  }
  try{
-  for(const phase of ['first','follow-up']){
+  for(const phase of (SINGLE?['first']:['first','follow-up'])){
    if(phase==='follow-up'){const t=store.beginInput({sessionId,inputId:phase,workspace:dir});store.settleInput(t,{relation:'continue'});messages.push(rt.user(followup))}
    const phaseRecord={phase,startCall:record.calls.length,requestStart:rt.records.length,completed:false};record.phases.push(phaseRecord)
    let requests=0
-   while(rt.records.length<24){
+   while(rt.records.length<BOUND){
     if(arm==='C'){
      const fact=renderToolboxFacts(store.status({sessionId,workspace:dir}),{english:true})
      if(fact){messages.push(rt.notice(fact));record.contextInjections.push({phase,atRequest:rt.records.length+1,text:fact})}
@@ -101,5 +101,5 @@ if(mode==='prepare'){
   }
   record.success=true
  }catch(error){record.error=rt.redact(error.message);process.exitCode=1}
- finally{record.completedAt=new Date().toISOString();record.observationState=store.status({sessionId,workspace:dir});record.requestCount=rt.records.length;record.reportedUsage=rt.records.map(x=>x.usage);save();console.log(JSON.stringify({arm,success:record.success,error:record.error,requests:record.requestCount,tools:record.calls.length,images:record.calls.filter(x=>x.image).length,finalScene:existsSync(join(dir,'scene.json'))?JSON.parse(readFileSync(join(dir,'scene.json'),'utf8')):null,usage:record.reportedUsage}))}
+ finally{record.completedAt=new Date().toISOString();record.observationState=store.status({sessionId,workspace:dir});record.requestCount=rt.records.length;record.bound=BOUND;record.singlePhase=SINGLE;record.reportedUsage=rt.records.map(x=>x.usage);save();console.log(JSON.stringify({arm,success:record.success,error:record.error,requests:record.requestCount,tools:record.calls.length,images:record.calls.filter(x=>x.image).length,finalScene:existsSync(join(dir,'scene.json'))?JSON.parse(readFileSync(join(dir,'scene.json'),'utf8')):null,usage:record.reportedUsage}))}
 }
