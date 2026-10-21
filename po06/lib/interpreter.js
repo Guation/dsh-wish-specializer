@@ -61,6 +61,34 @@ export function buildUserMessage(input) {
 }
 
 /** 从模型输出里抽出 JSON（容忍 ```json 围栏与前后废话）。 */
+/**
+ * Bracket-balancing repair: fix a mismatched closer or append missing closers.
+ * Only structural repair — it never invents content. Refuses half-written strings, so a
+ * truncated response stays a failure instead of turning into a plausible-but-fake object.
+ * Real case (2026-10-21): model closed `"ask":[…]` with `}`; the whole turn was discarded.
+ */
+export function repairJsonBrackets(raw) {
+  const s = String(raw == null ? '' : raw)
+  const stack = []
+  let inStr = false, esc = false, out = '', touched = 0
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (inStr) { out += c; if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue }
+    if (c === '"') { inStr = true; out += c; continue }
+    if (c === '{' || c === '[') { stack.push(c === '{' ? '}' : ']'); out += c; continue }
+    if (c === '}' || c === ']') {
+      const want = stack.length ? stack[stack.length - 1] : null
+      if (want && want !== c) { out += want; touched += 1; stack.pop(); i -= 1; continue }
+      if (!want) { touched += 1; continue }
+      stack.pop(); out += c; continue
+    }
+    out += c
+  }
+  if (inStr) return { ok: false, reason: 'unterminated-string' }
+  const missing = stack.slice().reverse().join('')
+  if (missing) { out += missing; touched += missing.length }
+  return touched ? { ok: true, text: out, touched } : { ok: false, reason: 'already-balanced' }
+}
 export function extractJson(raw) {
   const text = String(raw == null ? '' : raw)
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
@@ -73,7 +101,12 @@ export function extractJson(raw) {
   } catch (e) {
     const balanced = extractBalancedObject(candidate)
     if (balanced.ok) return { ok: true, value: balanced.value, recovered: 'balanced-scan' }
-    return { ok: false, code: 'BAD_JSON', reason: String((e && e.message) || e) }
+    // Structural repair is a **recorded** recovery, never silent: callers surface it as a warning.
+    const repaired = repairJsonBrackets(candidate.slice(start))
+    if (repaired.ok) {
+      try { return { ok: true, value: JSON.parse(repaired.text), recovered: 'bracket-repair', repairedBrackets: repaired.touched } } catch { /* fall through to failure */ }
+    }
+    return { ok: false, code: 'BAD_JSON', reason: String((e && e.message) || e), repairRefused: repaired.reason || null }
   }
 }
 
@@ -234,11 +267,17 @@ export const HARD_NOTE_SYSTEM = [
 
 export function parseInterpreterOutput(raw, { userText, contextText, stateText, sessionId, messageId, baseRevision, baseInputRevision, causeId,englishMode=false,translatedText=null }) {
   const ex = extractJson(raw)
-  if (!ex.ok) return { ok: false, code: ex.code, reason: ex.reason }
+  if (!ex.ok) return { ok: false, code: ex.code, reason: ex.reason, ...(ex.repairRefused ? { repairRefused: ex.repairRefused } : {}) }
   const obj = ex.value
   // v3 is adapted by the host, without legacy item truncation or user-authority promotion.
   if (obj && typeof obj === 'object' && Object.hasOwn(obj, 'intent')) {
-    return parseOptimizerValue(obj, { sessionId, messageId, baseRevision, baseInputRevision, causeId })
+    const parsed = parseOptimizerValue(obj, { sessionId, messageId, baseRevision, baseInputRevision, causeId })
+    if (ex.recovered === 'bracket-repair') {
+      // Structural repair is recorded, never silent: the caller and the ledger can see it.
+      parsed.warnings = [...(parsed.warnings || []), 'json-bracket-repair:' + ex.repairedBrackets]
+      parsed.recovered = ex.recovered
+    }
+    return parsed
   }
   if (!obj || typeof obj !== 'object' || !Array.isArray(obj.ops)) {
     return { ok: false, code: 'BAD_SHAPE', reason: 'expected {"ops":[...]}' }

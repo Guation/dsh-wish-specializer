@@ -141,3 +141,28 @@ test('English normalization restores literals in scaffold and questions independ
  const mixed=prepareEnglishInterpretation({intent:{text:request,relation:'new'},scaffold:['重复中文建议'],englishTask:request},request)
  assert.deepEqual(mixed.value.scaffold,[]);assert.equal(mixed.translation.text,request)
 })
+
+test('a mismatched closer is repaired structurally and the recovery is recorded',async()=>{
+  const { extractJson, parseInterpreterOutput } = await import('../lib/interpreter.js')
+  // Real observed failure (2026-10-21): the model closed `ask` with '}' instead of ']'.
+  const broken='{"intent":{"text":"t","relation":"new"},"add":["a"],"scaffold":["s"],"ask":["q1","q2"}'
+  assert.throws(()=>JSON.parse(broken),'the raw text is genuinely invalid JSON')
+  const fixed=extractJson(broken)
+  assert.equal(fixed.ok,true);assert.equal(fixed.recovered,'bracket-repair');assert.equal(fixed.value.ask.length,2)
+  const parsed=parseInterpreterOutput(broken,{sessionId:'s',messageId:'m',baseRevision:1,baseInputRevision:1,causeId:'c'})
+  assert.equal(parsed.ok,true)
+  assert.ok(parsed.warnings.some(w=>w.startsWith('json-bracket-repair')),'repair is visible, not silent')
+})
+
+test('repair never invents content: truncated strings stay failures',async()=>{
+  const { extractJson } = await import('../lib/interpreter.js')
+  // No closing brace at all: nothing to repair, and certainly nothing invented.
+  assert.equal(extractJson('{"intent":{"text":"half written intent').ok,false)
+  // A brace inside an unterminated string must be refused, not "repaired" into a fake object.
+  const refused=extractJson('{"a":"oops}')
+  assert.equal(refused.ok,false)
+  assert.equal(refused.repairRefused,'unterminated-string')
+  const unclosed='{"intent":{"text":"t","relation":"new"},"add":["a"'
+  const closed=extractJson(unclosed)
+  assert.equal(closed.ok,true);assert.equal(closed.recovered,'bracket-repair')
+})

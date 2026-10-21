@@ -10,32 +10,22 @@ import {createAdvisor} from '../lib/advisor.js'
 
 const COMPLETE='{"intent":{"text":"Original request","relation":"continue"},"clarify":["one question"]}'
 
-test('#31 配对扫描：完整对象之后的多余内容不再拖垮整段（真机 429/772 位置上的那个尾巴）',()=>{
-  // 真机两轮的形态：第一个对象**已经闭合**，模型又接着写 add/ask 与多余的 }。
-  for(const [label,raw] of [
-    ['trailing junk object','{"intent":{},"clarify":[]}'+',"add":["a"],"ask":[]}'],
-    ['extra closing brace',COMPLETE+'}'],
-    ['second complete object',COMPLETE+'{"intent":{"text":"second","relation":"continue"},"clarify":[]}'],
-    ['prose after the object',COMPLETE+'\n\n以上就是这一轮的判断，供参考。}'],
-  ]){
-    const r=extractJson(raw)
-    assert.equal(r.ok,true,label+' 必须能解析（内容本来是好的）')
-    assert.equal(r.recovered,'balanced-scan',label+' 必须**如实标出**是配对扫描救回来的')
-    assert.ok(r.value.intent,label+' 取到的必须是那段完整对象')
-  }
-})
-
-test('#31 配对扫描不是"猜 JSON"：截断、括号不配平、纯散文一律仍然失败',()=>{
+test('#31 截断/散文仍然失败；**结构不配平**按新决定做可记账的配平修复',()=>{
+  // 2026-10-21 用户决定：结构性的括号错位/缺失应当修，而不是整轮作废；但**绝不编内容**。
+  // 一次真机失败就是把 `"ask":[…]` 收尾写成 `}`，整包被判废、白烧一轮调用。
   for(const [label,raw] of [
     ['truncated mid-object','{"ops":[{"op":"add_item"'],
-    ['unbalanced braces','{"intent":{"text":"x"}'],
     ['no json at all','这一轮没有 JSON，只有一句话。'],
     ['array top-level','["not","an","object"]'],
   ]){
     const r=extractJson(raw)
-    assert.equal(r.ok,false,label+' 不许被"修好"')
-    assert.ok(['NO_JSON','BAD_JSON'].includes(r.code),label+' 失败要有明确 code')
+    assert.equal(r.ok,false,label+' 仍然失败——修结构不等于猜内容')
   }
+  // 缺一个收尾括号：允许补上，但必须带 recovered 标记，供上层记账。
+  const closed=extractJson('{"intent":{"text":"x"}')
+  assert.equal(closed.ok,true,'结构缺失可以补齐')
+  assert.equal(closed.recovered,'bracket-repair')
+  assert.equal(closed.value.intent.text,'x','补齐不改变内容')
   // 字符串内部的括号不吃配平（否则 {"a":"}"} 会被截错）
   const inside=extractBalancedObject('{"a":"} not the end","b":1}')
   assert.equal(inside.ok,true);assert.equal(inside.value.a,'} not the end')
