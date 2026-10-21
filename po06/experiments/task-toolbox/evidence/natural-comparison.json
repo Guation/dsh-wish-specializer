@@ -1,0 +1,74 @@
+{
+  "kind": "bounded-natural-model-comparison",
+  "route": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "reasoningEffort": "max"
+  },
+  "honesty": "Both arms reached the preregistered 24-request bound inside the first phase; the follow-up phase never ran. This is an incomplete comparison, not a demonstrated improvement. Token totals are the SDK cumulative field and per-request sums; there is no independent billing check.",
+  "optimizerBaseline": null,
+  "optimizerCandidate": {
+    "version": "1",
+    "recommendation": "reuse",
+    "reason": "判断“比例是否协调”必须看真实渲染画面并做前后对比，现有本地执行（含真实浏览器截图）与图片回读已覆盖这条反馈链路，无需另建系统。",
+    "basis": [
+      "能力清单为注册态、无实测记录，首次需确认浏览器截图与图片回读确实可用",
+      "scene.json、vehicle.mjs、workshop.mjs 尚未读取，轮组与尾翼现有参数位置未知"
+    ],
+    "capabilities": [
+      "按指定机位渲染并截取多角度画面",
+      "回读截图用于目视比对",
+      "读写工程内的文本文件"
+    ],
+    "feedback": [
+      "每轮改动后回传侧视/前四分之三/后四分之三/俯视截图，据此判断比例、穿透与着地是否真的改好，并指导下一次微调"
+    ],
+    "firstUse": "读取现有工程，先截出改动前的基准多视角画面",
+    "stopWhen": "多角度截图已能稳定判断比例、且改动集中在既有少数文件时即停止扩建"
+  },
+  "arms": {
+    "A": {
+      "requests": 24,
+      "toolCalls": 30,
+      "erroredToolCalls": 5,
+      "imagesActuallyRead": 3,
+      "phases": [
+        {
+          "phase": "first",
+          "completed": false
+        }
+      ],
+      "reportedCumulativeTokens": 46973,
+      "reportedInputTokensSum": 31073,
+      "reportedOutputTokensSum": 18389,
+      "stoppedBecause": "experiment-request-bound-reached"
+    },
+    "B": {
+      "requests": 24,
+      "toolCalls": 39,
+      "erroredToolCalls": 2,
+      "imagesActuallyRead": 15,
+      "phases": [
+        {
+          "phase": "first",
+          "completed": false
+        }
+      ],
+      "reportedCumulativeTokens": 79062,
+      "reportedInputTokensSum": 43866,
+      "reportedOutputTokensSum": 36514,
+      "stoppedBecause": "experiment-request-bound-reached"
+    }
+  },
+  "fixturesIdentical": {
+    "vehicle.mjs": "f59ec1db94003e603d172f2cd3b8106f78330c029b5001c65ed6d839b7c3f7a6",
+    "workshop.mjs": "fba049498fb3d07d9eb6fcd061dc92f1eb732d4313e2cdcece53b0ad09e00dfe",
+    "scene.json": "6927b638720fd2283ebfbba8fa04424a3d09b64a16cc96ba0e9631ffe484f7f3",
+    "README.md": "71e85ba2523e291611cf0f2ead8598f1f8fd559a22e55c3fd326b8001948dbd5"
+  },
+  "observations": [
+    "A left scene.json at v000 and produced artifact.html by copying existing tooling; its final image was the unmodified initial render.",
+    "B changed wheel/wing parameters to v006, read 15 real screenshots, and still did not finish the first phase; its final geometry still fails the simple clearance check (-0.25).",
+    "Neither arm demonstrates that the toolbox proposal improved final quality; B spent more tokens and did more tool work without completing."
+  ]
+}

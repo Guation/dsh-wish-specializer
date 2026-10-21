@@ -208,6 +208,13 @@ test('control API distinguishes a settings preview from the actual request recor
     }
     const result = await call('s1')
     assert.equal(result.prompt.effective.preview, true)
+    assert.equal(result.prompt.effective.toolboxMode, 'auto')
+    assert.equal(result.prompt.effective.revision, 'task-toolbox-1')
+    assert.ok(result.prompt.effective.parts.some(p => p.key === 'toolbox'))
+    writeFileSync(join(home, 'po06.json'), JSON.stringify({ toolboxMode: 'off' }))
+    const disabled = await call('s1')
+    assert.equal(disabled.prompt.effective.toolboxMode, 'off')
+    assert.ok(!disabled.prompt.effective.parts.some(p => p.key === 'toolbox'))
     assert.deepEqual(result.prompt.lastRequest, snapshot)
     assert.equal((await call('s2')).prompt.lastRequest, null)
   } finally { rmSync(home, { recursive: true, force: true }) }
