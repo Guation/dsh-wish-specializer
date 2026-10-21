@@ -3,6 +3,8 @@
 > 面向使用者的入口在 [仓库根 README](../README.md)；这里是设计、过程与开发文档。
 > 历史版本（0.1~0.6）见 [`old/`](../old/README.md)。
 
+> **先读 [`OVERVIEW.md`](OVERVIEW.md)**：当前状态、注入文合同、文档权威范围。
+
 ## 设计与规格
 
 | 文件 | 是什么 |
@@ -26,7 +28,8 @@
 
 | 文件 | 记什么 |
 |---|---|
-| [CHECKPOINT.md](CHECKPOINT.md) | 阶段性检查点 |
+| [OVERVIEW.md](OVERVIEW.md) | **当前状态总览（先读这个）** |
+| [archive/CHECKPOINT-0.6-historical.md](archive/CHECKPOINT-0.6-historical.md) | 0.6 时代检查点存档（历史） |
 | [DECISIONS.md](DECISIONS.md) | 决策与理由（为什么这么定） |
 | [DELIVERY.md](DELIVERY.md) | 交付记录 |
 | [EVIDENCE.md](EVIDENCE.md) | 证据索引 |
