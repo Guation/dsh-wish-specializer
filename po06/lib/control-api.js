@@ -207,7 +207,7 @@ function promptProjection(prompt, settings = {}) {
   const englishMode = settings.englishMode === true
   const effective = englishMode && prompt.source === 'file'
     ? { version: OPTIMIZER_PROTOCOL_VERSION, language: 'en', chars: null, text: null, reason: 'custom-core-translation-needed' }
-    : composeOptimizerSystem({ language: englishMode ? 'en' : 'zh', core: englishMode ? undefined : prompt.text, tier: settings.tier, toolsEnabled: settings.readTools === true, framing: settings.framing, englishMode, toolboxMode: settings.assist === 'off' ? 'off' : settings.toolboxMode })
+    : composeOptimizerSystem({ language: englishMode ? 'en' : 'zh', core: englishMode ? undefined : prompt.text, tier: settings.tier, toolsEnabled: settings.readTools === true, framing: settings.framing, englishMode })
   return { ...prompt, protocolVersion: OPTIMIZER_PROTOCOL_VERSION, effective: { ...effective, preview: true } }
 }
 

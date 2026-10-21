@@ -113,7 +113,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
   englishMode: false,
   // 2026-10-19 修：顾问默认**开**（此前默认值根本没写 ⇒ 界面拿不到布尔值 ⇒ 开关永远是灰的）。
   advisor: true,
-  toolboxMode: 'auto', // Adaptive proposals only; working model chooses implementation.
   permission: 'auto',   // P10
   historyMode: 'turns', // P10
   turns: 10,            // 2026-10-18 用户指定：默认读最近 10 回合
@@ -143,7 +142,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
 })
 
 /** 允许按会话覆盖的键（档位四件套；其余设置保持全局）。 */
-export const SESSION_KEYS = Object.freeze(['assist', 'detail', 'budget', 'tier', 'framing', 'englishMode', 'toolboxMode', ...REASONING_KEYS])
+export const SESSION_KEYS = Object.freeze(['assist', 'detail', 'budget', 'tier', 'framing', 'englishMode', ...REASONING_KEYS])
 
 /** 斜杠命令名单上限（32 个字符/条，最多 16 条）。 */
 export const SLASH_REVIEW_MAX = 16
@@ -164,7 +163,6 @@ export const SETTINGS_KEYS = Object.freeze([
   ...REASONING_KEYS,
   'englishMode',
   'advisor',
-  'toolboxMode',
 ])
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -223,7 +221,7 @@ export function normalizeSettings(raw) {
     const v = src.bySession
     if (v === undefined) return {}
     if (!isPlainObject(v)) { problems.push({ key: "bySession", kind: "wrong-type", got: v, used: {} }); return {} }
-    const domains = { assist: ASSIST_MODES, detail: DETAIL_LEVELS, budget: BUDGET_LEVELS, tier: TIER_LEVELS, framing: FRAMINGS, toolboxMode: ['off', 'auto'] }
+    const domains = { assist: ASSIST_MODES, detail: DETAIL_LEVELS, budget: BUDGET_LEVELS, tier: TIER_LEVELS, framing: FRAMINGS }
     const out = {}
     for (const [sid, ov] of Object.entries(v)) {
       if (typeof sid !== "string" || !sid) continue
@@ -302,7 +300,6 @@ export function normalizeSettings(raw) {
     reasoningPace: pickReasoning('reasoningPace'),
     englishMode: pickBool('englishMode', DEFAULT_SETTINGS.englishMode),
     advisor: pickBool('advisor', DEFAULT_SETTINGS.advisor),
-    toolboxMode: pick('toolboxMode', ['off', 'auto'], DEFAULT_SETTINGS.toolboxMode),
     permission: pick('permission', PERMISSIONS, DEFAULT_SETTINGS.permission),
     historyMode: pick('historyMode', HISTORY_MODES, DEFAULT_SETTINGS.historyMode),
     turns: pickInt('turns', TURNS_MIN, TURNS_MAX, DEFAULT_SETTINGS.turns),

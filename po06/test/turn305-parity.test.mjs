@@ -71,14 +71,11 @@ test('unchanged capability/contribution authority stays historical; claim-policy
  assert.equal(readFileSync(new URL('../lib/advisor-stage-tool.js',import.meta.url),'utf8'),readFileSync(join(ref,'po06/lib/advisor-stage-tool.js'),'utf8'),'advisor-stage-tool.js 逐字节一致')
  // 2026-10-19 用户改口径：顾问贡献改成"愿望式方向"（一条一句、点到为止、只有缺陷可稍具体）。
  // 漂移必须**可枚举**：capability.js 只换了两处文案，其余逐字节与历史一致。
- // Toolbox adds optional proposal validation only; authority and unrelated context remain historical.
  const revertCapability=(s)=>s
-  .replace("import { normalizeToolbox } from './toolbox-proposal.js'\n",'')
-  .replace("    const optimizer = copy(o)\n    const { proposal } = normalizeToolbox(optimizer.toolbox)\n    if (proposal) optimizer.toolbox = proposal; else delete optimizer.toolbox\n    return { optimizer, understanding:", "    return { optimizer: copy(o), understanding:")
   .replace('【解题方向 · 机器提出的方向要求（不是新增用户要求）】','【解题贡献 · 机器建议，以原话和实际依据为准】')
   .replace('这些方向只为抬高成果上限；按用户原话判断是否适用，采纳或反驳都可以，它们不改变用户目标与授权。','判断该贡献是否适用于当前任务；采纳、修改或反驳均可，建议不改变用户目标和授权。')
  const stripComments=(s)=>s.split('\n').filter((l)=>!/^\s*\/\//.test(l)).join('\n')
- assert.equal(stripComments(revertCapability(readFileSync(new URL('../lib/capability.js',import.meta.url),'utf8'))),stripComments(readFileSync(join(ref,'po06/lib/capability.js'),'utf8')),'capability.js 只允许列明的文案和可选 toolbox 校验差异（注释不计）')
+ assert.equal(stripComments(revertCapability(readFileSync(new URL('../lib/capability.js',import.meta.url),'utf8'))),stripComments(readFileSync(join(ref,'po06/lib/capability.js'),'utf8')),'capability.js 的差异必须只有那两处文案（注释不计）')
  // 与历史的差异必须**逐项列出来**（本测试的用处就是"看不出来的漂移"为零）。现在有三处：
  //   subjectPaths（新增，只绑定版本不新增验收目标）、requiredScopes/requiredReviews（GitHub #33A）。
  // 2026-10-19：贡献改成"方向性要求"后，mode 的描述也改了（与历史有意不同；枚举集合不变）。

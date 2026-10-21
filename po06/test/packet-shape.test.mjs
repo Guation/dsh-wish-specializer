@@ -8,12 +8,10 @@ import { packetShapeOf, packetShapeChanged } from '../lib/policy.js'
 
 const P = (over) => Object.assign({ assist: 'auto', detail: 'standard', budget: 'standard', framing: 'neutral' }, over)
 
-test('形状含工具箱开关，关闭时旧包也必须失效', () => {
+test('形状含五个字段（协作基调 + 英文模式）', () => {
   // 英文模式也进形状：它决定注入文本的语言，语言换了旧包必须作废。
-  assert.equal(packetShapeOf(P()), 'auto|standard|standard|neutral|original|off')
-  assert.equal(packetShapeOf(P({ englishMode: true })), 'auto|standard|standard|neutral|en|off')
-  assert.equal(packetShapeOf(P({toolboxMode:'auto'})), 'auto|standard|standard|neutral|original|auto')
-  assert.equal(packetShapeChanged(P({toolboxMode:'auto'}), P({toolboxMode:'off'})), true)
+  assert.equal(packetShapeOf(P()), 'auto|standard|standard|neutral|original')
+  assert.equal(packetShapeOf(P({ englishMode: true })), 'auto|standard|standard|neutral|en')
   assert.equal(packetShapeOf(null), '')
 })
 
