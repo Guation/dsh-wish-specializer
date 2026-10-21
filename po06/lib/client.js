@@ -915,7 +915,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         }
         if (e.key === 'Escape') { e.preventDefault(); setOpen(false) }
       }
-      return h('div', { 'data-po06': 'picker', 'data-open': open ? '1' : '0', style: { flex: 1, minWidth: 0 } },
+      return h('div', { 'data-po06': 'picker', 'data-open': open ? '1' : '0', style: { flex: 1, minWidth: 0, alignSelf: 'start' } },
         h('button', {
           ref: btnRef, type: 'button', 'data-po06': anchor || 'picker-btn',
           'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
@@ -931,7 +931,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           'data-po06': 'picker-layer', role: 'listbox',
           style: { marginTop: '6px', padding: '4px', borderRadius: '10px',
             background: OVS.surface2, border: '1px solid ' + OVS.line,
-            boxShadow: 'inset 0 -2px 0 ' + OVS.line, maxHeight: '240px', overflowY: 'auto' },
+            // 不再内层限高：内层滚动在面板里滚不到底部（用户实测）。
+            // 全部选项直接铺开，由面板自身滚动带走——最后一个模型一定能看到。
+            boxShadow: 'inset 0 -2px 0 ' + OVS.line },
         }, options.map((k) => h('button', {
           key: k, type: 'button', 'data-po06': 'picker-item', 'data-on': k === value ? '1' : '0',
           style: { display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left',
