@@ -180,3 +180,18 @@ node po06/experiments/task-toolbox/check-integration.mjs <目录>
 产品含义：不宣称 stopWhen 能约束模型停止；它是提示，不是闸门。若确实需要硬约束，得另做机制（例如宿主侧在检测到达判据后主动结束工具轮次），那属于超出本计划范围的新决定。
 
 [记录](evidence/converged-stop-test.json)。
+## P5 现场验证（重启后，已完成）
+
+宿主重启后只读检查确认：`previewRevision` = `task-toolbox-1`、提示词包含工具箱段、工具索引字段存在。随后做了两次开关验证并全部还原：
+
+| 步骤 | settings.toolboxMode | 预览是否含工具箱段 | 提示词修订 |
+|---|---|---|---|
+| 加载后 | auto | 是 | task-toolbox-1 |
+| 关闭后 | off | 否 | advisor-loop-1 |
+| 恢复后 | auto | 是 | task-toolbox-1 |
+
+顾问开关独立性：`advisor:false` 时 `toolboxMode` 仍为 `auto`、工具箱段仍在；恢复后一致。两个开关互不影响。
+
+两处设置都已还原为原值。[记录](evidence/live-verification.json)。
+
+未覆盖：ask 与拦截面板的真实交互需要一次真实用户回合，agent 无法自行发送，故本次未验证；工具是否被真实创建/使用同样不在预览证据范围内。

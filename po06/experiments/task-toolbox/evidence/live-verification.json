@@ -1,0 +1,47 @@
+{
+  "kind": "live-host-verification",
+  "at": "2026-10-21T05:08:38.995Z",
+  "url": "http://127.0.0.1:19387",
+  "loaded": {
+    "previewRevision": "task-toolbox-1",
+    "includesToolbox": true,
+    "indexSupported": true,
+    "toolboxMode": "auto"
+  },
+  "toggle": {
+    "off": {
+      "settingsToolbox": "off",
+      "previewToolbox": "off",
+      "includesToolbox": false,
+      "revision": "advisor-loop-1"
+    },
+    "restored": {
+      "settingsToolbox": "auto",
+      "previewToolbox": "auto",
+      "includesToolbox": true,
+      "revision": "task-toolbox-1"
+    }
+  },
+  "advisorIndependence": {
+    "start": {
+      "advisor": true,
+      "toolbox": "auto",
+      "includesToolbox": true
+    },
+    "advisorOff": {
+      "advisor": false,
+      "toolbox": "auto",
+      "includesToolbox": true
+    },
+    "restored": {
+      "advisor": true,
+      "toolbox": "auto",
+      "includesToolbox": true
+    }
+  },
+  "notes": [
+    "Settings writes were restored to the original values; both toggles ended at their starting state.",
+    "Preview composition is not evidence that a task tool was created or used; it verifies the feature is wired and switchable in the running app.",
+    "ask/intercept were not exercised in this live check: doing so needs a real user turn, which this agent cannot send."
+  ]
+}
