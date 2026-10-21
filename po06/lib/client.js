@@ -28,6 +28,14 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
+// 行标签左边的小图标：极简字形，只做视觉锚点，不承载语义。
+// 放在模块作用域：选项浮层和设置页两处都要用（各闭包里各定义一份必然漏一处）。
+const withIcon = (glyph, node) => [
+  h('span', { key: 'ico', 'aria-hidden': 'true', style: { display: 'inline-block', width: '14px',
+    textAlign: 'center', marginRight: '5px', opacity: .62, fontSize: '11px' } }, glyph),
+  node,
+]
+
     const NS = 'dsh-po06'
     const API = '/po06/api'
     // ── 拦截态的**跨挂载小仓库**（issue #19）───────────────────────────────
@@ -489,7 +497,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         boxShadow: T('shadow') },
       optPopHead: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700,
         color: OVS.fg, letterSpacing: '.2px', paddingBottom: '2px' },
-      optRow: { display: 'grid', gridTemplateColumns: '64px 1fr', alignItems: 'center', gap: '10px' },
+      optRow: { display: 'grid', gridTemplateColumns: '86px 1fr', alignItems: 'center', gap: '10px' },
       optLabel: { color: OVS.fg3, fontSize: '12px', whiteSpace: 'nowrap' },
       // 面板里的按钮（只读工具 / 详情）也**铺满整格**：点击范围与看到的格子一致，不留死区
       // C：整行按钮要有**色域**（色块感），否则和纯文本没区别（2026-10-19 用户截图反馈）
@@ -499,7 +507,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 设置行（2026-10-19 观感）：左侧标签、右侧状态值；整行有底色，状态值用主题色
       optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
         justifyContent: 'space-between', gap: '10px', padding: '8px 12px',
-        borderRadius: '10px', border: '1px solid transparent', background: T('chip'),
+        borderRadius: '10px', border: '1px solid transparent', background: T('chip'), boxShadow: '0 2px 0 ' + OVS.line2,
         color: 'inherit', font: 'inherit', fontSize: '12.5px', cursor: 'pointer', textAlign: 'left' },
       optVal: (on) => ({ color: on ? OVS.acc : OVS.fg3, fontWeight: 600, letterSpacing: '.2px' }),
       optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
@@ -699,7 +707,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         background: OVS.surface, color: OVS.fg,
         border: '1px solid ' + OVS.lineSoft, borderRadius: '12px', boxShadow: SHADOW.float },
       optPopHead: { display: 'flex', alignItems: 'center', gap: '7px', ...TYPE.title, paddingBottom: '0' },
-      optRow: { display: 'grid', gridTemplateColumns: '58px 1fr', alignItems: 'center', gap: '10px', minHeight: '28px' },
+      optRow: { display: 'grid', gridTemplateColumns: '92px 1fr', alignItems: 'center', gap: '10px', minHeight: '28px' },
       // 行标签要看得清：用 fg2 而不是 fg3（用户 2026-10-19：小标题太淡）
       optLabel: { color: OVS.fg2, fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' },
       // 设置行：左标签 + 右状态值，整行是有底色的可点区域（紧凑版）
@@ -716,7 +724,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       divider: { height: '1px', background: OVS.line2, margin: '2px 0' },
       optWide: { width: '100%', boxSizing: 'border-box', textAlign: 'center',
         padding: '6px 10px', borderRadius: '8px', border: '1px solid transparent',
-        background: T('chip'), color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
+        background: T('chip'), boxShadow: '0 2px 0 ' + OVS.line2, color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
       optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', paddingTop: '2px' },
       optSummary: { color: OVS.fg3, fontSize: '11px', whiteSpace: 'nowrap' },
       optCaret: { color: OVS.fg3, fontSize: '9px', lineHeight: 1 },
@@ -872,6 +880,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      * 下拉选择（2026-10-19 重做）：原生 <select> 的展开面板由系统绘制，跟插件的设计语言完全不搭
      * （截图：黑底 + 系统蓝高亮）。这里换成自己的触发器 + 面板，键鼠都能用。
      */
+    // 同一时刻只允许一个下拉浮层：两个同时开着就会互相压住（反复出现的"模型/思考重叠"）。
+    const OPEN_PICKERS = new Set()
     function Options({ value, onChange, options, labels, disabled, anchor }) {
       const [open, setOpen] = React.useState(false)
       const btnRef = React.useRef(null)
@@ -888,8 +898,14 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (!open) return undefined
         const btn = btnRef.current
         if (!btn || typeof document === 'undefined') { setOpen(false); return undefined }
+        // 先关掉别的浮层，再清掉 HMR/异常路径留下的孤儿层——它们正是"重叠"的来源。
+        for (const other of Array.from(OPEN_PICKERS)) { try { other() } catch { /* 忽略 */ } }
+        OPEN_PICKERS.clear()
+        try { for (const stray of Array.from(document.querySelectorAll('[data-po06="picker-layer"]'))) stray.remove() } catch { /* 忽略 */ }
         const r = btn.getBoundingClientRect()
-        const w = Math.max(180, Math.round(r.width))
+        const vw = (typeof window !== 'undefined' ? window.innerWidth : 800)
+        const w = Math.min(Math.max(180, Math.round(r.width)), Math.max(120, vw - 16))
+        const left = Math.max(8, Math.min(Math.round(r.left), vw - w - 8))
         const layer = document.createElement('div')
         layer.setAttribute('data-po06', 'picker-layer')
         layer.style.cssText = [
@@ -898,7 +914,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           'max-height:260px', 'overflow-y:auto', 'border-radius:10px',
           'background:' + OVS.surface, 'border:1px solid ' + OVS.lineSoft,
           'box-shadow:0 14px 34px rgba(0,0,0,.45)', 'font-size:12px', 'line-height:18px',
-          'left:' + Math.round(r.left) + 'px', 'width:' + w + 'px',
+          'left:' + left + 'px', 'width:' + w + 'px',
         ].join(';')
         const below = ((typeof window !== 'undefined' ? window.innerHeight : 600) - r.bottom) > 240
         if (below) layer.style.top = Math.round(r.bottom + 4) + 'px'
@@ -928,6 +944,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
         document.body.appendChild(layer)
         layerRef.current = layer
+        const closeSelf = () => { setOpen(false) }
+        OPEN_PICKERS.add(closeSelf)
         // 面板/页面滚动时跟着收起（浮层不跟随滚动，留着就会错位）
         const close = () => setOpen(false)
         const onDoc = (e) => { if (!layer.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close() }
@@ -937,6 +955,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         window.addEventListener('scroll', close, true)
         window.addEventListener('resize', close)
         return () => {
+          OPEN_PICKERS.delete(closeSelf)
           document.removeEventListener('pointerdown', onDoc, true)
           document.removeEventListener('keydown', onKey, true)
           window.removeEventListener('scroll', close, true)
@@ -969,7 +988,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           ref: btnRef, type: 'button', 'data-po06': anchor || 'picker-btn',
           'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
           disabled: disabled === true,
-          style: { ...S.picker, ...(open ? S.pickerOpen : null), ...(disabled ? S.dis : null) },
+          style: { ...S.picker, ...(open ? S.pickerOpen : null), ...(disabled ? S.dis : null),
+            boxShadow: '0 2px 0 ' + OVS.line2 },
           onClick: () => { if (!disabled) setOpen((v) => !v) },
           onKeyDown,
         },
@@ -998,7 +1018,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       standard: { color: '#4a8bff', dots: 9,  motion: 'drift' },
       heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff' },
     }
-    function Segmented({ name, value, options, label, disabled, title, onPick, failTick }) {
+    function Segmented({ name, value, options, label, disabled, title, onPick, failTick, tones }) {
       const box = React.useRef(null)
       const last = React.useRef(null)
       const itemRefs = React.useRef({})
@@ -1062,6 +1082,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         commit(options[Math.max(0, Math.min(options.length - 1, next))])
       }
       const fx = name === 'tier' && !disabled ? TIER_FX[shown] : null
+      // 每格可以有自己的颜色（权限：审查=绿、自动=橙）；没有就退回主题色。
+      const tone = (tones && tones[shown]) || (fx ? fx.color : OVS.acc)
       const dots = fx && fx.dots ? Array.from({ length: fx.dots }, (_, i) => {
         // 固定伪随机（同一个 i 永远得到同一组参数）：位置/时长/延迟稳定，重渲染不跳
         const a = (i * 37) % 97, b = (i * 61) % 90 + 5, c = (i * 71) % 100
@@ -1160,7 +1182,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             position: 'absolute', top: '2px', bottom: '2px',
             left: (ind ? ind.left : 2) + 'px', width: (ind ? ind.width : 0) + 'px',
             borderRadius: '7px', pointerEvents: 'none',
-            background: fx ? fx.color : OVS.acc,
+            background: tone,
             boxShadow: '0 1px 3px rgba(0,0,0,.25)',
             transition: 'left .26s cubic-bezier(.22,.8,.24,1), width .26s cubic-bezier(.22,.8,.24,1), background-color .22s ease',
           } }),
@@ -1205,6 +1227,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const rectRef = React.useRef(null)
       const [draft, setDraft] = React.useState(null)
       const [dragging, setDragging] = React.useState(false)
+      // 按下起点：区分"单击"（要动画滑过去）与"拖动"（要即时跟手）
+      const startRef = React.useRef(null)
       const shown = draft == null ? value : draft
       const pct = Math.max(0, Math.min(1, (shown - TURNS_MIN) / (TURNS_MAX - TURNS_MIN)))
       React.useEffect(() => { if (draft != null && draft === value) setDraft(null) }, [value, draft])
@@ -1243,22 +1267,37 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', outline: 'none',
           ...(disabled ? { opacity: .5 } : null) },
         onKeyDown,
+        // 按下时**不**立刻跳到指针位置：先记起点，拖出 3px 才算拖动。
+        // 这样单击是一次平滑滑动（和档位一致），不会瞬移到点击点再抖回去（"反弹"的来源）。
         onPointerDown: (e) => {
           if (disabled) return
           try { rectRef.current = trackRef.current.getBoundingClientRect() } catch { rectRef.current = null }
-          setDragging(true)
-          setDraft(valueAt(e.clientX))
+          startRef.current = { x: e.clientX, moved: false }
           try { if (e.currentTarget.setPointerCapture && e.pointerId != null) e.currentTarget.setPointerCapture(e.pointerId) } catch { /* 忽略 */ }
         },
-        onPointerMove: (e) => { if (!disabled && dragging) setDraft(valueAt(e.clientX)) },
-        onPointerUp: () => {
-          const v = draft
+        onPointerMove: (e) => {
+          if (disabled || !startRef.current) return
+          if (!startRef.current.moved && Math.abs(e.clientX - startRef.current.x) <= 3) return
+          startRef.current.moved = true
+          if (!dragging) setDragging(true)
+          setDraft(valueAt(e.clientX))
+        },
+        onPointerUp: (e) => {
+          const start = startRef.current
+          startRef.current = null
           rectRef.current = null
           setDragging(false)
-          // 保留 draft：滑块**立刻**停在松手位置，等真值回来再由 effect 清掉（否则会先弹回旧值再跳过去）
+          if (!start) return
+          if (!start.moved) {
+            // 单击：保留 draft 让滑块带动画滑过去，真值回来后再撤草稿
+            const v = valueAt(e.clientX)
+            if (v != null) { setDraft(v); commit(v) }
+            return
+          }
+          const v = draft
           if (v != null) { setDraft(v); commit(v) }
         },
-        onPointerCancel: () => { rectRef.current = null; setDragging(false); setDraft(null) },
+        onPointerCancel: () => { startRef.current = null; rectRef.current = null; setDragging(false); setDraft(null) },
       },
         // 轨道：6px 凹槽（内阴影压出"嵌入"感），刻度点在 0 / 5 / 10
         h('span', { 'aria-hidden': 'true', style: { position: 'absolute', left: 0, right: 0, height: '6px',
@@ -1402,7 +1441,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     function AdvisorControls({settings={},save,ready,busy=false,failTick}){
       const known=typeof settings.advisor==='boolean',on=settings.advisor===true
       // 2026-10-18 用户指定：顾问开关，放在英文模式上方，两档，默认开。
-      return h('div',{style:S.optRow},h('span',{style:S.optLabel},L('顾问','Advisor')),
+      return h('div',{style:S.optRow},h('span',{style:S.optLabel},...withIcon('✦',L('顾问','Advisor'))),
         h(Segmented,{ name:'advisor', value:on?'on':'off', options:['off','on'], failTick,
           disabled:busy||!known||ready===false,
           label:k=>k==='on'?L('开启','On'):L('关闭','Off'),
@@ -1413,7 +1452,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     function EnglishControls({settings={},save,ready,busy=false,failTick}){
       const known=typeof settings.englishMode==='boolean',on=settings.englishMode===true
       // 与「权限」同款两档滑档；默认关闭。读不到设置时禁用并说明，绝不猜测当前值。
-      return h('div',{style:S.optRow},h('span',{style:S.optLabel},L('英文模式','English mode')),
+      return h('div',{style:S.optRow},h('span',{style:S.optLabel},...withIcon('A',L('英文模式','English mode'))),
         h(Segmented,{
           name:'english-mode', value:on?'on':'off', options:['off','on'], failTick,
           disabled:busy||!known||ready===false,
@@ -1427,7 +1466,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     function InferenceControls({settings={},save,ready,busy=false}){
       const enabled=settings.reasoningBoost===true,known=typeof settings.reasoningBoost==='boolean'
       return h('div',{'data-po06':'inference-controls',style:{borderTop:'1px solid '+T('line2'),paddingTop:'8px',marginTop:'8px'}},
-        h('div',{style:{...S.optRow,gap:'8px'}},h('span',{style:S.optLabel},L('快速增强','Quick enhancement')),
+        h('div',{style:{...S.optRow,gap:'8px'}},h('span',{style:S.optLabel},...withIcon('⚡',L('快速增强','Quick enhancement'))),
           h('button',{'data-po06':'reasoning-boost',type:'button',style:{...S.small,color:enabled?T('acc'):T('fg2')},disabled:busy||!known||ready===false&&!enabled,'aria-pressed':enabled,onClick:()=>save({reasoningBoost:!enabled})},enabled?L('开启','On'):L('关闭','Off'))),
         h('div',{'data-po06':'inference-profile',style:{...S.muted,lineHeight:1.5}},
           L('固定 3+3 快速配置：先并发生成三条简短、公开的思考方向，再交给原工作模型正常执行。不做同一步串行精修，不调用择优裁判，也不先写几份实现；3+3 不表示实际执行了三轮修正。',
@@ -3513,7 +3552,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           disabled: noEfforts,
           onChange: onPick,
         })
-        return h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('思考档位', 'Thinking effort')),
+        return h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('✳', L('思考档位', 'Thinking effort'))),
           noEfforts
             ? h('span', { 'data-po06': 'effort-none', style: S.muted },
               L('该模型没有档位（宿主未登记 reasoning）', 'No levels for this model (host has no reasoning info)'))
@@ -3649,7 +3688,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(300, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
               h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options'))),
               // ① 档位（从第一行搬来；分段控件本身没变）
-              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('档位', 'Tier')),
+              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('◈', L('档位', 'Tier'))),
                 h(Segmented, {
                   name: 'tier', value: tier, options: TIER_KEYS, label: (k) => tierLabel(k), failTick,
                   title: L('优化档位：关闭 / 轻度 / 标准 / 重度 —— 点击、按住拖动、或按 ←→ 方向键（Home/End 到两端）',
@@ -3663,7 +3702,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick}),
               h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick}),
               // ①b 协作基调（0.7.8）：与档位正交，按会话存。语域本身就是效果来源（见 framing.js）。
-              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('协作基调', 'Tone')),
+              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('≋', L('协作基调', 'Tone'))),
                 h(Segmented, {
                   name: 'framing', value: framing, options: ['neutral', 'hard'], failTick,
                   label: (k) => (k === 'hard' ? L('硬邦邦', 'Hard') : L('普通', 'Plain')),
@@ -3672,9 +3711,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   onPick: (v) => save({ bySession: withSession({ framing: v }) }),
                 })),
               // ② 优化权限：档位 off 时禁用
-              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('权限', 'Permission')),
+              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('⚖', L('权限', 'Permission'))),
                 h(Segmented, {
                   name: 'perm', value: permission, options: ['review', 'auto'],
+                  tones: { review: '#3fbf7f', auto: '#e08a3c' },
                   label: (k) => (k === 'review' ? L('审查', 'Review') : L('自动', 'Auto')),
                   disabled: tierOff&&!englishOn, failTick,
                   title: tierOff&&!englishOn
@@ -3684,7 +3724,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   onPick: (v) => save({ permission: v }),
                 })),
               // ③ 模型：下拉（跟随会话模型 = null）
-              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, L('模型', 'Model')),
+              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('▣', L('模型', 'Model'))),
                 // 2026-10-19：原生 select 换成自绘下拉（系统面板和插件设计语言不搭）
                 h(Options, {
                   anchor: 'model',
@@ -3705,7 +3745,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // ③ 上下文（2026-10-19 重做）：模式用分段控件；回合数用自绘滑杆
             h('div', { 'data-po06': 'ctx-wrap', style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
               h('div', { style: S.optRow },
-                h('span', { style: S.optLabel }, L('上下文', 'Context')),
+                h('span', { style: S.optLabel }, ...withIcon('≡', L('上下文', 'Context'))),
                 h(Segmented, {
                   name: 'ctx-mode', value: historyMode, options: ['turns', 'full'], disabled: tierOff,
                   label: (k) => (k === 'full' ? L('全文', 'Full') : L('回合', 'Turns')),
