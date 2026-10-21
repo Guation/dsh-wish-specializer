@@ -231,3 +231,29 @@ test('tool stop condition is projected only when present, and never fabricates a
   assert.equal(renderToolboxFacts({...snapshot,pending:true,stopWhen:'x'}),'','a pending input hides stale facts')
 })
 
+test('asking about vehicle form drops form-specific advice instead of contradicting itself',async()=>{
+  const { parseOptimizerValue, renderOptimizerPacket } = await import('../lib/optimizer-protocol.js')
+  const v={intent:{text:'做一台极其精细的跑车，可预览可驾驶',relation:'new'},clarify:[],
+    decide:['车型气质取哪一种｜中置楔形超跑 / 长头 GT / 未来电动概念'],
+    add:['低趴宽体、座舱前移的超跑比例，任意角度都有速度感','用单一哑光灰先验收剪影再逐层上漆']}
+  const p=parseOptimizerValue(v,{sessionId:'s',messageId:'m',baseInputRevision:1})
+  assert.equal(p.ok,true)
+  assert.ok(p.optimizer.add.some(x=>x.includes('哑光灰')))
+  assert.equal(p.optimizer.add.some(x=>/低趴|宽体|舱前移/.test(x)),false)
+  assert.ok(p.warnings.some(w=>w.startsWith('form-contradiction-dropped')))
+  const packet=renderOptimizerPacket(p.optimizer,'zh',{userText:v.intent.text})
+  assert.equal(/低趴|舱前移/.test(packet),false)
+})
+
+test('toolbox is inferred as inspect only for clearly long-polish large tasks',async()=>{
+  const { inferToolbox } = await import('../lib/toolbox-proposal.js')
+  const polish='做一个极其精细的跑车模型，所有地方做到极致，可预览可驾驶'
+  const large='单html three.js'
+  const a=inferToolbox(undefined,{userText:polish+' '+large})
+  assert.equal(a.proposal&&a.proposal.recommendation,'inspect')
+  assert.ok(a.warnings.includes('toolbox-inferred-inspect'))
+  assert.equal(inferToolbox(undefined,{userText:'把按钮文字改成保存'}).proposal,null)
+  assert.equal(inferToolbox(undefined,{userText:'所有地方做到极致，精益求精'}).proposal,null,'polish alone is not enough')
+  assert.equal(inferToolbox(undefined,{userText:polish+' '+large,enabled:false}).proposal,null)
+  assert.equal(inferToolbox({recommendation:'none'},{userText:polish+' '+large}).proposal.recommendation,'none')
+})

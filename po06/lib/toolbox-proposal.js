@@ -6,6 +6,21 @@ export const TOOLBOX_PROMPT = Object.freeze({
   en: 'Also judge whether this task benefits from reusing or building a temporary task toolbox. Use repeated operations, difficulty locating changes and feedback gaps, not domain keywords. Do not require a framework for every task. capabilitySummary contains scoped evidence: unknown does not mean absent, registration is not proven runtime availability, and disabled optimizer read tools say nothing about the working model’s tools. Reuse adequate capabilities, inspect unknown environments, and skip simple tasks. Optionally return toolbox:{recommendation:"none|reuse|build|inspect",reason:"task-specific gap and benefit",basis:["evidence or unknown premise"],capabilities:["needed operation with inputs and outputs"],feedback:["observations and how they inform changes"],firstUse:"first real subtask",stopWhen:"when to stop extending"}. Omission or none is valid. Describe capabilities and directions only: no code, commands, parameters or implementation steps. The working model checks the environment and implements, actually uses the tools, reads feedback, corrects the artifact and reuses them. Preserve the requested stack and delivery constraints; tooling is not a new product requirement. Route real user choices through ask.'
 })
 
+// ③ 长期打磨类任务默认给 inspect：模型沉默（未返回字段）时按任务特征补一个低承诺的「先查环境」。
+// 只认同时命中“打磨强度”与“成品规模”两类特征的输入，避免对普通小需求加噪音。
+const POLISH = /极其|极致|所有地方|细节拉满|精益求精|多轮|反复打磨|一遍遍/
+const SCALE = /单\s*html|three\.?js|webgl|模型|场景|驾驶|交互|动画|游戏|3d/i
+export function inferToolbox(value, { userText = '', enabled = true } = {}) {
+  const { proposal, warnings } = normalizeToolbox(value, { enabled })
+  if (!enabled || proposal) return { proposal, warnings }
+  const text = String(userText || '')
+  if (!POLISH.test(text) || !SCALE.test(text)) return { proposal: null, warnings }
+  return {
+    proposal: { version: TOOLBOX_VERSION, recommendation: 'inspect', reason: '任务要求长期打磨且成品规模较大；先确认环境里有没有可复用的部件修改与固定机位对照能力。', basis: [], capabilities: [], feedback: [], firstUse: '', stopWhen: '' },
+    warnings: [...warnings, 'toolbox-inferred-inspect'],
+  }
+}
+
 const object = x => x !== null && typeof x === 'object' && !Array.isArray(x)
 const text = x => typeof x === 'string' ? x.trim() : ''
 const list = x => typeof x === 'string' ? (text(x) ? [text(x)] : [])
