@@ -1530,6 +1530,7 @@ class DshAdapter {
     this.toolboxContexts = new Map()
     this.toolboxStore = createTaskToolboxStore({ home: DSH_HOME, namespace: process.env.DSH_PROFILE_DIR || process.env.DSH_PROFILE || 'default' })
     this.toolboxWorkspaces = new Map()
+    this.toolboxStopWhen = new Map()
     /** P11 包级回退：每会话最近 10 版**非空**包（旧到新）。 */
     this.packetHistory = new Map()
     // 第 5 项之后的新增（2026-10-18 用户要求）：顾问不该只是个摆设。
@@ -1818,6 +1819,8 @@ class DshAdapter {
     if(['committed','understood','noop'].includes(out.outcome)){
       this.capability.settle(sid,token,out)
       if(toolboxToken)this.toolboxStore.settleInput(toolboxToken,{relation:out.understanding?.relation||'uncertain'})
+      const stopWhen=out.optimizer?.toolbox?.stopWhen
+      if(stopWhen)this.toolboxStopWhen.set(sid,stopWhen);else this.toolboxStopWhen.delete(sid)
     }else if(toolboxToken)this.toolboxStore.cancelInput(toolboxToken)
     return out
   }
@@ -1892,7 +1895,7 @@ class DshAdapter {
     const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
     const toolboxPolicy = this.policyNow(sessionId)
     const tools = !this.reviewedPackets.has(String(sessionId)) && toolboxPolicy?.assist !== 'off' && toolboxPolicy?.toolboxMode === 'auto'
-      ? renderToolboxFacts(this.toolboxStore.status({sessionId:String(sessionId),workspace:this.toolboxWorkspaces.get(String(sessionId))}),{english:toolboxPolicy?.englishMode===true}) : ''
+      ? renderToolboxFacts({...this.toolboxStore.status({sessionId:String(sessionId),workspace:this.toolboxWorkspaces.get(String(sessionId))}),stopWhen:this.toolboxStopWhen?.get(String(sessionId))||null},{english:toolboxPolicy?.englishMode===true}) : ''
     return [base, tools, directive].filter(Boolean).join('\n\n')
   }
 

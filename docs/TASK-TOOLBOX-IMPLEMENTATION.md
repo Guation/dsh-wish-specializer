@@ -12,7 +12,7 @@
 | T1 / P1 可选提案生产链 | 已实现，133 套件全绿 | 能力摘要输入、可选提案归一、独立注入、关闭和旧响应、语言与存档兼容 |
 | T2 / P2 Three.js 实际工具试点 | 受控真实开发试点完成 | 工作模型已建并复用同一 CLI 两次修改、读取 WebGL 截图、导出独立 HTML；自然任务收益对照仍属 T4 |
 | T3 / P3 工具事实耐久索引 | 已实现并通过集成检查 | 调用起点任务绑定、native/PTC/后台结果、索引恢复和两种上下文消费已接通；当前宿主现场加载仍属 T5 |
-| T4 / P4 有限对照 | 部分完成：判断 4/4，行为 A/B 各一次但均触上限 | 候选返回 none/reuse/inspect/inspect 合理；A/B 均未在 24 次请求内完成，不能宣称收益；C 未运行 |
+| T4 / P4 有限对照 | 已完成三臂各一次（A/B/C），全部触上限 | 判据均达成但无人主动停止；无质量/成本胜出结论；停止条件已改为每轮可见 |
 | T5 / P5 本地加载及回滚 | 待执行（已修一处预览不一致，新增只读检查脚本） | 需在宿主重载后核对实际加载、关闭、顾问独立、ask 与拦截；不替换 GUI 服务器 |
 
 advisor_stage 在本会话返回 assist-off，未创建 task/stage ID；沿用用户设置，不为开发擅自开启。上表及持续 goal 保存阶段任务，不把局部测试当整体完成。
@@ -77,4 +77,11 @@ advisor_stage 在本会话返回 assist-off，未创建 task/stage ID；沿用�
 - 修复 P5 发现的一处真实不一致：状态接口的提示词预览没有传 toolboxMode，导致设置页看不到工具箱段，与实际请求不同；已改为由 assist/toolboxMode 共同决定，并补测试。
 - 新增 [check-live.mjs](../po06/experiments/task-toolbox/check-live.mjs)：只读检查当前 GUI 是否加载了新路由；不写设置、不重启服务。
 - README 增加本地候选功能说明与 `toolboxMode` 关闭方式。
+
+## 第四轮：三臂对照与停止条件
+
+- A/B/C 各跑一次同一任务、同一数值判据、上限 18 请求：三组都达成判据，也都在达成后继续到上限；详见 [RESULTS.md](../po06/experiments/task-toolbox/RESULTS.md) 与 [natural-comparison-3.json](../po06/experiments/task-toolbox/evidence/natural-comparison-3.json)。
+- 由此确认“停止条件写在任务文本里不保证被执行”。产品侧改为：只要本轮提议带 `stopWhen`，任务工具事实段每轮显式打印「停止条件：…」；无 stopWhen 不出现，pending 输入时整段隐藏。单测已覆盖，全量 134 套件 / 1413 断言通过。
+- 仍不宣称质量或成本收益：单次、单任务、无统计意义；C 组通过改车身宽度达成判据，形态差异使三组不可直接排序。
+- P5 现场加载仍待重启：运行实例 `previewRevision` 仍为 advisor-loop-1，无工具索引字段。
 

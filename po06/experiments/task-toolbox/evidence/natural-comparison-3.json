@@ -1,0 +1,55 @@
+{
+  "kind": "preregister-2-three-arm",
+  "stopRule": "wheelInnerClearance>0 && |wingOverhang|<0.15",
+  "optimizerCandidateProposal": "inspect",
+  "arms": {
+    "A": {
+      "requests": 18,
+      "tools": 23,
+      "errored": 2,
+      "images": 4,
+      "tokens": 132193,
+      "scene": {
+        "track": 2.6,
+        "wing": 2.4,
+        "bodyW": 2.2,
+        "clearance": 0.04,
+        "overhang": 0.1
+      }
+    },
+    "B": {
+      "requests": 18,
+      "tools": 33,
+      "errored": 5,
+      "images": 14,
+      "tokens": 62546,
+      "scene": {
+        "track": 2.76,
+        "wing": 2.3,
+        "bodyW": 2.2,
+        "clearance": 0.12,
+        "overhang": 0.05
+      }
+    },
+    "C": {
+      "requests": 18,
+      "tools": 28,
+      "errored": 3,
+      "images": 8,
+      "tokens": 75561,
+      "scene": {
+        "track": 2.3,
+        "wing": 2,
+        "bodyW": 1.9,
+        "clearance": 0.04,
+        "overhang": 0.05
+      }
+    }
+  },
+  "honesty": [
+    "All three arms satisfied the numeric criterion, and all three kept going until the 18-request bound without declaring completion.",
+    "C altered body width (2.2→1.9) — permitted by the task wording but a larger shape change than A/B.",
+    "Single run per arm, one task: no statistical claim, no quality winner, and no demonstrated token saving.",
+    "The stop rule came from the task text, and the candidate proposal also carries stopWhen; neither prevented continued polishing."
+  ]
+}

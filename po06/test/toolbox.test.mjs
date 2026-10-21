@@ -221,3 +221,13 @@ test('turning off projections keeps tool history but does not ingest or expose n
  assert.equal((await a.toolboxContextFor(s)).taskTools.length,0);assert.equal(a.getWorkingText(s.id),'')
  assert.equal(a.toolboxStore.status({sessionId:s.id}).taskId,token)
 })
+test('tool stop condition is projected only when present, and never fabricates availability',async()=>{
+  const { renderToolboxFacts } = await import('../lib/toolbox-facts.js')
+  const snapshot={entries:[{name:'w',entrypoint:'/a/w.mjs',project:'/a',capabilities:[],lastResult:{status:'reported-ok',callId:'c1',operation:'capture',reportedArtifactVersion:'v1',feedbackRefs:[]}}],pending:false}
+  assert.equal(renderToolboxFacts(snapshot).includes('停止条件'),false)
+  const withStop=renderToolboxFacts({...snapshot,stopWhen:'wheelInnerClearance > 0'})
+  assert.ok(withStop.includes('停止条件：wheelInnerClearance > 0'))
+  assert.ok(renderToolboxFacts({...snapshot,stopWhen:'x'},{english:true}).includes('Stop when: x'))
+  assert.equal(renderToolboxFacts({...snapshot,pending:true,stopWhen:'x'}),'','a pending input hides stale facts')
+})
+
