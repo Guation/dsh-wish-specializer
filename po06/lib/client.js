@@ -30,6 +30,19 @@ window.__ModuleLoader__.load({
 
 // 行标签左边的小图标：极简字形，只做视觉锚点，不承载语义。
 // 放在模块作用域：选项浮层和设置页两处都要用（各闭包里各定义一份必然漏一处）。
+// 拦截面板的视觉层（2026-10-21 重做）：只覆盖外观，不改结构、状态与交互。
+// 像一张可审阅的卡片——分层表面、克制强调、底边纯色轮廓、更大的主按钮。
+const V2 = {
+  panel: { borderRadius: '16px', padding: '0' },
+  head: { padding: '11px 16px', gap: '8px', borderBottom: '1px solid ' + OVS.line2 },
+  pane: { borderRadius: '12px', padding: '10px 12px', background: OVS.bg2, border: '1px solid ' + OVS.line2 },
+  actions: { padding: '12px 16px', gap: '10px' },
+  btn: { height: '34px', borderRadius: '10px', fontWeight: 600, letterSpacing: '.2px',
+    border: '1px solid ' + OVS.line2, boxShadow: 'inset 0 -2px 0 ' + OVS.line2 },
+  btnPrimary: { background: OVS.acc, color: '#fff', borderColor: 'transparent',
+    boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.22)' },
+}
+
 const withIcon = (glyph, node) => [
   h('span', { key: 'ico', 'aria-hidden': 'true', style: { display: 'inline-block', width: '14px',
     textAlign: 'center', marginRight: '5px', opacity: .62, fontSize: '11px' } }, glyph),
@@ -507,7 +520,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 设置行（2026-10-19 观感）：左侧标签、右侧状态值；整行有底色，状态值用主题色
       optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
         justifyContent: 'space-between', gap: '10px', padding: '8px 12px',
-        borderRadius: '10px', border: '1px solid transparent', background: T('chip'), boxShadow: '0 2px 0 ' + OVS.line2,
+        borderRadius: '10px', border: '1px solid transparent', background: T('chip'), boxShadow: 'inset 0 -2px 0 ' + OVS.line2,
         color: 'inherit', font: 'inherit', fontSize: '12.5px', cursor: 'pointer', textAlign: 'left' },
       optVal: (on) => ({ color: on ? OVS.acc : OVS.fg3, fontWeight: 600, letterSpacing: '.2px' }),
       optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
@@ -724,7 +737,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       divider: { height: '1px', background: OVS.line2, margin: '2px 0' },
       optWide: { width: '100%', boxSizing: 'border-box', textAlign: 'center',
         padding: '6px 10px', borderRadius: '8px', border: '1px solid transparent',
-        background: T('chip'), boxShadow: '0 2px 0 ' + OVS.line2, color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
+        background: T('chip'), boxShadow: 'inset 0 -2px 0 ' + OVS.line2, color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer' },
       optFoot: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', paddingTop: '2px' },
       optSummary: { color: OVS.fg3, fontSize: '11px', whiteSpace: 'nowrap' },
       optCaret: { color: OVS.fg3, fontSize: '9px', lineHeight: 1 },
@@ -989,7 +1002,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
           disabled: disabled === true,
           style: { ...S.picker, ...(open ? S.pickerOpen : null), ...(disabled ? S.dis : null),
-            boxShadow: '0 2px 0 ' + OVS.line2 },
+            boxShadow: 'inset 0 -2px 0 ' + OVS.line2 },
           onClick: () => { if (!disabled) setOpen((v) => !v) },
           onKeyDown,
         },
@@ -2282,14 +2295,14 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       //    守卫都按字面量 grep `'data-po06': 'intercept-…'`，拼出来的名字在源码里搜不到。
       const btn = (attrs, text, onClick, kind, tip) => h('button', {
         type: 'button', ...attrs, title: tip || undefined,
-        style: { ...S.ovBtn, ...(kind === 'primary' ? S.ovBtnPrimary : (kind === 'danger' ? S.ovBtnDanger : (kind === 'ghost' ? S.ovBtnGhost : null))) },
+        style: { ...S.ovBtn, ...V2.btn, ...(kind === 'primary' ? S.ovBtnPrimary : (kind === 'danger' ? S.ovBtnDanger : (kind === 'ghost' ? S.ovBtnGhost : null))) },
         onClick,
       }, text)
       // ⚠ 子元素用**展开**而不是把数组当唯一子节点传：数组子节点在 React 里会被当成列表，
       //    开发模式下会报 "Each child in a list should have a unique key"（我们不需要 key，展开即可）。
       const footWrap = (name, kids) => h('div', { 'data-po06': 'intercept-foot', 'data-po06-foot': name, style: S.ovFoot },
         h('div', { 'data-po06': 'intercept-foot-inner', style: S.ovFootInner },
-          h('div', { 'data-po06': 'intercept-actions', style: S.ovActions }, ...kids)))
+          h('div', { 'data-po06': 'intercept-actions', style: { ...S.ovActions, ...V2.actions } }, ...kids)))
 
       // 底栏变体（0.5:1622-1687 的五个 → 0.6 的四个阶段）。**关键：底栏在滚动区之外**。
       const footer = phase === 'review'
@@ -2347,7 +2360,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         'data-po06-exit': props.exitKind || 'none',
         'data-po06-drag': dragging ? '1' : '0', 'data-po06-size': sizing ? '1' : '0',
         style: {
-          ...S.ov,
+          ...S.ov, ...V2.panel,
           transform: 'translate3d(' + pos.x + 'px,' + pos.y + 'px,0)',
           ...(size.w ? { width: size.w + 'px' } : null),
           height: size.h ? size.h + 'px' : 'auto',
@@ -2357,7 +2370,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       },
         // 可拖的头（0.5:1940-1945）
         h('div', {
-          'data-po06': 'intercept-head', style: S.ovHead, onPointerDown: onDragStart,
+          'data-po06': 'intercept-head', style: { ...S.ovHead, ...V2.head }, onPointerDown: onDragStart,
           title: L('按住拖动（右下角可改大小）', 'Drag to move (resize from the bottom-right corner)'),
         },
           h('span', { 'data-po06': 'intercept-state-dot', 'data-po06-value': phase, style: S.ovDot(phase) }),
@@ -2507,7 +2520,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                     onChange: props.onEdit,
                   })
                   // 只读视图（自动档 / 放行之后 / 优化失败）：0.5 的 `.dpo-pane-body`（pre-wrap）
-                  : h('div', { 'data-po06': 'intercept-packet', style: { ...S.ovPane, maxHeight: '300px' } },
+                  : h('div', { 'data-po06': 'intercept-packet', style: { ...S.ovPane, ...V2.pane, maxHeight: '300px' } },
                     h('div', { style: S.ovPaneBody }, packet || L('（这一轮没有包）', '(no packet this round)'))),
               )
               : null,
