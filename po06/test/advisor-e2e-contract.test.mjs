@@ -34,6 +34,21 @@ test('旧调用只传 mode 也能落到同一入口', async () => {
   assert.equal(out.entry, 'verify')
 })
 
+test('need_user reaches the working model as an ask tool instruction with choices (offline)', async () => {
+  const question = '跑车走哪一类形？'
+  const options = ['中置双座楔形超跑', '前置长鼻 GT', '电动流线轿跑']
+  const out = await fixture({ verdict: 'need_user', summary: '车型尚未确定，需要用户选择。',
+    ask: { question, options }, findings: [], checks: [] })({ entry: 'understand', question: '确认仍缺哪些用户决定' }, exec)
+  assert.equal(out.ok, true)
+  assert.equal(out.entry, 'understand')
+  assert.deepEqual(out.report.ask, { question, options })
+  assert.match(out.directive, /需要直接通过 ask 选项询问用户：[\s\S]*请工作模型调用 ask_user_question/)
+  for (const option of options) assert.ok(out.directive.includes(option))
+  assert.match(out.directive, /收到用户回答后/)
+  assert.doesNotMatch(out.directive, /可以交付|接受风险，按现状交付|已选：/)
+  assert.equal(out.completionClaimAllowed, false)
+})
+
 test('directive 是两段式，并带上交付判断', async () => {
   const out = await fixture({ verdict: 'pass', summary: '现在证据齐了，是因为三条都有可定位证据，所以可以收口。', findings: [], checks: [] })({ entry: 'verify', question: '核验' }, exec)
   const d = String(out.directive || '')

@@ -62,6 +62,16 @@ test('camelCase 标识符要清掉，但普通英文词不能删（删除会挖�
   assert.ok(d.includes('因果判断'), '正文保留')
 })
 
+test('the ask tool name survives advisor cleanup, including inline formatting', () => {
+  const tool = 'ask_user_question'
+  for (const mention of [tool, String.fromCharCode(96) + tool + String.fromCharCode(96)]) {
+    const text = renderAdvisorVoice({ verdict: 'suggestion', summary: '需要用户确认车型。',
+      contribution: '请调用 ' + mention + '，提供车型选项并等待回答。' })
+    assert.ok(text.includes(tool))
+  }
+  assert.equal(deBuild('mesh_scale'), '', 'other code identifiers retain the existing cleanup behavior')
+})
+
 test('英文文本不误伤正常单词', () => {
   const d = renderAdvisorVoice({ verdict: 'gaps', summary: 'The surface reads as plastic because the highlight is uniform.', checks: [] }, { english: true })
   assert.ok(d.includes('surface'), '英文单词要留着')

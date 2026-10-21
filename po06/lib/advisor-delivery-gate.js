@@ -8,6 +8,8 @@
 // 本模块是**纯函数**：给定 report（checks 带 status 与可选 severity），回答"现在该怎么办"。
 // 它不调用模型、不写文件、不做判断以外的事。
 
+import { renderAskInstruction } from './ask-instruction.js'
+
 export const DELIVERY_ACTIONS = Object.freeze(['deliver', 'fix', 'ask', 'deliver-with-note'])
 
 /**
@@ -21,6 +23,16 @@ export function isVerificationShaped(report) {
 }
 
 export function decideDelivery(report) {
+  // An explicit request for the user's choice is not a delivery verdict.
+  if (report?.verdict === 'need_user') {
+    return {
+      action: 'ask', context: 'user-decision', failed: [], unverified: [],
+      ask: {
+        question: report.ask?.question || report.summary || '请确认当前任务尚未确定的取舍。',
+        options: Array.isArray(report.ask?.options) ? report.ask.options : [],
+      },
+    }
+  }
   const checks = Array.isArray(report && report.checks) ? report.checks : []
   const failed = checks.filter((c) => c && c.status === 'failed')
   const unverified = checks.filter((c) => c && c.status === 'unverified')
@@ -81,11 +93,11 @@ export function renderDeliveryGate(decision, english = false) {
       : '【交付判断】还不能交付：' + decision.failed.join('；') + ' 仍未通过。'
   }
   if (decision.action === 'ask') {
-    const opts = (decision.ask && Array.isArray(decision.ask.options) ? decision.ask.options : [])
-      .map((o) => '· ' + o.label).join('\n')
-    return english
-      ? '[Delivery gate] Some evidence is unobtainable — ask the user before delivering: ' + decision.unverified.join('; ') + (opts ? '\nAsk with these options:\n' + opts : '')
-      : '【交付判断】有证据拿不到，交付前先问用户（用 ask 工具，选项照下面给）：' + decision.unverified.join('；') + (opts ? '\n' + opts : '')
+    const heading = decision.context === 'user-decision'
+      ? (english ? '[User decision — ask first, this is not advice]' : '【需要用户决定 · 先问再继续，这不是建议】')
+      : (english ? '[Delivery gate] Ask the user before delivery.' : '【交付判断】交付前先问用户。')
+    const request = decision.ask || { question: (decision.unverified || []).join(english ? '; ' : '；'), options: [] }
+    return heading + '\n' + renderAskInstruction([request], { english })
   }
   if (decision.action === 'deliver-with-note') {
     return english

@@ -1,6 +1,7 @@
 // Protocol v3: semantic optimization only. Host-owned IDs and state stay outside model instructions.
 
 import { createHash } from 'node:crypto'
+import { renderAskInstruction } from './ask-instruction.js'
 
 export const OPTIMIZER_PROTOCOL_VERSION = '3'
 export const OPTIMIZER_PROMPT_REVISION = 'advisor-loop-1'
@@ -137,7 +138,7 @@ export function parseOptimizerValue(value, { sessionId, messageId, baseRevision,
   }
   // decide → 真的**问出来**（用户 2026-10-19：未拍板的项要直接 ask，并给出选项）。
   // 走与 ask 同一条通路（add_item + add_question），只是 optimizerSection 标成 decide，
-  // 文本里保留"选项 A / B / C"和"未定时假设"，界面因此能直接让用户挑。
+  // 状态记录保留原始候选；注入文会要求工作模型调用 ask，记录本身不代表用户已回答。
   optimizer.decide.forEach((text, i) => {
     const id = 'opt3-' + scope + '-decide-' + i
     const item = { id, kind: 'unknown', text, provenance: 'machine', optimizerSection: 'decide',
@@ -191,49 +192,43 @@ const quoteVerbatim = (text) => String(text).trim().split(/\r?\n/).map((l) => '>
 export function renderOptimizerPacket(optimizer, language = 'zh', opts = {}) {
   if (!optimizer) return ''
   const en = language === 'en'
-  const hasBody = ['clarify', 'add', 'decide'].some((k) => optimizer[k]?.length)
+  const hasBody = ['clarify', 'add', 'decide', 'ask'].some((k) => optimizer[k]?.length)
   const userText = typeof opts.userText === 'string' ? opts.userText.trim() : ''
   // 没有机器内容就不发包（原话由宿主自己带着，不需要我们重复）；有内容时原话才逐字置顶。
   if (!hasBody) return ''
-  const lines = [en ? '[Prompt assistance: machine interpretation and advice; the original user text remains authoritative.]'
+  // ⚠ 顺序即权重（2026-10-20 真机 CoT 证据）：模型明确写过——
+  //   "这段话被标成『机器解释与建议，以完整用户原话为准』，而原话没有要求提问，所以按原话走"。
+  //   结论：凡是落在那段标题**里面**的祈使句都会被降级成建议。因此把「要模型去问」拆成独立段落，
+  //   放在辅助段**之前**，并用"执行动作"而不是"建议"来标它；辅助段仍然服从原话。
+  const pending = [...new Set([
+    ...(optimizer.decide || []),
+    ...(optimizer.ask || []),
+  ].filter(x => typeof x === 'string').map(x => sanitizeMachineText(x, language)).filter(Boolean))]
+  const questions = pending.map(raw => {
+    const [question, choices = ''] = raw.split(/[｜|]/).map(x => x.trim())
+    const isAssumption = /^(?:未定|假设|assumption\b|default\b)/i.test(choices)
+    return { question, options: choices && !isAssumption ? [choices] : [] }
+  })
+  const askText = renderAskInstruction(questions, { english: en })
+  const lines = []
+  if (askText) {
+    lines.push((en ? '[Action required for the working model · do this before starting; this is not the user\'s text and changes none of it]'
+      : '【给工作模型 · 本轮先做的动作（不是用户原话，也不改变用户要求）】') + '\n' + askText)
+  }
+  // 辅助段：仍然明确服从原话——它是建议，不是要求。
+  const advice = [en ? '[Prompt assistance: machine interpretation and advice; the original user text remains authoritative.]'
     : '【提示词辅助 · 机器解释与建议，以完整用户原话为准】']
-  // 原话逐字置顶（2026-10-19）：第一行声明"以原话为准"，那就得让模型真的看见原话，而不是机器摘要。
-  if (userText) lines.push((en ? 'Original request (verbatim, never rewritten):\n' : '原话（逐字引用，不可改写）：\n') + quoteVerbatim(userText))
+  if (userText) advice.push((en ? 'Original request (verbatim, never rewritten):\n' : '原话（逐字引用，不可改写）：\n') + quoteVerbatim(userText))
   const intent = sanitizeMachineText(optimizer.intent?.text || '', language)
-  if (intent) lines.push((en ? 'Machine understanding: ' : '机器理解（不是用户的话）：') + intent)
+  if (intent) advice.push((en ? 'Machine understanding: ' : '机器理解（不是用户的话）：') + intent)
   const titles = en ? { clarify: 'Clarification', add: 'Additions (ordered by importance)' }
     : { clarify: '表达澄清', add: '正向补充（按重要性排序）' }
   for (const key of ['clarify', 'add']) {
     const list = (optimizer[key] || []).map((s) => sanitizeMachineText(s, language)).filter(Boolean)
     if (!list.length) continue
     const body = key === 'add' ? list.map((s, i) => (i + 1) + '. ' + s).join('\n') : list.map((s) => '- ' + s).join('\n')
-    lines.push(titles[key] + '\n' + body)
+    advice.push(titles[key] + '\n' + body)
   }
-  // 待你拍板（2026-10-19 用户）：结构化列出必须由用户决定的岔路 + 未定时的假设。
-  // 它不是"要求"，所以放在最后单独成节，并明确写"没定之前按假设走"。
-  // ask 与 decide 合并成同一节：ask 是 core 已知字段（不会被上游过滤器丢掉），
-  // decide 是本地扩展；两者语义一致——"必须由用户拍板"。
-  const decide = [...new Set([
-    ...(optimizer.decide || []),
-    ...(optimizer.ask || []).map((x) => (typeof x === 'string' ? x : '')),
-  ].map((x) => sanitizeMachineText(x, language)).filter(Boolean))]
-  if (decide.length) {
-    // ⚠ 这一段是**给执行模型的指令**，不是给用户的展示：必须让模型知道"要去问"。
-    // 真机反馈（2026-10-20）：只写"待你拍板"，模型会当成背景信息、直接按假设开做，不会调提问工具。
-    // 用户口径（2026-10-20）：直接写成"需要直接通过 ask 选项询问用户：xxx"。
-    // ⚠ 不给"未定时假设"：真机测试里，模型正是拿它当"不问也能推进"的理由。
-    const head = en
-      ? 'Ask the user directly with the ask tool (ask_user_question) before proceeding:'
-      : '需要直接通过 ask 选项询问用户（用 ask_user_question 提问，选项照抄）：'
-    const rows = decide.map((raw, i) => {
-      const parts = String(raw).split(/[｜|]/).map((x) => x.trim()).filter(Boolean)
-      const q = parts[0] || String(raw)
-      const opts = parts.length > 1 ? parts[1] : ''
-      return (i + 1) + '. ' + q + (opts ? '\n   选项：' + opts : '')
-    })
-    lines.push(head + '\n' + rows.join('\n'))
-  }
-  // ask 现在进「待你拍板」这一节（2026-10-19 用户要求）：它带着选项，是**给人的选择题**，
-  // 不是让执行模型自问自答的问题。它们同时仍在 patch 的 add_question 里，界面可直接让用户选。
+  if (!askText || advice.length > 1) lines.push(advice.join('\n\n'))
   return lines.join('\n\n')
 }

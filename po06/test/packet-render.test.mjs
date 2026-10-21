@@ -28,7 +28,7 @@ test('补充按重要性编号；没有硬上限（用户明确不要）', () =>
 test('反问以「待你拍板」小节进注入文（2026-10-20 改口径：它是给人的选择题）', () => {
   const text = renderOptimizerPacket({ ...base, ask: ['要展厅还是赛道？'] }, 'zh')
   assert.ok(text.includes('要展厅还是赛道？'), '选项要让人看见')
-  assert.ok(text.includes('待你拍板'), '要有独立小节')
+  assert.match(text, /需要直接通过 ask 选项询问用户：[\s\S]*ask_user_question/, '注入文指示工作模型调用工具')
   assert.equal(text.includes('需要反问的点'), false, '旧的"反问"标题不再出现')
 })
 

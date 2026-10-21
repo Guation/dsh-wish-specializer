@@ -26,6 +26,12 @@ test('unverified 且影响大 ⇒ 调 ask 问用户（带选项）', () => {
   assert.ok(d.ask.options.some((o) => o.value === 'accept'))
   assert.ok(d.ask.options.some((o) => o.value === 'fix'))
   assert.match(renderDeliveryGate(d), /先问用户/)
+  for (const english of [false, true]) {
+    const text = renderDeliveryGate(d, english)
+    assert.match(text, /ask_user_question/)
+    assert.match(text, english ? /Wait for the user’s answers/ : /收到用户回答后/)
+    for (const option of d.ask.options) assert.ok(text.includes(option.label))
+  }
 })
 
 test('unverified 但影响小 ⇒ 标注后放行', () => {

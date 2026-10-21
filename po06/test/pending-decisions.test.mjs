@@ -23,7 +23,9 @@ test('注入文里出现「待你拍板」小节，并**明确要求模型去问
   assert.ok(text.includes('选项：15–25 M☉'), '选项单独一行，便于照抄')
   // 真机测试：给了"未定时假设"，模型就有理由不问。所以待拍板块里**不再展示**假设。
   assert.ok(!text.includes('未定时假设'), '待拍板块不再给默认退路')
-  assert.ok(text.indexOf('需要直接通过 ask') > text.indexOf('正向补充'), '放在补充之后')
+  // 真机 CoT：落在"辅助/以原话为准"标题里的祈使句会被降级成建议 ⇒ 提问段必须**在辅助段之前**，单独成段。
+  assert.ok(text.indexOf('需要直接通过 ask') < text.indexOf('【提示词辅助'), '提问段必须在辅助段之前')
+  assert.ok(text.indexOf('给工作模型') < text.indexOf('需要直接通过 ask'), '先声明这是执行动作')
 })
 
 test('只有 decide 时也要发包（否则问题进不了界面）', () => {
@@ -41,9 +43,18 @@ test('decide 会变成带选项的提问（add_question）', () => {
   assert.ok(qs[0].question.text.includes('未定时按 20 M☉'))
 })
 
+test('English ask-only output names the tool and retains choices without a default answer', () => {
+  const text = renderOptimizerPacket({ intent: { text: 'Build a car', relation: 'new' },
+    ask: ['Choose a silhouette? | Wedge / Long-nose GT | assumption if unanswered: Wedge'] }, 'en')
+  assert.match(text, /Working model: call ask_user_question/)
+  assert.match(text, /Wait for the user’s answers/)
+  assert.match(text, /Options: Wedge \/ Long-nose GT/)
+  assert.doesNotMatch(text, /assumption if unanswered|选项：/)
+})
+
 test('待拍板是条件式的：不许为了问而问', () => {
   const heavy = renderOptimizerPacket({ intent: { text: 'x', relation: 'new' }, clarify: [], add: ['a'], decide: [], ask: [] }, 'zh', { userText: 'x' })
-  assert.ok(!heavy.includes('待你拍板'), '没有待拍板就不该出现这一节')
+  assert.ok(!heavy.includes('ask_user_question'), '没有待拍板就不该出现提问指令')
   const sys = composeOptimizerSystem({ strategy: strategyForTier('heavy') }).text
   assert.ok(sys.includes('只在真的缺信息时才问'), '重度档要写成条件式')
   assert.ok(!/必须给 1–3 条/.test(sys), '不许强制模型产出待拍板')
