@@ -245,6 +245,13 @@ function ownModelFor(sessionId) {
 const pendingInput = new Map()
 /** P11：本会话**刚被前置拦截解释过**的原话（放行后宿主会照常追加这条消息，不能再解释第二遍）。 */
 const interceptedText = new Map()
+/**
+ * 本轮**已经产出的包**：卡片要用它，而不是在消息落盘那一刻去实时读上下文。
+ * 真机 2026-10-22：确认发送时上下文已被消费/清空 ⇒ 读到空 ⇒ 卡片不出；
+ * 而跳过优化时上一轮的残留还在 ⇒ 反而冒出一张旧卡片。两边的表现都错，
+ * 根因就是“卡片内容取决于落盘那一刻还剩下什么”，而不是“这一轮注入了什么”。
+ */
+const pendingCardBySession = new Map()
 
 /**
  * **会话上下文累加器**（P10 步骤 2）：按会话攒「用户原话 + 工作 AI 回复正文」。
@@ -1442,6 +1449,8 @@ async function runInterceptInput(ctx, payload) {
   let route = { ok: true, source: 'observed' }
   try { route = await ensureModelRoute(ctx, sid) } catch (e) { route = { ok: false, reason: String((e && e.message) || e) } }
   progressSet(sid, { stage: 'interpret', startedAt: t0, text: '', reasoning: '' })
+  // 这一轮一旦产出包，就把它记给“下次落盘要画的卡片”；用户跳过/取消时清掉，避免旧包串台。
+
   const signal = (payload && payload.signal) || null
   const aborted = () => Boolean(signal && signal.aborted)
   let produced = null
@@ -2932,7 +2941,10 @@ export function apply(ctx, config) {
             // **只能写宿主已注册的类型**；命令事件就是宿主自己的行类型（/vmake 那种卡就是这么来的），
             // 客户端再用 conversation.chat.commandview 按命令名注册自己的卡片视图。
             try {
-              const working = adapter.getWorkingText(sid) || ''
+              // 优先用**本轮记录**（pendingCardBySession）；实时上下文只是兜底。
+              const stored = pendingCardBySession.get(sid) || ''
+              pendingCardBySession.delete(sid)
+              const working = stored || adapter.getWorkingText(sid) || ''
               if (working.trim() && typeof adapter.noteInjection === 'function') {
                 const anchorSeq = Number(event.seq)
                 const id = adapter.noteInjection(sid, {
