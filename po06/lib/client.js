@@ -589,8 +589,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         background: T('chip'), color: OVS.fg3, border: '1px solid transparent', whiteSpace: 'nowrap' },
       ovPane: { border: '1px solid ' + OVS.lineSoft, borderRadius: '8px', padding: '8px 10px',
         maxHeight: '132px', overflow: 'auto', background: 'transparent' },
-      ovPaneTitle: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px',
-        letterSpacing: '.4px', color: OVS.fg3, marginBottom: '7px' },
+      // 分区标题（2026-10-22 重排）：左侧一条主题色竖条 + 更紧的字距，
+      // 让「产出层/思维层」像选项面板的小标题，而不是一行灰字。
+      ovPaneTitle: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700,
+        letterSpacing: '.8px', color: OVS.fg2, marginBottom: '8px', paddingLeft: '8px',
+        borderLeft: '3px solid ' + OVS.acc, lineHeight: '14px' },
       ovPaneBody: { whiteSpace: 'pre-wrap', fontSize: '13px', lineHeight: '1.68', color: OVS.fg2,
         wordBreak: 'break-word' },
       ovReview: { display: 'flex', flexDirection: 'column', gap: '8px' },
@@ -634,7 +637,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       ovScrollY: { flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
         overscrollBehavior: 'contain' },
       // 常驻底栏：**在滚动区之外**（0.5:3542-3545）——面板再小、内容再长，关键按钮都不被滚走
-      ovFoot: { flex: '0 0 auto', position: 'relative', zIndex: 3, borderTop: '1px solid ' + OVS.lineSoft },
+      // 底部动作带：单独一层底色 + 上边框，像选项面板的 footer
+      ovFoot: { flex: '0 0 auto', position: 'relative', zIndex: 3, borderTop: '1px solid ' + OVS.lineSoft,
+        background: OVS.bg1, borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' },
       ovFootInner: { display: 'flex', flexDirection: 'column' },
       ovActions: { display: 'flex', gap: '10px', padding: '12px 16px', alignItems: 'center' },
       ovBtn: { flex: '1 1 0', minWidth: 0, height: '30px', borderRadius: '10px', border: '1px solid ' + OVS.line,
@@ -839,9 +844,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         boxShadow: 'inset 0 -2px 0 ' + T('line'),
         background: 'transparent', color: OVS.fg2, fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap',
         overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'inherit', fontWeight: 500, letterSpacing: '.2px' },
-      ovBtnPrimary: { borderColor: 'transparent', background: OVS.acc, color: '#fff', fontWeight: 600 },
+      ovBtnPrimary: { borderColor: 'transparent', background: OVS.acc, color: '#fff', fontWeight: 650, flex: '2 1 0' },
       // 取消/中止：**偏红**的弱化样式（用户 2026-10-22：原来和普通按钮没区别，看不出是危险动作）
-      ovBtnCancel: { borderColor: OVS.dangerLine, background: OVS.dangerBg, color: OVS.dangerFg, fontWeight: 600 },
+      ovBtnCancel: { borderColor: OVS.dangerLine, background: OVS.dangerBg, color: OVS.dangerFg, fontWeight: 600, flex: '0 0 auto', padding: '0 16px' },
       ovFoldHead: { display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px',
         border: 'none', background: 'transparent', color: OVS.fg3, fontSize: '11px', textAlign: 'left',
         cursor: 'pointer', fontFamily: 'inherit' },
