@@ -3212,7 +3212,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         let submitted=h
         if(h.englishMode&&!englishRef.current)submitted={...h,englishMode:false,outgoingText:h.text}
         const edited = String(h.edited == null ? h.packet : h.edited)
-        if (edited !== h.packet) {
+        // 2026-10-22：**无条件**把这一轮的包写回去再放行。
+        // 原来只在“用户改过正文”时才写（edited !== h.packet）⇒ 直接确认时什么也没写，
+        // 宿主在落盘那刻读不到包 ⇒ 卡片不出现（自动发送没这个问题，因为它一直带着包）。
+        {
           const r = await apiPost('/packet', { sessionId, text: edited })
           if (!r || r.ok !== true) {
             setHold({ ...h, phase: 'review', reason: L('改动没写进去：', 'Edit not applied: ') + reasonText(r && r.reason) })
