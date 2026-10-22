@@ -598,7 +598,7 @@ export function createAdvisor({ resolveRuntime, log = () => {}, progress = null,
         const visualReview=args.mode==='review_result'&&policy.visual
         if(visualReview){
           beatStall()
-          const first=await drainAdvisor(runtime.llm.stream({provider:runtime.cfg.provider,model:runtime.cfg.model,...(runtime.cfg.reasoningEffort?{reasoningEffort:runtime.cfg.reasoningEffort}:{}),system,messages:imageFirstMessages(prompt,bundle.images),signal:controller.signal}),started,sink)
+          const first=await drainAdvisor(runtime.llm.stream({provider:runtime.cfg.provider,model:runtime.cfg.model,sessionId:String(sid||''),...(runtime.cfg.reasoningEffort?{reasoningEffort:runtime.cfg.reasoningEffort}:{}),system,messages:imageFirstMessages(prompt,bundle.images),signal:controller.signal}),started,sink)
           const onlyImages=new Set(bundle.materials.filter(m=>m.kind==='image'&&m.sent&&m.status==='ready').map(m=>m.id))
           const parsedFirst=parseAdvisorReport(first.text,onlyImages,args.mode,onlyImages)
           if(!parsedFirst.ok||first.error)return{...parsedFirst,ok:false,reason:first.error||parsedFirst.reason,raw:clip(first.text,6000),partial:!!first.error,usage:first.usage,
@@ -633,7 +633,7 @@ export function createAdvisor({ resolveRuntime, log = () => {}, progress = null,
           }
         } else if(!result) {
           beatStall()
-          result = await drainAdvisor(runtime.llm.stream({ provider: runtime.cfg.provider, model: runtime.cfg.model,
+          result = await drainAdvisor(runtime.llm.stream({ provider: runtime.cfg.provider, model: runtime.cfg.model, sessionId: String(sid || ''),
             ...(runtime.cfg.reasoningEffort ? { reasoningEffort: runtime.cfg.reasoningEffort } : {}),
             system, messages, signal: controller.signal }), started, sink)
         }

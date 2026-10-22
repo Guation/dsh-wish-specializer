@@ -769,7 +769,7 @@ let pluginConfig = {}
  * **导出**是为了定点核对（`interpretViaLlm` 是这两步唯一的调用形状落点；
  * 不导出就只能靠端到端真机，而那种证据在排查时不可复现）。
  */
-export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTools, tools, onDelta, signal = null,englishMode=false }) {
+export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTools, tools, onDelta, signal = null, englishMode = false, sessionId = null }) {
   // ⚠ `signal`：用户在拦截期间按「跳过并发送 / 取消」时，浏览器 abort 那次 fetch ⇒ control-api 把
   // "连接断了"变成取消信号 ⇒ **模型调用当场停下**（而不是跑完再被丢掉，白烧 token）。
   const withSignal = (opts) => (signal ? { ...opts, signal } : opts)
@@ -844,6 +844,9 @@ export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTo
       // 而我们这次**不传工具** ⇒ 模型只会回答"我打算去读哪些文件……"这样的散文 ⇒ 解析不出那份 JSON ⇒
       // 又变成 `noop`/`no-packet`。这正是用户实测"开只读工具必定 no-packet"的第二段机制。
       provider: cfg.provider, model: cfg.model, system: String(systemNoTools || sys), messages,
+      // 会话标识：某些网关（opencode 系）要求 x-*-session 头，pi-ai 只在拿到 sessionId 时才会生成；
+      // 少了它 ⇒ 400 MissingSessionID ⇒ 整轮优化/顾问直接失败（2026-10-22 定位）。
+      ...(sessionId ? { sessionId: String(sessionId) } : {}),
       // 0.7.5：思考档位——**按本次这个模型自己那份设置**（cfg.reasoningEffort 已在定完路由后查过表）。
       // 没配就不传，由 provider 用自己的默认（宿主契约 types.d.ts:355）。
       ...(cfg.reasoningEffort ? { reasoningEffort: cfg.reasoningEffort } : {}),
@@ -870,6 +873,7 @@ export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTo
     model: cfg.model,
     system: sys,
     messages,
+    ...(sessionId ? { sessionId: String(sessionId) } : {}),
     // 0.7.5：**这里就是"思考与不思考由什么决定"的答案**。原先一个档位字段都不传，
     // 于是每次都走 provider 默认档，模型自己决定要不要思考 ⇒ 用户看到"有时有思考、有时没有"
     // （用户 2026-09-26 实测反馈）。档位按 cfg 选定的那个模型查，与工作模型互不干扰。
@@ -1038,7 +1042,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
-        const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null,englishMode:pol.englishMode })
+        const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null, englishMode: pol.englishMode, sessionId })
         if (optimizerRequests.get(sessionId) === requestRecord) {
           requestRecord.ms = r.ms
           requestRecord.reasoningChars = String(r.reasoning || '').length

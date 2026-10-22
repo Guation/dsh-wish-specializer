@@ -9,6 +9,8 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const SRC = readFileSync(fileURLToPath(new URL('../lib/client.js', import.meta.url)), 'utf8')
+const SRC_INDEX = readFileSync(fileURLToPath(new URL('../lib/index.js', import.meta.url)), 'utf8')
+const SRC_ADVISOR = readFileSync(fileURLToPath(new URL('../lib/advisor.js', import.meta.url)), 'utf8')
 
 test('解析会话模型的 effect 依赖模型清单：清单晚到也必须重算', () => {
   assert.ok(SRC.includes("const routeSig = routes.map(mkey).join('|')"), '要有清单签名')
@@ -37,4 +39,12 @@ test('颜色只许用真实存在的记号：OVS.line2 会拼出非法值，浏�
   assert.ok(SRC.includes("'inset 0 -2px 0 ' + T('line')"), '底边用 var() 形式')
   // 反过来也要钉住：合法的 '1px solid ' + OVS.line 不该被误伤（它已经是 var(...)）
   assert.ok(SRC.includes("'1px solid ' + OVS.line"), '合法写法保留')
+})
+
+test('调用宿主 llm.stream 必须带 sessionId：缺了它 opencode 系网关直接 400', () => {
+  // 宿主 dsh-llm-pi-ai/lib/index.js:1885 只有在收到 options.sessionId 时才把它交给 SDK，
+  // 由 SDK 生成网关要求的会话头。插件此前不传 ⇒ 400 MissingSessionID ⇒ 优化/顾问整轮失败。
+  assert.ok(SRC_INDEX.includes('...(sessionId ? { sessionId: String(sessionId) } : {})'), '解释层调用要带会话标识')
+  assert.ok(SRC_INDEX.includes('sessionId })'), '调用方要把 sessionId 传进 interpretViaLlm')
+  assert.ok(SRC_ADVISOR.includes('sessionId: String(sid'), '顾问调用也要带')
 })

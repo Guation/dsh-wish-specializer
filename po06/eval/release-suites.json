@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-22T02:10:20.811Z",
+  "at": "2026-10-22T02:38:30.732Z",
   "summary": {
     "suites": 134,
     "passed": 134,
     "failed": 0,
-    "passTotal": 1391,
+    "passTotal": 1392,
     "failing": []
   },
   "results": [
@@ -507,7 +507,7 @@
     },
     {
       "file": "follow-model-effort.test.mjs",
-      "pass": 4,
+      "pass": 5,
       "fail": 0,
       "exit": 0,
       "ok": true
