@@ -1094,7 +1094,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const line = JSON.stringify({ at: new Date().toISOString(), sessionId, count: Array.isArray(caps) ? caps.length : 0, sample: Array.isArray(caps) ? caps.slice(0, 12) : [] })
         appendFileSync(join(DSH_HOME, 'po06-capabilities.jsonl'), line + '\n', 'utf8')
       } catch { /* 记录失败不影响本轮 */ }
-      const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: caps, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
+      const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: caps, shortInput: String(userText || '').replace(/\s+/g, '').length <= 8, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
         const requestRecord = { capabilityCount: Array.isArray(caps) ? caps.length : 0, capabilitySample: Array.isArray(caps) ? caps.slice(0, 8) : [], protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)

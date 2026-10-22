@@ -28,3 +28,12 @@ test('正常长度的输入不受影响：仍按 600 字带助手回复', () => 
   const r = renderObserverBlock({ mode: 'turns', turns: 2, available: turns, shortInput: false })
   assert.equal(r.text.includes('这是最后一条助手回复'), true)
 })
+
+test('短输入在请求里被标成 shortInput，并下令 add/scaffold 留空', async () => {
+  const { buildOptimizerUserMessage, OPTIMIZER_GUIDANCE } = await import('../lib/optimizer-protocol.js')
+  const msg = JSON.parse(buildOptimizerUserMessage({ userText: '已重启', shortInput: true }))
+  assert.equal(msg.shortInput, true)
+  assert.match(msg.shortInputRule, /add: \[\] and scaffold: \[\]/)
+  assert.equal(JSON.parse(buildOptimizerUserMessage({ userText: '做一个跑车' })).shortInput, undefined, '正常输入不带这个标记')
+  assert.match(OPTIMIZER_GUIDANCE.zh, /短输入不是任务/)
+})
