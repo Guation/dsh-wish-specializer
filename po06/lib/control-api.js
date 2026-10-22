@@ -282,7 +282,7 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, sessionFirstSeen = null, getPresets = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, capabilityProbe = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, sessionFirstSeen = null, getPresets = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
@@ -335,6 +335,15 @@ export function createControlHandler({ home, stateDir, ledgerPath, version = nul
         // 回调可能是 async（要问宿主“此刻”的选择），这里必须 await，否则拿到的是 Promise
 try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null } catch { m = null }
         return send(200, { ok: true, provider: (m && m.provider) || null, model: (m && m.model) || null })
+      }
+      // 只读诊断：这一轮脚手架判断**实际能看见什么能力**（工具名 + 一句作用）。
+      // 为什么要有它：能力清单没送到模型时，输出里看不出原因，只能靠猜；这里可以直接核对。
+      if (method === 'GET' && path === API_PREFIX + '/capabilities') {
+        const sid = String(query.get('session') || '').trim()
+        if (!sid) return send(400, { ok: false, reason: 'session-required', capabilities: [] })
+        let list = []
+        try { list = (typeof capabilityProbe === 'function') ? await capabilityProbe(sid) : [] } catch { list = [] }
+        return send(200, { ok: true, count: Array.isArray(list) ? list.length : 0, capabilities: Array.isArray(list) ? list : [] })
       }
       // 档位按需查（0.7.5）：宿主仅在 resolveModelInfo 里给 reasoning（listModels 会剥掉它），
       // 27 个模型全量 resolve 太贵 ⇒ 界面选中哪个就查哪个。

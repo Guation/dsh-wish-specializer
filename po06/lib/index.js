@@ -2694,9 +2694,11 @@ export function apply(ctx, config) {
            */
           sessionModel: async (sid) => {
             const s0 = String(sid || '')
-            try { const f = await queryCurrentSessionModel(ctx, s0); if (f && f.p) { observeModel(s0, f.p); return f.p } } catch { /* 退回缓存 */ }
+            try { const f = await querySessionSelection(ctx, s0); if (f && f.p) { observeModel(s0, f.p); return f.p } } catch { /* 退回缓存 */ }
             try { return modelFor(s0) || null } catch { return null }
           },
+          // 只读诊断口：把采集器**实际看见**的能力原样返回，便于核对“为什么脚手架没提某个工具”
+          capabilityProbe: async (sid) => capabilitiesFor(String(sid || ''), ctx),
           resolveEfforts: async (provider, model) => {
             const llm = ctx.get('llm')
             if (!llm) return { ok: false, reason: 'no-llm-service', efforts: [], defaultEffort: null }
