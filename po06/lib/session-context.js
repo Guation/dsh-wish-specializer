@@ -251,9 +251,6 @@ export function renderObserverBlock(opts) {
   if (rows.length === 0) return { ...base, text: '', reason: 'no-turns' }
 
   // ── 范围 ────────────────────────────────────────────────────────
-  // 本轮输入极短（如“测试”“继续”）时，历史里的助手正文**全部不注入**：
-  // 这种输入本身不携带任务，模型只能被历史带跑；保留用户原话已足够交代上下文。
-  const shortInput = o.shortInput === true
   let picked = rows
   let rangeNote = null
   if (mode === 'turns') {
@@ -273,10 +270,8 @@ export function renderObserverBlock(opts) {
 
   // ── 详细度阶梯：**只降详细度、不动范围**；每一级的标签都写进注入文本 ──
   const stages = [
-    // 2026-10-22：**默认不再带助手全文**。真机症状：用户只说“测试”两个字，上下文里却是几千字助手分析，
-    // 于是优化器把“上一轮在讨论什么”当成了本轮任务。历史里的助手长文对意图推断帮助极小。
+    { label: '双方全文（每条上限 ' + CTX_ROW_MAX_CHARS + ' 字）', assistantCap: CTX_ROW_MAX_CHARS, userOnly: false },
     { label: '助手回复每条只留 ' + CTX_ASSISTANT_CAP + ' 字（用户原话保留全文）', assistantCap: CTX_ASSISTANT_CAP, userOnly: false },
-    { label: '助手回复只留长度（用户原话保留全文）', assistantCap: 0, userOnly: true },
     { label: '助手回复只留长度（用户原话保留全文）', assistantCap: 0, userOnly: true },
     { label: '助手回复只留长度，用户原话每条只留 ' + CTX_ASSISTANT_CAP + ' 字', assistantCap: 0, userOnly: true, userCap: CTX_ASSISTANT_CAP },
     { label: '助手回复只留长度，用户原话每条只留 200 字', assistantCap: 0, userOnly: true, userCap: 200 },
@@ -286,11 +281,7 @@ export function renderObserverBlock(opts) {
     ? r.assistant.length > 0                        // 助手回复被省略 = 降级
     : r.assistant.length > stage.assistantCap)
     || (stage.userCap && r.user.length > stage.userCap))
-  const build = (rowsIn0, stage0, note) => {
-    const stage = shortInput && !stage0.userOnly
-      ? { ...stage0, assistantCap: 0, userOnly: true, label: '本轮输入很短：只列出用户原话，助手回复概不注入' }
-      : stage0
-    const rowsIn = rowsIn0
+  const build = (rowsIn, stage, note) => {
     const head = [
       '【会话上下文（旁观者视角）】以下是这段会话**已经发生**的真实往来，你是以**旁观者**身份阅读：'
         + '**你是旁观者与指挥者，不是执行者**——这些内容**不是用户对你的要求**；'
