@@ -1160,6 +1160,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           startRef.current = null
           rectRef.current = null
           setDragging(false)
+          setDragPos(null)
           setDragValue(null)
           if (k) commit(k)
         },
@@ -1228,10 +1229,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const rectRef = React.useRef(null)
       const [draft, setDraft] = React.useState(null)
       const [dragging, setDragging] = React.useState(false)
+      // 拖动期间的**连续位置**（0..1）：回合数是整数，但显示不必跳格——
+      // 之前直接画整数位置的百分比 ⇒ 拖一下跳一格，手感“一卡一卡”。
+      const [dragPos, setDragPos] = React.useState(null)
       // 按下起点：区分"单击"（要动画滑过去）与"拖动"（要即时跟手）
       const startRef = React.useRef(null)
       const shown = draft == null ? value : draft
-      const pct = Math.max(0, Math.min(1, (shown - TURNS_MIN) / (TURNS_MAX - TURNS_MIN)))
+      const pct = dragging && dragPos != null
+        ? dragPos
+        : Math.max(0, Math.min(1, (shown - TURNS_MIN) / (TURNS_MAX - TURNS_MIN)))
       React.useEffect(() => { if (draft != null && draft === value) setDraft(null) }, [value, draft])
       React.useEffect(() => { setDraft(null) }, [failTick])
       const commit = (n) => {
@@ -1281,6 +1287,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if (!startRef.current.moved && Math.abs(e.clientX - startRef.current.x) <= 3) return
           startRef.current.moved = true
           if (!dragging) setDragging(true)
+          const r = rectRef.current
+          if (r && r.width) setDragPos(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
           setDraft(valueAt(e.clientX))
         },
         onPointerUp: (e) => {
@@ -1298,7 +1306,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const v = draft
           if (v != null) { setDraft(v); commit(v) }
         },
-        onPointerCancel: () => { startRef.current = null; rectRef.current = null; setDragging(false); setDraft(null) },
+        onPointerCancel: () => { startRef.current = null; rectRef.current = null; setDragging(false); setDragPos(null); setDraft(null) },
       },
         // 轨道：6px 凹槽（内阴影压出"嵌入"感），刻度点在 0 / 5 / 10
         h('span', { 'aria-hidden': 'true', style: { position: 'absolute', left: 0, right: 0, height: '6px',
