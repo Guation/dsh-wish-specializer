@@ -166,3 +166,15 @@ test('repair never invents content: truncated strings stay failures',async()=>{
   const closed=extractJson(unclosed)
   assert.equal(closed.ok,true);assert.equal(closed.recovered,'bracket-repair')
 })
+
+test('环境已有能力优先复用：能力清单进请求，脚手架纪律写清先复用再构建', async () => {
+  const { buildOptimizerUserMessage, OPTIMIZER_GUIDANCE } = await import('../lib/optimizer-protocol.js')
+  const msg = JSON.parse(buildOptimizerUserMessage({ userText: '做一个跑车', capabilities: ['bash', 'read', 'grep'] }))
+  assert.deepEqual(msg.availableCapabilities, ['bash', 'read', 'grep'], '能力清单只作为数据传入')
+  assert.equal(msg.originalText, '做一个跑车', '原话不变')
+  const noCap = JSON.parse(buildOptimizerUserMessage({ userText: 'x' }))
+  assert.equal('availableCapabilities' in noCap, false, '取不到能力时不要塞空字段')
+  assert.match(OPTIMIZER_GUIDANCE.zh, /先看环境/, '纪律：先看环境')
+  assert.match(OPTIMIZER_GUIDANCE.zh, /复用/, '纪律：优先复用')
+  assert.match(OPTIMIZER_GUIDANCE.zh, /缺这项能力/, '纪律：缺了才临时构建')
+})

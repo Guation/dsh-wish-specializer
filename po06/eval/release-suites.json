@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-22T03:45:35.671Z",
+  "at": "2026-10-22T03:51:47.517Z",
   "summary": {
     "suites": 134,
     "passed": 134,
     "failed": 0,
-    "passTotal": 1392,
+    "passTotal": 1393,
     "failing": []
   },
   "results": [
@@ -822,7 +822,7 @@
     },
     {
       "file": "scaffold-directions.test.mjs",
-      "pass": 13,
+      "pass": 14,
       "fail": 0,
       "exit": 0,
       "ok": true

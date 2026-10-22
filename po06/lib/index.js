@@ -769,6 +769,28 @@ let pluginConfig = {}
  * **导出**是为了定点核对（`interpretViaLlm` 是这两步唯一的调用形状落点；
  * 不导出就只能靠端到端真机，而那种证据在排查时不可复现）。
  */
+/**
+ * 本会话**此刻真实可用**的工具名（脚手架建议的判断依据）。
+ *
+ * 只取注册表里的名字，不取说明、不取配置：名字是稳定的、短的、没有密钥；
+ * 取不到就返回空数组——宁可少给，也不能让模型以为环境里有并不存在的能力。
+ */
+function capabilitiesFor(sessionId) {
+  try {
+    const agents = adapter.services && adapter.services.agents
+    const ag = agents && typeof agents.get === 'function' ? agents.get(String(sessionId || '')) : null
+    const reg = ag && ag.ctx && ag.ctx.tools
+    const schemas = reg && typeof reg.schemas === 'function' ? reg.schemas() : null
+    const list = Array.isArray(schemas) ? schemas : []
+    const names = []
+    for (const item of list) {
+      const name = item && (item.name || (item.function && item.function.name))
+      if (typeof name === 'string' && name.trim()) names.push(name.trim())
+    }
+    return [...new Set(names)].sort()
+  } catch { return [] }
+}
+
 export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTools, tools, onDelta, signal = null, englishMode = false, sessionId = null }) {
   // ⚠ `signal`：用户在拦截期间按「跳过并发送 / 取消」时，浏览器 abort 那次 fetch ⇒ control-api 把
   // "连接断了"变成取消信号 ⇒ **模型调用当场停下**（而不是跑完再被丢掉，白烧 token）。
@@ -1040,7 +1062,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
           ? 'Production, temporary-scaffold and Ask together: at most ' + budgetTokens + ' output tokens, not per section; do not pad to fill the budget.'
           : '制作建议、临时脚手架建议、Ask 三段合计不超过 ' + budgetTokens + ' token，不是每段分别计算，不为用满预算凑内容。'
         const styleHint = [exampleHint, decideHint, budgetHint].filter(Boolean).join(' ')
-        const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
+        const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: capabilitiesFor(sessionId), context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
         const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
