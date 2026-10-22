@@ -62,7 +62,7 @@ export async function handleUserInput(adapter, session, input) {
   // 2) 解释（可注入；真实实现是唯一 LLM 调用点）
   const interpretArgs = {
     userText: text,
-    state: base,
+    state: stateForOptimizer(base),
     sessionId,
     messageId: String(input.messageId),
     observations: input.observations,
@@ -344,6 +344,32 @@ function planAndRecordClarification(adapter, session, trace, input) {
  *   而不是让一条没名字的条目把这一轮的全部产出带走。
  * @returns 归一清单（供 trace；`why` 标明是补名还是改名）
  */
+/**
+ * 给优化器看的 state：**只留用户侧意图，不留我们自己产出的建议**。
+ *
+ * 为什么（2026-10-22 真机）：账本里每轮的建议都被标成 active 喂回下一轮，而账本没有
+ * “已完成”这个状态。用户只发"继续"，优化器看到 16 条 active 待办，就只能把上一轮的
+ * 五件事（RPS／盖型／上限／标注／探针）**原样再讲一遍**——自反馈，读起来完全奇怪。
+ *
+ * 分界：建议是给**工作模型**看的，不是给下一轮优化器当需求的。
+ * 这里按来源过滤（proposal / optimizerSection 三段的都是我们写的），用户侧的条目保留。
+ */
+export function stateForOptimizer(state) {
+  try {
+    if (!state || !Array.isArray(state.items)) return state
+    const kept = state.items.filter((it) => {
+      if (!it) return false
+      if (it.kind === 'proposal') return false
+      const sec = it.optimizerSection
+      if (sec === 'add' || sec === 'scaffold' || sec === 'ask') return false
+      if (it.provenance === 'machine' && sec) return false
+      return true
+    })
+    if (kept.length === state.items.length) return state
+    return { ...state, items: kept, counts: { ...(state.counts || {}), items: kept.length } }
+  } catch { return state }
+}
+
 function renameCollidingIds(parsed, adapter, session) {
   const renamed = []
   try {

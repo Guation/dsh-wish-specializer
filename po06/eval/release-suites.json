@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-22T11:26:50.918Z",
+  "at": "2026-10-22T16:01:11.262Z",
   "summary": {
-    "suites": 135,
-    "passed": 135,
+    "suites": 136,
+    "passed": 136,
     "failed": 0,
-    "passTotal": 1397,
+    "passTotal": 1399,
     "failing": []
   },
   "results": [
@@ -872,6 +872,13 @@
     {
       "file": "slash-review.test.mjs",
       "pass": 5,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "state-for-optimizer.test.mjs",
+      "pass": 2,
       "fail": 0,
       "exit": 0,
       "ok": true
