@@ -1085,6 +1085,12 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
           : '制作建议、临时脚手架建议、Ask 三段合计不超过 ' + budgetTokens + ' token，不是每段分别计算，不为用满预算凑内容。'
         const styleHint = [exampleHint, decideHint, budgetHint].filter(Boolean).join(' ')
         const caps = capabilitiesFor(sessionId, ctx)
+      // 每轮把“采集端看见了什么”写一行落盘：接口可能是旧版（404）、status 也可能没这个字段，
+      // 但文件一定在。出现“脚手架没提某个工具”时，先看这一行就能分清是采集端还是生成端。
+      try {
+        const line = JSON.stringify({ at: new Date().toISOString(), sessionId, count: Array.isArray(caps) ? caps.length : 0, sample: Array.isArray(caps) ? caps.slice(0, 12) : [] })
+        appendFileSync(join(DSH_HOME, 'po06-capabilities.jsonl'), line + '\n', 'utf8')
+      } catch { /* 记录失败不影响本轮 */ }
       const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: caps, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
         const requestRecord = { capabilityCount: Array.isArray(caps) ? caps.length : 0, capabilitySample: Array.isArray(caps) ? caps.slice(0, 8) : [], protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
