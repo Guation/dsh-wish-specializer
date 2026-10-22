@@ -1055,6 +1055,9 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const rendered = renderObserverBlock({
           mode: pol.historyMode,
           turns: pol.turns,
+          // “很短”= 去掉空白后不超过 8 个字（测试/继续/好的…）：这类输入本身不携带任务，
+          // 一旦把上几轮的助手长文喂进去，优化器就会把“上一轮在讨论什么”当成这一轮的活。
+          shortInput: String(userText || '').replace(/\s+/g, '').length <= 8,
           available: sessionHistory.turnsOf(sessionId, { currentUserText: userText }),
         })
         // ── P10 步骤 3：只读工具（三重与条件，见 readToolsFor）──

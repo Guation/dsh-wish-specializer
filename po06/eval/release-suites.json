@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-22T05:57:06.383Z",
+  "at": "2026-10-22T06:02:55.344Z",
   "summary": {
-    "suites": 134,
-    "passed": 134,
+    "suites": 135,
+    "passed": 135,
     "failed": 0,
-    "passTotal": 1393,
+    "passTotal": 1396,
     "failing": []
   },
   "results": [
@@ -424,6 +424,13 @@
     {
       "file": "compiler.test.mjs",
       "pass": 18,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "context-short-input.test.mjs",
+      "pass": 3,
       "fail": 0,
       "exit": 0,
       "ok": true
