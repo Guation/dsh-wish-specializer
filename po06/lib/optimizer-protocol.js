@@ -33,7 +33,7 @@ export const OPTIMIZER_FORMAT = Object.freeze({
 })
 
 export const OPTIMIZER_GUIDANCE = Object.freeze({
-  "zh": "制作、临时脚手架、Ask 三段合计控制在 3000 token 内，不是每段 3000；预算是上限，不需要填满。请优先考虑本轮最有价值的方向，结合实际判断取舍；建议不自动变成硬性要求。即使使用自定义表达风格，也请思考并分别返回 add、scaffold、ask；不额外执行任务或自动创建工具。\n**脚手架建议要按“专业级工作方式”去想，不要只想到加个面板或截图工具。** 合格的专业级脚手架会改变工作流程、把信息鸿沟压到最小；判断一条建议够不够，就问自己这六个问题：\n① 判断对错的通道是什么？现在只能靠肉眼看一张图，还是能拿到可测量、可比较的结果（尺寸、比例、数量、时间、状态）。② 改一处要牵动多少地方？能不能只换一个部件/一层而不重写整体，让局部修改有稳定接口。③ 一次迭代要付出多少？能不能把“改—看—判断”缩成极少的动作，而不是重建、重读、重跑。④ 反馈是否同条件可复现？不同版本能否放在一起比较，差异是否可归因。⑤ 看不见的部分有没有仪表化？性能、装配关系、交互与状态这些肉眼难判的，是否有常驻读数或自动检查。⑥ 有没有一次生成多个候选再比较的空间，而不是串行试错。\n**短输入不是任务**：标记 shortInput 时，add 与 scaffold 必须是空数组——不要沿用上一轮的任务往回补建议；最多一条 ask 用于确认“这算不算新任务”。\n**脚手架先看环境**：如果 availableCapabilities 里已经有能做这件事的能力，就建议**复用**它并写清用哪一个、为什么够用；只有在环境里确实缺这项能力时，才建议临时构建。两者都要说目的是什么，不写接口与调用步骤。\n**对当前任务明显对口的工具必须点名**：清单里如果已经有视频/渲染/音频/数据等直接相关的能力，脚手架要写清“复用哪一个”，并说明它覆盖了哪一段工作；不要在同一领域另起一套自建工具。\n领域不同，答案不同：三维是部件与正交视图、几何数值与批量渲染；数据是口径与抽样、可复现查询与对照表；界面是状态快照与交互回放；后端是负载与错误注入。不要给固定工具清单，也不要写实现步骤或代码——只给方向：应当让什么变得可测、可复用、可比较、可回退。",
+  "zh": "制作、临时脚手架、Ask 三段合计控制在 3000 token 内，不是每段 3000；预算是上限，不需要填满。请优先考虑本轮最有价值的方向，结合实际判断取舍；建议不自动变成硬性要求。即使使用自定义表达风格，也请思考并分别返回 add、scaffold、ask；不额外执行任务或自动创建工具。\n**脚手架建议要按“专业级工作方式”去想，不要只想到加个面板或截图工具。** 合格的专业级脚手架会改变工作流程、把信息鸿沟压到最小；判断一条建议够不够，就问自己这六个问题：\n① 判断对错的通道是什么？现在只能靠肉眼看一张图，还是能拿到可测量、可比较的结果（尺寸、比例、数量、时间、状态）。② 改一处要牵动多少地方？能不能只换一个部件/一层而不重写整体，让局部修改有稳定接口。③ 一次迭代要付出多少？能不能把“改—看—判断”缩成极少的动作，而不是重建、重读、重跑。④ 反馈是否同条件可复现？不同版本能否放在一起比较，差异是否可归因。⑤ 看不见的部分有没有仪表化？性能、装配关系、交互与状态这些肉眼难判的，是否有常驻读数或自动检查。⑥ 有没有一次生成多个候选再比较的空间，而不是串行试错。\n**脚手架先看环境**：如果 availableCapabilities 里已经有能做这件事的能力，就建议**复用**它并写清用哪一个、为什么够用；只有在环境里确实缺这项能力时，才建议临时构建。两者都要说目的是什么，不写接口与调用步骤。\n**对当前任务明显对口的工具必须点名**：清单里如果已经有视频/渲染/音频/数据等直接相关的能力，脚手架要写清“复用哪一个”，并说明它覆盖了哪一段工作；不要在同一领域另起一套自建工具。\n领域不同，答案不同：三维是部件与正交视图、几何数值与批量渲染；数据是口径与抽样、可复现查询与对照表；界面是状态快照与交互回放；后端是负载与错误注入。不要给固定工具清单，也不要写实现步骤或代码——只给方向：应当让什么变得可测、可复用、可比较、可回退。",
   "en": "The combined production, temporary-scaffold and Ask content has a 3000-token budget, not 3000 per section. This is a ceiling, not a target. Give the valuable directions priority consideration while allowing the working model to judge applicability; suggestions are not automatically hard requirements. Even with a custom style, consider and return add, scaffold and ask separately; do not execute the task or create tools yourself.\n**Reason about scaffolding at a professional level, not as a parameter panel or a screenshot helper.** Real scaffolding changes how the work is done and closes the information gap; test every suggestion against six questions: (1) what channel tells you it is right — one eyeballed image, or measurable, comparable results (dimensions, ratios, counts, timings, state)? (2) how many places must change for one edit — can a single part or layer be replaced without rewriting the whole? (3) what does one iteration cost — can “change, observe, judge” collapse into very few actions? (4) is feedback reproducible under the same conditions, and comparable across versions so a difference can be attributed? (5) are the invisible aspects instrumented — performance, assembly relations, interaction and state? (6) can several candidates be produced at once and compared instead of serial trial and error?\nDifferent fields answer differently: for 3D it is parts, orthographic views, geometry numbers and batch renders; for data, definitions, sampling, reproducible queries and comparison tables; for UI, state snapshots and interaction replay; for backends, load and fault injection. Give no fixed tool list, no implementation steps, no code: state what should become measurable, reusable, comparable and revertible."
 })
 
@@ -80,7 +80,7 @@ export function composeOptimizerSystem({ language = 'zh', core, strategy, tier, 
     parts: parts.map(p => ({ key: p.key, chars: p.text.length })) }
 }
 
-export function buildOptimizerUserMessage({ userText, context, observations, capabilities, shortInput = false, englishMode = false, translationInput, retryEmpty, emptyReason, styleHint } = {}) {
+export function buildOptimizerUserMessage({ userText, context, observations, capabilities, englishMode = false, translationInput, retryEmpty, emptyReason, styleHint } = {}) {
   return JSON.stringify({
     originalText: String(userText ?? ''),
     outputBudgetTokens: OPTIMIZER_OUTPUT_BUDGET_TOKENS,
@@ -92,11 +92,6 @@ export function buildOptimizerUserMessage({ userText, context, observations, cap
     ...(Array.isArray(capabilities) && capabilities.length ? { availableCapabilities: capabilities.slice(0, 60) } : {}),
     ...(englishMode ? { translationInput: translationInput ?? String(userText ?? '') } : {}),
     ...(retryEmpty ? { retry: String(emptyReason || 'No valid interpretation was returned; a valid intent with empty additions is sufficient.') } : {}),
-    // 极短输入（确认/催办/元指令）不是任务：不产出制作与脚手架建议，只澄清。
-    ...(shortInput ? {
-      shortInput: true,
-      shortInputRule: 'The current message is very short and carries no task of its own (a confirmation, a nudge, or a meta reply). Do not treat earlier turns as this turn\u2019s task. Return add: [] and scaffold: []. At most one ask, and only if you genuinely cannot tell whether it starts a new task.',
-    } : {}),
   })
 }
 
