@@ -883,74 +883,113 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      * 下拉选择（2026-10-19 重做）：原生 <select> 的展开面板由系统绘制，跟插件的设计语言完全不搭
      * （截图：黑底 + 系统蓝高亮）。这里换成自己的触发器 + 面板，键鼠都能用。
      */
-    // 下拉改成**面板内联展开**（2026-10-21）：此前是挂在 document.body 上的 fixed 浮层，
-    // 展开时会盖住"思考档位"及下面的工具行，看起来就是"列表重叠"。
-    // 现在菜单是面板里的普通块级元素：撑开、把后续行往下推，结构上不可能与任何行重叠。
-    // 同时移除"同一时刻只开一个"的必要性——没有浮层，就没有层叠。
+    // 下拉改成**独立小滑窗**（2026-10-22 用户要求）：
+    // 之前两版都不对——累在面板里会把面板撑长并被面板裁掉；做成 body 浮层又没人管"只能有一个"。
+    // 现在：挂在 body 上的一层 fixed 小窗，自己滚动、按视口夹紧、任何时刻只有一个。
+    const PICKER_HOSTS = new Set()
     function Options({ value, onChange, options, labels, disabled, anchor }) {
       const [open, setOpen] = React.useState(false)
       const btnRef = React.useRef(null)
+      const layerRef = React.useRef(null)
       const label = (k) => (labels && labels[k]) || k
       React.useEffect(() => {
         if (!open) return undefined
-        const onDoc = (e) => {
-          const btn = btnRef.current
-          if (!btn) return
-          const inside = btn.parentNode && btn.parentNode.contains(e.target)
-          if (!inside) setOpen(false)
+        const btn = btnRef.current
+        if (!btn || typeof document === 'undefined') { setOpen(false); return undefined }
+        // 只留一个：别的 picker 开着就先关掉，再清掉异常路径留下的孤儿层
+        for (const kill of Array.from(PICKER_HOSTS)) { try { kill() } catch { /* 忽略 */ } }
+        PICKER_HOSTS.clear()
+        try { for (const stray of Array.from(document.querySelectorAll('[data-po06="picker-layer"]'))) stray.remove() } catch { /* 忽略 */ }
+        const r = btn.getBoundingClientRect()
+        const vw = (typeof window !== 'undefined' ? window.innerWidth : 800)
+        const vh = (typeof window !== 'undefined' ? window.innerHeight : 600)
+        const w = Math.max(180, Math.min(Math.round(r.width), vw - 16))
+        const left = Math.max(8, Math.min(Math.round(r.left), vw - w - 8))
+        const below = vh - r.bottom - 12
+        const above = r.top - 12
+        const placeAbove = below < 160 && above > below
+        const maxH = Math.max(120, Math.min(320, placeAbove ? above : below))
+        const layer = document.createElement('div')
+        layer.setAttribute('data-po06', 'picker-layer')
+        layer.setAttribute('role', 'listbox')
+        layer.style.cssText = [
+          'position:fixed', 'z-index:2147483000', 'box-sizing:border-box',
+          'display:flex', 'flex-direction:column', 'gap:2px', 'padding:4px',
+          'overflow-y:auto', 'overscroll-behavior:contain', 'border-radius:10px',
+          'background:' + OVS.surface, 'border:1px solid ' + OVS.line,
+          'box-shadow:inset 0 -2px 0 ' + OVS.lineSoft + ',0 14px 34px rgba(0,0,0,.45)',
+          'font-size:12px', 'line-height:18px', 'opacity:0', 'transform:translateY(-4px)',
+          'transition:opacity .12s ease, transform .12s ease',
+          'left:' + left + 'px', 'width:' + w + 'px', 'max-height:' + maxH + 'px',
+        ].join(';')
+        if (placeAbove) layer.style.bottom = Math.round(vh - r.top + 6) + 'px'
+        else layer.style.top = Math.round(r.bottom + 6) + 'px'
+        for (const k of options) {
+          const b = document.createElement('button')
+          b.type = 'button'
+          b.setAttribute('data-po06', 'picker-item')
+          b.setAttribute('data-on', k === value ? '1' : '0')
+          b.textContent = label(k)
+          const on = k === value
+          b.style.cssText = [
+            'display:block', 'width:100%', 'box-sizing:border-box', 'text-align:left',
+            'padding:6px 8px', 'border:1px solid transparent', 'border-radius:6px',
+            'background:' + (on ? OVS.acc12 : 'transparent'),
+            'color:' + (on ? OVS.acc : OVS.fg2),
+            'font:inherit', 'font-size:12px', 'line-height:18px', 'flex:0 0 auto',
+            'white-space:nowrap', 'overflow:hidden', 'text-overflow:ellipsis', 'cursor:pointer',
+          ].join(';')
+          b.onclick = () => { setOpen(false); if (k !== value) onChange(k) }
+          layer.appendChild(b)
         }
-        const onKey = (e) => { if (e && e.key === 'Escape') setOpen(false) }
+        document.body.appendChild(layer)
+        layerRef.current = layer
+        const closeSelf = () => setOpen(false)
+        PICKER_HOSTS.add(closeSelf)
+        requestAnimationFrame(() => { try { layer.style.opacity = '1'; layer.style.transform = 'translateY(0)' } catch { /* 忽略 */ } })
+        const onDoc = (e) => {
+          if (layer.contains(e.target) || (btnRef.current && btnRef.current.contains(e.target))) return
+          closeSelf()
+        }
+        const onKey = (e) => { if (e && e.key === 'Escape') closeSelf() }
         document.addEventListener('pointerdown', onDoc, true)
         document.addEventListener('keydown', onKey, true)
+        window.addEventListener('scroll', closeSelf, true)
+        window.addEventListener('resize', closeSelf)
         return () => {
+          PICKER_HOSTS.delete(closeSelf)
           document.removeEventListener('pointerdown', onDoc, true)
           document.removeEventListener('keydown', onKey, true)
+          window.removeEventListener('scroll', closeSelf, true)
+          window.removeEventListener('resize', closeSelf)
+          try { layer.remove() } catch { /* 忽略 */ }
+          layerRef.current = null
         }
-      }, [open])
+      }, [open, value, options.length])
       const onKeyDown = (e) => {
         if (disabled) return
         if (!open) {
           if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            e.preventDefault()
-            setOpen(true)
+            e.preventDefault(); setOpen(true)
           }
           return
         }
         if (e.key === 'Escape') { e.preventDefault(); setOpen(false) }
       }
-      return h('div', { 'data-po06': 'picker', 'data-open': open ? '1' : '0', style: { flex: 1, minWidth: 0, alignSelf: 'start' } },
+      return h('div', { 'data-po06': 'picker', 'data-open': open ? '1' : '0', style: { flex: 1, minWidth: 0 } },
         h('button', {
           ref: btnRef, type: 'button', 'data-po06': anchor || 'picker-btn',
           'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
           disabled: disabled === true,
-          style: { ...S.picker, ...(open ? { borderColor: OVS.acc } : null), ...(disabled ? S.dis : null),
-            boxShadow: 'inset 0 -2px 0 ' + OVS.line },
+          style: { ...S.picker, ...(open ? { borderColor: OVS.acc } : null), ...(disabled ? S.dis : null) },
           onClick: () => { if (!disabled) setOpen((v) => !v) },
           onKeyDown,
         },
           h('span', { style: S.pickerText }, label(value)),
-          h('span', { 'aria-hidden': 'true', style: S.pickerCaret }, open ? '\u25B4' : '\u25BE')),
-        open ? h('div', {
-          'data-po06': 'picker-layer', role: 'listbox',
-          style: { marginTop: '6px', padding: '4px', borderRadius: '10px',
-            background: OVS.surface2, border: '1px solid ' + OVS.line,
-            // 不再内层限高：内层滚动在面板里滚不到底部（用户实测）。
-            // 全部选项直接铺开，由面板自身滚动带走——最后一个模型一定能看到。
-            boxShadow: 'inset 0 -2px 0 ' + OVS.line },
-        }, options.map((k) => h('button', {
-          key: k, type: 'button', 'data-po06': 'picker-item', 'data-on': k === value ? '1' : '0',
-          style: { display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left',
-            padding: '6px 8px', border: '1px solid transparent', borderRadius: '6px',
-            background: k === value ? OVS.acc12 : 'transparent',
-            color: k === value ? OVS.acc : OVS.fg2,
-            font: 'inherit', fontSize: '12px', lineHeight: '18px',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' },
-          onClick: () => { setOpen(false); if (k !== value) onChange(k) },
-        }, label(k)))) : null)
+          h('span', { 'aria-hidden': 'true', style: S.pickerCaret }, open ? '\u25B4' : '\u25BE')))
     }
 
     const TIER_FX = {
-      // 2026-10-19 用户改口径：轻度只要底色；标准是"无序随机线性飘动"；重度是白色流星从右往左冲
       light:    { color: '#3fbf7f', dots: 0,  motion: 'none' },
       standard: { color: '#4a8bff', dots: 9,  motion: 'drift' },
       heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff' },

@@ -78,3 +78,10 @@ test('无障碍与降级：区域仍可键盘操作，减少动效时全部停�
   assert.ok(/ArrowLeft/.test(CLIENT_SRC) && /Home/.test(CLIENT_SRC), '方向键/Home/End 仍在')
   assert.ok(/prefers-reduced-motion: reduce/.test(CLIENT_SRC), '尊重系统"减少动态效果"')
 })
+
+test('TIER_FX 定义必须存在：只有引用没有定义会在渲染档位时直接 ReferenceError', () => {
+  // 2026-10-21/22 两次事故：替换 Options 区块时把紧邻的 TIER_FX 定义一起删掉，
+  // 静态语法检查与其它守卫都发现不了，只有渲染时才炸。
+  assert.ok(CLIENT_SRC.includes('const TIER_FX = {'), '要有定义')
+  assert.ok(CLIENT_SRC.includes('TIER_FX[shown]'), '要有引用（否则定义是死代码）')
+})

@@ -20,12 +20,16 @@ test('可见控件里不再使用原生 select：模型/思考档位一律走自
   assert.equal((CLIENT_SRC.match(/h\(Options,/g) || []).length >= 5, true, '模型/档位/表单都在用自绘下拉')
 })
 
-test('菜单在面板内联展开：撑开并推下后续行，不再挂在 body 上压住别的行', () => {
-  // 2026-10-21 用户实测：挂在 body 的浮层会盖住“思考档位”及其下的工具行，读作“列表重叠”。
-  // 因此改成**内联展开**：节点仍在面板里，结构上不可能与任何行重叠。
-  assert.ok(CLIENT_SRC.includes("'data-po06': 'picker-layer'"), '菜单节点仍在')
-  assert.equal(CLIENT_SRC.includes('document.body.appendChild(layer)'), false, '不再把浮层挂到 body')
+test('菜单是挂在 body 上的独立小窗：自己滚动、按视口夹紧、任何时刻只有一层', () => {
+  // 2026-10-22 用户明确要求：不要把菜单累加在面板里（会撑长并被裁），要“寄生”成一个独立小滑窗。
+  // 之前两版各自的问题：内联 → 面板被拉长、末项滚不到；无约束浮层 → 两层同时开着互相压住。
+  assert.ok(CLIENT_SRC.includes("'data-po06', 'picker-layer'"), '小窗节点')
+  assert.ok(CLIENT_SRC.includes('document.body.appendChild(layer)'), '挂在 body 上而不是面板内部')
+  assert.ok(CLIENT_SRC.includes('PICKER_HOSTS'), '要有单层约束：开新的先关旧的')
+  assert.ok(CLIENT_SRC.includes('max-height:'), '要有自己的最大高度（视口夹紧）')
+  assert.ok(CLIENT_SRC.includes('overflow-y:auto'), '小窗自己滚动')
 })
+
 
 
 test('键盘可用：Enter/空格/↓ 打开，Esc 关闭；展开状态可读', () => {

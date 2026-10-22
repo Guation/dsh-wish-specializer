@@ -208,10 +208,6 @@ function appendWireLog(rec) {
  */
 const observedModelBySession = new Map()
 let observedModel = null
-// 上一次**真正跑成功**的解释层路由：跟随会话模型可能跟到插件调不通的 provider
-// （真机 2026-10-22：opencode-go 要求 x-opencode-session，插件直连被 400 拒），
-// 那时用这条重试一次，并把来源标成 fallback-last-good —— 不许静默产出空壳。
-let LAST_GOOD_INTERPRETER_ROUTE = null
 
 function observeModel(sessionId, obs) {
   if (!obs) return
@@ -1408,22 +1404,8 @@ async function runInterceptInput(ctx, payload) {
       route: route.source,
       onDelta: (d) => progressAppend(sid, d),
     })
-    try {
-      produced = await runOnce()
-    } catch (e1) {
-      // 跟随到的 provider 插件调不通（缺专属头/鉴权口径不同）⇒ 用上次成功的路由重试一次。
-      const msg = String((e1 && e1.message) || e1)
-      const cur = modelFor(sid)
-      const fb = LAST_GOOD_INTERPRETER_ROUTE
-      const usable = fb && (!cur || fb.provider !== cur.provider || fb.model !== cur.model)
-      if (!usable || !/llm-error|MissingSessionID|unauthor|forbidden|40[0134]|unsupported/i.test(msg)) throw e1
-      observeModel(sid, fb)
-      route = { ok: true, source: 'fallback-last-good', picked: fb.provider + '/' + fb.model,
-        fallbackFrom: cur ? (cur.provider + '/' + cur.model) : null }
-      produced = await runOnce()
-    }
+    produced = await runOnce()
     const okRoute = modelFor(sid)
-    if (okRoute && okRoute.provider && okRoute.model) LAST_GOOD_INTERPRETER_ROUTE = { provider: okRoute.provider, model: okRoute.model }
   } catch (e) {
     interceptedText.delete(sid)
     progressSet(sid, { stage: 'failed', startedAt: t0, reason: String((e && e.message) || e) })

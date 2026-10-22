@@ -45,8 +45,8 @@ test('下拉浮层自己淡出后再 remove（不直接消失）', () => {
   const block = CLIENT_SRC.slice(i, i + 6000)
   // 2026-10-21：菜单改为面板内联展开，不再有需要手动 remove 的浮层节点；
   // 但“不要生硬弹出”的意图保留——由 CSS 入场动画承担。
-  assert.ok(CLIENT_SRC.includes('[data-po06="picker-layer"]{animation:po06-jelly-in'), '内联菜单有入场动画')
-  assert.equal(CLIENT_SRC.includes('layer.remove()'), false, '内联菜单不需要手动移除浮层')
+  assert.ok(CLIENT_SRC.includes("'transition:opacity .12s ease, transform .12s ease'"), '小窗有淡入+位移入场')
+  assert.ok(CLIENT_SRC.includes('layer.remove()'), '小窗关闭要移除节点（不留残骸）')
 })
 
 test('退场动画必须带 !important（入场是 fill:both，会一直占着 animation 槽）', () => {
