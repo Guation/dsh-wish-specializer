@@ -49,3 +49,12 @@ test('顾问开关的就绪条件不再借用 english.ready', () => {
   const i = CLIENT_SRC.indexOf('EnglishControls,')
   assert.ok(i > 0 && CLIENT_SRC.slice(i, i + 220).includes('english?.ready'), '英文模式仍然用 english.ready')
 })
+
+test('点小窗不等于点外部：面板的 outside-click 必须排除浮窗节点', () => {
+  // 2026-10-22 真机：小窗挂在 body 上，面板的 pointerdown 判定只认 rootRef ⇒ 点一下选项，
+  // 面板先关、小窗跟着卸载，表现就是“随便一动就关闭”。
+  assert.ok(CLIENT_SRC.includes("closest('[data-po06=\"picker-layer\"]')"), '要显式排除浮窗内的点击')
+  // 内部滚动也不能触发关闭：捕获阶段的 scroll 监听要按 target 过滤
+  assert.ok(CLIENT_SRC.includes('const onScroll = (e) =>'), '滚动处理要能区分内外')
+  assert.equal(CLIENT_SRC.includes("addEventListener('scroll', closeSelf, true)"), false, '不要无条件在捕获阶段关窗')
+})

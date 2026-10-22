@@ -892,6 +892,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const btnRef = React.useRef(null)
       const layerRef = React.useRef(null)
       const label = (k) => (labels && labels[k]) || k
+      // ⚠ 只在 open 变化时重建小窗：把最新值放 ref。
+      //   依赖里带 value/options 时，设置每轮轮询刷新都会重建节点 ⇒ 看起来“随便一动就关”。
+      const latest = React.useRef(null)
+      latest.current = { value, options, onChange, label }
       React.useEffect(() => {
         if (!open) return undefined
         const btn = btnRef.current
@@ -924,13 +928,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         ].join(';')
         if (placeAbove) layer.style.bottom = Math.round(vh - r.top + 6) + 'px'
         else layer.style.top = Math.round(r.bottom + 6) + 'px'
-        for (const k of options) {
+        const opts = (latest.current && Array.isArray(latest.current.options)) ? latest.current.options : []
+        const cur = latest.current ? latest.current.value : value
+        for (const k of opts) {
           const b = document.createElement('button')
           b.type = 'button'
           b.setAttribute('data-po06', 'picker-item')
-          b.setAttribute('data-on', k === value ? '1' : '0')
-          b.textContent = label(k)
-          const on = k === value
+          b.setAttribute('data-on', k === cur ? '1' : '0')
+          b.textContent = (latest.current ? latest.current.label : label)(k)
+          const on = k === cur
           b.style.cssText = [
             'display:block', 'width:100%', 'box-sizing:border-box', 'text-align:left',
             'padding:6px 8px', 'border:1px solid transparent', 'border-radius:6px',
@@ -939,7 +945,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             'font:inherit', 'font-size:12px', 'line-height:18px', 'flex:0 0 auto',
             'white-space:nowrap', 'overflow:hidden', 'text-overflow:ellipsis', 'cursor:pointer',
           ].join(';')
-          b.onclick = () => { setOpen(false); if (k !== value) onChange(k) }
+          b.onclick = () => { setOpen(false); if (latest.current && k !== latest.current.value) latest.current.onChange(k) }
           layer.appendChild(b)
         }
         document.body.appendChild(layer)
@@ -954,18 +960,25 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const onKey = (e) => { if (e && e.key === 'Escape') closeSelf() }
         document.addEventListener('pointerdown', onDoc, true)
         document.addEventListener('keydown', onKey, true)
-        window.addEventListener('scroll', closeSelf, true)
+        // 捕获阶段监听会连**小窗内部**的滚动一起收到（列表本身可滚）⇒ 一滚就关。
+        // 只在小窗之外滚动时收起。
+        const onScroll = (e) => {
+          const t = e && e.target
+          if (t === layer || (t && typeof layer.contains === 'function' && layer.contains(t))) return
+          closeSelf()
+        }
+        window.addEventListener('scroll', onScroll, true)
         window.addEventListener('resize', closeSelf)
         return () => {
           PICKER_HOSTS.delete(closeSelf)
           document.removeEventListener('pointerdown', onDoc, true)
           document.removeEventListener('keydown', onKey, true)
-          window.removeEventListener('scroll', closeSelf, true)
+          window.removeEventListener('scroll', onScroll, true)
           window.removeEventListener('resize', closeSelf)
           try { layer.remove() } catch { /* 忽略 */ }
           layerRef.current = null
         }
-      }, [open, value, options.length])
+      }, [open])
       const onKeyDown = (e) => {
         if (disabled) return
         if (!open) {
@@ -2848,6 +2861,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const onDown = (e) => {
           const el = rootRef.current
           if (el && e.target && el.contains && el.contains(e.target)) return
+          // 选择小窗挂在 body 上（不在面板 DOM 里）⇒ 点它必须**不算**“点外部”。
+          // 少了这一条：点一下选项，面板先关、小窗跟着被卸载，表现就是“任何输入都会关闭”（2026-10-22 真机）。
+          const t = e && e.target
+          if (t && typeof t.closest === 'function' && t.closest('[data-po06="picker-layer"]')) return
           setOptOpen(false)
         }
         const onKey = (e) => { if (e && e.key === 'Escape') setOptOpen(false) }
