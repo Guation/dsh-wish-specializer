@@ -1,14 +1,11 @@
 {
-  "at": "2026-10-22T06:08:40.047Z",
+  "at": "2026-10-22T06:09:53.080Z",
   "summary": {
     "suites": 135,
-    "passed": 133,
-    "failed": 2,
-    "passTotal": 1395,
-    "failing": [
-      "optimizer-protocol.test.mjs",
-      "quality-contribution.test.mjs"
-    ]
+    "passed": 135,
+    "failed": 0,
+    "passTotal": 1397,
+    "failing": []
   },
   "results": [
     {
@@ -692,10 +689,10 @@
     },
     {
       "file": "optimizer-protocol.test.mjs",
-      "pass": 14,
-      "fail": 1,
-      "exit": 1,
-      "ok": false
+      "pass": 15,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
     },
     {
       "file": "packet-render.test.mjs",
@@ -790,10 +787,10 @@
     },
     {
       "file": "quality-contribution.test.mjs",
-      "pass": 8,
-      "fail": 1,
-      "exit": 1,
-      "ok": false
+      "pass": 9,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
     },
     {
       "file": "read-session.test.mjs",
@@ -957,50 +954,5 @@
       "ok": true
     }
   ],
-  "failed": [
-    {
-      "file": "optimizer-protocol.test.mjs",
-      "pass": 14,
-      "fail": 1,
-      "exit": 1,
-      "ok": false,
-      "unparsable": false,
-      "tail": [
-        "      at TestContext.<anonymous> (file:///C:/Users/33875/.dsh/plugins/dsh-wish-specializer/po06/test/optimizer-protocol.test.mjs:39:12)",
-        "      at Test.runInAsyncScope (node:async_hooks:227:14)",
-        "      at Test.run (node:internal/test_runner/test:1402:25)",
-        "      at Test.start (node:internal/test_runner/test:1262:17)",
-        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
-        "    generatedMessage: true,",
-        "    code: 'ERR_ASSERTION',",
-        "    actual: false,",
-        "    expected: true,",
-        "    operator: '==',",
-        "    diff: 'simple'",
-        "  }"
-      ]
-    },
-    {
-      "file": "quality-contribution.test.mjs",
-      "pass": 8,
-      "fail": 1,
-      "exit": 1,
-      "ok": false,
-      "unparsable": false,
-      "tail": [
-        "      at Test.run (node:internal/test_runner/test:1402:25)",
-        "      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)",
-        "      at Test.postRun (node:internal/test_runner/test:1542:19)",
-        "      at Test.run (node:internal/test_runner/test:1467:12)",
-        "      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {",
-        "    generatedMessage: true,",
-        "    code: 'ERR_ASSERTION',",
-        "    actual: '你是工作 AI 的**愿望扩充器**：围绕用户当前目标，思考哪些方向会实质提高成品水平，以及哪些可临时开发、可复用的脚手架能帮助工作模型更高效、更精确地迭代。\\n原话是目标与限制的依据：不缩小、不改写、不删减用户原话，不扭曲原意；保留否定、强调、偏好与已明确的技术路线。建议值得优先考虑，但不冒充用户要求，不增加授权，不要求逐条无条件照做。\\n**没说的关键决定不许写死**：需要用户决定且无法合理推断的对象、规模、形态、技术路线或交付边界，写成 Ask 问题交给工作模型反问；可以自由发挥的地方留给工作模型，不为了问而问。\\n**不许自相矛盾**：在询问车型、场景或方案时，不在制作或脚手架建议里预先选定其中一个答案。例如还在问长头 GT 或中置楔形，就不能把座舱前移写成既定要求。\\n所有建议都是方向性的、大概的指导（许愿）：说清希望具备什么效果或能力，以及对目标的价值；不给代码，不给具体参数或数值，不给命令、目录、接口或操作步骤，不替工作模型施工。\\n制作建议聚焦成品：审美、结构、材质、光影、交互、体验和可信度中真正决定本任务水平的方向。临时脚手架建议聚焦制作能力：考虑可复用操作、自动观察、反馈闭环、局部修改和比较如何减少重复劳动并提升迭代精度；由优化 AI 结合目标自行思考，不套行业模板，不生成固定检查清单。\\n每条一两句，按重要性排序，宁少而准。不要复述用户原话、铺满通用维度，或用“极致、精细”代替具体方向。场景名称或效果现象可以作少量例子，但例子不是技术步骤或对未定方案的选择。\\n\\n轻度：保持简短，抓住最有价值的制作与临时脚手架方向；不展开更小的子概念或例子。不要因为档位而省略对脚手架是否有价值的思考，无意义的条目留空。\\n\\n...',",
-        "    expected: /MAX_ITEMS|sourceRefs|最多.*条|At most.*items/,",
-        "    operator: 'doesNotMatch',",
-        "    diff: 'simple'",
-        "  }"
-      ]
-    }
-  ]
+  "failed": []
 }
