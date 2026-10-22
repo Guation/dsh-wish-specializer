@@ -840,6 +840,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         background: 'transparent', color: OVS.fg2, fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap',
         overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'inherit', fontWeight: 500, letterSpacing: '.2px' },
       ovBtnPrimary: { borderColor: 'transparent', background: OVS.acc, color: '#fff', fontWeight: 600 },
+      // 取消/中止：**偏红**的弱化样式（用户 2026-10-22：原来和普通按钮没区别，看不出是危险动作）
+      ovBtnCancel: { borderColor: OVS.dangerLine, background: OVS.dangerBg, color: OVS.dangerFg, fontWeight: 600 },
       ovFoldHead: { display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px',
         border: 'none', background: 'transparent', color: OVS.fg3, fontSize: '11px', textAlign: 'left',
         cursor: 'pointer', fontFamily: 'inherit' },
@@ -2219,7 +2221,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       //    守卫都按字面量 grep `'data-po06': 'intercept-…'`，拼出来的名字在源码里搜不到。
       const btn = (attrs, text, onClick, kind, tip) => h('button', {
         type: 'button', ...attrs, title: tip || undefined,
-        style: { ...S.ovBtn, boxShadow: 'inset 0 -2px 0 ' + T('line'), ...(kind === 'primary' ? S.ovBtnPrimary : (kind === 'danger' ? S.ovBtnDanger : (kind === 'ghost' ? S.ovBtnGhost : null))) },
+        style: { ...S.ovBtn, boxShadow: 'inset 0 -2px 0 ' + T('line'), ...(kind === 'primary' ? S.ovBtnPrimary : (kind === 'danger' ? S.ovBtnDanger : (kind === 'ghost' ? S.ovBtnGhost : (kind === 'cancel' ? S.ovBtnCancel : null)))) },
         onClick,
       }, text)
       // ⚠ 子元素用**展开**而不是把数组当唯一子节点传：数组子节点在 React 里会被当成列表，
@@ -2236,7 +2238,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           btn({ 'data-po06': 'intercept-original' }, L('按原文发出', 'Send as-is'), props.onOriginal, 'ghost',
             L('这一轮不注入优化包，按你的原文发出（0.6 从不改写你的原话，能丢的只有包）',
               'Inject nothing this round and send your original text (0.6 never rewrites your words — only the packet can be dropped)')),
-          btn({ 'data-po06': 'intercept-cancel' }, L('取消', 'Cancel'), props.onCancel, 'ghost',
+          btn({ 'data-po06': 'intercept-cancel' }, L('取消', 'Cancel'), props.onCancel, 'cancel',
             L('中止这一轮优化、什么都不发；草稿留在输入框里等你接着改（这才是 0.5 那颗「回退」干的事）',
               'Abort this round and send nothing; your draft stays in the box (this is what 0.5\u2019s \u2039Back\u203a really did)')),
           btn({ 'data-po06': 'intercept-confirm' }, L('确认提交', 'Confirm & send'), props.onConfirm, 'primary',
@@ -2273,7 +2275,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             : footWrap('idle', [
               btn({ 'data-po06': 'intercept-skip' }, L('跳过并直接发送', 'Skip and send as-is'), props.onSkip, 'primary',
                 L('不再等解释层，按原文发出', 'Do not wait for the explainer; send as-is')),
-              btn({ 'data-po06': 'intercept-cancel' }, L('取消', 'Cancel'), props.onCancel, 'ghost',
+              btn({ 'data-po06': 'intercept-cancel' }, L('取消', 'Cancel'), props.onCancel, 'cancel',
                 L('中止这一轮优化、什么都不发；草稿留在输入框里（0.5 的「回退」就是这个）',
                   'Abort this round and send nothing; the draft stays in the box (0.5\u2019s \u2039Back\u203a)')),
             ])
