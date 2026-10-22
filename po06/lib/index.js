@@ -2393,7 +2393,7 @@ export function apply(ctx, config) {
           const info = await llm.resolveModelInfo(cfg.provider, cfg.model, signal)
           if (Array.isArray(info?.inputModalities)) imageSupport = info.inputModalities.includes('image')
         } catch { /* Unknown capability is explicitly shown as not inspected. */ }
-        return { ok: true, llm, cfg, imageSupport, attachments: advisorAttachments,englishMode:pol.englishMode,
+        return { ok: true, llm, cfg, imageSupport, attachments: advisorAttachments, englishMode: pol.englishMode, capabilities: capabilitiesFor(sid, ctx),
            translateInstruction:async text=>(await adapter.english.translate(text,{llm,cfg,signal,kind:'advisor-instructions',sessionId:sid})).text,
           cwd: resolveSessionCwd(session), readTools: pol.readTools === true }
       },

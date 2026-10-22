@@ -590,6 +590,12 @@ export function createAdvisor({ resolveRuntime, log = () => {}, progress = null,
           : ADVISOR_SYSTEM + scopeInstructions(policy))
           + (stageSpec ? '\n阶段报告必须使用下列完整模板（保留checkId与criterion，仅改状态/证据）：'+stageTemplate : '')
           + (stageSpec ? '\n本次只审stageContract中已声明的检查项；checks每项必须原样带checkId，不增删、不自行生成id。criterion可解释但不能换目标；按sourceText原任务核验，不得授予接受失败的权限。' : '')
+        // 环境能力（2026-10-22 用户口径）：**不新增字段/段落**，只把清单并进 system，
+        // 让它在原有的“因为…所以…”与建议条目里**自然地**点名已有能力，而不是另立一节。
+        if (Array.isArray(runtime.capabilities) && runtime.capabilities.length) {
+          system += '\n\n本轮环境里**此刻可用**的能力（只是事实，不是要求）：' + runtime.capabilities.slice(0, 30).join('；')
+            + '\n如果其中某项正好能替代你原本想建议的做法，就**在原有措辞里直接点名用它**（例如“因为已有 X，所以直接复用 X 即可”），不要另开一节介绍能力，也不要建议重复搭建同类工具。'
+        }
         // Native bilingual contribution instructions avoid another model call for translation.
         if (!contribution && runtime.englishMode && runtime.translateInstruction) system = await runtime.translateInstruction(system)
         if (coverageState) for (const row of coverageState.rows || []) { ids.add(row.id); if (row.status === 'current') resultIds.add(row.id) }
