@@ -543,6 +543,8 @@ export async function runReadOnlyToolLoop(opts) {
       stream = llm.stream({
         provider: cfg.provider,
         model: cfg.model,
+        // 会话标识：网关要求的 x-*-session 头由它派生（缺了就是 400）
+        ...(o.sessionId ? { sessionId: String(o.sessionId) } : {}),
         system,
         messages,
         // 0.7.5：思考档位也走这条路径（开"只读工具"时模型调用在这里发起）。

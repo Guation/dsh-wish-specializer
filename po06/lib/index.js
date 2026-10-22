@@ -790,7 +790,9 @@ export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTo
       // 循环会因此不造结果消息、自然收敛，再由下面的回落接手（**绝不在形状上猜**）。
       const llmT = await loadLlmLib({ env: process.env, argv1: process.argv[1], cwd: process.cwd() }).catch(() => null)
       loop = await runReadOnlyToolLoop({
-        llm, cfg, system: sys, messages, root: tools.root, count: tools.count,englishMode,
+        llm, cfg, system: sys, messages, root: tools.root, count: tools.count, englishMode,
+        // 网关要求的会话头由它派生（缺了就是 400）
+        sessionId,
         // The compact system already contains the authorized read note; do not append it twice.
         systemNote: '',
         finalNote: englishMode ? 'Read budget reached. Follow the current output contract and return intent/add/scaffold/ask JSON from existing evidence.' : '只读预算已到，基于已有材料按当前输出契约返回 intent/add/scaffold/ask JSON。',
@@ -1396,7 +1398,7 @@ async function runInterceptInput(ctx, payload) {
     if(languagePolicy.englishMode&&!languagePolicy.injectPacket){
       const pol=languagePolicy,cfg=resolveInterpreterCfg({config:pol.model?{interpreter:pol.model}:pluginConfig,observed:modelFor(sid),effortByModel:pol.effortByModel})
       if(!cfg?.ok)throw new Error('english-model-route-unavailable')
-      const translation=await adapter.english.translate(text,{llm:ctx.get('llm'),cfg,signal,onDelta:d=>progressAppend(sid,d),kind:'user-task'})
+      const translation=await adapter.english.translate(text,{llm:ctx.get('llm'),cfg,signal,onDelta:d=>progressAppend(sid,d),kind:'user-task',sessionId:sid})
       if(signal?.aborted||!readPolicy({home:DSH_HOME,sessionId:sid}).englishMode)throw new Error('english-aborted-or-disabled')
       adapter.english.record(englishToken,translation.text,translation)
       progressSet(sid,{stage:'done',startedAt:t0})
@@ -1449,7 +1451,7 @@ async function runInterceptInput(ctx, payload) {
       translate:async()=>{
         const pol=readPolicy({home:DSH_HOME,sessionId:sid}),cfg=resolveInterpreterCfg({config:pol.model?{interpreter:pol.model}:pluginConfig,observed:modelFor(sid),effortByModel:pol.effortByModel})
         if(!cfg.ok)throw new Error('english-model-route-unavailable')
-        return adapter.english.translate(text,{llm:ctx.get('llm'),cfg,signal,kind:'user-task'})
+        return adapter.english.translate(text,{llm:ctx.get('llm'),cfg,signal,kind:'user-task',sessionId:sid})
       }})
     if(!result.ok){
       interceptedText.delete(sid)
@@ -2332,7 +2334,7 @@ export function apply(ctx, config) {
           if (Array.isArray(info?.inputModalities)) imageSupport = info.inputModalities.includes('image')
         } catch { /* Unknown capability is explicitly shown as not inspected. */ }
         return { ok: true, llm, cfg, imageSupport, attachments: advisorAttachments,englishMode:pol.englishMode,
-           translateInstruction:async text=>(await adapter.english.translate(text,{llm,cfg,signal,kind:'advisor-instructions'})).text,
+           translateInstruction:async text=>(await adapter.english.translate(text,{llm,cfg,signal,kind:'advisor-instructions',sessionId:sid})).text,
           cwd: resolveSessionCwd(session), readTools: pol.readTools === true }
       },
     })

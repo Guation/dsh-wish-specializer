@@ -269,7 +269,7 @@ function translationRetryable(error,{finish,signal,disposed}){
  const text=[error?.message,error?.code,error?.status,error?.statusCode,error?.cause?.code,finish?.failure?.code].filter(Boolean).join(' ')
  return text?translationTextRetryable(text):true
 }
-async function englishCompletion({llm,cfg,signal,onDelta,system,payload,disposed=()=>false,accept}){
+async function englishCompletion({llm,cfg,signal,onDelta,system,payload,disposed=()=>false,accept,sessionId=null}){
  const start=Date.now();let effort=cfg.reasoningEffort,info
  const attempts=[]
  try{info=await llm.resolveModelInfo?.(cfg.provider,cfg.model,signal);if(info?.reasoning?.efforts?.some(e=>e.id==='low'))effort='low'}catch(e){if(signal?.aborted)throw withTranslationAttempts(translationError('english-aborted'),attempts)}
@@ -278,7 +278,8 @@ async function englishCompletion({llm,cfg,signal,onDelta,system,payload,disposed
   // ⚠ 每次尝试都从零开始：上一轮的 output/ended/usage/finish 绝不参与这一轮的判定与结果。
   //   已经流出去的正文仍留在展示面（那是发生过的事实）；但**结果只可能来自成功的那一轮**。
   const attemptStart=Date.now();let output='',ended=null,usage=null,finish=null
-  const options={provider:cfg.provider,model:cfg.model,...(effort?{reasoningEffort:effort}:{}),system,messages:[{role:'user',content:[{type:'text',text:payload}]}],tools:[],signal,sessionId:'english-translation-'+randomUUID()}
+  // 会话标识：opencode 系网关靠它生成 x-*-session 头，缺了就是 400 MissingSessionID
+  const options={provider:cfg.provider,model:cfg.model,...(sessionId?{sessionId:String(sessionId)}:{}),...(effort?{reasoningEffort:effort}:{}),system,messages:[{role:'user',content:[{type:'text',text:payload}]}],tools:[],signal,sessionId:'english-translation-'+randomUUID()}
   try{
    for await(const c of llm.stream(options)){if(signal?.aborted||disposed())throw translationError('english-aborted');if(c.type==='text-delta'){output+=c.text;onDelta?.({text:c.text})}if(c.type==='reasoning-delta')onDelta?.({reasoning:c.text});if(c.type==='block-end'&&c.block?.type==='text')ended=c.block.text;if(c.type==='usage'||c.usage)usage=c.usage;if(c.type==='finish')finish=c.reason}
    if(signal?.aborted||disposed())throw translationError('english-aborted')
@@ -315,7 +316,7 @@ export function createEnglishMode({home,namespace='default'}={}){
   abandon(sid){epochs.set(sid,(epochs.get(sid)||0)+1)},
   settingsChanged(enabledFor){for(const sid of epochs.keys())if(!enabledFor(sid))api.abandon(sid)},
   bind(sid,id,text){const row=sessions.get(sid);if(row?.translatedText!==text)return false;row.inputId=id;save();return true},
-  async translate(text,{llm,cfg,signal,onDelta,kind='text'}={}){
+  async translate(text,{llm,cfg,signal,onDelta,kind='text',sessionId=null}={}){
    if(!cfg||!cfg.provider||!cfg.model)throw withTranslationAttempts(translationError('english-model-route-unavailable'),[])
    const original=String(text),prepared=protectEnglishLiterals(original)
    if(!needsEnglishTranslation(prepared.masked))return {text:original,translated:false,protectedCount:prepared.literals.length,usage:null,ms:0,source:'already-english-or-literal'}
@@ -323,14 +324,14 @@ export function createEnglishMode({home,namespace='default'}={}){
    let saved=cache.get(key);if(!saved&&file&&existsSync(file))try{saved=JSON.parse(readFileSync(file,'utf8'))}catch{}
    if(saved?.sourceHash===hash(original))return {...saved,cached:true,attempts:[],originalComputeMs:saved.ms,ms:0,usage:null}
    // 占位符恢复也放进**每次尝试内部**：模型漏抄/多写占位符属于这一轮不可用，可以再试一次。
-   const completed=await englishCompletion({llm,cfg,signal,onDelta,system:TRANSLATE_SYSTEM,payload:prepared.masked,disposed:()=>disposed,
+   const completed=await englishCompletion({llm,cfg,signal,onDelta,sessionId,system:TRANSLATE_SYSTEM,payload:prepared.masked,disposed:()=>disposed,
     accept:value=>restoreEnglishTranslation(prepared,value?.translation)})
    if(signal?.aborted||disposed)throw withTranslationAttempts(translationError('english-aborted'),completed.attempts)
    const result={...completed.value,translated:true,cached:false,sourceHash:hash(original),ms:completed.ms,usage:completed.usage,route:completed.route,attempts:completed.attempts,source:'translation-model'}
    cache.set(key,result);if(cache.size>100)cache.delete(cache.keys().next().value);if(file)try{atomic(file,result)}catch(e){problem=String(e.message)}
    return result
   },
-  async translateInterpretation(value,originalText,{llm,cfg,signal,onDelta}={}){
+  async translateInterpretation(value,originalText,{llm,cfg,signal,onDelta,sessionId=null}={}){
    if(signal?.aborted||disposed)throw withTranslationAttempts(translationError('english-aborted'),[])
    if(!cfg||!cfg.provider||!cfg.model)throw withTranslationAttempts(translationError('english-model-route-unavailable'),[])
    const original=String(originalText),prepared=protectEnglishLiterals(original)
@@ -346,7 +347,7 @@ export function createEnglishMode({home,namespace='default'}={}){
     catch{fields.unshift({id:'englishTask',prepared,set:(_text,masked)=>{output.englishTask=masked}})}
    }
    if(!fields.length){let checked;try{checked=prepareEnglishInterpretation(output,original,prepared)}catch(e){throw withTranslationAttempts(e,[])}return {...checked,repairedFields:[],attempts:[],ms:0,usage:null,cached:false}}
-   const completed=await englishCompletion({llm,cfg,signal,onDelta,system:ASSISTANCE_TRANSLATE_SYSTEM,payload:JSON.stringify({texts:fields.map(field=>({id:field.id,text:field.prepared.masked}))}),disposed:()=>disposed,
+   const completed=await englishCompletion({llm,cfg,signal,onDelta,sessionId,system:ASSISTANCE_TRANSLATE_SYSTEM,payload:JSON.stringify({texts:fields.map(field=>({id:field.id,text:field.prepared.masked}))}),disposed:()=>disposed,
     // 逐字段形状校验与恢复放进**每次尝试内部**：形状不符/占位符丢失/正文没翻，都算这一轮翻译不可用（可重试）。
     // 字段的 set 只写这个 clone；失败尝试留下的半成品在下一轮被整轮重写，最终失败则随 clone 一起丢弃。
     accept:value=>{
