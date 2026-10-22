@@ -532,7 +532,10 @@ await ta('EV-0143：po06-prompt.md 覆盖生效（解释层 system 用它，不�
     //   （死参数），只靠"函数收到了"是看不出来的，必须查真正发出去的那份请求。
     const call = llm.calls[0]
     const payload = JSON.stringify(call.messages || call.user || '')
-    ok(payload.includes('此前已讨论 Python 的输出格式。'), 'actual prior history reaches the model')
+    // 2026-10-22（用户口径，**有意变更**）：上下文只取**用户原话**，助手回复不再注入正文。
+    // 旧断言钉的是“上一轮助手回复会到达模型”——那正是被判定为错误来源的东西：
+    // 助手回复是工作模型的产出，把它当成“用户说过什么”会让优化器接着上一轮话题往下写。
+    ok(!payload.includes('此前已讨论 Python 的输出格式。'), 'assistant text must not be injected as user context')
     const input = JSON.parse(call.messages[0].content[0].text)
     eq(input.originalText, USER_TEXT, 'current source remains complete and separate from history')
     ok(!llm.calls[0].system.startsWith('你是"意图补全器"'), '不能拿内置常量顶替覆盖文件（那是"看起来生效"）')

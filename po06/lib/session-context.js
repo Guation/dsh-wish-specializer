@@ -292,12 +292,12 @@ export function renderObserverBlock(opts) {
       + '注意：这**不等于**工作 AI 现在看到的完整上下文（本插件只能读到会话事件流，读不到派生投影）'
 
   // ── 详细度阶梯：**只降详细度、不动范围**；每一级的标签都写进注入文本 ──
+  // ⚠ 2026-10-22（用户口径）：**上下文只取用户原话**，助手回复不注入正文。
+  //   原因不是"字太多"，而是**来源不对**：助手回复是工作模型的产出，不是用户的意图；
+  //   把它塞进"用户说过什么"里，优化器就会接着上一轮的内部话题往下写（真机反复复现）。
+  //   仍然保留一行"上一轮有回复（N 字）"，让模型知道对话进行过，但不读它写了什么。
   const stages = [
-    { label: '双方全文（每条上限 ' + CTX_ROW_MAX_CHARS + ' 字）', assistantCap: CTX_ROW_MAX_CHARS, userOnly: false },
-    { label: '助手回复每条只留 ' + CTX_ASSISTANT_CAP + ' 字（用户原话保留全文）', assistantCap: CTX_ASSISTANT_CAP, userOnly: false },
-    { label: '助手回复只留长度（用户原话保留全文）', assistantCap: 0, userOnly: true },
-    { label: '助手回复只留长度，用户原话每条只留 ' + CTX_ASSISTANT_CAP + ' 字', assistantCap: 0, userOnly: true, userCap: CTX_ASSISTANT_CAP },
-    { label: '助手回复只留长度，用户原话每条只留 200 字', assistantCap: 0, userOnly: true, userCap: 200 },
+    { label: '只列用户原话（助手回复只留长度）', assistantCap: 0, userOnly: true },
   ]
   /** 这一级是否是"降级级"（发生了截断）。降级事实要能被台账看见，也要能被文本写清。 */
   const isDegraded = (rowsIn, stage) => rowsIn.some((r) => (stage.userOnly
