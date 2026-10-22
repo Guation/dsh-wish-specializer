@@ -123,7 +123,9 @@ export function createSessionHistory() {
         if (event.type === 'user/message') {
           // 先落上一回合的助手正文，再开新回合（顺序反了会把回复算到新回合头上）
           flush(s)
-          const text = extractEventText(event)
+          // 只收**用户真的说的话**：注入块在这里剥掉（见 stripInjectedText）
+          const raw = extractEventText(event)
+          const text = stripInjectedText(raw)
           if (!text) return
           openTurn(s, clip(text, CTX_MAX_TEXT_CHARS).text)
           return
@@ -196,6 +198,27 @@ export function createSessionHistory() {
  * 本函数覆盖三种形状（string / data.content 数组 / data.message.content 数组）。
  * 纯函数，不抛。
  */
+/**
+ * 剥掉**机器注入**的块，只留用户真正说的话。
+ *
+ * 为什么必须剥：宿主会把插件/系统注入的上下文（本插件自己的三段落、系统提醒等）
+ * 一起放进会话事件的正文里。原样收进历史，就等于让优化器**把自己的上一轮输出当成用户的话**读回来——
+ * 真机表现就是：用户只说“测试/已重启”，它却接着聊上一轮的内部话题。
+ *
+ * 只按**已知标记**剥，不做语义猜测：剥完为空就当这一轮没有用户原话（不伪造内容）。
+ */
+const INJECTED_BLOCKS = [
+  // 注入块**总是贴在用户消息尾部**：从第一个标记开始一刀切到结尾，
+  // 而不是只删到下一个“【”——否则第二个、第三个块会残留（真机验证过）。
+  /(?:【给工作模型[^】]*】|【提示词辅助|【插件辅助上下文)[\s\S]*$/g,
+  /<system-reminder>[\s\S]*?<\/system-reminder>/g,
+]
+export function stripInjectedText(text) {
+  let out = String(text == null ? '' : text)
+  for (const re of INJECTED_BLOCKS) out = out.replace(re, '')
+  return out.replace(/\n{3,}/g, '\n\n').trim()
+}
+
 export function extractEventText(event) {
   try {
     const d = event && event.data
