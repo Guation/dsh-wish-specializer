@@ -2845,6 +2845,14 @@ export function apply(ctx, config) {
   // ── 交付门触发（默认关闭；见 GATE_TRIGGER_FLAG）────────────────
   try {
     const off = ctx.on('session/event', (session, event) => {
+      // 诊断（2026-10-22）：确认事件是否真的到达本进程、由哪个实例接收。
+      // 真机症状：确认提交后没有 user/message 事件 ⇒ 卡片无从挂载。
+      try {
+        if (event && (event.type === 'user/message' || event.type === 'assistant/message')) {
+          appendWireLog({ sessionId: String((session && session.id) || ''), trigger: 'session-event', ok: true,
+            eventType: event.type, pid: process.pid, kind: (event.data && event.data.source && event.data.source.kind) || null })
+        }
+      } catch { /* 诊断失败绝不影响主流程 */ }
       try {
         if (!event || event.type !== 'deliverables/presented') return
         if (!existsSync(GATE_TRIGGER_FLAG)) return          // 未显式开启 → 不做任何事

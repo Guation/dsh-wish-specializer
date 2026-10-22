@@ -126,6 +126,11 @@ export function createSessionHistory() {
         const s = slot(sid)
         if (!s) return
         if (event.type === 'user/message') {
+          // 2026-10-22 真机（诊断实录）：宿主把**插件自己注入的上下文**也作为 user/message 投递，
+          // 其中 source.kind === 'runtime-context'。原样收下 = 让优化器把自己的输出当用户原话读回来。
+          // 这里在**入口**拒收它，而不是事后靠正则剥文本。
+          const srcKind = event.data && event.data.source && event.data.source.kind
+          if (srcKind === 'runtime-context') return
           // 先落上一回合的助手正文，再开新回合（顺序反了会把回复算到新回合头上）
           flush(s)
           // 只收**用户真的说的话**：注入块在这里剥掉（见 stripInjectedText）
