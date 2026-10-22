@@ -775,20 +775,42 @@ let pluginConfig = {}
  * 只取注册表里的名字，不取说明、不取配置：名字是稳定的、短的、没有密钥；
  * 取不到就返回空数组——宁可少给，也不能让模型以为环境里有并不存在的能力。
  */
-function capabilitiesFor(sessionId) {
+function capabilitiesFor(sessionId, ctx) {
+  // 事实来源可以是这三个位置之一（不同宿主版本/装配顺序不同），取到就用，取不到就空。
+  const pick = (reg) => {
+    try {
+      if (!reg) return null
+      if (typeof reg.schemas === 'function') return reg.schemas()
+      if (typeof reg.list === 'function') return reg.list()
+      if (Array.isArray(reg)) return reg
+    } catch { /* 忽略 */ }
+    return null
+  }
+  let list = null
   try {
-    const agents = adapter.services && adapter.services.agents
-    const ag = agents && typeof agents.get === 'function' ? agents.get(String(sessionId || '')) : null
-    const reg = ag && ag.ctx && ag.ctx.tools
-    const schemas = reg && typeof reg.schemas === 'function' ? reg.schemas() : null
-    const list = Array.isArray(schemas) ? schemas : []
-    const names = []
-    for (const item of list) {
-      const name = item && (item.name || (item.function && item.function.name))
-      if (typeof name === 'string' && name.trim()) names.push(name.trim())
-    }
-    return [...new Set(names)].sort()
-  } catch { return [] }
+    const ag = adapter.services && adapter.services.agents && typeof adapter.services.agents.get === 'function'
+      ? adapter.services.agents.get(String(sessionId || '')) : null
+    list = pick(ag && ag.ctx && ag.ctx.tools) || pick(ag && ag.ctx && typeof ag.ctx.get === 'function' ? ag.ctx.get('tools') : null)
+  } catch { /* 忽略 */ }
+  if (!list && ctx && typeof ctx.get === 'function') { try { list = pick(ctx.get('tools')) } catch { /* 忽略 */ } }
+  if (!Array.isArray(list)) return []
+  const seen = new Set()
+  const out = []
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue
+    const name = item.name || (item.function && item.function.name)
+    if (typeof name !== 'string' || !name.trim()) continue
+    const key = name.trim()
+    if (seen.has(key)) continue
+    seen.add(key)
+    // **一句做的事**：只有名字时模型看不出 mcp__vmake__render 是什么；
+    // 取 description 的第一句（去换行、截断），它是最短的“能干什么”。
+    const raw = String(item.description || (item.function && item.function.description) || '').replace(/\s+/g, ' ').trim()
+    const hint = raw ? raw.split(/[。.!?]/)[0].slice(0, 42) : ''
+    out.push(hint ? (key + ' — ' + hint) : key)
+    if (out.length >= 40) break
+  }
+  return out.sort()
 }
 
 export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTools, tools, onDelta, signal = null, englishMode = false, sessionId = null }) {
@@ -1062,8 +1084,9 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
           ? 'Production, temporary-scaffold and Ask together: at most ' + budgetTokens + ' output tokens, not per section; do not pad to fill the budget.'
           : '制作建议、临时脚手架建议、Ask 三段合计不超过 ' + budgetTokens + ' token，不是每段分别计算，不为用满预算凑内容。'
         const styleHint = [exampleHint, decideHint, budgetHint].filter(Boolean).join(' ')
-        const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: capabilitiesFor(sessionId), context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
-        const requestRecord = { protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
+        const caps = capabilitiesFor(sessionId, ctx)
+      const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: caps, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
+        const requestRecord = { capabilityCount: Array.isArray(caps) ? caps.length : 0, capabilitySample: Array.isArray(caps) ? caps.slice(0, 8) : [], protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
         const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null, englishMode: pol.englishMode, sessionId })
