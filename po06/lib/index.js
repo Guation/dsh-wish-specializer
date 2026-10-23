@@ -2667,7 +2667,10 @@ export function apply(ctx, config) {
             let text = String((p && p.text) == null ? '' : p.text)
             try {
               const pol=readPolicy({home:DSH_HOME,sessionId:sid})
-              if(!text)adapter.english?.abandon(sid)
+              // 清包（跳过 / 取消 / 按原文发出）⇒ 本轮**没有注入**：
+            // 待显示卡片也必须一起作废，否则它会在下一次发送时冒出一张属于旧包的卡。
+            if(!text){try{pendingCardBySession.delete(sid)}catch{}}
+            if(!text)adapter.english?.abandon(sid)
               if(text&&pol.englishMode){const cfg=resolveInterpreterCfg({config:pol.model?{interpreter:pol.model}:pluginConfig,observed:modelFor(sid),effortByModel:pol.effortByModel});if(!cfg.ok)throw new Error('english-model-unavailable');text=(await adapter.english.translate(text,{llm:ctx.get('llm'),cfg,kind:'edited-assistance'})).text}
               adapter.setIntentText(sid, text, { reviewed: true })
               appendWireLog({ sessionId: sid, trigger: 'packet-override', ok: true, chars: text.length })
