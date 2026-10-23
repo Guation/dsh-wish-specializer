@@ -103,6 +103,11 @@ export function policyFor(settings, sessionId) {
     // 由 strategy.js 唯一决定；下游（解释层提示词、编译器、只读工具）读 `pol.strategy`。
     tier: tierOf(effectiveSettings(settings, sessionId)),
     strategy: strategyForTier(tierOf(effectiveSettings(settings, sessionId))),
+    // ⚠ 2026-10-22（issue #37）：**同一类死开关的第三例**。settings.js 有默认值、在白名单里、
+    // 也能写盘，但 policyFor 不转交 ⇒ 下游读到的恒是 undefined ⇒「以后不再显示」永远无效。
+    // 前面两次分别是 historyMode/turns/readTools（P10）与 effortByModel（P11），注释都在。
+    presetNoticeDismissed: s.presetNoticeDismissed === true,
+    skipHintDismissed: s.skipHintDismissed === true,
   }
 }
 

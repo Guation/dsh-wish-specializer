@@ -2954,9 +2954,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (!sessionId || PRESET_NOTICE_SHOWN) return
         // 点过「以后不再显示」⇒ 直接标记，之后连判断都不做
         if (s && s.presetNoticeDismissed === true) { PRESET_NOTICE_SHOWN = true; return }
+        // 2026-10-22（issue #37）：首帧 /status 还没回来时 `s` 是 `{}`，
+        // 旧逻辑会立刻弹窗并置 PRESET_NOTICE_SHOWN=true——等真值到达也收不回了。
+        // 这里等真值：宁可晚一拍，也不抢先弹。
+        if (!data) return
         PRESET_NOTICE_SHOWN = true
         setNotice({ preset: '', intro: true })
-      }, [sessionId, s && s.presetNoticeDismissed])
+      }, [sessionId, data, s && s.presetNoticeDismissed])
       // 第二个触发（2026-10-19 用户）：**在新会话里把预设切到非 PTC/Wish** 时也要弹。
       // 只认"预设真的变了"（宿主返回的 presetAt 变化），挂载/首帧不弹，避免又变成乱弹。
       React.useEffect(() => {
