@@ -2549,7 +2549,7 @@ export function apply(ctx, config) {
            englishGet:sid=>adapter.english.get(sid),
            inferenceList:sid=>inferenceTrace.list(sid),
            inferenceGet:(sid,run,call,offsets)=>inferenceTrace.get(sid,run,call,offsets),
-           inferenceCancel:(sid,run)=>inferenceEngine?.cancel(sid,run) || {ok:false,reason:'not-ready'},
+           inferenceCancel:(sid,run)=>{const r=inferenceEngine?.cancel(sid,run) || {ok:false,reason:'not-ready'};if(r&&r.ok){try{pendingCardBySession.delete(String(sid))}catch{}};return r},
           advisorStageStatus: sid => {
             const pol=sid ? readPolicy({home:DSH_HOME,sessionId:sid}) : null
             // GitHub #32：原先写死 readEnabled:false ⇒ 面板永远显示「顾问只读未开」，与真实设置无关，

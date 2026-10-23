@@ -174,7 +174,21 @@ export function createInferenceBoost({llm,trace,isWorkingRequest,settingsFor,cre
 
  return {
   intercept(options,next){if(disposed||nested.has(options)||!options.sessionId||!isWorkingRequest(options))return next();const raw=settingsFor(String(options.sessionId));if(raw?.reasoningBoost!==true)return next();return runDirections(options,next,canonicalReasoning(raw))},
-  cancel(sessionId,runId){const op=active.get(runId);if(!op||op.sid!==String(sessionId))return {ok:false,reason:'no-active-run'};if(op.phase==='working')return {ok:false,reason:'no-extra-inference'};op.controller.abort(new Error('boost-cancelled'));return {ok:true}},
+  cancel(sessionId,runId){
+    const sid=String(sessionId||'')
+    // runId 省略 ⇒ 取消该会话**所有**还没进入 working 的运行：
+    // 用户点“跳过”时前端只知道会话，取消本来就该按会话生效。
+    if(!runId){
+      let n=0
+      for(const op of active.values()){if(op.sid===sid&&op.phase!=='working'){try{op.controller.abort(new Error('user-skipped'))}catch{};n++}}
+      return n?{ok:true,cancelled:n}:{ok:false,reason:'no-active-run'}
+    }
+    const op=active.get(runId)
+    if(!op||op.sid!==sid)return {ok:false,reason:'no-active-run'}
+    if(op.phase==='working')return {ok:false,reason:'no-extra-inference'}
+    op.controller.abort(new Error('boost-cancelled'))
+    return {ok:true}
+  },
   settingsChanged(){for(const op of active.values())if(op.phase!=='working'&&!settingsFor(op.sid)?.reasoningBoost)op.controller.abort(new Error('boost-disabled'))},
   status(){return {protocolVersion:INFERENCE_VERSION,ready:!disposed,activeRuns:active.size,modelPolicy:'follow-working-request',toolsPolicy:'only-actual-working-stream-submitted',profile:'fast-3x3',...trace.status()}},
   dispose(){disposed=true;for(const op of active.values())op.controller.abort(new Error('plugin-unloaded'));focus.dispose()}

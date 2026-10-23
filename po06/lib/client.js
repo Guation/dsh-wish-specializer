@@ -3195,13 +3195,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         holdRef.current = next; setHold(next)
       }
 
-      const skipHold = () => {
+      const skipHold = async () => {
         const h = holdRef.current || hold || {}
         if (!h.text) { holdRef.current = null; setHold(null); setProg(null); return }
         holdSeq.current += 1                                 // ⚠ 跳过之后，在飞的那次解释结果必须作废
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 同上 */ }
         abortRef.current = null
         setProg(null)                                        // 立刻收掉"还在跑"的观感（不再等下一次刷新）
+        // 跳过 = **无插件**：必须让宿主真的停下，而不是只掐断浏览器这一侧（否则它会跑完再一起发）。
+        // 顺序：先取消在途推理 → 清掉本轮包 → 放行原文；三步都在同一次点击里完成。
+        try { await apiPost('/inference-cancel', { sessionId }) } catch { /* 取消失败也要放行 */ }
+        try { await apiPost('/packet', { sessionId, text: '' }) } catch { /* 同上 */ }
         // 跳过 = 这一轮**没有注入**任何包 ⇒ 不留注入快照（否则卡片会替一次空注入作证）
         releaseHold(h.text, { ...h, phase: 'sent', injectCard: false }, 'skipped')
       }

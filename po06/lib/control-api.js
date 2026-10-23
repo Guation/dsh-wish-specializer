@@ -626,7 +626,8 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
         const body=await readBody(req)
         if(!body.ok)return send(400,{ok:false,reason:body.reason})
         const sid=String(body.value?.sessionId||''),run=String(body.value?.runId||'')
-        if(!sid||!run)return send(400,{ok:false,reason:'session-and-run-required'})
+        // run 省略 ⇒ 按会话取消（跳过优化时前端只知道会话）
+        if(!sid)return send(400,{ok:false,reason:'session-required'})
         const value=typeof inferenceCancel==='function'?inferenceCancel(sid,run):{ok:false,reason:'not-ready'}
         return send(value.ok?200:400,value)
       }
