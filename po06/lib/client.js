@@ -3457,11 +3457,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               skipHold()
               return
             }
-            // **审查完成**：双击 = 确认发送（2026-10-19 用户要求）——不是跳过，
-            // 因为它已经优化完了，此刻"跳过"没有意义，确认才是用户想要的下一步。
+            // 2026-10-23 更正（用户实测）：**双击 Enter 永远是“跳过”**，不看相位。
+            // 旧逻辑在 review 相位把它当成“确认发送”（2026-10-19 的旧要求），于是：
+            // 优化刚跑完、用户照旧双击想跳过 ⇒ 被判成确认 ⇒ 包被注入（陀螺会话 06:25-06:27 实录）。
+            // 用户的动作意图是唯一的：双击 = 这轮别要，按原文发。
             if (held.phase === 'review') {
-              markSeen('key:double-confirm')
-              void confirmHold()
+              markSeen('key:double-skip')
+              void skipHold()
               return
             }
           }

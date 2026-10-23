@@ -45,14 +45,17 @@ test('行为：600ms 内的第二次 Enter 放弃本轮优化、按原文发出'
   assert.ok(/now - prevAt < 600/.test(body), '判定窗口 600ms')
   // 2026-10-19 起：优化中=跳过；审查完成=确认发送（两条分支，判据都在 held.phase 上）
   assert.ok(/if \(held\.phase === 'optimizing'\)/.test(body), '优化中才允许双击跳过')
-  assert.ok(/if \(held\.phase === 'review'\)/.test(body), '审查完成时双击＝确认发送')
+  // 2026-10-23 用户实测更正：双击 Enter **永远是跳过**，review 相位也一样——
+  // 旧规则“审查完成双击=确认”会让“想跳过的人”反而把包发出去（陀螺会话实录）。
+  assert.ok(/if \(held\.phase === 'review'\)[\s\S]{0,120}skipHold/.test(CLIENT_SRC), 'review 时双击也走 skipHold')
   assert.ok(/skipHold\(\)/.test(body), '跳过走与面板「跳过」同一个函数（不发包）')
   assert.ok(/desRef\.current/.test(body), '设置默认关，必须读当前值')
 })
 
-test('审查完成态：双击 Enter = 确认发送（不是跳过）', () => {
-  assert.ok(CLIENT_SRC.includes("markSeen('key:double-confirm')"), '要有独立的确认分支')
-  assert.ok(/if \(held\.phase === 'review'\)[\s\S]{0,80}confirmHold/.test(CLIENT_SRC), 'review 时调 confirmHold')
-  // 跳过分支仍然只在 optimizing
-  assert.ok(/if \(held\.phase === 'optimizing'\)[\s\S]{0,80}skipHold/.test(CLIENT_SRC), '跳过分支只认 optimizing')
+test('审查完成态：双击 Enter 也是跳过（2026-10-23 更正）', () => {
+  // 用户的动作意图只有一个：双击 = 这轮别要、按原文发。
+  // 旧规则“审查完成双击=确认”会把包发出去，正是陀螺会话里“跳过了还被注入”的来源。
+  assert.equal(CLIENT_SRC.includes("markSeen('key:double-confirm')"), false, '不再有“双击=确认”的分支')
+  assert.equal(/if \(held\.phase === 'review'\)[\s\S]{0,140}confirmHold/.test(CLIENT_SRC), false, 'review 时不能再调 confirmHold')
+  assert.ok(/if \(held\.phase === 'review'\)[\s\S]{0,140}skipHold/.test(CLIENT_SRC), 'review 时也要走 skipHold')
 })
