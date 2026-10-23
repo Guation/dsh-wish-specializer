@@ -3159,12 +3159,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
        * **中止这一轮优化、什么都不发**，草稿留在输入框里等用户接着改。
        * 与「跳过并直接发送」的区别：跳过是"发，但不带包"；取消是"不发"。
        */
-      const cancelHold = () => {
+      const cancelHold = async () => {
         setOvExitKind('cancel')
         holdSeq.current += 1                                  // 让在飞的那次结果作废
         try { if (abortRef.current) abortRef.current.abort() } catch { /* 断不掉也要作废世代 */ }
         abortRef.current = null
-        setProg(null)                                         // 立刻收掉"还在跑"的观感（宿主侧同时会被中止）
+        // 取消 = **这一轮彻底作废**：宿主侧必须真的停下，并把本轮包清掉。
+        // 真机 2026-10-22：只中止浏览器这一侧时，宿主那轮会跑完并把包留在账上，
+        // 于是下一次发消息会“接着上次取消的优化继续优化”。这里一次处理干净。
+        try { await apiPost('/inference-cancel', { sessionId }) } catch { /* 取消失败也要继续清 */ }
+        try { await apiPost('/packet', { sessionId, text: '' }) } catch { /* 同上 */ }
+        setProg(null)                                         // 立刻收掉"还在跑"的观感
         holdRef.current = null
         setHold(null)
         // 用户 2026-09-21 更正（我第一次改过头了）：取消**不要清空用户输入的原话**——
