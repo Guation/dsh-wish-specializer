@@ -100,10 +100,18 @@ const CASES = [
   { id: 'd4-spec', dim: 'D4', tier: 'standard', request: SPEC, conflict: ['#0b0d12', '960', '240', '180', '60fps'] },
   { id: 'd4-launch', dim: 'D4', tier: 'standard', request: LONG_SPEC, conflict: ['8', '24', '35', '2%'] },
   { id: 'd5-top', dim: 'D5', tier: 'heavy', request: COMPLEX, expect: ['穿透', '接触', '冲量', '积分', '子步'] },
+  { id: 'd1-game', dim: 'D1', tier: 'standard', request: '做个能玩的小游戏，要上瘾' },
+  { id: 'd1-tool', dim: 'D1', tier: 'standard', request: '做个能批量重命名文件的工具，要好用' },
+  { id: 'd1-site', dim: 'D1', tier: 'heavy', request: '做个个人主页，要高级、有设计感' },
+  { id: 'd1-diagram', dim: 'D1', tier: 'standard', request: '画一张系统架构图，要能讲清数据怎么流动' },
+  { id: 'd1-write', dim: 'D1', tier: 'standard', request: '写一篇产品发布稿，要有感染力' },
+  { id: 'd1-platform', dim: 'D1', tier: 'heavy', request: '做个多关卡平台跳跃游戏，带存档与关卡编辑，要耐玩' },
 ]
 
+const ONLY = (() => { const i = process.argv.indexOf('--dim'); return i >= 0 ? String(process.argv[i + 1] || '').toUpperCase() : '' })()
 const rows = []
 for (const c of CASES) {
+  if (ONLY && c.dim !== ONLY) continue
   const base = join(OUT, c.id)
   const row = { id: c.id, dim: c.dim }
   // ① 优化包（缓存）

@@ -1,0 +1,16 @@
+{
+  "flip": true,
+  "side": "x",
+  "x": {
+    "exec": 1,
+    "spec": 4,
+    "risk": 1
+  },
+  "y": {
+    "exec": 3,
+    "spec": 4,
+    "risk": 2
+  },
+  "winner": "Y",
+  "why": "Y 只差 render 尾部与主循环即可跑起来，物理和难度参数齐全；X 直接断在 addText 里，缺少碰撞、更新、渲染、循环，无法开工。"
+}

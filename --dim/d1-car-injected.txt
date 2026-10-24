@@ -1,0 +1,396 @@
+这是一个可直接运行的三维跑车HTML代码，您能驾驶红色超跑在公路上奔驰，还能切换视角和车漆。
+```html
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>VANTAGE — 可驾驶超跑</title>
+<style>
+html,body{margin:0;height:100%;background:#05070b;overflow:hidden;
+  font-family:system-ui,-apple-system,"PingFang SC",sans-serif;color:#e8eef7}
+canvas{display:block}
+#hud{position:fixed;left:28px;bottom:26px;pointer-events:none;user-select:none}
+#spd{font-size:66px;font-weight:200;letter-spacing:-2px;line-height:.95;
+  text-shadow:0 0 28px rgba(120,180,255,.35)}
+#spd small{font-size:15px;opacity:.55;margin-left:10px;letter-spacing:3px}
+#bar{width:280px;height:4px;background:#141c28;margin-top:12px;border-radius:2px;overflow:hidden}
+#fill{height:100%;width:0;background:linear-gradient(90deg,#2f8dff,#7df0ff)}
+#gear{position:fixed;right:36px;bottom:26px;font-size:58px;font-weight:200;opacity:.8}
+#tips{position:fixed;left:28px;top:22px;font-size:12px;line-height:2;opacity:.42;letter-spacing:.6px}
+#tips b{color:#7df0ff;font-weight:600}
+</style>
+</head>
+<body>
+<div id="tips">W / ↑ 加速 · S / ↓ 刹车 · A D 转向 · 空格 手刹<br>
+<b>C</b> 切换视角 · <b>1 2 3</b> 切换车漆 · <b>R</b> 复位</div>
+<div id="hud"><div id="spd">0<small>KM/H</small></div><div id="bar"><div id="fill"></div></div></div>
+<div id="gear">N</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ---------- 渲染器 / 场景 ---------- */
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080b12);
+scene.fog = new THREE.Fog(0x080b12, 80, 340);
+const camera = new THREE.PerspectiveCamera(52, innerWidth/innerHeight, 0.1, 2200);
+
+// 环境光照贴图：车漆高光带的来源
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+/* ---------- 灯光 ---------- */
+const key = new THREE.DirectionalLight(0xffffff, 3.4);
+key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+Object.assign(key.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:1,far:70});
+scene.add(key, key.target);
+
+const rim = new THREE.DirectionalLight(0x4a9bff, 2.6);
+rim.position.set(-10,6,-9); scene.add(rim);
+scene.add(new THREE.HemisphereLight(0x88bbff, 0x07080b, 0.4));
+
+/* ---------- 路面 ---------- */
+function roadTexture(){
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#1a1e26'; g.fillRect(0,0,256,256);
+  for(let i=0;i<2600;i++){
+    g.fillStyle = `rgba(255,255,255,${Math.random()*0.035})`;
+    g.fillRect(Math.random()*256, Math.random()*256, 1, 1);
+  }
+  g.fillStyle = '#dfe8f5'; g.fillRect(0,124,140,8);      // 中心虚线
+  g.fillStyle = 'rgba(255,255,255,.45)';
+  g.fillRect(0,22,256,4); g.fillRect(0,230,256,4);       // 边线
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(200,1); t.anisotropy = 8;
+  return t;
+}
+const road = new THREE.Mesh(
+  new THREE.PlaneGeometry(4000, 18),
+  new THREE.MeshStandardMaterial({map:roadTexture(), roughness:0.72, metalness:0.15})
+);
+road.rotation.x = -Math.PI/2; road.receiveShadow = true; scene.add(road);
+
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(4000,4000),
+  new THREE.MeshStandardMaterial({color:0x0d1117, roughness:0.95, metalness:0.05})
+);
+ground.rotation.x = -Math.PI/2; ground.position.y = -0.02;
+ground.receiveShadow = true; scene.add(ground);
+
+// 路边灯柱，制造速度参照
+const poleMat = new THREE.MeshStandardMaterial({color:0x1a2230, roughness:0.6, metalness:0.7});
+const glowMat = new THREE.MeshStandardMaterial({color:0x0a1520, emissive:0x3aa0ff, emissiveIntensity:3});
+for(let i=0;i<48;i++){
+  const x = -480 + i*20;
+  for(const s of [1,-1]){
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.14,7,0.14), poleMat);
+    p.position.set(x,3.5,s*13); scene.add(p);
+    const l = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.1,0.18), glowMat);
+    l.position.set(x,7,s*13); scene.add(l);
+  }
+}
+
+/* ---------- 车身放样 ---------- */
+function cr(p0,p1,p2,p3,t){
+  const t2=t*t,t3=t2*t;
+  return 0.5*(2*p1+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3);
+}
+function sample(keys,n){
+  const m=keys.length, out=[];
+  for(let i=0;i<n;i++){
+    const t=i/(n-1)*(m-1), i1=Math.min(m-2,Math.floor(t)), f=t-i1;
+    const i0=Math.max(0,i1-1), i2=Math.min(m-1,i1+1), i3=Math.min(m-1,i1+2);
+    const row=[];
+    for(let j=0;j<6;j++)
+      row.push(cr(keys[i0][j],keys[i1][j],keys[i2][j],keys[i3][j],f));
+    out.push(row);
+  }
+  return out;
+}
+// keys: [x, yBottom, yMid(最宽处), yTop, halfWidth, topHalfWidth]
+const ARCHES = [[1.40,0.35],[-1.45,0.35]];   // 轮拱中心
+function inArch(x,y,z){
+  if(Math.abs(z) < 0.55) return false;
+  for(const [wx,wy] of ARCHES){
+    const dx=x-wx, dy=y-wy;
+    if(dx*dx+dy*dy < 0.44*0.44) return true;
+  }
+  return false;
+}
+function buildLoft(keys, seg=110, K=12, e=0.6, cutArch=false){
+  const rows = sample(keys, seg), M = 4*K, pos = [];
+  for(let i=0;i<seg;i++){
+    const r = rows[i], h = [];
+    for(let k=0;k<=K;k++){                       // 下段：底心 → 最宽
+      const a = k/K*Math.PI/2;
+      h.push([r[4]*Math.pow(Math.sin(a),e), r[2]-(r[2]-r[1])*Math.pow(Math.cos(a),e)]);
+    }
+    for(let k=1;k<=K;k++){                       // 上段：最宽 → 顶心
+      const b = k/K*Math.PI/2;
+      h.push([r[5]+(r[4]-r[5])*Math.pow(Math.cos(b),e),
+              r[2]+(r[3]-r[2])*Math.pow(Math.sin(b),e)]);
+    }
+    const ring=[];
+    for(let k=0;k<h.length;k++) ring.push([ h[k][0], h[k][1]]);
+    for(let k=h.length-2;k>=1;k--) ring.push([-h[k][0], h[k][1]]);
+    for(const p of ring) pos.push(r[0], p[1], p[0]);
+  }
+  const idx=[];
+  const P=(i,j)=>[pos[(i*M+j)*3],pos[(i*M+j)*3+1],pos[(i*M+j)*3+2]];
+  for(let i=0;i<seg-1;i++) for(let j=0;j<M;j++){
+    const a=i*M+j, b=i*M+(j+1)%M, c=(i+1)*M+j, d=(i+1)*M+(j+1)%M;
+    if(cutArch){
+      const p=P(i,j);
+      if(inArch(p[0],p[1],p[2])) continue;
+    }
+    idx.push(a,c,b, b,c,d);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+/* ---------- 材质 ---------- */
+const paint = new THREE.MeshPhysicalMaterial({
+  color:0xb0141e, metalness:0.88, roughness:0.2,
+  clearcoat:1, clearcoatRoughness:0.05, envMapIntensity:1.6,
+  side:THREE.DoubleSide
+});
+const glass = new THREE.MeshPhysicalMaterial({
+  color:0x0a1018, metalness:0.65, roughness:0.05,
+  clearcoat:1, clearcoatRoughness:0.02, envMapIntensity:2.2,
+  side:THREE.DoubleSide
+});
+const carbon = new THREE.MeshPhysicalMaterial({
+  color:0x0e1116, metalness:0.7, roughness:0.34,
+  clearcoat:0.7, clearcoatRoughness:0.2
+});
+const tireMat  = new THREE.MeshStandardMaterial({color:0x121418, roughness:0.92, metalness:0.0});
+const rimMat   = new THREE.MeshStandardMaterial({color:0xcdd3db, roughness:0.22, metalness:1.0});
+const discMat  = new THREE.MeshStandardMaterial({color:0x2b2f36, roughness:0.5, metalness:0.9});
+const lampMat  = new THREE.MeshStandardMaterial({color:0x101010, emissive:0xffffff, emissiveIntensity:4});
+
+/* ---------- 组装跑车 ---------- */
+const car = new THREE.Group();          // 负责位置与朝向
+const tilt = new THREE.Group();         // 负责侧倾/俯仰
+car.add(tilt); scene.add(car);
+
+const bodyKeys = [
+  [ 2.32, 0.34, 0.40, 0.44, 0.03, 0.02],
+  [ 2.20, 0.28, 0.39, 0.45, 0.34, 0.16],
+  [ 2.02, 0.16, 0.37, 0.45, 0.66, 0.28],
+  [ 1.72, 0.11, 0.40, 0.49, 0.86, 0.42],
+  [ 1.30, 0.10, 0.44, 0.53, 0.96, 0.54],
+  [ 0.85, 0.10, 0.47, 0.57, 1.00, 0.62],
+  [ 0.40, 0.10, 0.50, 0.63, 1.00, 0.72],
+  [ 0.00, 0.10, 0.52, 0.73, 1.00, 0.80],
+  [-0.50, 0.10, 0.54, 0.80, 1.01, 0.82],
+  [-1.00, 0.10, 0.56, 0.82, 1.02, 0.82],
+  [-1.50, 0.11, 0.58, 0.80, 1.04, 0.76],
+  [-1.90, 0.15, 0.60, 0.76, 1.00, 0.66],
+  [-2.14, 0.24, 0.62, 0.72, 0.82, 0.44],
+  [-2.30, 0.42, 0.60, 0.66, 0.04, 0.02],
+];
+const body = new THREE.Mesh(buildLoft(bodyKeys, 110, 12, 0.6, true), paint);
+tilt.add(body);
+
+const cockKeys = [
+  [ 0.70, 0.56, 0.60, 0.62, 0.30, 0.20],
+  [ 0.30, 0.56, 0.62, 0.80, 0.70, 0.58],
+  [-0.10, 0.56, 0.64, 1.00, 0.86, 0.70],
+  [-0.55, 0.56, 0.66, 1.12, 0.88, 0.72],
+  [-0.95, 0.56, 0.68, 1.02, 0.84, 0.66],
+  [-1.25, 0.56, 0.70, 0.84, 0.62, 0.44],
+  [-1.40, 0.56, 0.70, 0.74, 0.25, 0.14],
+];
+const cockpit = new THREE.Mesh(buildLoft(cockKeys, 64, 10, 0.62), glass);
+tilt.add(cockpit);
+
+// 空气动力学件
+function part(geo, mat, x,y,z, rx=0,rz=0){
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x,y,z); m.rotation.set(rx,0,rz);
+  tilt.add(m); return m;
+}
+part(new THREE.BoxGeometry(0.85,0.05,1.5),  carbon, 1.92,0.12,0, 0,0.05);   // 前铲
+part(new THREE.BoxGeometry(0.45,0.04,1.75), carbon, -2.02,0.99,0, 0,-0.09);// 尾翼
+[-1,1].forEach(s=>{
+  part(new THREE.BoxGeometry(0.14,0.30,0.05), carbon, -2.02,0.84,s*0.55);
+  part(new THREE.BoxGeometry(1.95,0.07,0.10), carbon, -0.05,0.14,s*0.96);  // 侧裙
+  part(new THREE.BoxGeometry(0.10,0.07,0.16), carbon, 0.36,0.74,s*0.94);   // 后视镜
+  part(new THREE.CylinderGeometry(0.028,0.028,0.55,12), glass, -2.14,0.70,s*0.28, Math.PI/2,0); // 尾灯
+  part(new THREE.CylinderGeometry(0.05,0.05,0.16,14), lampMat, 2.02,0.43,s*0.44, Math.PI/2,0);   // 大灯
+});
+part(new THREE.BoxGeometry(0.55,0.22,1.15), carbon, -2.18,0.22,0);         // 扩散器
+part(new THREE.BoxGeometry(0.5,0.16,1.7),  carbon,  0.1,0.10,0);           // 底盘
+
+tilt.traverse(o=>{ if(o.isMesh){ o.castShadow = true; } });
+
+/* ---------- 车轮 ---------- */
+function makeWheel(r,w){
+  const g = new THREE.Group();            // 自转组，绕 z 轴滚动
+  const add = (geo,mat)=>{
+    const m = new THREE.Mesh(geo,mat); m.rotation.x = Math.PI/2;
+    m.castShadow = true; g.add(m); return m;
+  };
+  add(new THREE.CylinderGeometry(r,r,w,36,1), tireMat);                 // 胎
+  add(new THREE.CylinderGeometry(r*0.70,r*0.70,w*0.99,26), rimMat);     // 轮圈
+  add(new THREE.CylinderGeometry(r*0.66,r*0.66,0.03,24), discMat);      // 刹车盘
+  for(let i=0;i<5;i++){                                                 // 五辐
+    const s = new THREE.Mesh(new THREE.BoxGeometry(r*1.36,w*0.9,0.065), rimMat);
+    s.rotation.y = i*Math.PI*2/5; g.add(s);
+  }
+  return g;
+}
+const wheels = [];
+const wheelSpec = [
+  [1.40, 0.92, 0.35, 0.30, true ],
+  [1.40,-0.92, 0.35, 0.30, true ],
+  [-1.45, 0.93, 0.37, 0.36, false],
+  [-1.45,-0.93, 0.37, 0.36, false],
+];
+for(const [x,z,r,w,front] of wheelSpec){
+  const steer = new THREE.Group();        // 绕 y 转向
+  steer.position.set(x, r, z);
+  const spin = makeWheel(r, w);
+  steer.add(spin); car.add(steer);
+  wheels.push({steer, spin, front, r});
+}
+
+/* ---------- 物理 / 输入 ---------- */
+const VMAX = 83;            // ≈300 km/h
+let yaw = 0, speed = 0, steerAng = 0, roll = 0, pitch = 0, camMode = 0;
+const keys = {};
+
+addEventListener('keydown', e=>{
+  keys[e.code] = true;
+  if(e.code === 'KeyC') camMode = 1 - camMode;
+  if(e.code === 'KeyR'){ car.position.set(0,0,0); yaw = 0; speed = 0; }
+  if(e.code === 'Digit1') paint.color.setHex(0xb0141e);
+  if(e.code === 'Digit2') paint.color.setHex(0xd9dee6);
+  if(e.code === 'Digit3') paint.color.setHex(0x123a8c);
+  if(e.code === 'Space') e.preventDefault();
+});
+addEventListener('keyup', e=> keys[e.code] = false);
+
+const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+
+function update(dt){
+  const acc  = keys.KeyW || keys.ArrowUp;
+  const brk  = keys.KeyS || keys.ArrowDown;
+  const left = keys.KeyA || keys.ArrowLeft;
+  const right= keys.KeyD || keys.ArrowRight;
+
+  if(acc)  speed += (14*(1 - speed/VMAX) + 1.5) * dt;
+  if(brk)  speed  = Math.max(0, speed - 26*dt);
+  if(keys.Space) speed *= Math.max(0, 1 - 2.4*dt);
+  speed = clamp(speed - speed*0.10*dt, 0, VMAX);
+
+  // 速度越高，可用转角越小（稳定的高速手感）
+  const maxSteer = 0.34 * (1 - Math.min(1, speed/70)*0.72);
+  const target = (left?1:0) - (right?1:0);
+  steerAng += (target*maxSteer - steerAng) * Math.min(1, dt*9);
+  yaw += (speed / 2.85) * Math.tan(steerAng) * dt;
+
+  car.position.x += Math.cos(yaw) * speed * dt;
+  car.position.z -= Math.sin(yaw) * speed * dt;
+  car.rotation.y = yaw;
+
+  // 车身姿态
+  roll  += (-steerAng*speed*0.045 - roll)  * Math.min(1, dt*6);
+  const pT = acc ? -0.022 : (brk ? 0.03 : 0);
+  pitch += (pT - pitch) * Math.min(1, dt*5);
+  tilt.rotation.z = roll;
+  tilt.rotation.x = pitch;
+
+  // 车轮
+  for(const w of wheels){
+    if(w.front) w.steer.rotation.y = steerAng;
+    w.spin.rotation.z -= speed * dt / w.r;
+  }
+
+  // 相机
+  const fwd = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  let target_pos, target_look;
+  if(camMode === 0){
+    target_pos  = car.position.clone().addScaledVector(fwd, -6.4).setY(1.95);
+    target_look = car.position.clone().addScaledVector(fwd, 3.2).setY(0.65);
+  }else{
+    cockpit.visible = false;
+    target_pos  = car.position.clone().addScaledVector(fwd, -0.45).setY(1.02);
+    target_look = car.position.clone().addScaledVector(fwd, 12).setY(0.95);
+  }
+  if(camMode === 0) cockpit.visible = true;
+  const k = camMode === 0 ? Math.min(1, dt*7) : 1;
+  camera.position.lerp(target_pos, k);
+  camLook.lerp(target_look, k);
+  camera.lookAt(camLook);
+
+  // 主光跟随
+  key.position.set(car.position.x + 8, 15, car.position.z + 9);
+  key.target.position.copy(car.position);
+  key.target.updateMatrixWorld();
+
+  // HUD
+  const kmh = Math.round(speed*3.6);
+  spdEl.firstChild.nodeValue = kmh;
+  fillEl.style.width = Math.min(100, speed/VMAX*100) + '%';
+  gearEl.textContent = speed < 0.5 ? 'N'
+    : speed < 18 ? '1' : speed < 32 ? '2' : speed < 46 ? '3' : speed < 62 ? '4' : '5';
+}
+
+/* ---------- 主循环 ---------- */
+const spdEl = document.getElementById('spd');
+const fillEl = document.getElementById('fill');
+const gearEl = document.getElementById('gear');
+const camLook = new THREE.Vector3(0,0.6,0);
+camera.position.set(-6.4,1.95,0);
+
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const dt = Math.min(0.05, clock.getDelta());
+  update(dt);
+  renderer.render(scene, camera);
+});
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
+```
+### 驾驶操作与视觉体验
+
+您可以用键盘控制跑车，仪表盘和路面反馈会即时跟上。
+
+- **驾驶操控**：W/↑加速、S/↓刹车、A/D转向，空格手刹。速度提升会自然降低转向灵敏度，高速驾驶更稳。
+- **视角与外观**：按C键切换第三人称追尾和第一人称车内视角；数字键1、2、3分别切换红、银、蓝三种金属车漆。
+- **实时反馈**：左下角速度表、进度条和右侧挡位数字随车速变化，车身在转向或刹车时会有侧倾与俯仰，路边灯柱提供速度参照。
+- **视觉风格**：车身采用金属清漆材质，轮毂五辐设计，配合车底灯光和阴影，强化跑车低趴宽体的姿态。
+---
+
+**优化建议：** 想调驾驶手感，可搜索代码中的VMAX（当前83）和tilt.rotation里的系数0.045、0.022、0.03。车漆颜色可替换paint相关色值。

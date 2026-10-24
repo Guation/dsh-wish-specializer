@@ -1,0 +1,285 @@
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>陈叙 — 品牌与数字产品设计</title>
+<style>
+:root{
+  --ink:#16130F; --ink2:#5A544C; --ink3:#8C857B;
+  --paper:#F7F5F1; --line:#DED8CE; --accent:#A8412A;
+  --sans:"Inter","Helvetica Neue","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+  --serif:"Songti SC","Source Han Serif SC","Noto Serif SC",Georgia,serif;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --gut:clamp(20px,5vw,64px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  background:var(--paper);color:var(--ink);
+  font:400 16px/1.7 var(--sans);
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"kern","liga";
+}
+::selection{background:var(--accent);color:var(--paper)}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:var(--gut);top:12px;z-index:99;background:var(--ink);color:var(--paper);padding:10px 16px}
+
+.wrap{width:100%;max-width:1180px;margin-inline:auto;padding-inline:var(--gut)}
+.g12{display:grid;grid-template-columns:repeat(12,1fr);gap:24px}
+
+/* ── 导航 ── */
+.nav{
+  position:sticky;top:0;z-index:10;
+  background:var(--paper);
+  border-bottom:1px solid var(--line);
+}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:68px}
+.mark{font:600 15px/1 var(--sans);letter-spacing:-.01em;display:flex;align-items:baseline;gap:10px}
+.mark span{font:400 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+.nav nav{display:flex;gap:clamp(18px,3vw,36px);font-size:14px;color:var(--ink2)}
+.nav nav a{padding-block:6px;border-bottom:1px solid transparent;transition:color .2s,border-color .2s}
+.nav nav a:hover{color:var(--ink);border-color:var(--ink)}
+
+/* ── 首屏 ── */
+.hero{padding-block:clamp(56px,9vw,112px) clamp(44px,7vw,88px)}
+.eyebrow{
+  grid-column:1/-1;
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:clamp(20px,3vw,32px);
+  display:flex;align-items:center;gap:12px;
+}
+.eyebrow::before{content:"";width:28px;height:1px;background:var(--accent)}
+h1{
+  grid-column:1/span 11;
+  font:400 clamp(1.9rem,5.1vw,4rem)/1.16 var(--serif);
+  letter-spacing:-.02em;text-wrap:balance;
+}
+h1 em{font-style:normal;color:var(--accent)}
+.hero-foot{grid-column:1/span 5;margin-top:clamp(28px,4vw,44px)}
+.lede{font-size:16.5px;line-height:1.78;color:var(--ink2);max-width:38ch}
+.actions{display:flex;align-items:center;gap:28px;margin-top:30px;flex-wrap:wrap}
+.btn{
+  display:inline-block;background:var(--ink);color:var(--paper);
+  padding:13px 26px;border-radius:3px;
+  font-size:14px;letter-spacing:.02em;
+  transition:background .22s var(--ease),transform .22s var(--ease);
+}
+.btn:hover{background:var(--accent)}
+.btn:active{transform:translateY(1px)}
+.link{font-size:14px;color:var(--ink2);border-bottom:1px solid var(--line);padding-bottom:2px;transition:color .2s,border-color .2s}
+.link:hover{color:var(--ink);border-color:var(--ink)}
+
+/* ── 证据条 ── */
+.stats{border-block:1px solid var(--line);padding-block:clamp(28px,4vw,42px)}
+.stats .g12{gap:24px 0}
+.stat{grid-column:span 4;padding-inline:24px;border-left:1px solid var(--line)}
+.stat:first-child{border-left:0;padding-left:0}
+.stat b{display:block;font:400 clamp(1.8rem,3.4vw,2.6rem)/1 var(--serif);letter-spacing:-.02em}
+.stat span{display:block;margin-top:10px;font-size:13px;color:var(--ink3);letter-spacing:.02em}
+
+/* ── 区块标题 ── */
+.sec{padding-block:clamp(64px,9vw,112px)}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:24px;padding-bottom:20px;border-bottom:1px solid var(--ink);margin-bottom:clamp(32px,5vw,56px)}
+.sec-head h2{font:400 clamp(1.15rem,2vw,1.5rem)/1.3 var(--serif);letter-spacing:-.01em}
+.sec-head .count{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+
+/* ── 作品 ── */
+.works{display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(32px,5vw,60px) 24px}
+.work{grid-column:span 12;display:block}
+.work--a{grid-column:span 7}
+.work--b{grid-column:span 5}
+.thumb{
+  aspect-ratio:var(--r,16/10);
+  background:linear-gradient(158deg,#EAE4D9 0%,#DCD5C7 100%);
+  border-radius:3px;overflow:hidden;position:relative;
+  transition:filter .4s var(--ease);
+}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.work:hover .thumb{filter:brightness(.95)}
+.meta{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:18px}
+.meta h3{font:400 17px/1.4 var(--sans);letter-spacing:-.01em;transition:color .2s}
+.work:hover .meta h3{color:var(--accent)}
+.meta p{font-size:13.5px;color:var(--ink3);margin-top:6px}
+.year{font-size:12px;color:var(--ink3);letter-spacing:.08em;font-variant-numeric:tabular-nums;flex:none}
+
+/* ── 经历 ── */
+.log{grid-column:1/span 8;list-style:none}
+.log li{
+  display:grid;grid-template-columns:96px 1fr auto;gap:20px;
+  padding-block:20px;border-bottom:1px solid var(--line);
+  align-items:baseline;font-size:15px;
+}
+.log li:first-child{border-top:1px solid var(--line)}
+.log .y{font-size:12.5px;color:var(--ink3);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.log .r{font-size:13px;color:var(--ink3);text-align:right}
+.aside{grid-column:9/span 4;font-size:15px;line-height:1.8;color:var(--ink2)}
+.aside .eyebrow{margin-bottom:16px}
+
+/* ── 联系 ── */
+.contact{border-top:1px solid var(--ink);padding-block:clamp(72px,10vw,128px)}
+.contact h2{font:400 clamp(1.6rem,4vw,3rem)/1.2 var(--serif);letter-spacing:-.02em;grid-column:1/span 9;text-wrap:balance}
+.mail{
+  grid-column:1/-1;margin-top:clamp(28px,4vw,40px);
+  font:400 clamp(1.2rem,3.2vw,2.1rem)/1.2 var(--serif);
+  display:inline-block;width:fit-content;
+  border-bottom:1px solid var(--line);padding-bottom:6px;
+  transition:border-color .25s,color .25s;
+}
+.mail:hover{color:var(--accent);border-color:var(--accent)}
+.socials{grid-column:1/-1;display:flex;gap:26px;margin-top:32px;font-size:13.5px;color:var(--ink2);flex-wrap:wrap}
+.socials a{border-bottom:1px solid var(--line);padding-bottom:2px;transition:.2s}
+.socials a:hover{color:var(--ink);border-color:var(--ink)}
+footer{border-top:1px solid var(--line);padding-block:26px;font-size:12.5px;color:var(--ink3)}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+
+/* ── 动效 ── */
+[data-rise]{opacity:0;transform:translateY(14px);
+  transition:opacity .62s var(--ease) var(--d,0ms),transform .62s var(--ease) var(--d,0ms)}
+[data-rise].in{opacity:1;transform:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  [data-rise]{opacity:1;transform:none}
+}
+
+/* ── 断点重排 ── */
+@media (max-width:900px){
+  .hero-foot,.log,.aside,.contact h2{grid-column:1/-1}
+  .aside{margin-top:40px}
+  .work--a,.work--b{grid-column:span 12}
+  .stat{grid-column:span 12;border-left:0;padding-left:0;padding-block:16px;border-top:1px solid var(--line)}
+  .stat:first-child{border-top:0}
+}
+@media (max-width:620px){
+  .nav nav{gap:16px;font-size:13px}
+  .nav nav a:nth-child(2){display:none}
+  h1{grid-column:1/-1}
+  .log li{grid-template-columns:1fr;gap:6px}
+  .log .r{text-align:left}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳到主要内容</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="mark" href="#">陈叙<span>Chen Xu</span></a>
+    <nav aria-label="主导航">
+      <a href="#work">作品</a>
+      <a href="#log">经历</a>
+      <a href="#contact">联系</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="wrap g12 hero">
+    <p class="eyebrow" data-rise>品牌与数字产品设计 · 上海</p>
+    <h1 data-rise>我把复杂的系统，<br>梳理成一个人愿意<em>继续读下去</em>的界面。</h1>
+    <div class="hero-foot" data-rise>
+      <p class="lede">十年间为金融、出版与消费品牌做信息架构与视觉系统。目前独立执业，接受长期合作与设计顾问。</p>
+      <div class="actions">
+        <a class="btn" href="#work">看作品</a>
+        <a class="link" href="mailto:hi@chenxu.studio">hi@chenxu.studio</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="工作概览">
+    <div class="wrap g12">
+      <div class="stat" data-rise><b>10</b><span>年设计实践</span></div>
+      <div class="stat" data-rise><b>32</b><span>个上线项目</span></div>
+      <div class="stat" data-rise><b>4</b><span>套团队设计系统</span></div>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="work">
+    <div class="sec-head">
+      <h2>代表作品</h2>
+      <span class="count">2019 — 2025 · 精选三项</span>
+    </div>
+    <div class="works">
+      <a class="work work--a" href="#" data-rise>
+        <div class="thumb" style="--r:4/3" role="img" aria-label="衡平私人银行终端界面"></div>
+        <div class="meta">
+          <div><h3>衡平 · 私人银行数字终端</h3><p>信息架构 / 设计系统 / 前端规范</p></div>
+          <span class="year">2024</span>
+        </div>
+      </a>
+      <a class="work work--b" href="#" data-rise>
+        <div class="thumb" style="--r:4/5" role="img" aria-label="远山出版社书系封面"></div>
+        <div class="meta">
+          <div><h3>远山书系</h3><p>品牌重塑 / 字体排印</p></div>
+          <span class="year">2023</span>
+        </div>
+      </a>
+      <a class="work" href="#" data-rise>
+        <div class="thumb" style="--r:21/9" role="img" aria-label="度量数据看板"></div>
+        <div class="meta">
+          <div><h3>度量 · 数据看板重设计</h3><p>可用性研究 / 可视化规则</p></div>
+          <span class="year">2022</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="log">
+    <div class="sec-head">
+      <h2>经历与近况</h2>
+      <span class="count">Now</span>
+    </div>
+    <ul class="log" data-rise>
+      <li><span class="y">2023 — 至今</span><span>独立设计师</span><span class="r">上海</span></li>
+      <li><span class="y">2020 — 2023</span><span>某设计咨询 · 设计负责人</span><span class="r">北京</span></li>
+      <li><span class="y">2017 — 2020</span><span>某互联网平台 · 高级视觉设计师</span><span class="r">杭州</span></li>
+      <li><span class="y">2015 — 2017</span><span>某品牌工作室 · 设计师</span><span class="r">广州</span></li>
+    </ul>
+    <div class="aside" data-rise>
+      <p class="eyebrow">在做什么</p>
+      <p>正在写一本关于中文界面排印的小册子，也在帮两家早期公司搭建从 0 到 1 的视觉系统。每月保留一个合作名额。</p>
+    </div>
+  </section>
+
+  <section class="wrap g12 contact" id="contact">
+    <h2 data-rise>如果你正在处理一个说不清楚的产品，我们可以先聊四十分钟。</h2>
+    <a class="mail" href="mailto:hi@chenxu.studio" data-rise>hi@chenxu.studio</a>
+    <div class="socials" data-rise>
+      <a href="#">LinkedIn</a>
+      <a href="#">Dribbble</a>
+      <a href="#">即刻</a>
+      <a href="#">RSS</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2025 陈叙 · 独立设计师</span>
+    <span>本页无追踪脚本</span>
+  </div>
+</footer>
+
+<script>
+const io = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { rootMargin: '0px 0px -12% 0px' });
+
+document.querySelectorAll('[data-rise]').forEach((el, i) => {
+  el.style.setProperty('--d', (i % 3) * 80 + 'ms');
+  io.observe(el);
+});
+</script>
+</body>
+</html>
+```
+
+**使用说明**
+
+- 替换素材：把 `<div class="thumb">` 换成 `<img src="…" alt="…" loading="lazy" width height>`，`--r` 保留以锁定比例、防止布局抖动。
+- 换色只改 `:root` 里 `--ink / --paper / --accent` 三个值，全站随之统一。
+- 内容和结构解耦：每个 `.sec` 是独立内容槽位，改版只替换其中一层。

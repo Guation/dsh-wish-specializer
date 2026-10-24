@@ -1,0 +1,681 @@
+这是为您制作的“噬光”小游戏HTML代码，打开就能直接玩，目标就是吃光点、躲追猎者、不断连击拿高分。
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05050a">
+<title>噬光</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#05050a}
+  body{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  canvas{display:block;position:fixed;inset:0}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+(function(){
+'use strict';
+
+var cvs = document.getElementById('game');
+var ctx = cvs.getContext('2d');
+var W = 1, H = 1, DPR = 1;
+var stars = [];
+var clamp = function(v,a,b){ return v<a?a:(v>b?b:v); };
+var TAU = Math.PI*2;
+
+/* ---------------- 音频 ---------------- */
+var AC = null;
+function initAudio(){
+  if(!AC){
+    try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ AC = null; }
+  }
+  if(AC && AC.state === 'suspended') AC.resume();
+}
+function tone(freq, dur, type, vol, slideTo){
+  if(!AC) return;
+  var t0 = AC.currentTime;
+  var o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(freq, t0);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol || 0.12, t0 + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(AC.destination);
+  o.start(t0); o.stop(t0 + dur + 0.03);
+}
+
+/* ---------------- 尺寸 ---------------- */
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cvs.width = Math.floor(W*DPR); cvs.height = Math.floor(H*DPR);
+  cvs.style.width = W+'px'; cvs.style.height = H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  stars.length = 0;
+  var n = Math.round((W*H)/16000);
+  for(var i=0;i<Math.min(n,140);i++){
+    stars.push({x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.7+0.4, a:Math.random()*0.35+0.08});
+  }
+  if(S.player){
+    S.player.x = clamp(S.player.x, 20, W-20);
+    S.player.y = clamp(S.player.y, 20, H-20);
+  }
+}
+
+/* ---------------- 状态 ---------------- */
+var MAXV = 440;
+var S = {
+  mode:'title', t:0, score:0,
+  best: parseInt(localStorage.getItem('shiguang_best')||'0',10)||0,
+  combo:0, comboT:0, comboSpan:1.7,
+  shields:3, maxShields:3, eaten:0, nextShield:18,
+  player:null, orbs:[], hunters:[], parts:[], texts:[],
+  shake:0, flash:0, slowmo:0, spawnT:3.5, newBest:false
+};
+
+function mult(){ return Math.min(8, 1 + Math.floor(S.combo/5)); }
+function levelOf(t){ return Math.pow(t/18, 1.22); }
+
+/* ---------------- 输入 ---------------- */
+var keys = {};
+var pointer = { active:false, x:0, y:0 };
+
+window.addEventListener('keydown', function(e){
+  var k = e.key.toLowerCase();
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(k) >= 0) e.preventDefault();
+  keys[k] = true;
+  if(S.mode !== 'play' && (k === ' ' || k === 'enter' || k === 'r')) startGame();
+});
+window.addEventListener('keyup', function(e){ keys[e.key.toLowerCase()] = false; });
+
+cvs.addEventListener('pointerdown', function(e){
+  initAudio();
+  pointer.active = true; pointer.x = e.clientX; pointer.y = e.clientY;
+  if(S.mode !== 'play') startGame();
+});
+cvs.addEventListener('pointermove', function(e){
+  pointer.x = e.clientX; pointer.y = e.clientY;
+  pointer.active = true;
+});
+window.addEventListener('pointerup', function(e){
+  if(e.pointerType !== 'mouse') pointer.active = false;
+});
+window.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+/* ---------------- 生成 ---------------- */
+function spawnOrb(){
+  var p = S.player;
+  var x = 0, y = 0, tries = 0;
+  do {
+    x = 40 + Math.random()*(W-80);
+    y = 40 + Math.random()*(H-80);
+    tries++;
+  } while(p && (x-p.x)*(x-p.x)+(y-p.y)*(y-p.y) < 120*120 && tries < 24);
+  var pulse = Math.random() < 0.16;
+  S.orbs.push({ x:x, y:y, r: pulse?7:8, pulse:pulse, t:Math.random()*TAU, born:0 });
+}
+
+function makeHunter(){
+  var lv = levelOf(S.t);
+  var m = 90, x, y;
+  var side = Math.floor(Math.random()*4);
+  if(side === 0){ x = Math.random()*W; y = -m; }
+  else if(side === 1){ x = W+m; y = Math.random()*H; }
+  else if(side === 2){ x = Math.random()*W; y = H+m; }
+  else { x = -m; y = Math.random()*H; }
+  var spd = Math.min(390, 185 + 42*lv) * (0.92 + Math.random()*0.16);
+  return {
+    x:x, y:y,
+    ang: Math.atan2(S.player.y - y, S.player.x - x),
+    spd: spd, r: 13,
+    turn: 2.1 + Math.random()*0.9,
+    born: 0
+  };
+}
+
+function burst(x, y, color, n){
+  for(var i=0;i<n;i++){
+    var a = Math.random()*TAU;
+    var sp = 60 + Math.random()*280;
+    var life = 0.32 + Math.random()*0.45;
+    S.parts.push({ x:x, y:y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+      life:life, max:life, s:1.5+Math.random()*3, color:color });
+  }
+}
+
+function addText(x, y, text, color, size){
+  S.texts.push({ x:x, y:y, text:text, color:color, size:size||16, life:0.9, max:0.9 });
+}
+
+/* ---------------- 流程 ---------------- */
+function startGame(){
+  initAudio();
+  S.mode = 'play';
+  S.t = 0; S.score = 0; S.combo = 0; S.comboT = 0;
+  S.shields = 3; S.eaten = 0; S.nextShield = 18;
+  S.orbs.length = 0; S.hunters.length = 0; S.parts.length = 0; S.texts.length = 0;
+  S.shake = 0; S.flash = 0; S.slowmo = 0; S.spawnT = 3.5; S.newBest = false;
+  S.player = { x: W/2, y: H/2, vx:0, vy:0, r:11, inv:1.4 };
+  for(var i=0;i<5;i++) spawnOrb();
+  S.hunters.push(makeHunter());
+  tone(340, 0.08, 'triangle', 0.10);
+  setTimeout(function(){ tone(520, 0.13, 'triangle', 0.10); }, 75);
+}
+
+function gameOver(){
+  var prevBest = S.best;
+  S.mode = 'over';
+  S.slowmo = 1; S.shake = 28; S.flash = 0.9;
+  if(S.player){
+    for(var i=0;i<26;i++) burst(S.player.x, S.player.y, '#ff5555', 1);
+  }
+  if(S.score > prevBest){
+    S.best = S.score; S.newBest = true;
+    localStorage.setItem('shiguang_best', String(S.best));
+  }
+  tone(230, 0.45, 'sawtooth', 0.16, 55);
+  setTimeout(function(){ tone(150, 0.6, 'sawtooth', 0.12, 40); }, 110);
+}
+
+function hitPlayer(h){
+  var p = S.player;
+  if(!p || p.inv > 0 || S.mode !== 'play') return;
+  S.shields--;
+  p.inv = 1.6;
+  S.combo = 0; S.comboT = 0;
+  S.shake = 24; S.flash = 0.8; S.slowmo = 1;
+  var a = Math.atan2(p.y - h.y, p.x - h.x);
+  p.vx = Math.cos(a)*560; p.vy = Math.sin(a)*560;
+  p.x = clamp(p.x + Math.cos(a)*10, 20, W-20);
+  p.y = clamp(p.y + Math.sin(a)*10, 20, H-20);
+  for(var i=0;i<S.hunters.length;i++){
+    var o = S.hunters[i];
+    var dx = o.x - p.x, dy = o.y - p.y;
+    var d = Math.hypot(dx,dy) || 1;
+    if(d < 250){
+      var f = (250-d)/250;
+      o.x += dx/d*95*f; o.y += dy/d*95*f;
+    }
+  }
+  burst(p.x, p.y, '#ff4d4d', 20);
+  addText(p.x, p.y-24, '护盾 -1', '#ff8a8a', 18);
+  tone(165, 0.3, 'sawtooth', 0.18, 55);
+  if(S.shields <= 0) gameOver();
+}
+
+function eatOrb(o){
+  var p = S.player;
+  S.comboT = S.comboSpan;
+
+  if(o.pulse){
+    S.combo += 3;
+    var gainP = 25 * mult();
+    S.score += gainP;
+    addText(o.x, o.y-14, '+'+gainP, '#7fd4ff', 22);
+    burst(o.x, o.y, '#7fd4ff', 24);
+    tone(880, 0.22, 'sine', 0.14, 320);
+    for(var i=0;i<S.hunters.length;i++){
+      var h = S.hunters[i];
+      var dx = h.x - o.x, dy = h.y - o.y;
+      var d = Math.hypot(dx,dy) || 1;
+      if(d < 320){
+        var f = 1 - d/320;
+        h.x += dx/d*140*f; h.y += dy/d*140*f;
+        h.ang = Math.atan2(dy,dx);
+      }
+    }
+    S.shake = Math.max(S.shake, 12);
+  } else {
+    S.combo++;
+    var gain = 10 * mult();
+    S.score += gain;
+    addText(o.x, o.y-12, '+'+gain, '#ffd75e', 15 + Math.min(10, S.combo*0.45));
+    burst(o.x, o.y, '#ffd75e', 8);
+    tone(480 * Math.pow(1.0595, Math.min(S.combo, 22)), 0.075, 'triangle', 0.11);
+  }
+
+  S.eaten++;
+  if(S.eaten >= S.nextShield && S.shields < S.maxShields){
+    S.shields++;
+    S.nextShield += 18;
+    addText(p.x, p.y-38, '+护盾', '#6fe9ff', 18);
+    tone(660, 0.18, 'sine', 0.12, 990);
+  }
+}
+
+/* ---------------- 更新 ---------------- */
+function updatePlayer(dt){
+  var p = S.player;
+  p.inv = Math.max(0, p.inv - dt);
+
+  var kx = (keys['arrowright']||keys['d']?1:0) - (keys['arrowleft']||keys['a']?1:0);
+  var ky = (keys['arrowdown']||keys['s']?1:0) - (keys['arrowup']||keys['w']?1:0);
+
+  var tvx = 0, tvy = 0;
+  if(kx || ky){
+    var m = Math.hypot(kx,ky);
+    tvx = kx/m*MAXV; tvy = ky/m*MAXV;
+  } else if(pointer.active){
+    var dx = pointer.x - p.x, dy = pointer.y - p.y;
+    var d = Math.hypot(dx,dy);
+    if(d > 5){
+      var f = Math.min(1, d/120);
+      tvx = dx/d*MAXV*f; tvy = dy/d*MAXV*f;
+    }
+  }
+
+  var k = 1 - Math.exp(-dt*14);
+  p.vx += (tvx - p.vx)*k;
+  p.vy += (tvy - p.vy)*k;
+  p.x += p.vx*dt;
+  p.y += p.vy*dt;
+
+  var pad = p.r + 8;
+  if(p.x < pad){ p.x = pad; p.vx = Math.abs(p.vx)*0.35; }
+  if(p.x > W-pad){ p.x = W-pad; p.vx = -Math.abs(p.vx)*0.35; }
+  if(p.y < pad){ p.y = pad; p.vy = Math.abs(p.vy)*0.35; }
+  if(p.y > H-pad){ p.y = H-pad; p.vy = -Math.abs(p.vy)*0.35; }
+}
+
+function update(dt){
+  S.shake *= Math.exp(-dt*7);
+  S.flash *= Math.exp(-dt*6);
+  if(S.slowmo > 0) S.slowmo = Math.max(0, S.slowmo - dt*3.2);
+
+  var i, q;
+  for(i=S.parts.length-1;i>=0;i--){
+    q = S.parts[i];
+    q.x += q.vx*dt; q.y += q.vy*dt;
+    q.vx *= Math.exp(-dt*3); q.vy *= Math.exp(-dt*3);
+    q.life -= dt;
+    if(q.life <= 0) S.parts.splice(i,1);
+  }
+  for(i=S.texts.length-1;i>=0;i--){
+    q = S.texts[i];
+    q.y -= 46*dt; q.life -= dt;
+    if(q.life <= 0) S.texts.splice(i,1);
+  }
+
+  if(S.mode !== 'play') return;
+
+  var gdt = dt * (1 - 0.68 * S.slowmo);
+  S.t += gdt;
+
+  if(S.combo > 0){
+    S.comboT -= gdt;
+    if(S.comboT <= 0){ S.combo = 0; S.comboT = 0; }
+  }
+
+  updatePlayer(gdt);
+
+  var p = S.player;
+  var lv = levelOf(S.t);
+
+  // 吃光点
+  for(i=S.orbs.length-1;i>=0;i--){
+    var o = S.orbs[i];
+    o.t += gdt; o.born += gdt;
+    var dx = o.x - p.x, dy = o.y - p.y;
+    var rr = p.r + o.r + 7;
+    if(dx*dx + dy*dy < rr*rr){
+      S.orbs.splice(i,1);
+      eatOrb(o);
+      spawnOrb();
+    }
+  }
+
+  // 追猎者
+  for(i=S.hunters.length-1;i>=0;i--){
+    var h = S.hunters[i];
+    h.born += gdt;
+    var ang = Math.atan2(p.y - h.y, p.x - h.x);
+    var diff = ang - h.ang;
+    while(diff > Math.PI) diff -= TAU;
+    while(diff < -Math.PI) diff += TAU;
+    var mt = h.turn * gdt;
+    h.ang += clamp(diff, -mt, mt);
+    h.x += Math.cos(h.ang) * h.spd * gdt;
+    h.y += Math.sin(h.ang) * h.spd * gdt;
+
+    if(p.inv <= 0){
+      var ddx = p.x - h.x, ddy = p.y - h.y;
+      var cr = p.r + h.r - 3;
+      if(ddx*ddx + ddy*ddy < cr*cr){ hitPlayer(h); }
+    }
+  }
+  if(S.mode !== 'play') return;
+
+  // 相互排斥，避免叠成一坨
+  for(i=0;i<S.hunters.length;i++){
+    for(var j=i+1;j<S.hunters.length;j++){
+      var a = S.hunters[i], b = S.hunters[j];
+      var dxx = b.x-a.x, dyy = b.y-a.y;
+      var dd = Math.hypot(dxx,dyy) || 1;
+      var mn = a.r + b.r + 6;
+      if(dd < mn){
+        var push = (mn-dd)/dd*0.5;
+        a.x -= dxx*push; a.y -= dyy*push;
+        b.x += dxx*push; b.y += dyy*push;
+      }
+    }
+  }
+
+  // 生成节奏
+  S.spawnT -= gdt;
+  var cap = Math.min(13, 2 + Math.floor(lv*1.5));
+  if(S.spawnT <= 0 && S.hunters.length < cap){
+    S.hunters.push(makeHunter());
+    S.spawnT = Math.max(1.4, 5.0 - lv*0.55);
+  }
+}
+
+/* ---------------- 渲染 ---------------- */
+function render(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  var sh = S.shake;
+  if(sh > 0.4) ctx.translate((Math.random()-0.5)*sh, (Math.random()-0.5)*sh);
+
+  ctx.fillStyle = '#05050a';
+  ctx.fillRect(-80,-80,W+160,H+160);
+
+  ctx.fillStyle = '#7fd8ff';
+  for(var i=0;i<stars.length;i++){
+    var s = stars[i];
+    ctx.globalAlpha = s.a;
+    ctx.fillRect(s.x, s.y, s.r, s.r);
+  }
+  ctx.globalAlpha = 1;
+
+  var p = S.player;
+  if(p){
+    var rg = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,270);
+    rg.addColorStop(0,'rgba(60,195,255,0.14)');
+    rg.addColorStop(0.55,'rgba(60,195,255,0.04)');
+    rg.addColorStop(1,'rgba(60,195,255,0)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(p.x-270, p.y-270, 540, 540);
+  }
+
+  // 光点
+  for(i=0;i<S.orbs.length;i++){
+    var o = S.orbs[i];
+    var pl = 1 + Math.sin(o.t*5)*0.14;
+    var r = o.r * pl;
+    var col = o.pulse ? '#5fc8ff' : '#ffcf4d';
+    ctx.save();
+    ctx.shadowBlur = o.pulse ? 28 : 18;
+    ctx.shadowColor = col;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(o.x, o.y, r, 0, TAU); ctx.fill();
+    ctx.restore();
+    if(o.pulse){
+      ctx.strokeStyle = 'rgba(95,200,255,0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, r + 8 + Math.sin(o.t*4)*3, 0, TAU);
+      ctx.stroke();
+    }
+  }
+
+  // 追猎者
+  for(i=0;i<S.hunters.length;i++){
+    var h = S.hunters[i];
+    ctx.save();
+    ctx.translate(h.x, h.y);
+    ctx.rotate(h.ang);
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = '#ff3b3b';
+    ctx.fillStyle = '#ff4d4d';
+    ctx.beginPath();
+    ctx.moveTo(h.r*1.55, 0);
+    ctx.lineTo(-h.r*0.95, h.r*0.95);
+    ctx.lineTo(-h.r*0.35, 0);
+    ctx.lineTo(-h.r*0.95, -h.r*0.95);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 玩家
+  if(p && S.mode === 'play'){
+    var flick = p.inv > 0 ? (0.35 + 0.65*Math.abs(Math.sin(p.inv*22))) : 1;
+
+    ctx.save();
+    ctx.globalAlpha = flick;
+    ctx.shadowBlur = 28; ctx.shadowColor = '#5fd8ff';
+    ctx.fillStyle = '#e6fcff';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = flick*0.85;
+    ctx.strokeStyle = '#5fd8ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 6, 0, TAU); ctx.stroke();
+    ctx.restore();
+
+    if(S.combo > 0){
+      var frac = clamp(S.comboT / S.comboSpan, 0, 1);
+      ctx.save();
+      ctx.strokeStyle = frac > 0.4 ? '#ffd75e' : '#ff7a4d';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.shadowBlur = 12; ctx.shadowColor = ctx.strokeStyle;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r + 16, -Math.PI/2, -Math.PI/2 + TAU*frac);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // 粒子
+  for(i=0;i<S.parts.length;i++){
+    var q = S.parts[i];
+    ctx.globalAlpha = clamp(q.life/q.max, 0, 1);
+    ctx.fillStyle = q.color;
+    ctx.fillRect(q.x - q.s/2, q.y - q.s/2, q.s, q.s);
+  }
+  ctx.globalAlpha = 1;
+
+  // 飘字
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for(i=0;i<S.texts.length;i++){
+    var t = S.texts[i];
+    ctx.globalAlpha = clamp(t.life/t.max, 0, 1);
+    ctx.font = '800 ' + t.size + 'px ui-sans-serif,system-ui,-apple-system,sans-serif';
+    ctx.fillStyle = t.color;
+    ctx.fillText(t.text, t.x, t.y);
+  }
+  ctx.globalAlpha = 1;
+
+  // 濒死红边
+  if(S.mode === 'play' && S.shields === 1){
+    var pulse = 0.13 + 0.1*Math.sin(performance.now()/200);
+    var vg = ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.22, W/2,H/2, Math.max(W,H)*0.75);
+    vg.addColorStop(0,'rgba(255,0,0,0)');
+    vg.addColorStop(1,'rgba(255,35,35,'+pulse+')');
+    ctx.fillStyle = vg;
+    ctx.fillRect(-80,-80,W+160,H+160);
+  }
+
+  // 受击闪白
+  if(S.flash > 0.01){
+    ctx.globalAlpha = Math.min(0.55, S.flash*0.5);
+    ctx.fillStyle = '#ff2d2d';
+    ctx.fillRect(-80,-80,W+160,H+160);
+    ctx.globalAlpha = 1;
+  }
+
+  drawHUD();
+
+  if(S.mode === 'title') drawTitle();
+  else if(S.mode === 'over') drawOver();
+}
+
+function drawHUD(){
+  if(S.mode === 'title') return;
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.font = '800 46px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = '#eaf9ff';
+  ctx.fillText(String(S.score), 24, 18);
+
+  ctx.font = '600 14px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = 'rgba(150,195,215,0.55)';
+  ctx.fillText('最高 ' + S.best, 26, 70);
+
+  if(S.combo > 0){
+    var m = mult();
+    ctx.textAlign = 'right';
+    ctx.font = '800 36px ui-sans-serif,system-ui,-apple-system,sans-serif';
+    ctx.fillStyle = m >= 6 ? '#ffd75e' : '#8ef0ff';
+    ctx.fillText('x' + m, W-24, 20);
+    ctx.font = '700 13px ui-sans-serif,system-ui,-apple-system,sans-serif';
+    ctx.fillStyle = 'rgba(200,230,240,0.55)';
+    ctx.fillText('连击 ' + S.combo, W-24, 62);
+  }
+
+  for(var i=0;i<S.maxShields;i++){
+    var x = 26 + i*22, y = H - 32;
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, TAU);
+    if(i < S.shields){
+      ctx.save();
+      ctx.shadowBlur = 12; ctx.shadowColor = '#6fe9ff';
+      ctx.fillStyle = '#6fe9ff'; ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.strokeStyle = 'rgba(110,230,255,0.22)';
+      ctx.lineWidth = 2; ctx.stroke();
+    }
+  }
+
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 13px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = 'rgba(140,180,200,0.35)';
+  ctx.fillText(Math.floor(S.t) + 's', W-24, H-26);
+}
+
+function drawTitle(){
+  ctx.fillStyle = 'rgba(4,4,10,0.74)';
+  ctx.fillRect(0,0,W,H);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.save();
+  ctx.shadowBlur = 34; ctx.shadowColor = '#3cc8ff';
+  ctx.fillStyle = '#eaf9ff';
+  ctx.font = '900 62px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillText('噬 光', W/2, H/2 - 118);
+  ctx.restore();
+
+  ctx.font = '600 17px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = 'rgba(175,218,236,0.9)';
+  ctx.fillText('吃掉光点 · 躲开红色 · 别断连击', W/2, H/2 - 44);
+
+  ctx.font = '500 14px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = 'rgba(140,180,200,0.6)';
+  ctx.fillText('鼠标 / 手指 / WASD 移动', W/2, H/2 - 6);
+  ctx.fillStyle = 'rgba(95,200,255,0.65)';
+  ctx.fillText('蓝色光点 = 震退全部追猎者', W/2, H/2 + 22);
+
+  var bl = 0.5 + 0.5*Math.sin(performance.now()/300);
+  ctx.globalAlpha = 0.45 + 0.55*bl;
+  ctx.font = '800 22px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = '#6fe9ff';
+  ctx.fillText('点击 / 空格 开始', W/2, H/2 + 92);
+  ctx.globalAlpha = 1;
+
+  if(S.best > 0){
+    ctx.font = '700 15px ui-sans-serif,system-ui,-apple-system,sans-serif';
+    ctx.fillStyle = 'rgba(255,215,94,0.8)';
+    ctx.fillText('最高分 ' + S.best, W/2, H/2 + 148);
+  }
+}
+
+function drawOver(){
+  ctx.fillStyle = 'rgba(8,2,4,0.76)';
+  ctx.fillRect(0,0,W,H);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.save();
+  ctx.shadowBlur = 26; ctx.shadowColor = '#ff3b3b';
+  ctx.fillStyle = '#ffd0d0';
+  ctx.font = '900 40px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillText('被吞没了', W/2, H/2 - 118);
+  ctx.restore();
+
+  ctx.font = '900 60px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = '#eaf9ff';
+  ctx.fillText(String(S.score), W/2, H/2 - 40);
+
+  if(S.newBest){
+    var bl = 0.5 + 0.5*Math.sin(performance.now()/220);
+    ctx.globalAlpha = 0.5 + 0.5*bl;
+    ctx.font = '800 18px ui-sans-serif,system-ui,-apple-system,sans-serif';
+    ctx.fillStyle = '#ffd75e';
+    ctx.fillText('★ 新纪录 ★', W/2, H/2 + 10);
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.font = '700 16px ui-sans-serif,system-ui,-apple-system,sans-serif';
+    ctx.fillStyle = 'rgba(160,200,220,0.65)';
+    ctx.fillText('最高分 ' + S.best, W/2, H/2 + 10);
+  }
+
+  ctx.font = '600 14px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = 'rgba(150,190,210,0.5)';
+  ctx.fillText('存活 ' + S.t.toFixed(1) + ' 秒 · 吃到 ' + S.eaten + ' 颗', W/2, H/2 + 46);
+
+  ctx.globalAlpha = 0.5 + 0.5*(0.5+0.5*Math.sin(performance.now()/280));
+  ctx.font = '800 22px ui-sans-serif,system-ui,-apple-system,sans-serif';
+  ctx.fillStyle = '#6fe9ff';
+  ctx.fillText('点击 / 空格 再来一把', W/2, H/2 + 118);
+  ctx.globalAlpha = 1;
+}
+
+/* ---------------- 主循环 ---------------- */
+var last = 0;
+function frame(now){
+  requestAnimationFrame(frame);
+  if(!last){ last = now; return; }
+  var dt = (now - last)/1000;
+  last = now;
+  if(dt > 0.05) dt = 0.05;
+  update(dt);
+  render();
+}
+
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', function(){ setTimeout(resize, 120); });
+
+resize();
+S.player = { x: W/2, y: H/2, vx:0, vy:0, r:11, inv:0 };
+for(var i=0;i<6;i++) spawnOrb();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
+```
+### 玩法机制与上手体验
+
+游戏把“吃光点、躲敌人、不断连击”这几个操作做得非常直接，几乎没有学习成本。
+
+- **操作方式**：鼠标、手指或 WASD 都能移动，角色会跟随指针或按键方向平滑加速，手指和鼠标分别对应绝对位置和方向移动。
+- **核心目标**：光点每吃一颗都能涨分，连续吃会不断刷新连击时间，连击越高单次得分越多，一旦断连或者撞到红色追猎者，护盾就会扣减。
+- **生存压力**：追猎者会随着存活时间变快、变多，撞到后会短暂减速、互相排斥并刷出护盾奖励，但护盾扣完就立刻结束。
+- **额外变数**：随机出现的蓝色光点会一次性震退全部追猎者，在关键时刻能救命，但得分加成也和连击挂钩，所以贪吃蓝色光点也有风险。
+- **反馈节奏**：每次吃光点都有粒子、飘字和提示音，濒死时屏幕边缘会泛红呼吸，配合短促的受击闪白和慢动作，失败瞬间的感受非常明确。
+- **记录留存**：最高分会自动存进浏览器，重开后不用等待，直接进入新一局。
+---
+
+**优化建议：** 游戏时长和难度曲线可调，您可修改 `levelOf` 函数中的 `18` 和 `1.22`，数值越小难度上升越快；连击窗口 `comboSpan` 设为 `1.7` 秒，调大更宽容。

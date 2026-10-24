@@ -1,0 +1,16 @@
+{
+  "flip": true,
+  "side": "x",
+  "x": {
+    "exec": 5,
+    "spec": 5,
+    "risk": 4
+  },
+  "y": {
+    "exec": 4,
+    "spec": 5,
+    "risk": 4
+  },
+  "winner": "X",
+  "why": "X 图可直接渲染且把同步/异步/回流与数据落点讲清；Y 的 outbox 与 binlog 连线存在概念歧义，易误导实现。"
+}
