@@ -3145,7 +3145,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const startSid = sessionId                       // 这一轮属于哪个会话（切走也要认账）
         const h = { text, via,englishMode:englishOn, t0: Date.now(), phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
         holdRef.current = h; setHold(h)
-        apiPost('/interpret', { sessionId, text }, ac ? { signal: ac.signal } : undefined).then((r) => {
+        apiPost('/interpret', { sessionId, text }, ac ? { signal: ac.signal } : undefined).then(async (r) => {
           if (my !== holdSeq.current) return                // ⚠ 过期世代：这一轮已被跳过/取消/重跑 ⇒ 结果丢弃
           if (!r || r.ok !== true) {
             settleFailure(text, h, reasonText((r && r.reason) || 'unknown'))
@@ -3164,7 +3164,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const done = { ...h, phase: 'review', englishMode:r.englishMode===true,outgoingText:r.outgoingText||text,translation:r.translation||null,noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null, packet: r.packet || '', chars: r.chars || 0, ms: r.ms || null, unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null, edited: r.packet || '', usage: r.usage || null, usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null }
           holdRef.current = done; setHold(done)
           // 「自动」= 完成即发；「审查」= 等用户确认（0.5 §5 的权限语义）
-          if (permissionRef.current !== 'review') releaseHold(outgoingUserText(done), done, 'sent')
+          if (permissionRef.current !== 'review') {
+            let ready = done
+            if (!String(done.packet || '').trim()) {
+              const got = await waitForPacket(startSid)
+              if (my !== holdSeq.current) return          // 等包期间被跳过/取消 ⇒ 作废
+              if (got && got.packet) ready = { ...done, packet: got.packet, chars: got.chars }
+            }
+            releaseHold(outgoingUserText(ready), ready, 'sent')
+          }
         }, (e) => {
           if (my !== holdSeq.current) return
           settleFailure(text, h, reasonText((e && e.message) || e))
@@ -3250,6 +3258,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if(typeof r.packet==='string')submitted={...submitted,packet:r.packet,edited:r.packet,chars:r.chars}
         }
         releaseHold(outgoingUserText(submitted), { ...submitted, phase: 'sent' }, 'sent')
+      }
+      /**
+       * 自动模式放行前**等包落库**（2026-10-25 用户定稿 B 方案）。
+       *
+       * 真机：优化跑了十几秒，`/interpret` 先返回、包 6 秒后才落库 ⇒ 那一轮注入的是壳。
+       * 现在：没包就短轮询（最多 15 秒），有了再发；超时仍无包 ⇒ 按“无包”发（不注入任何东西）。
+       * 「跳过发送」不走这条——它就是无包（用户明确要求）。
+       */
+      const waitForPacket = async (sid, budgetMs = 15000) => {
+        const t0 = Date.now()
+        for (;;) {
+          const r = await apiGet('/packet?session=' + encodeURIComponent(sid)).catch(() => null)
+          if (r && r.ok === true && typeof r.chars === 'number' && r.chars > 0) return r
+          if (Date.now() - t0 > budgetMs) return null
+          await new Promise((res) => setTimeout(res, 300))
+        }
       }
       /** 「按原文发出」：清掉本轮包，再原样放行（用户明确不要这次的结果）。 */
       const sendOriginal = async () => {

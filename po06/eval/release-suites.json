@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-24T18:02:36.164Z",
+  "at": "2026-10-24T18:20:28.039Z",
   "summary": {
-    "suites": 146,
-    "passed": 146,
+    "suites": 147,
+    "passed": 147,
     "failed": 0,
-    "passTotal": 1421,
+    "passTotal": 1424,
     "failing": []
   },
   "results": [
@@ -396,6 +396,13 @@
     {
       "file": "client-advisor-stream.test.mjs",
       "pass": 9,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "client-auto-wait.test.mjs",
+      "pass": 3,
       "fail": 0,
       "exit": 0,
       "ok": true
