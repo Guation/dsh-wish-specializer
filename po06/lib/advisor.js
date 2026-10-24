@@ -842,6 +842,16 @@ export function acceptanceBanner(value) {
   ].filter((line) => line !== '').join('\n') + '\n'
 }
 
+/**
+ * 顾问工具是否应该**注册**（不是“注册后拒绝”）。
+ *
+ * 2026-10-23 用户实测：关闭后工具仍可选 ⇒ 模型先调用、收到 advisor-off、再重新思考，
+ * 白烧一轮注意力。关闭必须在注册层生效：工具根本不出现在模型的可选动作里。
+ * 策略缺省（读不到设置）时按“开”处理，避免误关。
+ */
+export function advisorToolEnabled(policy) {
+  return !(policy && policy.advisor === false)
+}
 export function registerAdvisorTool(scope, execute) {
   // 出口收敛（2026-10-04）：宿主对工具返回值做**无损 JSON** 校验，不合规就**整条丢弃**
   //   （真机报错 `returned invalid output: value is not lossless JSON`，本会话 38 次调用里 5 次中招，

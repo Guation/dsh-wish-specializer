@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-24T08:15:25.167Z",
+  "at": "2026-10-24T08:41:49.868Z",
   "summary": {
-    "suites": 138,
-    "passed": 138,
+    "suites": 139,
+    "passed": 139,
     "failed": 0,
-    "passTotal": 1402,
+    "passTotal": 1404,
     "failing": []
   },
   "results": [
@@ -88,6 +88,13 @@
     {
       "file": "advisor-generality.test.mjs",
       "pass": 3,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-hard-gate.test.mjs",
+      "pass": 2,
       "fail": 0,
       "exit": 0,
       "ok": true

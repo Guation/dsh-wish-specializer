@@ -46,7 +46,7 @@ import { loadLlmLib } from './llm-lib.js'
 // （在此之前它们只是字段，没有任何代码读——界面上摆着却是装饰品）。
 import { createSessionHistory, renderObserverBlock } from './session-context.js'
 import { runReadOnlyToolLoop } from './read-tools.js'
-import { createAdvisor, registerAdvisorTool, resolveAdvisorTimeoutMs, resolveAdvisorStallMs } from './advisor.js'
+import { createAdvisor, registerAdvisorTool, advisorToolEnabled, resolveAdvisorTimeoutMs, resolveAdvisorStallMs } from './advisor.js'
 import { createAdvisorProgress } from './advisor-progress.js'
 import { createInferenceTrace } from './inference-trace.js'
 import { createInferenceBoost } from './inference-boost.js'
@@ -2317,6 +2317,8 @@ export function apply(ctx, config) {
   const inferenceEvidence=createInferenceEvidence({home:DSH_HOME,namespace:PROFILE_DIR})
   const inferenceContext=createInferenceEvidenceContext({store:inferenceEvidence,getSession:sid=>{const a=adapter.agentFor(sid);return a?.session||a?.getSession?.()},policy:sid=>readPolicy({home:DSH_HOME,sessionId:sid}),rootFor:resolveSessionCwd})
   let inferenceEngine=null,inferenceReady=false,inferenceProblem=null
+// 顾问工具的注册同步函数：设置写盘发生在另一个作用域，通过这个持有者调用（否则调用静默失效）。
+let syncAdvisorToolsRef=null
   ctx.effect(()=>()=>{inferenceEngine?.dispose();inferenceTrace.dispose();inferenceContext.dispose()},'dsh-arbiter: reasoning enhancement')
   ctx.inject(['llm'],scope=>{
     let live=true
@@ -2406,9 +2408,19 @@ export function apply(ctx, config) {
       policyFor: (sid) => readPolicy({ home: DSH_HOME, sessionId: sid }),
     })(execute)
 
-    scope.effect(() => {
-      const dispose = registerAdvisorTool(scope, executeWithDirective)
-      const stageDispose = registerAdvisorStageTool(scope, advisorStages, {
+    // 顾问开关是**全局**设置（不在 SESSION_KEYS 里）⇒ 可以在注册层硬关闭。
+    // 为什么必须这么做（2026-10-23 用户实测）：原先无条件注册、执行时返回 advisor-off，
+    // 模型要先调用一次、被告知关闭、再重新思考——白烧一轮注意力与时间，属于「假关闭」。
+    // 现在：关闭 ⇒ 工具根本不出现在模型的可选动作里；开启 ⇒ 重新注册。
+    let advisorToolDispose = null, advisorStageDispose = null
+    const advisorEnabledNow = () => {
+      try { return advisorToolEnabled(readPolicy({ home: DSH_HOME })) } catch { return true }
+    }
+    const syncAdvisorTools = () => {
+      const on = advisorEnabledNow()
+      if (on && !advisorToolDispose) {
+        advisorToolDispose = registerAdvisorTool(scope, executeWithDirective)
+        advisorStageDispose = registerAdvisorStageTool(scope, advisorStages, {
         resolveAccess: async session => {
           const sid=String(session.id); const pol=readPolicy({home:DSH_HOME,sessionId:sid})
           if(!pol.injectPacket)return {ok:false,reason:'assist-off'}
@@ -2416,8 +2428,23 @@ export function apply(ctx, config) {
           const gate=await awaitGateDecision(sid); if(gate?.enabled!==true)return {ok:false,reason:'advisor-gate-disabled'}
           return {ok:true,readTools:pol.readTools===true}
         },
-      })
-      return () => { execute.dispose(); if (typeof dispose === 'function') dispose(); if(typeof stageDispose==='function') stageDispose() }
+        })
+      } else if (!on && advisorToolDispose) {
+        try { advisorToolDispose() } catch { /* 已注销 */ }
+        try { if (typeof advisorStageDispose === 'function') advisorStageDispose() } catch { /* 同上 */ }
+        advisorToolDispose = null; advisorStageDispose = null
+      }
+    }
+    syncAdvisorToolsRef = syncAdvisorTools
+    scope.effect(() => {
+      syncAdvisorTools()
+      return () => {
+        execute.dispose()
+        try { if (typeof advisorToolDispose === 'function') advisorToolDispose() } catch { /* 已注销 */ }
+        try { if (typeof advisorStageDispose === 'function') advisorStageDispose() } catch { /* 同上 */ }
+        advisorToolDispose = null; advisorStageDispose = null
+        syncAdvisorToolsRef = null
+      }
     }, 'dsh-po06: independent advisor tool')
   })
   const report = {
@@ -2761,6 +2788,7 @@ export function apply(ctx, config) {
             let polBefore = null
             try { polBefore = adapter.policyNow() } catch { polBefore = null }
             adapter.invalidatePolicy()
+            try { if (syncAdvisorToolsRef) syncAdvisorToolsRef() } catch { /* 注册同步失败不影响写盘 */ }
             inferenceEngine?.settingsChanged()
             adapter.english?.settingsChanged(sid=>readPolicy({home:DSH_HOME,sessionId:sid}).englishMode)
             let pol = null
