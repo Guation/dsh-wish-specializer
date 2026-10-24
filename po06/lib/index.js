@@ -2770,6 +2770,8 @@ let syncAdvisorToolsRef=null
           },
           // 只读诊断口：把采集器**实际看见**的能力原样返回，便于核对“为什么脚手架没提某个工具”
           capabilityProbe: async (sid) => capabilitiesFor(String(sid || ''), ctx),
+          workingText: async (sid) => adapter.getWorkingText(String(sid || '')),
+          workingTextInfo: async (sid) => { const key = String(sid || ''); const pol = adapter.policyNow(key) || {}; return { hasPacket: !!String(adapter.getIntentText(key) || '').trim(), framing: pol.framing || 'neutral', englishMode: pol.englishMode === true, advisor: pol.advisor !== false, reviewed: adapter.reviewedPackets ? adapter.reviewedPackets.has(key) : null } },
           resolveEfforts: async (provider, model) => {
             const llm = ctx.get('llm')
             if (!llm) return { ok: false, reason: 'no-llm-service', efforts: [], defaultEffort: null }
