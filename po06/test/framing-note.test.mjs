@@ -31,7 +31,7 @@ function oneItemState() {
 test('加码插在中间，边界行仍在最后', () => {
   const withNote = framingBlock('hard', NOTE)
   assert.ok(withNote.includes(NOTE), '加码应在块里')
-  assert.ok(withNote.trim().endsWith('不准替他定。'), '越权反制行必须仍在最后')
+  assert.ok(withNote.trim().endsWith('边界不能糊。'), '越权反制行必须仍在最后')
   assert.ok(withNote.indexOf('兄弟') < withNote.indexOf(NOTE), '语域行在加码之前')
 })
 
@@ -63,7 +63,7 @@ test('编译器把加码带进包；neutral 时连加码都不许出现', () => 
   const s = oneItemState()
   const on = compile(s, { framing: 'hard', framingNote: NOTE })
   assert.ok(on.text.includes(NOTE), 'hard 档应带加码')
-  assert.ok(on.text.trim().includes('不准替他定。'), '边界行仍在')
+  assert.ok(on.text.trim().includes('不准替他定'), '边界行仍在')
   const off = compile(s, { framing: 'neutral', framingNote: NOTE })
   assert.ok(!off.text.includes(NOTE), 'neutral 下加码不得出现')
   assert.ok(!off.text.includes('协作基调'), 'neutral 下连块都不该有')

@@ -35,7 +35,7 @@ test('neutral 什么都不注入；hard 是一段语域匹配的块', () => {
   const hard = framingBlock('hard')
   assert.ok(hard.length > 0)
   // 语域本身必须在（这是效果来源，不是装饰）
-  for (const marker of ['兄弟', '猛']) assert.ok(hard.includes(marker), '应保留口语语域：' + marker)
+  for (const marker of ['老哥们', '肌肉集团']) assert.ok(hard.includes(marker), '应保留口语语域：' + marker)
   assert.ok(!/请积极主动/.test(hard), '不许被消毒成正式条目')
 })
 
