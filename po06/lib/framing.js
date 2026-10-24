@@ -52,11 +52,9 @@ export function normalizeHardNote(note) {
 export function framingBlock(framing, note,language) {
   if(language==='en'){if(String(framing)!=='hard')return '';return ['[Direct energetic tone, plugin-added; not new user requirements]','Get the actual result built. Be direct and task-specific; avoid padding and empty promises.',normalizeHardNote(note),'Decide reversible low-risk details, but do not silently choose unapproved goals, features, network access or delivery formats.'].filter(Boolean).join('\n')}
   if (String(framing) !== 'hard') return ''
-  const extra = normalizeHardNote(note)
-  const lines = [OPEN, MID]
-  if (extra) lines.push(extra)
-  lines.push(BOUNDARY)
-  return lines.join('\n')
+  // 加码不再塞进基调块：它由 compiler 放在**整段注入文的最后**（用户 2026-10-23 指定位置），
+  // 这样越权反制行仍在基调块末尾，加码也不会把它顶掉。
+  return [OPEN, MID, BOUNDARY].join('\n')
 }
 /**
  * 硬邦邦基调下的**骨架文案**：节标题与包头整段换一种口吻，

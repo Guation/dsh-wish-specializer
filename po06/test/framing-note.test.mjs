@@ -28,11 +28,13 @@ function oneItemState() {
   return r.state
 }
 
-test('加码插在中间，边界行仍在最后', () => {
+// 2026-10-23 变更：加码不再塞进基调块，而是由 compiler 放到**整段注入文的最后**
+// （用户指定位置）；基调块本身只保留语域 + 越权反制行，且边界仍在块末尾。
+test('基调块不含加码；边界行仍在块末尾', () => {
   const withNote = framingBlock('hard', NOTE)
-  assert.ok(withNote.includes(NOTE), '加码应在块里')
-  assert.ok(withNote.trim().endsWith('边界不能糊。'), '越权反制行必须仍在最后')
-  assert.ok(withNote.indexOf('兄弟') < withNote.indexOf(NOTE), '语域行在加码之前')
+  assert.equal(withNote.includes(NOTE), false, '加码不在这块里')
+  assert.ok(withNote.trim().endsWith('边界不能糊。'), '越权反制行仍在块末尾')
+  assert.ok(withNote.includes('老哥们'), '语域行仍在')
 })
 
 test('空/空白加码等于没有加码（退回纯骨架）', () => {

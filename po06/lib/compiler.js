@@ -115,7 +115,10 @@ export function compile(state, opts = {}) {
       blocks.push('【' + label + '】\n' + items.map(it=>lineFor(it,opts.language)).join('\n'))
     }
     if (blocks.length === 0) return blocks
-    return framingText ? [framingText].concat(blocks) : blocks
+    const tail = (opts.framing === 'hard' && opts.framingNote)
+      ? ['【本轮加码（插件所加，不是用户的新要求）】\n' + String(opts.framingNote)]
+      : []
+    return (framingText ? [framingText].concat(blocks) : blocks).concat(tail)
   }
 
   // 丢弃循环：**把"省略声明"本身也算进预算**。

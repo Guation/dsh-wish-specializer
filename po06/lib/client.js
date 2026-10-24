@@ -1456,6 +1456,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           label:k=>k==='on'?L('开启','On'):L('关闭','Off'),
           title:!known?L('顾问：还没读到当前设置，这次不会发送这个字段','Advisor: current setting not read yet')
             :L('顾问：开启后可调用 consult_task / advisor_stage 做独立解题与复核；关闭后这两个工具直接拒绝，不发起任何模型调用。','Advisor: consult_task and advisor_stage are available when on; when off they refuse without any model call.'),
+          tones:{off:'#e05a5a',on:'#3fbf7f'},
           onPick:v=>save({advisor:v==='on'}) }))
     }
     function EnglishControls({settings={},save,ready,busy=false,failTick}){
@@ -1469,6 +1470,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           title:!known?L('英文模式：还没读到当前设置，这次不会发送这个字段','English mode: current setting not read yet; this field will not be sent')
             :L('英文模式：把用户任务、优化策略与辅助文转成英文再送给模型（界面仍是中文）。不添加答复语言要求，原话里的语言要求照常保留。',
               'English mode: send the task, optimizer instructions and assistance as English (the UI stays Chinese). No response-language policy is added; explicit language requests are preserved.'),
+          tones:{off:'#e05a5a',on:'#3fbf7f'},
           onPick:v=>save({englishMode:v==='on'}),
         }))
     }
@@ -3752,6 +3754,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('≋', L('协作基调', 'Tone'))),
                 h(Segmented, {
                   name: 'framing', value: framing, options: ['neutral', 'hard'], failTick,
+          // 基调是风格开关而不是开关机：neutral 蓝、hard 黄（与“开/关”的红绿区分开）。
+          tones: { neutral: '#4a9eff', hard: '#e0b23c' },
                   label: (k) => (k === 'hard' ? L('硬邦邦', 'Hard') : L('普通', 'Plain')),
                   title: L('硬邦邦：用更直接、更来劲的语气推动执行（不改你的原话，也不放松「不替你拍板」的边界）',
                     'Hard: a blunter, more driven register (your words stay unchanged and decision boundaries stay intact)'),

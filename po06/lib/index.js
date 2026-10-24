@@ -2576,7 +2576,22 @@ let syncAdvisorToolsRef=null
            englishGet:sid=>adapter.english.get(sid),
            inferenceList:sid=>inferenceTrace.list(sid),
            inferenceGet:(sid,run,call,offsets)=>inferenceTrace.get(sid,run,call,offsets),
-           inferenceCancel:(sid,run)=>{const r=inferenceEngine?.cancel(sid,run) || {ok:false,reason:'not-ready'};if(r&&r.ok){try{pendingCardBySession.delete(String(sid))}catch{}};return r},
+           inferenceCancel:(sid,run)=>{
+  const r=inferenceEngine?.cancel(sid,run) || {ok:false,reason:'not-ready'}
+  // 取消 = **本轮彻底作废**：除了停掉在途推理，还要把这一轮的残留全部清掉，
+  // 否则下一次优化会接着上次的产物/思考走（用户 2026-10-23 实测）。
+  // 清的是**本轮未完成的东西**：待显示卡片、已拦截标记、模型加码、顾问 directive；
+  // 已经发出去的注入文属于既成事实，不回改。
+  if(r&&r.ok){
+    const key=String(sid)
+    try{pendingCardBySession.delete(key)}catch{}
+    try{interceptedText.delete(key)}catch{}
+    try{if(typeof adapter.setIntentText==='function')adapter.setIntentText(key,'',{reviewed:true})}catch{}
+    try{adapter.advisorLedger?.clear?.(key)}catch{}
+    try{adapter.framingNote=null;adapter.framingNoteRaw=null}catch{}
+  }
+  return r
+},
           advisorStageStatus: sid => {
             const pol=sid ? readPolicy({home:DSH_HOME,sessionId:sid}) : null
             // GitHub #32：原先写死 readEnabled:false ⇒ 面板永远显示「顾问只读未开」，与真实设置无关，
