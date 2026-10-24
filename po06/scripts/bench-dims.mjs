@@ -137,24 +137,40 @@ for (const c of CASES) {
   const b = read(bP) || (await call(WORKER, packet + '\n\n' + c.request, 1200)).text
   if (!read(bP)) write(bP, b)
   row.baselineChars = a.length; row.injectedChars = b.length
-  // ③ 盲评（缓存）
-  const jP = base + '-judge.json'
-  let judge = null
-  try { judge = JSON.parse(read(jP) || 'null') } catch { judge = null }
-  if (!judge) {
-    const flip = Math.random() < 0.5
+  // ③ 双评（缓存）：同一对产物评两次、X/Y 顺序互换。
+  //    为什么：单评的噪声与要测的效应同量级（d1-car 同一产物两次判定从“负”变“平”），
+  //    所以只有两次一致的结果才算数，不一致记为 disputed。
+  async function judgeOnce(tag, flip) {
+    const p = base + '-' + tag + '.json'
+    let j = null
+    try { j = JSON.parse(read(p) || 'null') } catch { j = null }
+    if (j) return j
     const xText = flip ? b : a, yText = flip ? a : b
     const jr = await call(JUDGE, ['请求：', c.request, '', '===== X =====', xText.slice(0, 5000), '', '===== Y =====', yText.slice(0, 5000)].join('\n'), 400)
     let parsed = null
     try { parsed = JSON.parse(String(jr.text).replace(/^[^{]*/, '').replace(/[^}]*$/, '')) } catch { parsed = null }
-    judge = { flip, side: flip ? 'x' : 'y', ...(parsed || {}) }
-    write(jP, JSON.stringify(judge, null, 2))
+    j = { flip, side: flip ? 'x' : 'y', ...(parsed || {}) }
+    write(p, JSON.stringify(j, null, 2))
+    return j
   }
-  const bSide = judge.side, aSide = bSide === 'x' ? 'y' : 'x'
-  row.judge = { injected: judge[bSide] || null, baseline: judge[aSide] || null, winner: judge.winner || null, why: judge.why || null }
-  // 裁判返回大写 'X'/'Y'，缓存里的 side 是小写——大小写不一致会把每场都判成输（真机踩到）。
-  const w = judge.winner == null ? null : String(judge.winner).toLowerCase()
-  row.winB = w === null ? null : (w === 'tie' ? 0 : (w === bSide ? 1 : -1))
+  function verdictOf(j) {
+    const bSide = j.side, aSide = bSide === 'x' ? 'y' : 'x'
+    const w = j.winner == null ? null : String(j.winner).toLowerCase()
+    return {
+      winB: w === null ? null : (w === 'tie' ? 0 : (w === bSide ? 1 : -1)),
+      injected: j[bSide] || null,
+      baseline: j[aSide] || null,
+      why: j.why || null,
+    }
+  }
+  const flip1 = Math.random() < 0.5
+  const j1 = await judgeOnce('judge1', flip1)
+  const j2 = await judgeOnce('judge2', !flip1)
+  const v1 = verdictOf(j1), v2 = verdictOf(j2)
+  const agree = v1.winB !== null && v1.winB === v2.winB
+  row.judge = { first: v1, second: v2, agree }
+  row.winB = agree ? v1.winB : null
+  row.disputed = !agree
   // ④ 机械判据：命中了多少预期要点 / 是否与既有规格冲突
   if (Array.isArray(c.expect)) {
     const hit = c.expect.filter(k => (a + b).includes(k))
@@ -172,5 +188,7 @@ for (const c of CASES) {
 
 writeFileSync(join(OUT, 'dims.json'), JSON.stringify({ rows }, null, 2) + '\n')
 const byDim = {}
-for (const r of rows) { const d = byDim[r.dim] || (byDim[r.dim] = { n: 0, wins: 0, losses: 0, ties: 0 }); d.n++; if (r.winB === 1) d.wins++; else if (r.winB === -1) d.losses++; else if (r.winB === 0) d.ties++ }
+let disputed = 0
+for (const r of rows) { const d = byDim[r.dim] || (byDim[r.dim] = { n: 0, wins: 0, losses: 0, ties: 0, disputed: 0 }); d.n++; if (r.disputed) { d.disputed++; disputed++ } if (r.winB === 1) d.wins++; else if (r.winB === -1) d.losses++; else if (r.winB === 0) d.ties++ }
 console.log('DIMS ' + JSON.stringify(byDim))
+console.log('DISPUTED ' + disputed)
