@@ -1,13 +1,11 @@
 {
-  "at": "2026-10-24T15:44:39.284Z",
+  "at": "2026-10-24T15:45:34.787Z",
   "summary": {
     "suites": 145,
-    "passed": 144,
-    "failed": 1,
-    "passTotal": 1418,
-    "failing": [
-      "inject-empty-shell.test.mjs"
-    ]
+    "passed": 145,
+    "failed": 0,
+    "passTotal": 1419,
+    "failing": []
   },
   "results": [
     {
@@ -677,10 +675,10 @@
     },
     {
       "file": "inject-empty-shell.test.mjs",
-      "pass": 1,
-      "fail": 1,
-      "exit": 1,
-      "ok": false
+      "pass": 2,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
     },
     {
       "file": "intercept-output-stream.test.mjs",
@@ -1026,28 +1024,5 @@
       "ok": true
     }
   ],
-  "failed": [
-    {
-      "file": "inject-empty-shell.test.mjs",
-      "pass": 1,
-      "fail": 1,
-      "exit": 1,
-      "ok": false,
-      "unparsable": false,
-      "tail": [
-        "      at Test.run (node:internal/test_runner/test:1402:25)",
-        "      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)",
-        "      at Test.postRun (node:internal/test_runner/test:1542:19)",
-        "      at Test.run (node:internal/test_runner/test:1467:12)",
-        "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {",
-        "    generatedMessage: false,",
-        "    code: 'ERR_ASSERTION',",
-        "    actual: false,",
-        "    expected: true,",
-        "    operator: '==',",
-        "    diff: 'simple'",
-        "  }"
-      ]
-    }
-  ]
+  "failed": []
 }
