@@ -105,3 +105,30 @@ export function framingToneHint(framing, language = "zh") {
     ? "Write every suggestion in a direct, imperative register: no 'you may consider', no hedging, no polite padding. Say what to do and how to verify it."
     : "每条建议都用直接、命令式的中文写：不要“建议/可以考虑/或许/不妨”，少客套，直接说要做什么、怎么验。"
 }
+
+/**
+ * 把基调应用到**真实注入路径**（0.9 的优化器包，不是 0.6 的编译器包）。
+ *
+ * 2026-10-23 实测：用户开着硬邦邦，注入文却还是中性——因为 0.9 的注入文由
+ * `renderOptimizerPacket` 生成，**根本不经过 compiler**，framing 只作用在遗留路径上。
+ * 这里做一次纯文本换装：前言、两个小节标题换成硬邦邦口吻，并在最前加基调块。
+ * 只改“壳”，不改建议内容与顺序；neutral 原样返回。
+ */
+export function applyFramingToPacket(text, framing, language = "zh") {
+  const src = String(text == null ? "" : text)
+  if (!src.trim()) return src
+  if (String(framing) !== "hard") return src
+  const en = language === "en"
+  let out = src
+  if (en) {
+    out = out.replace("Give these goal-focused suggestions priority consideration and judge them against the actual task.", "Alright — here is what actually moves the needle this round. Judge it against the task and pick your own means.")
+    out = out.split("[Production suggestions]").join("[What to build]")
+    out = out.split("[Temporary scaffold suggestions]").join("[Scaffold to rig up yourself]")
+  } else {
+    out = out.replace("请优先考虑以下围绕目标提炼的重点建议，并结合实际判断取舍。", "老规矩：下面是这一轮真正能拉开差距的方向，你自己拿主意、按实际情况取舍。")
+    out = out.split("【制作建议】").join("【要干的事】")
+    out = out.split("【临时脚手架建议】").join("【自己搭的临时脚手架】")
+  }
+  const block = framingBlock("hard", null, language)
+  return block ? block + "\n\n" + out : out
+}

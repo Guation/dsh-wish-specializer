@@ -55,6 +55,7 @@ import {createInferenceEvidenceContext} from './inference-context.js'
 import {createInferenceFocus} from './inference-focus.js'
 import { createEnglishMode,protectEnglishLiterals,prepareEnglishInterpretation,finishEnglishInput,resolveEnglishInterpretation } from './english-mode.js'
 import { withAdvisorWorkflow } from './advisor-workflow.js'
+import { applyFramingToPacket } from './framing.js'
 import { createAdvisorFeedback } from './advisor-context.js'
 import { createAdvisorCoverage } from './advisor-coverage.js'
 import {createAdvisorDeliveryReader} from './advisor-delivery.js'
@@ -1944,7 +1945,8 @@ class DshAdapter {
     // 关掉即清账（设置是全局的，账也不该留着）：下一次打开从零开始记。
     if (!advisorOn) { try { this.advisorLedger?.clear(String(sessionId || '')) } catch { /* 清不掉不影响注入 */ } }
     const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
-    return directive ? [base, directive].filter(Boolean).join('\n\n') : base
+    const styled = applyFramingToPacket(base, this.policyNow(sessionId)?.framing, this.policyNow(sessionId)?.englishMode ? 'en' : 'zh')
+    return directive ? [styled, directive].filter(Boolean).join('\n\n') : styled
   }
 
   /** 会话当前预设（含中途切换）：只用来判断要不要提示，不直接进界面。 */
