@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-24T13:06:01.830Z",
+  "at": "2026-10-24T13:41:12.044Z",
   "summary": {
-    "suites": 143,
-    "passed": 143,
+    "suites": 144,
+    "passed": 144,
     "failed": 0,
-    "passTotal": 1415,
+    "passTotal": 1417,
     "failing": []
   },
   "results": [
@@ -529,6 +529,13 @@
     {
       "file": "follow-model-effort.test.mjs",
       "pass": 5,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "framing-dedupe.test.mjs",
+      "pass": 2,
       "fail": 0,
       "exit": 0,
       "ok": true

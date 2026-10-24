@@ -1938,17 +1938,20 @@ class DshAdapter {
 
   getWorkingText(sessionId, feedback = '') {
     const packet=this.getIntentText(sessionId)
-    const base = this.reviewedPackets.has(String(sessionId)) ? [packet,feedback].filter(Boolean).join('\n\n')
-      : this.capability.render(String(sessionId),packet,feedback,this.policyNow(sessionId)?.englishMode?'en':null)
-    // 顾问开关关掉时**整段不出现**（用户 2026-10-20：关掉要退化成线性流程，不留半截结构）。
-    const advisorOn = this.policyNow(sessionId)?.advisor !== false
+    const pol = this.policyNow(sessionId) || {}
+    const advisorOn = pol.advisor !== false
     // 关掉即清账（设置是全局的，账也不该留着）：下一次打开从零开始记。
     if (!advisorOn) { try { this.advisorLedger?.clear(String(sessionId || '')) } catch { /* 清不掉不影响注入 */ } }
     const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
-    const styled = applyFramingToPacket(base, this.policyNow(sessionId)?.framing, this.policyNow(sessionId)?.englishMode ? 'en' : 'zh')
+    const base = this.reviewedPackets.has(String(sessionId)) ? [packet,feedback].filter(Boolean).join('\n\n')
+      : this.capability.render(String(sessionId),packet,feedback,pol.englishMode?'en':null)
+    // 什么都没渲染出来 ⇒ **不注入包壳**（2026-10-23 真机：包是空的，注入文里却还挂着基调块与
+    // “没提取到内容”的提示，界面那边也不会有注入卡片——两边对不上）。
+    // 判据是**渲染结果**而不是 packet：有状态条目时渲染仍有内容，不能误杀。
+    if (!String(base || '').trim()) return [feedback, directive].filter(Boolean).join('\n\n') || ''
+    const styled = applyFramingToPacket(base, pol.framing, pol.englishMode ? 'en' : 'zh')
     return directive ? [styled, directive].filter(Boolean).join('\n\n') : styled
   }
-
   /** 会话当前预设（含中途切换）：只用来判断要不要提示，不直接进界面。 */
   notePreset(sessionId, preset) {
     const sid = String(sessionId == null ? '' : sessionId)
