@@ -1955,7 +1955,10 @@ class DshAdapter {
     const cleanedBase = String(base || '').replace(placeholderOnly, '').trim()
     if (!cleanedBase) return [feedback, directive].filter(Boolean).join('\n\n') || ''
     base = cleanedBase
-    const styled = applyFramingToPacket(base, pol.framing, pol.englishMode ? 'en' : 'zh')
+    // 基调换装**只对真正有包的一轮**生效（2026-10-23 真机反复：空包时壳仍被套上）。
+    // 包为空 ⇒ 不换装、不加基调块；base 可能仍有编译器渲染的内容（测试依赖），所以不动 base。
+    const hasPacket = String(packet || '').trim().length > 0
+    const styled = hasPacket ? applyFramingToPacket(base, pol.framing, pol.englishMode ? 'en' : 'zh') : base
     return directive ? [styled, directive].filter(Boolean).join('\n\n') : styled
   }
   /** 会话当前预设（含中途切换）：只用来判断要不要提示，不直接进界面。 */

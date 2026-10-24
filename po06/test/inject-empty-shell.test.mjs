@@ -12,3 +12,9 @@ test('getWorkingText 把占位提示当空，且不改动真实未决项', () =>
   // 必须仍然保留“有内容就注入”的分支：cleanedBase 非空时继续走渲染
   assert.ok(/base = cleanedBase/.test(src), '剥掉占位后继续用真实内容')
 })
+
+test("只有包非空才换装：空包不允许出现基调块", () => {
+  const src = readFileSync(new URL("../lib/index.js", import.meta.url), "utf8")
+  assert.ok(/const hasPacket = String\(packet \|\| ""\)\.trim\(\)\.length > 0/.test(src), "要有包判据")
+  assert.ok(/hasPacket \? applyFramingToPacket/.test(src), "空包不得换装")
+})
