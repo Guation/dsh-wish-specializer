@@ -14,7 +14,7 @@ import { parseInterpreterOutput, dryRun } from './interpreter.js'
 import { compileAudited } from './compiler.js'
 import { reduce } from './reducer.js'
 import { renderOptimizerPacket } from './optimizer-protocol.js'
-import { hasPayloadLines } from './framing.js'
+import { hasPayloadLines, stripPlaceholderNotice } from './framing.js'
 import { planClarification, planningToOps } from './clarifier.js'
 
 /**
@@ -283,7 +283,8 @@ function finish(trace, state, _unused, outcome, adapter, session, userText = '')
       // 这里原来把编译器渲染的头部（包头 + 基调块）也写成了包：
       // 真机表现就是“优化跑很久，最后注入 250~370 字的壳，一条建议都没有”。
       // 没有条目行 ⇒ 写空串，那一轮就是**零注入**。
-      if (!hasPayloadLines(packet.text)) {
+      // 占位说明先剥掉：它自己也以 “- ” 开头，会骗过“有没有条目”的判据（真机实测）。
+      if (!hasPayloadLines(stripPlaceholderNotice(packet.text))) {
         packet = { ...packet, text: '', chars: 0 }
         adapter.setIntentText(session.id, '')
         trace.push({ step: 'setContext', sessionId: String(session.id), chars: 0, reason: 'empty-shell-dropped' })

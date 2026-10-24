@@ -1,11 +1,13 @@
 {
-  "at": "2026-10-24T18:42:58.481Z",
+  "at": "2026-10-24T18:52:37.302Z",
   "summary": {
-    "suites": 148,
+    "suites": 149,
     "passed": 148,
-    "failed": 0,
-    "passTotal": 1425,
-    "failing": []
+    "failed": 1,
+    "passTotal": 1426,
+    "failing": [
+      "pipeline-shell-drop.test.mjs"
+    ]
   },
   "results": [
     {
@@ -787,14 +789,21 @@
     },
     {
       "file": "pipeline-shell-drop.test.mjs",
-      "pass": 1,
+      "pass": 0,
+      "fail": 1,
+      "exit": 1,
+      "ok": false
+    },
+    {
+      "file": "pipeline.test.mjs",
+      "pass": 23,
       "fail": 0,
       "exit": 0,
       "ok": true
     },
     {
-      "file": "pipeline.test.mjs",
-      "pass": 23,
+      "file": "placeholder-not-content.test.mjs",
+      "pass": 2,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -1045,5 +1054,28 @@
       "ok": true
     }
   ],
-  "failed": []
+  "failed": [
+    {
+      "file": "pipeline-shell-drop.test.mjs",
+      "pass": 0,
+      "fail": 1,
+      "exit": 1,
+      "ok": false,
+      "unparsable": false,
+      "tail": [
+        "      at TestContext.<anonymous> (file:///C:/Users/33875/.dsh/plugins/dsh-wish-specializer/po06/test/pipeline-shell-drop.test.mjs:11:10)",
+        "      at Test.runInAsyncScope (node:async_hooks:227:14)",
+        "      at Test.run (node:internal/test_runner/test:1402:25)",
+        "      at Test.start (node:internal/test_runner/test:1262:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: '==',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    }
+  ]
 }

@@ -151,3 +151,16 @@ export function hasPayloadLines(text) {
   if (!s.trim()) return false
   return /^\s*(?:[-*]\s+\S|\d+[.、]\s+\S)/m.test(s)
 }
+
+/**
+ * 编译器在“什么都没提取到”时会写一条占位说明：
+ *   【没定的事（别替我拍板）】
+ *   - 这一轮没有从中提取到可执行内容（…）
+ * 它**长得像条目**（以 “- ” 开头），会把“有没有内容”的判据骗过去（2026-10-25 真机）。
+ * 这里整段剥掉；该节若还有真实未决项，不会被误删。
+ */
+export function stripPlaceholderNotice(text) {
+  return String(text == null ? "" : text)
+    .replace(/【[^】]*没定的事[^】]*】[ \t]*\n-\s*这一轮没有从中提取到可执行内容[^\n]*\n?/g, "")
+    .trim()
+}
