@@ -808,6 +808,13 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
           if (typeof clearNotices === 'function') clearNotices()
           return send(200, { ok: true, forever: true })
         }
+        // 恢复显示（2026-10-23）：用户点了“以后不再显示”之后，得有一条**可逆**的路，
+        // 否则提示一旦关掉就永远回不来（真机上就是这么丢的）。
+        if (v.reset === true) {
+          const rr = writeSettings({ path: cfgPath, patch: { presetNoticeDismissed: false }, now: now() })
+          if (!rr || rr.ok !== true) return send(500, { ok: false, reason: (rr && rr.reason) || 'settings-write-failed' })
+          return send(200, { ok: true, reset: true })
+        }
         if (typeof clearNotice === 'function') clearNotice(String(v.session || ''))
         return send(200, { ok: true })
       }

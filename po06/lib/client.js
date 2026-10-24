@@ -1474,6 +1474,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onPick:v=>save({englishMode:v==='on'}),
         }))
     }
+    // 预设提示的“后悔药”（2026-10-23）：点过「以后不再显示」后得能开回来，
+    // 否则那个提示会永久消失（真机上就是这么丢的）。只在已关闭时出现。
+    function NoticeRestore({settings={},refresh}){
+      if(settings.presetNoticeDismissed!==true) return null
+      return h('div',{style:S.optRow},h('span',{style:S.optLabel},'💬 '+L('预设提示','Preset notice')),
+        h('button',{'data-po06':'notice-restore',type:'button',style:{...S.small,color:T('acc')},
+          title:L('预设提示已关闭。点这里恢复：切换预设时会再提醒一次。','Preset notice is off. Click to restore it.'),
+          onClick:()=>{ apiPost('/notice',{reset:true}).then(()=>{ if(typeof refresh==='function') refresh() }).catch(()=>{}) },
+        },L('已关闭 · 点此恢复','Off · restore')))
+    }
     function InferenceControls({settings={},save,ready,busy=false}){
       const enabled=settings.reasoningBoost===true,known=typeof settings.reasoningBoost==='boolean'
       return h('div',{'data-po06':'inference-controls',style:{borderTop:'1px solid '+T('line2'),paddingTop:'8px',marginTop:'8px'}},
@@ -1665,6 +1675,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // ⚠ advisor 是**全局键**，而 sessionEffective 只带会话级键 ⇒ 必须并上全局的 s.advisor，
         //   否则界面永远读不到布尔值、开关是灰的（2026-10-19 真机）。
         h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:save,ready:true,busy}),
+        h(NoticeRestore,{settings:s,refresh:()=>{ try{ refreshStatus() }catch{ /* 无刷新通道 */ } }}),
         h(EnglishControls,{settings:eff,save:saveTier,ready:status?.english?.ready===true,busy}),
         // 2026-10-19 用户要求：**详情面板里的「快速增强」也隐藏**（与设置页一致，默认关闭、不再给入口）。
         // 组件与后端代码都保留；要恢复只把下面这一行放回来。
