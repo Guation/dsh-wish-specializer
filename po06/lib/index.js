@@ -1959,6 +1959,13 @@ class DshAdapter {
     // 包为空 ⇒ 不换装、不加基调块；base 可能仍有编译器渲染的内容（测试依赖），所以不动 base。
     const hasPacket = String(packet || '').trim().length > 0
     const styled = hasPacket ? applyFramingToPacket(base, pol.framing, pol.englishMode ? 'en' : 'zh') : base
+    // 只读追踪（2026-10-23）：空包为何仍出壳——把三段的长度记进台账，一次复现即可定位。
+    try {
+      appendWireLog({ sessionId: String(sessionId || ''), trigger: 'working-text-trace', ok: true,
+        hasPacket, packetChars: String(packet || '').length, baseChars: String(base || '').length,
+        styledChars: String(styled || '').length, hasFraming: String(styled || '').includes('协作基调'),
+        framing: pol.framing || 'neutral' })
+    } catch { /* 追踪失败不影响注入 */ }
     return directive ? [styled, directive].filter(Boolean).join('\n\n') : styled
   }
   /** 会话当前预设（含中途切换）：只用来判断要不要提示，不直接进界面。 */
