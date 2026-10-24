@@ -1,62 +1,13 @@
 # 仓库文档（docs/）
 
-> 面向使用者的入口在 [仓库根 README](../README.md)；这里是设计、过程与开发文档。
-> 历史版本（0.1~0.6）见 [`old/`](../old/README.md)。
+> **从这里开始：[INDEX.md](INDEX.md)** —— 现行契约、实测数据、历史文档三者的分界。
+>
+> 面向使用者的说明在 [仓库根 README](../README.md)；历史文档（0.5–0.8 的计划与验收）在 [legacy/](legacy/README.md)，
+> **不要把它们当作当前行为**。
 
-> **先读 [`OVERVIEW.md`](OVERVIEW.md)**：当前状态、注入文合同、文档权威范围。
-
-## 设计与规格
-
-| 文件 | 是什么 |
-|---|---|
-| [SPEC.md](SPEC.md) | 本插件的规格基线（做什么、不做什么） |
-| [ACCEPTANCE.md](ACCEPTANCE.md) | 验收标准（怎么算做完了） |
-| [PROMPT-OPTIMIZATION.md](PROMPT-OPTIMIZATION.md) | 提示词优化这件事本身的方法与取舍 |
-| [ROADMAP.md](ROADMAP.md) | 路线图与未做项 |
-
-## 计划（按版本）
-
-| 文件 | 对应版本 |
-|---|---|
-| [PLAN-0.6.md](PLAN-0.6.md) | 0.6 架构重做 |
-| [PLAN-0.7.0-beta.1.md](PLAN-0.7.0-beta.1.md) | 0.7.0 |
-| [PLAN-0.7.1.md](PLAN-0.7.1.md) | 0.7.1 |
-| [0.7.9plan.md](0.7.9plan.md) | 0.7.9 单轮独立顾问（本地待测） |
-| [PLAN-BASH-RELIABILITY.md](PLAN-BASH-RELIABILITY.md) | Bash 可靠性整改（本地已实施，待重启手测） |
-
-## 过程记录
-
-| 文件 | 记什么 |
-|---|---|
-| [OVERVIEW.md](OVERVIEW.md) | **当前状态总览（先读这个）** |
-| [archive/CHECKPOINT-0.6-historical.md](archive/CHECKPOINT-0.6-historical.md) | 0.6 时代检查点存档（历史） |
-| [DECISIONS.md](DECISIONS.md) | 决策与理由（为什么这么定） |
-| [DELIVERY.md](DELIVERY.md) | 交付记录 |
-| [EVIDENCE.md](EVIDENCE.md) | 证据索引 |
-| [EVAL-REGISTRY.md](EVAL-REGISTRY.md) | 评估登记 |
-| [evidence/](evidence/) | 开发期证据留档（原始产物） |
-
-## 兼容性
-
-| 文件 | 是什么 |
-|---|---|
-| [DSH-COMPAT.md](DSH-COMPAT.md) | 与 DSH 宿主各版本的兼容说明 |
-| [compatibility-report.md](compatibility-report.md) | 兼容性实测报告 |
-| [baseline-manifest.json](baseline-manifest.json) | 基线清单 |
-
-## 开发与发布
-
-| 文件 | 是什么 |
-|---|---|
-| [RELEASING.md](RELEASING.md) | **发布规程**：四条不变量 + 9 步流程 + 检查清单 |
-| [PACKAGING-NOTICE.md](PACKAGING-NOTICE.md) | 打包避坑记录（根 package.json 为什么是薄壳） |
-
-## 留在仓库根的文件（为什么）
-
-| 文件 | 为什么在根 |
-|---|---|
-| `README.md` / `README.en.md` | 访客第一眼要看的东西 |
-| `LICENSE` | 惯例位置 |
-| `CHANGELOG.md` | 发布惯例，访客常直接找 |
-| `package.json` | 安装入口会读它（详见 PACKAGING-NOTICE） |
-| `.gitignore` / `.gitattributes` | 版本控制必需 |
+| 目录 | 内容 |
+| --- | --- |
+| 本目录 | 现行文档：规格、协议、决策、证据登记、交付与兼容 |
+| [legacy/](legacy/README.md) | 历史：各版本计划（PLAN-*）、旧验收、事后分析 |
+| [../po06/eval/](../po06/eval/) | 跑分报告（含 2026-10 实测） |
+| [../old/](../old/README.md) | 0.1–0.6 的旧发布物 |
