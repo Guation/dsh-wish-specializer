@@ -1,13 +1,11 @@
 {
-  "at": "2026-10-24T09:09:04.448Z",
+  "at": "2026-10-24T09:11:50.845Z",
   "summary": {
     "suites": 141,
-    "passed": 140,
-    "failed": 1,
-    "passTotal": 1407,
-    "failing": [
-      "framing.test.mjs"
-    ]
+    "passed": 141,
+    "failed": 0,
+    "passTotal": 1409,
+    "failing": []
   },
   "results": [
     {
@@ -558,10 +556,10 @@
     },
     {
       "file": "framing.test.mjs",
-      "pass": 6,
-      "fail": 2,
-      "exit": 1,
-      "ok": false
+      "pass": 8,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
     },
     {
       "file": "gate.test.mjs",
@@ -998,28 +996,5 @@
       "ok": true
     }
   ],
-  "failed": [
-    {
-      "file": "framing.test.mjs",
-      "pass": 6,
-      "fail": 2,
-      "exit": 1,
-      "ok": false,
-      "unparsable": false,
-      "tail": [
-        "      at Test.run (node:internal/test_runner/test:1402:25)",
-        "      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)",
-        "      at Test.postRun (node:internal/test_runner/test:1542:19)",
-        "      at Test.run (node:internal/test_runner/test:1467:12)",
-        "      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {",
-        "    generatedMessage: false,",
-        "    code: 'ERR_ASSERTION',",
-        "    actual: false,",
-        "    expected: true,",
-        "    operator: '==',",
-        "    diff: 'simple'",
-        "  }"
-      ]
-    }
-  ]
+  "failed": []
 }

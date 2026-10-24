@@ -70,7 +70,9 @@ test('编译器：hard 时块在最前；neutral 时不出现', () => {
   const s = stateWithOneItem()
   const on = compile(s, { framing: 'hard' })
   assert.ok(on.text.includes('协作基调'), 'hard 应注入基调块')
-  assert.ok(on.text.indexOf('协作基调') < on.text.indexOf(label('requirements')), '基调块应在最前（先入为主设定语域）')
+  // 2026-10-23：hard 现在会**换掉骨架文案**（节标题也变），所以不能拿默认标签去定位；
+  // 改用“包正文内容”来确认基调块在最前。
+  assert.ok(on.text.indexOf('协作基调') < on.text.indexOf('单 HTML'), '基调块应在最前（先入为主设定语域）')
   const off = compile(s, { framing: 'neutral' })
   assert.ok(!off.text.includes('协作基调'), 'neutral 不该出现基调块')
   assert.ok(!off.text.includes('兄弟'), 'neutral 连语域词都不该有')
@@ -87,7 +89,7 @@ test('带基调时审计仍通过，且基调不计入条目节', () => {
   const out = compileAudited(s, { framing: 'hard' })
   assert.deepEqual(out.problems, [], JSON.stringify(out.problems))
   assert.ok(!out.sections.some((x) => /framing|基调/.test(x.key)), '基调不是条目节')
-  assert.ok(out.text.includes(label('requirements')), '其余内容照常')
+  assert.ok(out.text.includes('单 HTML'), '其余内容照常')
 })
 
 test('基调不改变来源身份：要求仍然只来自人类条目', () => {
