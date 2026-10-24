@@ -1943,12 +1943,18 @@ class DshAdapter {
     // 关掉即清账（设置是全局的，账也不该留着）：下一次打开从零开始记。
     if (!advisorOn) { try { this.advisorLedger?.clear(String(sessionId || '')) } catch { /* 清不掉不影响注入 */ } }
     const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
-    const base = this.reviewedPackets.has(String(sessionId)) ? [packet,feedback].filter(Boolean).join('\n\n')
+    let base = this.reviewedPackets.has(String(sessionId)) ? [packet,feedback].filter(Boolean).join('\n\n')
       : this.capability.render(String(sessionId),packet,feedback,pol.englishMode?'en':null)
     // 什么都没渲染出来 ⇒ **不注入包壳**（2026-10-23 真机：包是空的，注入文里却还挂着基调块与
     // “没提取到内容”的提示，界面那边也不会有注入卡片——两边对不上）。
     // 判据是**渲染结果**而不是 packet：有状态条目时渲染仍有内容，不能误杀。
-    if (!String(base || '').trim()) return [feedback, directive].filter(Boolean).join('\n\n') || ''
+    // 编译器在“什么都没提取到”时会写一条占位说明（【没定的事】- 这一轮没有从中提取到可执行内容）。
+    // 它是**提示**不是内容：把它当内容 ⇒ 空包也会被套上壳（真机 2026-10-23 又见一次）。
+    // 只有这一条占位时按“空”处理；该节里若还有真实未决项则原样保留。
+    const placeholderOnly = /【[^】]*没定的事[^】]*】\s*\n-\s*这一轮没有从中提取到可执行内容[^\n]*\n?/
+    const cleanedBase = String(base || '').replace(placeholderOnly, '').trim()
+    if (!cleanedBase) return [feedback, directive].filter(Boolean).join('\n\n') || ''
+    base = cleanedBase
     const styled = applyFramingToPacket(base, pol.framing, pol.englishMode ? 'en' : 'zh')
     return directive ? [styled, directive].filter(Boolean).join('\n\n') : styled
   }
