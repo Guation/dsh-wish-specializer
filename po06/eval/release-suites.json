@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-24T17:42:48.910Z",
+  "at": "2026-10-24T18:02:36.164Z",
   "summary": {
     "suites": 146,
     "passed": 146,
     "failed": 0,
-    "passTotal": 1422,
+    "passTotal": 1421,
     "failing": []
   },
   "results": [
@@ -682,7 +682,7 @@
     },
     {
       "file": "inject-empty-shell.test.mjs",
-      "pass": 2,
+      "pass": 1,
       "fail": 0,
       "exit": 0,
       "ok": true

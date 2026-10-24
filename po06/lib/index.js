@@ -55,7 +55,7 @@ import {createInferenceEvidenceContext} from './inference-context.js'
 import {createInferenceFocus} from './inference-focus.js'
 import { createEnglishMode,protectEnglishLiterals,prepareEnglishInterpretation,finishEnglishInput,resolveEnglishInterpretation } from './english-mode.js'
 import { withAdvisorWorkflow } from './advisor-workflow.js'
-import { applyFramingToPacket, hasPayloadLines } from './framing.js'
+import { applyFramingToPacket } from './framing.js'
 import { createAdvisorFeedback } from './advisor-context.js'
 import { createAdvisorCoverage } from './advisor-coverage.js'
 import {createAdvisorDeliveryReader} from './advisor-delivery.js'
@@ -1937,37 +1937,20 @@ class DshAdapter {
   }
 
   getWorkingText(sessionId, feedback = '') {
-    const packet=this.getIntentText(sessionId)
+    const packet = this.getIntentText(sessionId)
     const pol = this.policyNow(sessionId) || {}
     const advisorOn = pol.advisor !== false
     // 关掉即清账（设置是全局的，账也不该留着）：下一次打开从零开始记。
     if (!advisorOn) { try { this.advisorLedger?.clear(String(sessionId || '')) } catch { /* 清不掉不影响注入 */ } }
     const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
-    let base = this.reviewedPackets.has(String(sessionId)) ? [packet,feedback].filter(Boolean).join('\n\n')
-      : this.capability.render(String(sessionId),packet,feedback,pol.englishMode?'en':null)
-    // 什么都没渲染出来 ⇒ **不注入包壳**（2026-10-23 真机：包是空的，注入文里却还挂着基调块与
-    // “没提取到内容”的提示，界面那边也不会有注入卡片——两边对不上）。
-    // 判据是**渲染结果**而不是 packet：有状态条目时渲染仍有内容，不能误杀。
-    // 编译器在“什么都没提取到”时会写一条占位说明（【没定的事】- 这一轮没有从中提取到可执行内容）。
-    // 它是**提示**不是内容：把它当内容 ⇒ 空包也会被套上壳（真机 2026-10-23 又见一次）。
-    // 只有这一条占位时按“空”处理；该节里若还有真实未决项则原样保留。
-    const placeholderOnly = /【[^】]*没定的事[^】]*】\s*\n-\s*这一轮没有从中提取到可执行内容[^\n]*\n?/
-    const cleanedBase = String(base || '').replace(placeholderOnly, '').trim()
-    if (!cleanedBase) return [feedback, directive].filter(Boolean).join('\n\n') || ''
-    base = cleanedBase
-    // 基调换装**只对真正有包的一轮**生效（2026-10-23 真机反复：空包时壳仍被套上）。
-    // 包为空 ⇒ 不换装、不加基调块；base 可能仍有编译器渲染的内容（测试依赖），所以不动 base。
-    // 判据落在**条目行**上：包非空不等于有内容（2026-10-25 真机：250 字只有壳）。
-    const hasPacket = hasPayloadLines(packet)
-    const styled = hasPacket ? applyFramingToPacket(base, pol.framing, pol.englishMode ? 'en' : 'zh') : base
-    // 只读追踪（2026-10-23）：空包为何仍出壳——把三段的长度记进台账，一次复现即可定位。
-    try {
-      appendWireLog({ sessionId: String(sessionId || ''), trigger: 'working-text-trace', ok: true,
-        hasPacket, packetChars: String(packet || '').length, baseChars: String(base || '').length,
-        styledChars: String(styled || '').length, hasFraming: String(styled || '').includes('协作基调'),
-        framing: pol.framing || 'neutral' })
-    } catch { /* 追踪失败不影响注入 */ }
-    return directive ? [styled, directive].filter(Boolean).join('\n\n') : styled
+    // 注入的**唯一来源是包**（2026-10-25 用户定稿：“就不应该有壳”）。
+    // 编译器按状态渲染的那一段（包头 + 基调块）不再出现在注入文里——
+    // 它曾经让“优化还没算完”的一轮注入出 250 字纯壳。没有条目行 ⇒ 什么都不注入。
+    // 注入源=包（唯一）。包本身是否“像列表”不重要——它已经是渲染好的成品；
+    // 会出壳的是**编译器按状态渲染的头部**，那条路已经不再参与注入。
+    const styled = String(packet || '').trim() ? applyFramingToPacket(packet, pol.framing, pol.englishMode ? 'en' : 'zh') : ''
+    if (!styled) return [feedback, directive].filter(Boolean).join('\n\n') || ''
+    return [styled, directive].filter(Boolean).join('\n\n')
   }
   /** 会话当前预设（含中途切换）：只用来判断要不要提示，不直接进界面。 */
   notePreset(sessionId, preset) {

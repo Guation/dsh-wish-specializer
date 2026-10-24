@@ -67,7 +67,10 @@ test('真实并发输入：旧解释不能替换新辅助',async()=>{
  assert.equal(typeof finish,'function','first input must reach the interpretation hook')
  const next=await a.handleInput(session,{messageId:'m2',text:'当前任务',interpret:async()=>JSON.stringify({ops:[],understanding:{summary:'最新理解',relation:'new',action:'execute'},support})})
  assert.equal(next.outcome,'understood');finish(JSON.stringify({ops:[],understanding:{summary:'过期理解',relation:'new',action:'execute'}}))
- assert.equal((await first).outcome,'superseded-input');assert.match(a.getWorkingText('s1'),/最新理解/);assert.doesNotMatch(a.getWorkingText('s1'),/过期理解/)
+ assert.equal((await first).outcome,'superseded-input')
+ // 2026-10-25 契约变更：注入**只来自包**（用户：就不应该有壳）。理解仍写进状态，但不再经编译器渲染进注入文。
+ // 只断言“过期的理解不能出现在注入里”——注入源已是包，正例由注入测试覆盖。
+ assert.doesNotMatch(a.getWorkingText('s1'),/过期理解/)
 })
 
 test('具体解题贡献和待核前提完整经过解释、状态与工作注入',()=>{
