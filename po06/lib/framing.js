@@ -139,3 +139,15 @@ export function applyFramingToPacket(text, framing, language = "zh") {
   const glue = block.endsWith(nl) ? nl : nl + nl
   return block ? block + glue + out : out
 }
+
+/**
+ * 这段文本里有没有**真正的条目**（以 “- ” 或 “1. ” 开头的行）。
+ *
+ * 2026-10-25 真机：优化跑了很久，最后注入的只有 250 字的壳（包头 + 基调块），
+ * 说明“包非空”并不等于“有内容”——空条目也会让长度非零。判据要落到条目行上。
+ */
+export function hasPayloadLines(text) {
+  const s = String(text == null ? "" : text)
+  if (!s.trim()) return false
+  return /^\s*(?:[-*]\s+\S|\d+[.、]\s+\S)/m.test(s)
+}

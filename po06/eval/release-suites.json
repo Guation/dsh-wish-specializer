@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-24T16:35:39.200Z",
+  "at": "2026-10-24T17:42:48.910Z",
   "summary": {
-    "suites": 145,
-    "passed": 145,
+    "suites": 146,
+    "passed": 146,
     "failed": 0,
-    "passTotal": 1420,
+    "passTotal": 1422,
     "failing": []
   },
   "results": [
@@ -557,6 +557,13 @@
     {
       "file": "framing-packet.test.mjs",
       "pass": 3,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "framing-payload.test.mjs",
+      "pass": 2,
       "fail": 0,
       "exit": 0,
       "ok": true

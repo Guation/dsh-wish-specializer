@@ -55,7 +55,7 @@ import {createInferenceEvidenceContext} from './inference-context.js'
 import {createInferenceFocus} from './inference-focus.js'
 import { createEnglishMode,protectEnglishLiterals,prepareEnglishInterpretation,finishEnglishInput,resolveEnglishInterpretation } from './english-mode.js'
 import { withAdvisorWorkflow } from './advisor-workflow.js'
-import { applyFramingToPacket } from './framing.js'
+import { applyFramingToPacket, hasPayloadLines } from './framing.js'
 import { createAdvisorFeedback } from './advisor-context.js'
 import { createAdvisorCoverage } from './advisor-coverage.js'
 import {createAdvisorDeliveryReader} from './advisor-delivery.js'
@@ -1957,7 +1957,8 @@ class DshAdapter {
     base = cleanedBase
     // 基调换装**只对真正有包的一轮**生效（2026-10-23 真机反复：空包时壳仍被套上）。
     // 包为空 ⇒ 不换装、不加基调块；base 可能仍有编译器渲染的内容（测试依赖），所以不动 base。
-    const hasPacket = String(packet || '').trim().length > 0
+    // 判据落在**条目行**上：包非空不等于有内容（2026-10-25 真机：250 字只有壳）。
+    const hasPacket = hasPayloadLines(packet)
     const styled = hasPacket ? applyFramingToPacket(base, pol.framing, pol.englishMode ? 'en' : 'zh') : base
     // 只读追踪（2026-10-23）：空包为何仍出壳——把三段的长度记进台账，一次复现即可定位。
     try {

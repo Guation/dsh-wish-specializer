@@ -15,6 +15,7 @@ test('getWorkingText 把占位提示当空，且不改动真实未决项', () =>
 
 test("只有包非空才换装：空包不允许出现基调块", () => {
   const src = readFileSync(new URL("../lib/index.js", import.meta.url), "utf8")
-  assert.ok(/const hasPacket = String\(packet[^)]*\)\.trim\(\)\.length > 0/.test(src), '要有包判据')
-  assert.ok(/hasPacket \? applyFramingToPacket/.test(src), "空包不得换装")
+  // 2026-10-25：判据从“长度非空”升级为“有真正的条目行”（250 字的壳曾骗过长度判据）。
+  assert.ok(/const hasPacket = hasPayloadLines\(packet\)/.test(src), '要有条目行判据')
+  assert.ok(/hasPacket \? applyFramingToPacket/.test(src), '空包不得换装')
 })
