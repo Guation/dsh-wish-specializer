@@ -14,7 +14,8 @@ import { parseInterpreterOutput } from '../lib/interpreter.js'
 
 const deps = process.env.SCAFFOLD_CHECK_DEPS, home = process.env.SCAFFOLD_CHECK_HOME
 if (!deps || !home) throw Error('Set SCAFFOLD_CHECK_DEPS and SCAFFOLD_CHECK_HOME.')
-const OUT = resolve(process.argv[2] || join('.po06-tmp', 'dims'))
+const outArg = (() => { const i = process.argv.indexOf('--out'); return i >= 0 ? String(process.argv[i + 1] || '') : '' })()
+const OUT = resolve(outArg || join('.po06-tmp', 'dims'))
 mkdirSync(OUT, { recursive: true })
 const load = n => import(pathToFileURL(join(deps, n, 'lib', 'index.js')).href)
 const [{ parseCredentialsDocument }, ds, llm] = await Promise.all([load('dsh-credentials-local'), load('dsh-llm-deepseek'), load('dsh-llm')])
