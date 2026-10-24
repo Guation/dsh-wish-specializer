@@ -14,6 +14,7 @@ import { parseInterpreterOutput, dryRun } from './interpreter.js'
 import { compileAudited } from './compiler.js'
 import { reduce } from './reducer.js'
 import { renderOptimizerPacket } from './optimizer-protocol.js'
+import { hasPayloadLines } from './framing.js'
 import { planClarification, planningToOps } from './clarifier.js'
 
 /**
@@ -278,9 +279,19 @@ function finish(trace, state, _unused, outcome, adapter, session, userText = '')
         trace.push({ step: 'setContext', sessionId: String(session.id), chars: 0, reason: 'audit-failed' })
         return { trace, packet, state: cur, outcome: 'audit-failed' }
       }
-      // 按会话隔离写入（不是全局字符串）
-      adapter.setIntentText(session.id, packet.text)
-      trace.push({ step: 'setContext', sessionId: String(session.id), chars: packet.text.length, dropped: packet.dropped.length })
+      // **只有真正的条目才配当包**（2026-10-25 用户：“就不应该有壳”）。
+      // 这里原来把编译器渲染的头部（包头 + 基调块）也写成了包：
+      // 真机表现就是“优化跑很久，最后注入 250~370 字的壳，一条建议都没有”。
+      // 没有条目行 ⇒ 写空串，那一轮就是**零注入**。
+      if (!hasPayloadLines(packet.text)) {
+        packet = { ...packet, text: '', chars: 0 }
+        adapter.setIntentText(session.id, '')
+        trace.push({ step: 'setContext', sessionId: String(session.id), chars: 0, reason: 'empty-shell-dropped' })
+      } else {
+        // 按会话隔离写入（不是全局字符串）
+        adapter.setIntentText(session.id, packet.text)
+        trace.push({ step: 'setContext', sessionId: String(session.id), chars: packet.text.length, dropped: packet.dropped.length })
+      }
     } else {
       // 没有状态（init/record 失败那一类）也要**把这一轮收干净**：
       // 旧写法在这里什么都不做，于是上一轮的包继续留在动态上下文里被注入 —— 与"关档后仍注入"
