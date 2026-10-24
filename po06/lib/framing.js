@@ -50,7 +50,18 @@ export function normalizeHardNote(note) {
  * @param note    模型生成的加码（可选；空或超限即退回纯骨架）
  */
 export function framingBlock(framing, note,language) {
-  if(language==='en'){if(String(framing)!=='hard')return '';return ['[Direct energetic tone, plugin-added; not new user requirements]','Get the actual result built. Be direct and task-specific; avoid padding and empty promises.',normalizeHardNote(note),'Decide reversible low-risk details, but do not silently choose unapproved goals, features, network access or delivery formats.'].filter(Boolean).join('\n')}
+  if(language==='en'){
+    if(String(framing)!=='hard')return ''
+    // 英文版与中文同款语域（2026-10-23）：称呼、催促、直白命令式都要落在英文里，
+    // 不能退化成“be direct and task-specific”这种公文式描述——那样等于把效果来源扔掉。
+    return [
+      '[Straight-talk mode · plugin-added, not a new user requirement]',
+      'Alright lads, clock\'s ticking, so no dawdling. Skip the "you may want to consider" and "it is recommended" nonsense — just build the thing.',
+      'We\'re a muscle crew, not a paperwork department: if a call is cheap and reversible, make it and keep moving; come back later and check whether it\'s actually tough enough.',
+      'The goal is something that holds up when someone looks twice: nails it on the first glance, still stands up under inspection. Run your own acceptance pass before you hand it over — no half-finished hand-offs.',
+      'Small low-risk details: your call, don\'t bounce them back. Anything the user hasn\'t approved — network access, new features, changing the delivery format — is off-limits. Keep the attitude, keep the line.',
+    ].join(String.fromCharCode(10))
+  }
   if (String(framing) !== 'hard') return ''
   // 加码不再塞进基调块：它由 compiler 放在**整段注入文的最后**（用户 2026-10-23 指定位置），
   // 这样越权反制行仍在基调块末尾，加码也不会把它顶掉。
