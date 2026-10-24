@@ -15,6 +15,9 @@ export const ADVISOR_WORKFLOW=[
  'PTC在run_code内真实调用：await tools.consult_task({...})；顾问默认不设总截止，外层调用如显式设置截止要足以容纳咨询；用户取消仍有效。'
 ].join('\n')
 export function withAdvisorWorkflow(packet,policy,feedback='',dynamic='') {
+ // 顾问关掉时**整段不出现**：否则模型会看到“用 consult_task 复核”的指示，
+ // 而工具根本没注册（2026-10-23 改成注册层硬关闭后的配套）。
  if(policy?.injectPacket!==true)return String(packet || '')
+ if(policy?.advisor===false)return String(packet || '')
  return [policy.englishMode?EN_WORKFLOW:ADVISOR_WORKFLOW,dynamic || String(packet || ''),dynamic ? '' : feedback].filter(Boolean).join('\n\n')
 }

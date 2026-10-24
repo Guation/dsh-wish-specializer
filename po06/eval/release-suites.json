@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-24T08:41:49.868Z",
+  "at": "2026-10-24T08:49:10.063Z",
   "summary": {
-    "suites": 139,
-    "passed": 139,
+    "suites": 140,
+    "passed": 140,
     "failed": 0,
-    "passTotal": 1404,
+    "passTotal": 1407,
     "failing": []
   },
   "results": [
@@ -144,6 +144,13 @@
     {
       "file": "advisor-progress.test.mjs",
       "pass": 9,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "advisor-prompt-gate.test.mjs",
+      "pass": 3,
       "fail": 0,
       "exit": 0,
       "ok": true
