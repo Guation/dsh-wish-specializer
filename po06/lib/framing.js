@@ -130,5 +130,8 @@ export function applyFramingToPacket(text, framing, language = "zh") {
     out = out.split("【临时脚手架建议】").join("【自己搭的临时脚手架】")
   }
   const block = framingBlock("hard", null, language)
-  return block ? block + "\n\n" + out : out
+  // 基调块自身已以换行结尾时只补一个换行，避免出现两行空行（真机截图可见）。
+  const nl = String.fromCharCode(10)
+  const glue = block.endsWith(nl) ? nl : nl + nl
+  return block ? block + glue + out : out
 }
