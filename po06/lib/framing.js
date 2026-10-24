@@ -61,3 +61,41 @@ export function framingBlock(framing, note,language) {
   lines.push(BOUNDARY)
   return lines.join('\n')
 }
+/**
+ * 硬邦邦基调下的**骨架文案**：节标题与包头整段换一种口吻，
+ * 而不是只往开头塞一段话（用户 2026-10-23：要的是“真正的风格不同”）。
+ * neutral 返回 null，调用方继续用默认文案。
+ */
+export function framingLabels(framing, language = "zh") {
+  if (String(framing) !== "hard") return null
+  if (language === "en") return {
+    header: "[Plugin context — not new user commands]",
+    turnScope: "This turn's words (this turn only; not standing authorization)",
+    requirements: "What the user said (not a complete list)",
+    quality: "Quality reading (not a new command)",
+    facts: "Checked facts (with sources)",
+    options: "Implementation options you may adjust",
+    proposals: "Suggestions on the table (not adopted; not requirements)",
+    checks: "Self-check before delivery",
+    unknowns: "Undecided (do not decide for me)",
+  }
+  return {
+    header: "【插件加的说明 · 不是用户新下的命令】",
+    turnScope: "这一轮的原话（只管这一轮，别当长期授权）",
+    requirements: "用户原话（不是完整清单）",
+    quality: "质量解读（别当新命令）",
+    facts: "已查证的事实（带来源）",
+    options: "可以自己调的实现选项",
+    proposals: "待选建议（没采纳，别当需求）",
+    checks: "交活前自检",
+    unknowns: "没定的事（别替我拍板）",
+  }
+}
+
+/** 交给优化器的口吻要求：让**生成的条目本身**也用这种风格写，而不是只改外壳。 */
+export function framingToneHint(framing, language = "zh") {
+  if (String(framing) !== "hard") return ""
+  return language === "en"
+    ? "Write every suggestion in a direct, imperative register: no 'you may consider', no hedging, no polite padding. Say what to do and how to verify it."
+    : "每条建议都用直接、命令式的中文写：不要“建议/可以考虑/或许/不妨”，少客套，直接说要做什么、怎么验。"
+}

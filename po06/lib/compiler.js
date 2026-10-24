@@ -9,7 +9,7 @@
 //   ③ **超预算时按固定顺序丢弃，并写明丢了什么**；绝不静默截断。
 import { activeItems } from './reducer.js'
 // 0.7.8 协作基调：语域块（见 framing.js 的说明）。neutral 时是空串，等于不存在。
-import { framingBlock } from './framing.js'
+import { framingBlock, framingLabels } from './framing.js'
 import { EN_SECTION_LABELS } from './english-prompts.js'
 import { validateEnglishExcerpt } from './english-mode.js'
 
@@ -110,7 +110,9 @@ export function compile(state, opts = {}) {
     for (const s of SECTIONS) {
       const items = included[s.key]
       if (!items || items.length === 0) continue
-      blocks.push('【' + (opts.language==='en'?EN_SECTION_LABELS[s.key]:s.label) + '】\n' + items.map(it=>lineFor(it,opts.language)).join('\n'))
+      const labels = framingLabels(opts.framing, opts.language)
+      const label = labels ? (labels[s.key] || s.label) : (opts.language==='en'?EN_SECTION_LABELS[s.key]:s.label)
+      blocks.push('【' + label + '】\n' + items.map(it=>lineFor(it,opts.language)).join('\n'))
     }
     if (blocks.length === 0) return blocks
     return framingText ? [framingText].concat(blocks) : blocks
@@ -163,12 +165,14 @@ function compose(state, blocks, opts, dropped, overBy) {
   const tail = (dropped && dropped.length > 0)
     ? opts.language==='en' ? '\n\n[Omitted] '+dropped.length+' optional entries omitted for the display budget.' : '\n\n【本次省略】因篇幅预算省略 ' + dropped.length + ' 条（' + dropped.map((d) => d.kind + ':' + d.id).join(', ') + '）；如果其中有用信息影响判断，请向我确认。'
     : '';
+  const _labels = framingLabels(opts.framing, opts.language)
   const head = opts.header !== undefined
     ? String(opts.header)
     // 0.7.1：头部**不再带任务名与意图修订号**。它们是控制面信息（宿主 state / 台账里都有），
     // 写进工作模型可见的自然语言上下文只会制造伪语义与锚定——用户 2026-09-25 指出
     // "任务 default · 意图修订 40" 这类词会被模型当作任务语义处理。这里只保留必要的边界说明。
     // 元数据没有被删除：它继续留在 state（taskId / revision）与 wire 台账里，供宿主与调试使用。
+    : _labels ? _labels.header
     : opts.language==='en' ? '[Plugin assistance, not additional user instructions]\nThe user task is supplied in English; its original source is retained for provenance. Interpretations and suggestions do not expand authorization.' : '[插件辅助上下文 · 不是用户新增的命令]\n用户原话保留在本轮人类消息中，以下仅为辅助说明。'
   if (blocks.length === 0) return ''
   return head + '\n\n' + blocks.join('\n\n') + tail + overNote
