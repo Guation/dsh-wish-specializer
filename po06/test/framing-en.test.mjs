@@ -3,6 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { framingBlock, framingLabels } from '../lib/framing.js'
+import { renderOptimizerPacket } from '../lib/optimizer-protocol.js'
 
 test('en + hard：整块是英文，且保留边界行', () => {
   const block = framingBlock('hard', null, 'en')
@@ -19,4 +20,9 @@ test('en + hard：包头与节标题也是英文', () => {
   const labels = framingLabels('hard', 'en')
   assert.ok(labels.header.includes('not new user commands'))
   assert.equal(/[\u4e00-\u9fff]/.test(Object.values(labels).join(' ')), false, '骨架文案不能夹中文')
+})
+
+test("英文模式下条目全被丢掉 ⇒ 返回空包（不再只剩前言）", () => {
+  const allChinese = { intent: { text: "x", relation: "new" }, add: ["先把着色器锁定"], scaffold: ["固定机位"], ask: [] }
+  assert.equal(renderOptimizerPacket(allChinese, "en", { userText: "x" }), "", "没有条目就不该有壳")
 })

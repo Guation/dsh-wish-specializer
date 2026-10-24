@@ -220,6 +220,10 @@ export function renderOptimizerPacket(optimizer, language = 'zh', opts = {}) {
   const lines = [en
     ? 'Give these goal-focused suggestions priority consideration and judge them against the actual task. The working model chooses the means; suggestions do not override explicit user requirements or become mandatory checklist items.'
     : '请优先考虑以下围绕目标提炼的重点建议，并结合实际判断取舍。具体做法由工作模型决定；建议不覆盖用户明确要求，也不自动成为逐条必做的硬性要求。']
+  // 英文模式下模型若仍写中文，行会被 sanitizeMachineText 整条丢掉；
+  // 那时只剩一句前言——又是“只有壳没有内容”（2026-10-23 实测 len=227、零条目）。
+  // 一个条目都没有 ⇒ 干脆返回空串，让上层按“空包”处理（零注入）。
+  if (!production.length && !scaffold.length && !questions.length) return ''
   const section = (heading, rows) => { if (rows.length) lines.push(heading + '\n' + rows.map((s, i) => (i + 1) + '. ' + s).join('\n')) }
   section(en ? '[Production suggestions]' : '【制作建议】', production)
   section(en ? '[Temporary scaffold suggestions]' : '【临时脚手架建议】', scaffold)
