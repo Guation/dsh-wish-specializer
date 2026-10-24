@@ -107,6 +107,8 @@ const CASES = [
   { id: 'd1-diagram', dim: 'D1', tier: 'standard', request: '画一张系统架构图，要能讲清数据怎么流动' },
   { id: 'd1-write', dim: 'D1', tier: 'standard', request: '写一篇产品发布稿，要有感染力' },
   { id: 'd1-platform', dim: 'D1', tier: 'heavy', request: '做个多关卡平台跳跃游戏，带存档与关卡编辑，要耐玩' },
+  { id: 'd5-render', dim: 'D5', tier: 'heavy', request: '项目：单文件 WebGL 粒子系统，已实现 3 万粒子。规格：每帧上传位置纹理、GPU 积分、无 CPU 回读；目标 60fps。当前失败报告：在集显机器上只有 22fps，CPU 占用 80%，GPU 占用 35%。请诊断最可能的根因并给下一步最小验证动作。', expect: ['纹理上传', '带宽', '回读', '批', '实例'] },
+  { id: 'd5-sync', dim: 'D5', tier: 'heavy', request: '项目：多标签页协作的看板应用，使用 IndexedDB + BroadcastChannel 同步。规格：冲突用最后写入胜出，字段级合并。当前失败报告：两标签页同时拖拽同一卡片后，卡片在刷新前会短暂消失，随后出现在错误列。请诊断最可能的根因并给下一步最小验证动作。', expect: ['事务', '竞态', '合并', '版本', '回读'] },
 ]
 
 const ONLY = (() => { const i = process.argv.indexOf('--dim'); return i >= 0 ? String(process.argv[i + 1] || '').toUpperCase() : '' })()
