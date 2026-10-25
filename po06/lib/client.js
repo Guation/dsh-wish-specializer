@@ -201,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-09'
+    const CLIENT_BUILD = 'ring-10'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1084,9 +1084,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06="options-pop"] .po06-detailrow:hover .po06-ic{opacity:1;color:var(--t)}
 /* ---- 节拍 ---- */
 [data-po06="options-pop"]{--beat:2.6s;--fx:1;--kickA:1;--kickWhite:26%}
-[data-po06-tier=standard]{--fx:.58;--kickA:.72;--kickWhite:44%}
-[data-po06-tier=light]{--fx:.28;--kickA:.42;--kickWhite:62%}
-[data-po06-tier=off]{--fx:0;--kickA:0;--kickWhite:82%}
+[data-po06-tier=standard]{--fx:.58;--kickA:.42;--kickWhite:64%}
+[data-po06-tier=light]{--fx:.28;--kickA:.16;--kickWhite:82%}
+[data-po06-tier=off]{--fx:0;--kickA:0;--kickWhite:100%}
 /* ---- 外圈短弧闪电 ---- */
 [data-po06="options-pop"] .po06-fil{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 0 4px var(--t))}
 [data-po06="options-pop"] .po06-fil path{fill:none;stroke:var(--t);stroke-width:1.1;stroke-linecap:round;opacity:0;animation:po06-flick var(--beat) steps(1,end) infinite}
@@ -1508,9 +1508,24 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const cy = r.top + r.height / 2
         return Math.max(-135, Math.min(135, (Math.atan2(e.clientX - cx, cy - e.clientY) * 180) / Math.PI))
       }
-      const tierAt = (deg) => TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, Math.round((deg + 135) / 90)))]
+      const tierAt = (deg) => {
+        const pos = (deg + 135) / 90
+        const cur = Math.max(0, Math.min(TIER_KEYS.length - 1, Math.round(pos)))
+        const last = Math.max(0, Math.min(TIER_KEYS.length - 1, lastIdxRef.current))
+        if (cur !== last && Math.abs(pos - cur) > 0.39) return null
+        lastIdxRef.current = cur
+        return TIER_KEYS[cur]
+      }
       // 拖动中只改本地（即时换色换弧），松手才写设置：每移动一次都 POST 会把交互拖垮
-      const pick = (key, commit) => { if (key === shown || disabled) return; setPending(key); fireKick(!!commit); if (onPreview) onPreview(commit ? null : key); if (commit) onPick(key) }
+      // 判定：只有真的从一档换到另一档才闪一次。边界留 11% 档位的死区，
+      // 避免指针停在分界线附近来回抖导致连闪。
+      const pick = (key, commit) => {
+        if (!key || key === shown || disabled) return
+        setPending(key)
+        fireKick()
+        if (onPreview) onPreview(commit ? null : key)
+        if (commit) onPick(key)
+      }
       React.useEffect(() => {
         if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
         const move = (e) => {
@@ -1576,11 +1591,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }
       const [kickSeq, setKickSeq] = React.useState(0)
       const kickTimer = React.useRef(null)
-      const kickAt = React.useRef(0)
-      const fireKick = (force) => {
-        const now = Date.now()
-        if (!force && now - kickAt.current < 620) return
-        kickAt.current = now
+      const lastIdxRef = React.useRef(TIER_KEYS.indexOf(shown))
+      const fireKick = () => {
         setKickSeq((n) => n + 1)
         const wrap = wrapRef.current
         if (wrap && wrap.setAttribute) {
@@ -1595,7 +1607,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       React.useEffect(() => {
         if (prevValue.current === value) return
         prevValue.current = value
-        fireKick(true)
+        fireKick()
       }, [value])
       const dash = (TIER_ARC[shown] || 198) + ' 264'
       const fxLayer = React.useMemo(() => h('div', { className: 'po06-fx', 'aria-hidden': 'true' },
