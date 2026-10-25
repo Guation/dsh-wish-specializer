@@ -1932,6 +1932,8 @@ class DshAdapter {
           this.contextDisposer = scope.systemPrompt.context({
             name: CONTEXT_NAME,
             order: CONTEXT_ORDER,
+            // 意图文本是数据，不是宿主变量模板：字面量 {{cwd}} 之类的文本必须原样保留（issue #38）。
+            interpolate: false,
             // 按会话渲染：装配 context 携带 agent，据此取该会话的意图包；取不到就是空（静默）
             text: (assemblyCtx) => {
               try {

@@ -5140,6 +5140,8 @@ const react = require("react")
       copy: L("复制", "copy"),
       copied: L("已复制", "copied"),
       noOutput: L("（无输出）", "(no output)"),
+      // 0.2.1-rc.2 的 TerminalBlock 会逐行调用 labels.commandLine 作为 aria-label；缺这个键会整块崩（issue #40）。
+      commandLine: (line) => L("命令 " + line, "Command " + line),
       collapseAria: L("收起输出", "Collapse output"),
       collapse: L("收起", "Collapse"),
       expandAria: (n) => L("展开剩余 " + n + " 行", "Show remaining " + n + " lines"),

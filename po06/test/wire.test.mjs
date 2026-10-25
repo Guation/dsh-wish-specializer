@@ -1192,6 +1192,14 @@ await ta('status 的会话生效值必须带上模型状态，面板才能显示
   const st = await h.ctx.getApi('/status?session=' + h.session.id)
   eq(st.body.sessionEffective.modelState, 'extreme')
 })
+
+await ta('issue #38/#40 守卫：意图上下文禁用插值，终端标签含 commandLine', async () => {
+  const fs = await import('node:fs')
+  const idx = fs.readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8')
+  ok(/name: CONTEXT_NAME,[\s\S]{0,120}interpolate: false/.test(idx), '动态意图文本必须 interpolate:false')
+  const cli = fs.readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+  ok(/commandLine: \(line\) =>/.test(cli), 'TerminalBlock 缺少 commandLine 会崩')
+})
 console.log(JSON.stringify({
   suite: 'po06-wire', phase: 'v3-pre-send',
   total: pass + failures.length, pass, fail: failures.length, failures,
