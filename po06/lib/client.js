@@ -762,10 +762,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       optLabel: { color: OVS.fg2, fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' },
       // 设置行：左标签 + 右状态值，整行是有底色的可点区域（紧凑版）
       optRowBtn: { display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center',
-        justifyContent: 'space-between', gap: '8px', padding: '8px 13px',
-        borderRadius: '12px', border: '1px solid rgba(255,255,255,.09)',
-        background: 'linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025))',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.12)',
+        justifyContent: 'space-between', gap: '8px', padding: '9px 13px',
+        borderRadius: '12px', border: '1px solid rgba(255,255,255,.055)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012))',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08)',
         color: 'inherit', font: 'inherit', fontSize: '12px', cursor: 'pointer', textAlign: 'left',
         transition: 'background .18s ease, border-color .18s ease, transform .12s ease, box-shadow .18s ease' },
       // 右侧状态：开 = 主题色药丸；关 = 空心淡字（不用"开关控件"，保持一眼可读）
@@ -813,8 +813,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         boxShadow: 'inset 0 1px 2px rgba(0,0,0,.35), inset 0 -1px 0 rgba(255,255,255,.05)',
         fontSize: '12px', lineHeight: '18px', userSelect: 'none', touchAction: 'none' },
       segItem: { flex: '1 1 0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        textAlign: 'center', padding: '4px 9px', borderRadius: '999px', whiteSpace: 'nowrap',
-        color: OVS.fg2, cursor: 'inherit', fontWeight: 550,
+        textAlign: 'center', padding: '5px 10px', borderRadius: '999px', whiteSpace: 'nowrap',
+        color: 'rgba(255,255,255,.58)', cursor: 'inherit', fontWeight: 550, fontSize: '11.5px',
         transition: 'background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .12s ease' },
       segOn: { background: 'linear-gradient(180deg, ' + OVS.acc + ', ' + OVS.acc + 'cc)', color: '#fff', fontWeight: 650,
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 6px 18px -4px ' + OVS.acc + 'aa' },
@@ -1136,7 +1136,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }
       const fx = name === 'tier' && !disabled ? TIER_FX[shown] : null
       // 每格可以有自己的颜色（权限：审查=绿、自动=橙）；没有就退回主题色。
-      const tone = (tones && tones[shown]) || (fx ? fx.color : OVS.acc)
+      // 单一强调色：整块面板不出现彩虹配色（用户 2026-10-25：彩色药丸显得廉价）。
+      const tone = OVS.acc
       const dots = fx && fx.dots ? Array.from({ length: fx.dots }, (_, i) => {
         // 固定伪随机（同一个 i 永远得到同一组参数）：位置/时长/延迟稳定，重渲染不跳
         const a = (i * 37) % 97, b = (i * 61) % 90 + 5, c = (i * 71) % 100
@@ -1235,17 +1236,21 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           style: {
             position: 'absolute', top: '2px', bottom: '2px',
             left: (ind ? ind.left : 2) + 'px', width: (ind ? ind.width : 0) + 'px',
-            borderRadius: '7px', pointerEvents: 'none',
-            background: tone,
-            // 胶囊自己也要有底边：轨道上的底边只是“框”，用户点的是这颗药丸。
-            boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 -2px 0 rgba(0,0,0,.26)',
+            borderRadius: '999px', pointerEvents: 'none',
+            background: 'linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.10))',
+            border: '1px solid rgba(255,255,255,.30)',
+            backdropFilter: 'blur(8px) saturate(160%)', WebkitBackdropFilter: 'blur(8px) saturate(160%)',
+            // 玻璃药丸：顶部内高光 + 底部投影 + 一线主题色冷光
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.18), 0 8px 22px -10px rgba(0,0,0,.85), 0 0 0 1px ' + tone + '22',
             transition: 'left .26s cubic-bezier(.22,.8,.24,1), width .26s cubic-bezier(.22,.8,.24,1), background-color .22s ease',
           } }),
         options.map((k) => h('span', {
           key: k, 'data-po06': name + '-' + k, 'data-po06-on': (k === shown ? '1' : '0'),
           ref: (el) => { if (el) itemRefs.current[k] = el },
           style: { ...S.segItem, position: 'relative', zIndex: 1,
-            ...(k === shown ? { color: '#fff', fontWeight: 600 } : null) },
+            ...(k === shown
+              ? { color: '#fff', fontWeight: 650, textShadow: '0 1px 2px rgba(0,0,0,.45)' }
+              : { color: 'rgba(255,255,255,.58)' }) },
         }, label ? label(k) : k)),
         // 重度：流星撞在右边界激起的白色浪（2026-10-19）。
         // ⚠ 必须画在**最上层**：选中药丸是不透明的，画在下面时浪的亮部正好被"重度"那格盖住，
@@ -4874,6 +4879,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '[data-po06="options-pop"] button:active{transform:translateY(1px) scale(.988)}',
             '[data-po06="options-pop"] button:focus-visible,[data-po06="options-btn"]:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(255,255,255,.85),0 0 0 4px var(--po06-acc22,rgba(120,160,255,.35))!important}',
             '[data-po06="options-pop"] [data-seg-item]:hover{background:rgba(255,255,255,.08)}',
+            // 玻璃顶部光带：一条很淡的斜向高光，制造“光从上方掠过”的实体感
+            '[data-po06="options-pop"]::before{content:"";position:absolute;inset:0 0 auto 0;height:96px;border-radius:20px 20px 0 0;pointer-events:none;background:linear-gradient(168deg,rgba(255,255,255,.16),rgba(255,255,255,.05) 38%,rgba(255,255,255,0) 72%);mask-image:linear-gradient(180deg,#000,transparent);-webkit-mask-image:linear-gradient(180deg,#000,transparent)}',
+            '[data-po06="options-pop"]{position:fixed}',
+            '[data-po06="options-pop"] > *{position:relative}',
+            '[data-po06="options-pop"] [data-po06="seg-ind"]{will-change:left,width}',
             '[data-po06="options-pop"]{box-shadow:inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 rgba(0,0,0,.22),0 30px 70px -20px rgba(0,0,0,.75),0 4px 14px rgba(0,0,0,.28)!important}',
             '@keyframes po06-pop{from{opacity:0;transform:translateY(8px) scale(.965);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}',
             '@media (prefers-reduced-motion: reduce){[data-po06="options-pop"],[data-po06="options-pop"] *{animation:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}}',
