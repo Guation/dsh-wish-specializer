@@ -955,7 +955,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 .po06-studio .po06-tools-list{display:flex;flex-direction:column}
 .po06-studio .po06-tools-list .po06-setting-switch:last-child{border-bottom:0}
 @keyframes po06-desk-pane{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:none}}
-@media(max-width:420px){.po06-studio .po06-desk{grid-template-columns:minmax(0,1fr)}.po06-studio .po06-desk-nav{flex-direction:row;padding:8px;border-right:0;border-bottom:1px solid var(--po06-line2);overflow-x:auto}.po06-studio .po06-desk-tab{flex:0 0 auto}.po06-studio .po06-desk-tab-meta{display:none}.po06-studio .po06-pane-title{font-size:26px}}
+@media(max-width:420px){.po06-studio .po06-desk{grid-template-columns:minmax(0,1fr)}.po06-studio .po06-desk-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:8px;border-right:0;border-bottom:1px solid var(--po06-line2)}.po06-studio .po06-desk-tab{align-items:center;padding:7px 4px;text-align:center}.po06-studio .po06-desk-tab-meta{display:none}.po06-studio .po06-pane-title{font-size:26px}}
 `
     const OPTIONS_STUDIO_CSS = `
 .po06-choices{display:flex;gap:2px;min-width:0;padding:2px;border:1px solid var(--po06-line2);border-radius:8px;background:var(--po06-chip);font:inherit}
