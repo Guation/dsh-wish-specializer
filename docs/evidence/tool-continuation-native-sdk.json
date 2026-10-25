@@ -1,0 +1,14 @@
+{
+  "kind": "installed-native-sdk-offline-request-capture",
+  "networkRequests": 0,
+  "modelCalls": 0,
+  "simulatedToolConversationTurns": 2,
+  "nativeSerializedRequests": 1,
+  "toolResultIds": [
+    "native-probe-call"
+  ],
+  "toolsOffForFinalAnswer": true,
+  "thinkingSignaturePreserved": true,
+  "allResultsBeforeFinalInstruction": true,
+  "replayWarnings": 0
+}

@@ -1095,39 +1095,48 @@ await ta('传输中断重试仍失败：只试两次就如实失败，不无限�
   ok(String(response.body.reason || '').includes('TRANSPORT'), '失败原因保留原始 TRANSPORT')
 })
 
-// ── 工具轮次收不了尾 ⇒ 退回无工具一次（真机 2026-10-25：两次 optimizer-incomplete:tool-calls）
-await ta('模型只要工具时退回无工具一次，最终仍产出可用包', async () => {
-  let calls = 0
-  const llm = {
-    calls: [],
-    stream(options) {
-      calls += 1; this.calls.push(options)
-      const index = calls
-      return (async function* () {
-        if (index === 1) {
-          yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: 'c1', name: 'bash', arguments: JSON.stringify({ command: 'find .' }) } }
-          yield { type: 'finish', finish: { kind: 'tool-calls' } }
-          return
-        }
-        yield { type: 'text-delta', text: optimizerReply('退回无工具后仍然给出方向。') }
-        yield { type: 'usage', usage: { totalTokens: 12 } }
-        yield finishChunk('stop')
-      })()
-    },
-  }
-  const root = join(TEST_HOME, 'empty-root'); mkdirSync(root, { recursive: true })
-  const h = await wireHost({ sid: 'wire-tools-fallback', llm, policy: { readTools: true }, cwd: root })
-  const response = await within(h.interpret('tools-fallback-run'), 'tools fallback')
-  eq(response.body.ok, true, '工具轮次收不了尾必须退回无工具，而不是判失败：' + JSON.stringify(response.body))
-  eq(response.body.status, 'ready')
-  eq(llm.calls.length, 2, '恰好两次模型调用')
-  eq(response.body.timings.toolsFallback, true, '记下工具退回')
-  eq(response.body.timings.modelAttempts[0].tools, true)
-  eq(response.body.timings.modelAttempts[1].tools, false, '第二次必须不带工具')
-  eq(String(response.body.packet || '').includes('退回无工具后仍然给出方向。'), true)
-  const ledger = readFileSync(join(TEST_HOME, 'po06-wire.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
-  ok(ledger.some(row => row.sessionId === h.session.id && row.trigger === 'optimizer-tools-fallback'), '台账记录工具退回')
+// Actual failed runs must consume rejected tools in the same optimization conversation.
+const rejectedRequests = JSON.parse(readFileSync(join(HERE, 'fixtures', 'rejected-optimizer-tool-requests.json'), 'utf8'))
+for (const sample of rejectedRequests) await ta('recorded tool rejection completes without restarting the optimizer: ' + sample.sourceLine, async () => {
+  const raw = optimizerReply('基于原话给出方向；未读取的环境保持未知。')
+  const llm = { calls: [], stream(options) {
+    this.calls.push(options)
+    const first = this.calls.length === 1
+    if (!first) {
+      eq(this.calls.length, 2, 'only the pending tool response and its final answer')
+      eq(options.system, this.calls[0].system, 'same system and task contract')
+      eq(options.messages[0], this.calls[0].messages[0], 'original prompt retained, not a new request')
+      ok(!options.tools, 'rejected lookup ends further tool use')
+      const assistant = options.messages.find(message => message.role === 'assistant')
+      ok(assistant, 'model sees its own original tool requests')
+      eq(assistant.content.filter(block => block.type === 'tool-call').map(block => ({id:block.id,name:block.name,arguments:JSON.parse(block.arguments)})),sample.calls)
+      const results = options.messages.filter(message => message.role === 'tool')
+      eq(results.length,sample.calls.length,'every rejected call has its own result')
+      for (const [index,result] of results.entries()) {
+        eq(result.toolCallId,sample.calls[index].id);eq(result.isError,true)
+        ok(result.content.some(block=>block.type==='text' && block.text.includes('拒绝')), 'actual refusal reaches the model')
+      }
+      ok(options.messages.at(-1).content.some(block=>block.text.includes('intent/add/scaffold/ask')), 'finish the requested format using this conversation')
+    }
+    return (async function* () {
+      if (first) {
+        for (const call of sample.calls) yield {type:'block-end',block:{type:'tool-call',id:call.id,name:call.name,arguments:JSON.stringify(call.arguments)}}
+        yield {type:'usage',usage:{totalTokens:7}};yield finishChunk('tool-calls')
+      } else { yield {type:'text-delta',text:raw};yield {type:'usage',usage:{totalTokens:12}};yield finishChunk('stop') }
+    })()
+  }}
+  const root=join(TEST_HOME,'recorded-rejected-'+sample.sourceLine);mkdirSync(root,{recursive:true})
+  const h=await wireHost({sid:'wire-rejected-'+sample.sourceLine,llm,policy:{readTools:true},cwd:root})
+  const response=await h.interpret('recorded-'+sample.sourceLine)
+  eq(response.body.ok,true,JSON.stringify(response.body));eq(response.body.status,'ready')
+  eq(llm.calls.length,2);eq(response.body.timings.modelAttempts.length,1,'one optimizer attempt owns the tool continuation')
+  eq(response.body.timings.toolsFallback,undefined);eq(response.body.usageTotal,19,'do not erase earlier tool-round cost')
+  ok(response.body.packet.includes('未读取的环境保持未知'))
+  const rows=readFileSync(join(TEST_HOME,'po06-wire.jsonl'),'utf8').trim().split('\n').map(JSON.parse).filter(row=>row.sessionId===h.session.id)
+  ok(!rows.some(row=>row.trigger==='optimizer-tools-fallback'||row.trigger==='optimizer-transport-retry'), 'no fallback or retry for a valid tool result')
+  eq(h.mod.adapter.getWorkingText(h.session.id),response.body.packet)
 })
+
 console.log(JSON.stringify({
   suite: 'po06-wire', phase: 'v3-pre-send',
   total: pass + failures.length, pass, fail: failures.length, failures,

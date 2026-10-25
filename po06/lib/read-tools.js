@@ -116,7 +116,7 @@ export const TOOL_SCHEMAS = Object.freeze([
     // 不翻译成 PowerShell）⇒ Windows 与 Linux 上同一结果。只读；超出子集**显式失败**。
     description: '按 bash/POSIX 语义执行一条**只读**命令（' + SUPPORTED_COMMANDS.join('/') + '；'
       + '可用 ' + SUPPORTED_OPERATORS.join(' ') + ' 串联，`|` 按行过滤）。'
-      + '由插件自己实现，不依赖系统里有没有这些命令。写类命令与重定向会被拒绝。',
+      + '这是项目根内的虚拟文件查询，不是系统 shell，不能探测已安装程序或 PATH。写入、重定向和其他命令均被拒绝；拒绝会作为工具结果返回。',
     parameters: {
       type: 'object',
       properties: {
@@ -128,7 +128,7 @@ export const TOOL_SCHEMAS = Object.freeze([
 ])
 
 export const EN_TOOL_SCHEMAS = TOOL_SCHEMAS.map(t=>{
- const descriptions={read:'Read a line range of an authorized project file. Returns numbered source text.',glob:'List matching project files with ** and *; names alone are not evidence of file contents.',grep:'Search authorized project text using a regular expression; returns file:line:content.',run:'Execute the supported read-only POSIX subset. Writes, redirection and commands outside the supported subset are rejected.'}
+ const descriptions={read:'Read a line range of an authorized project file. Returns numbered source text.',glob:'List matching project files with ** and *; names alone are not evidence of file contents.',grep:'Search authorized project text using a regular expression; returns file:line:content.',run:'Query files within the project root using this virtual POSIX subset: '+SUPPORTED_COMMANDS.join(', ')+'. This is not a system shell and cannot probe installed programs or PATH. Writes, redirection and other commands return a rejected tool result.'}
  const parameters=JSON.parse(JSON.stringify(t.parameters))
  for(const [name,p]of Object.entries(parameters.properties||{}))if(p.description)p.description={path:'Path relative to the supplied project root.',pattern:'Glob or regular-expression pattern, as appropriate for this tool.',command:'Read-only POSIX command using the declared supported subset.'}[name]||''
  return {...t,description:descriptions[t.name],parameters}
@@ -364,10 +364,8 @@ function resolveShape(x) {
 /**
  * 收干**一轮**带工具的流：返回正文/思考/用量/结束原因/**工具调用清单**。
  *
- * 与 eval-llm.js 的 `drain` 分开写（不复用）的理由：drain 是**无工具**单次补全的收流器，
- * 生产路径上它一个字都不能变（"默认路径逐字节等价"这条约束就落在那几行上）。
- * 本函数多收两样：`tool-call-delta`（增量拼参数）与 `block-end`（装配好的调用）。
- * **不抛**：错误收进 `error` 字段，由调用方决定降级（见 runReadOnlyToolLoop 的回落）。
+ * eval-llm.js 的无工具收集也复用本函数。保留工具调用块与 provider replay，
+ * 供同一对话继续时使用；流错误返回 error，不把工具调用当成最终正文。
  */
 export async function drainWithTools(stream, t0, sink) {
   const out = {
@@ -437,7 +435,7 @@ export async function drainWithTools(stream, t0, sink) {
  * **只读工具循环**：模型自己决定读什么/搜什么，直到给出结论或撞上限。
  *
  * `llm.stream` 必须由调用方注入（本模块不碰 ctx，便于用桩做定点核对）。
- * **绝不静默失败**：出错/空产出/超时都如实报进返回值，由调用方决定回落（见 index.js）。
+ * 工具成功与拒绝都回到同一对话；只有最终模型失败才结束运行，不重新从原话生成。
  *
  * @param opts.llm      宿主 llm 服务（只要有 stream）
  * @param opts.cfg       { provider, model }
@@ -477,7 +475,7 @@ export async function runReadOnlyToolLoop(opts) {
   if (typeof root !== 'string' || !root) return fail('no-root')
   if (!llm || typeof llm.stream !== 'function') return fail('llm-unavailable')
   // 工具结果的**消息形状**要在回灌之前拿到（0.1.7 起是 `role:'tool'` 一等消息，更早是 user+`tool-result` 块）。
-  // 拿不到就不造结果消息 ⇒ 循环自然收敛（模型不会再收到"读到了什么"）⇒ 由调用方走回落。
+  // 无法回灌工具结果时，在任何付费调用之前明确失败，不能把 tool-calls 当作最终回答。
   // **绝不自己猜一个形状**：猜错的代价是静默失效（台账 `UNSUPPORTED_CONTENT`：循环跑了两轮，
   // 第 2 轮会话说不出那条结果）。`o.shape` 是给测试注入用的。
   // ⚠ `env` 必须显式传：`loadLlmLib` 的默认值是**空表**（为的是让单测完全掌控候选顺序），
@@ -485,6 +483,7 @@ export async function runReadOnlyToolLoop(opts) {
   // 表现是"明明设了环境变量却still 解析不到"（测试夹具也指不过来）。
   const shapeT = o.shape === undefined ? await loadLlmLib({ env: process.env, argv1: process.argv[1], cwd: process.cwd() }) : o.shape
   const resultShape = resolveShape(shapeT)
+  if (typeof resultShape?.make !== 'function') return fail('tool-result-format-unavailable')
   /** 宿主 llm 模块本身（`loadLlmLib` 的返回带 `mod`；直接传模块时就是它）。给工厂用。 */
   const llmMod = shapeT && shapeT.mod && typeof shapeT.mod === 'object' ? shapeT.mod : (shapeT && typeof shapeT.createAssistantMessage === 'function' ? shapeT : null)
 
@@ -517,18 +516,21 @@ export async function runReadOnlyToolLoop(opts) {
   const trace = []
   let rounds = 0
   let capped = false
+  let finalize = false
   let error = null
   let text = '', finish = null
   for (let round = 1; round <= maxRounds + 1; round += 1) {
     if (signal?.aborted) { error = 'cancelled'; break }
-    const useTools = round <= maxRounds && (deadline === null || now() < deadline)
+    const useTools = !finalize && round <= maxRounds && (deadline === null || now() < deadline)
     if (round > 1) {
       // 上一轮的正文是**脚手架**（"我先读一下项目结构…"），到下一轮就作废。
       // 不清掉的话，最终产出会被脚手架污染——这是 0.5 实测踩到的。
       text = ''
     }
-    // 到上限这一轮：**明确告诉模型"到此为止，用已有证据给结论"**（不许它继续要工具）
-    if (round === maxRounds + 1) {
+    // Finalization stays in this conversation: the original input, assistant calls and
+    // every tool result (including rejections) remain visible to the model.
+    if (!useTools) {
+      capped = true
       messages.push({
         role: 'user',
         content: [{ type: 'text', text: o.finalNote || '【系统】已达本次查证轮次上限，请立即用已获得的证据给出 JSON 产出，不要再请求工具。' }],
@@ -548,7 +550,7 @@ export async function runReadOnlyToolLoop(opts) {
         // 会话标识：网关要求的 x-*-session 头由它派生（缺了就是 400）
         ...(o.sessionId ? { sessionId: String(o.sessionId) } : {}),
         system,
-        messages,
+        messages: messages.slice(),
         // 0.7.5：思考档位也走这条路径（开"只读工具"时模型调用在这里发起）。
         // 按 cfg 选定的那个模型查表；没配就不传，由 provider 用默认档。
         ...(cfg.reasoningEffort ? { reasoningEffort: cfg.reasoningEffort } : {}),
@@ -566,9 +568,11 @@ export async function runReadOnlyToolLoop(opts) {
     if (r.usage) for (const [key, value] of Object.entries(r.usage)) {
       if (typeof value === 'number' && Number.isFinite(value)) usageSum[key] = (usageSum[key] || 0) + value
     }
+    if (signal?.aborted) { error = 'cancelled'; break }
     if (r.text) text = r.text
     if (r.error) { error = r.error; break }
     const calls = Array.isArray(r.calls) ? r.calls.filter((c) => c && c.id && c.name) : []
+    if (!useTools && calls.length) { error = 'tool-calls-after-finalization'; break }
     if (!useTools || calls.length === 0) {
       const kind = typeof r.finish === 'object' ? r.finish?.kind : r.finish
       if (!['stop', 'end', 'complete', 'completed'].includes(kind)) error = 'optimizer-incomplete:' + String(kind || 'missing-finish')
@@ -594,13 +598,11 @@ export async function runReadOnlyToolLoop(opts) {
         ok: res.ok === true && res.rejected !== true, ms: now() - st })
       outputs.push(res)
     }
+    if (signal?.aborted) { error = 'cancelled'; break }
     messages.push(...toolResultMessages(calls, outputs, resultShape))
-    if (round === maxRounds) capped = true
-    // 越界/无法执行的调用（例如用了不在只读子集里的命令）立刻收手：
-    // 真机 2026-10-22：模型写了 find，被拒后还要再跑一轮才回落，白等 84 秒。
-    if (outputs.some((o) => o && o.rejected === true)) { capped = true; error = 'tools-rejected'; break }
-    // 形状拿不到 ⇒ 没有结果消息 ⇒ 下一轮模型看不到任何读取内容，循环到此为止（不花第二轮的钱）
-    if (!resultShape || typeof resultShape.make !== 'function') break
+    // A rejected read is a tool result, not a failed model completion. Close further
+    // lookup, then let the model finish from this same conversation once.
+    if (outputs.some(output => output.rejected === true)) finalize = true
   }
   const outText = String(text || '')
   return {

@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-25T05:38:03.522Z",
+  "at": "2026-10-25T05:53:21.581Z",
   "summary": {
-    "suites": 145,
-    "passed": 145,
+    "suites": 146,
+    "passed": 146,
     "failed": 0,
-    "passTotal": 1485,
+    "passTotal": 1493,
     "failing": []
   },
   "results": [
@@ -975,6 +975,13 @@
       "ok": true
     },
     {
+      "file": "tool-continuation.test.mjs",
+      "pass": 7,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "tool-note.test.mjs",
       "pass": 3,
       "fail": 0,
@@ -1011,7 +1018,7 @@
     },
     {
       "file": "wire.test.mjs",
-      "pass": 46,
+      "pass": 47,
       "fail": 0,
       "exit": 0,
       "ok": true
