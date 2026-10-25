@@ -201,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-05'
+    const CLIENT_BUILD = 'ring-06'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1101,11 +1101,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 /* ---- 换挡爆闪 ---- */
 [data-po06="options-pop"] .po06-kickwrap{position:absolute;inset:0;pointer-events:none}
 [data-po06="options-pop"] .po06-kickwrap i{position:absolute;inset:0;border-radius:50%;border:1.4px solid color-mix(in srgb,var(--t) 78%,#fff);opacity:0}
-[data-po06="options-pop"][data-kick="1"] .po06-kickwrap i{animation:po06-kick .82s cubic-bezier(.08,.72,.16,1) 1}
-[data-po06="options-pop"][data-kick="1"] .po06-kickwrap i:nth-child(2){animation-delay:.09s}
+[data-kick="1"] .po06-kickwrap i{animation:po06-kick .82s cubic-bezier(.08,.72,.16,1) 1}
+[data-kick="1"] .po06-kickwrap i:nth-child(2){animation-delay:.09s}
 @keyframes po06-kick{0%{transform:scale(.52);opacity:.95;border-width:2.4px}100%{transform:scale(1.52);opacity:0;border-width:.5px}}
 [data-po06="options-pop"] .po06-kickflash{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,255,255,0) 32%,rgba(255,255,255,.85) 43%,rgba(255,255,255,0) 56%);mix-blend-mode:screen}
-[data-po06="options-pop"][data-kick="1"] .po06-kickflash{animation:po06-kickflash .5s cubic-bezier(.1,.7,.2,1) 1}
+[data-kick="1"] .po06-kickflash{animation:po06-kickflash .5s cubic-bezier(.1,.7,.2,1) 1}
 @keyframes po06-kickflash{0%{opacity:0;transform:scale(.95)}16%{opacity:.6}100%{opacity:0;transform:scale(1.14)}}
 /* ---- 描述与环对齐 ---- */
 [data-po06="options-pop"] .po06-tier-note{text-align:center;margin:0 auto;width:100%}
@@ -1117,7 +1117,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06="options-pop"][data-po06-tier=heavy] .po06-sweep{opacity:.85}
 [data-po06="options-pop"] .po06-sweep:after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 84%,var(--t) 90%,transparent 94%)}
 /* ---- 爆闪再亮一点 ---- */
-[data-po06="options-pop"][data-kick="1"] .po06-kickwrap i{animation-duration:.9s}
+[data-kick="1"] .po06-kickwrap i{animation-duration:.9s}
+
+/* ---- 环状光晕：贴着描边的一圈光，不是实心团 ---- */
+[data-po06="options-pop"] .po06-glowring{position:absolute;inset:6px;border-radius:50%;pointer-events:none;
+  box-shadow:0 0 26px 3px color-mix(in srgb,var(--t) 55%,transparent),inset 0 0 20px 2px color-mix(in srgb,var(--t) 32%,transparent);
+  opacity:calc(.4 + .45 * var(--fx));animation:po06-glowPulse var(--beat) ease-in-out infinite}
+@keyframes po06-glowPulse{0%,100%{opacity:calc(.3 + .3 * var(--fx));transform:scale(.985)}56%{opacity:calc(.55 + .35 * var(--fx));transform:scale(1.01)}64%{opacity:calc(.75 + .25 * var(--fx));transform:scale(1.03)}}
+/* ---- 重度：更强的张力 ---- */
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-shock i{border-width:1.6px;box-shadow:0 0 18px color-mix(in srgb,var(--t) 70%,transparent)}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-vast{border-width:2px;animation-duration:26s}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-rays{animation-duration:40s;opacity:.3}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-core{animation-duration:1.3s}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-sweep{animation-duration:4.2s}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-orbit{animation-duration:3.4s}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-gapword b{font-size:23px}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-left:before{opacity:.2}
 [data-po06="options-pop"] .po06-fx{position:absolute;inset:0;pointer-events:none}
 [data-po06="options-pop"] .po06-vast{position:absolute;inset:-44px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--t) 38%,transparent);opacity:calc(.5 * var(--fx));animation:po06-spin 44s linear infinite}
 [data-po06="options-pop"] .po06-rays{position:absolute;left:50%;top:50%;width:216px;height:216px;margin:-108px 0 0 -108px;border-radius:50%;pointer-events:none;opacity:calc(.22 * var(--fx));background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--t) 60%,transparent) 0deg .6deg,transparent .6deg 7.5deg);mask:radial-gradient(circle,transparent 0 44%,#000 52%,#000 58%,transparent 64%);animation:po06-spin 90s linear infinite}
@@ -1559,6 +1574,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         h('div', { className: 'po06-rays' }),
         h('div', { className: 'po06-vortex' }),
         h('div', { className: 'po06-sweep' }),
+        h('div', { className: 'po06-glowring' }),
         h('div', { className: 'po06-core' }),
         h('div', { className: 'po06-orbit' }, h('i'), h('i'), h('i')),
         h('div', { className: 'po06-shock' }, h('i'), h('i'), h('i')),
