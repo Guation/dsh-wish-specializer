@@ -1,0 +1,84 @@
+<!doctype html><html lang="zh" data-tier="heavy"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>双环 · 成品版 · 许愿特化器</title><link rel="stylesheet" href="shared.css"><link rel="stylesheet" href="tiers.css">
+<style>
+.stage{max-width:820px}.panel{--pad:18px}
+.hd{gap:10px}.hd .save{font-size:10.5px;color:var(--fg3);opacity:.9;transition:color .3s,opacity .3s}.hd .save[data-s=saving]{color:var(--tier)}
+.hd .save[data-s=error]{color:var(--danger)}
+.wrap{display:grid;grid-template-columns:300px minmax(0,1fr)}
+.left{padding:20px 16px 16px;border-right:1px solid var(--line2);background:radial-gradient(120% 60% at 50% 0%,color-mix(in srgb,var(--tier) 12%,transparent),transparent 72%);display:flex;flex-direction:column;gap:14px}
+.ringbox{display:grid;place-items:center}
+.desc{font-size:11.5px;line-height:1.5;color:var(--fg3);text-align:center;min-height:32px;transition:opacity .25s}
+.mini{padding-top:12px;border-top:1px solid var(--line2);display:flex;flex-direction:column;gap:8px}
+.lab{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--fg3)}
+.mini .seg{display:grid;grid-template-columns:1fr 1fr;width:100%}.mini .seg button{min-height:26px}
+.right{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field .pick{width:100%}
+.grp{display:flex;flex-direction:column;gap:9px;padding-bottom:11px;border-bottom:1px solid var(--line2)}
+.grp:last-child{border-bottom:0;padding-bottom:0}
+.seg.wide{display:grid;grid-template-columns:1fr 1fr;width:100%}.seg.wide button{min-height:26px}
+.swgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.swgrid .swline{border-bottom:1px solid var(--line2)}
+.detailrow{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin-top:8px;padding:10px 0 2px;border:0;border-top:1px solid var(--line2);background:transparent;color:var(--fg2);font:inherit;font-size:12px;cursor:pointer;transition:color .18s}
+.detailrow:hover{color:var(--fg)}.detailrow .lb{display:inline-flex;align-items:center;gap:8px}
+.detailrow .chev{color:var(--fg3);font-size:12px;transition:transform .2s}
+.detailrow:hover .chev{transform:translateX(2px)}
+.knob .needle-g{transition:transform .1s linear}.knob.snap .needle-g{transition:transform .32s cubic-bezier(.2,.9,.25,1.06)}
+.seg button{transition:background-color .22s cubic-bezier(.2,.8,.2,1),color .22s,box-shadow .28s}
+.pick>button{transition:border-color .18s,background-color .18s}
+</style></head><body>
+<div class="stage"><div id="app"></div>
+<div style="display:flex;justify-content:center;gap:8px;margin-top:14px">
+<button id="theme" class="tbtn">切换深浅</button><button id="fail" class="tbtn">保存失败预览</button></div></div>
+<script>
+const svg=p=>'<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';
+const IC={state:'<circle cx="12" cy="12" r="3.2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>',perm:'<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/>',model:'<rect x="3" y="5" width="18" height="12" rx="2.5"/><path d="M7 21h10"/>',effort:'<path d="M4 17l5-6 4 3 6-8"/>',ctx:'<path d="M4 7h16M4 12h10M4 17h13"/>',turns:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',advisor:'<path d="M12 3l2.2 5.4L20 10.5l-4.4 3.7L16.9 20 12 16.9 7.1 20l1.3-5.8L4 10.5l5.8-2.1z"/>',english:'<path d="M4 6h9M8.5 6v13M4 19h7"/><path d="M14 12h6M17 12v7"/>',readTools:'<path d="M6 4l4 4-2 2-4-4z"/><path d="M13 11l7 7-2 2-7-7z"/>',bash:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 9l3 3-3 3M13 15h4"/>',doubleEnter:'<path d="M20 5v6a3 3 0 0 1-3 3H6"/><path d="M9 10l-3 3 3 3"/>',detail:'<circle cx="12" cy="12" r="8"/><path d="M12 11v6M12 8h.01"/>'};
+const S={tier:'heavy',state:'extreme',permission:'auto',model:'follow',effort:'max',mode:'turns',turns:6,advisor:true,english:false,readTools:true,bash:true,doubleEnter:true,save:'idle',fail:false};
+const TIERS=[['off','关闭'],['light','轻度'],['standard','标准'],['heavy','重度']];
+const TD={off:'不拦截，原话直接发送。',light:'少量补充，只点出最关键的方向。',standard:'展开关键方向，保留你的判断空间。',heavy:'深入展开，把想法往前多推一步。'};
+const TN={off:'关闭',light:'轻度',standard:'标准',heavy:'重度'};
+const MODELS=[['follow','跟随会话模型'],['v31','DeepSeek V3.1'],['r1','DeepSeek R1']];
+const EFFORTS=[['max','Max'],['high','High'],['off','Off']];
+const idx=()=>TIERS.findIndex(t=>t[0]===S.tier),dis=()=>S.tier==='off'&&!S.english,P=[0,66,132,198];
+const el=(t,c)=>{const n=document.createElement(t);if(c)n.className=c;return n};
+document.getElementById('app').innerHTML='<div class="panel"><div class="hd"><strong>优化选项</strong><span class="save" id="save" data-s="idle">自动保存</span><button class="x" id="close">×</button></div><div class="wrap"><div class="left"><div class="ringbox"><div style="position:relative;width:204px;height:204px"><div class="halo"></div><div class="sweep"></div><div class="knob" id="knob" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="3" aria-valuenow="3" style="width:204px;height:204px"><svg viewBox="0 0 100 100" width="204" height="204"><circle class="arc-bg" cx="50" cy="50" r="42" stroke-width="5" stroke-dasharray="198 264" transform="rotate(135 50 50)"/><circle class="arc-fg" id="arc" cx="50" cy="50" r="42" stroke-width="5" stroke-dasharray="198 264" transform="rotate(135 50 50)"/><g id="ticks"></g><g class="needle-g" id="needle"><line class="needle" x1="50" y1="50" x2="50" y2="19"/></g><circle cx="50" cy="50" r="4" fill="var(--fg)"/></svg><div class="knob-mid"><b id="tname">重度</b><small>强度</small></div></div></div><div class="desc" id="desc">'+TD.heavy+'</div></div><div class="mini"><span class="lab">'+svg(IC.state)+'模型状态</span><div class="seg" data-seg="state"><button data-v="normal">正常</button><button data-v="extreme">极限</button></div><span class="lab">'+svg(IC.perm)+'权限</span><div class="seg" data-seg="permission"><button data-v="review">审查</button><button data-v="auto">自动</button></div></div></div><div class="right"><div class="rgrid"><div class="field"><span class="lab">'+svg(IC.model)+'模型</span><div class="pick" data-pick="model"><button><span class="pv">跟随会话模型</span><span aria-hidden="true">▾</span></button><div class="menu" hidden></div></div></div><div class="field"><span class="lab">'+svg(IC.effort)+'思考档位</span><div class="pick" data-pick="effort"><button><span class="pv">Max</span><span aria-hidden="true">▾</span></button><div class="menu" hidden></div></div></div></div><div class="grp"><div class="row"><span class="lab">'+svg(IC.ctx)+'上下文</span><div class="seg" data-seg="mode" style="grid-template-columns:1fr 1fr"><button data-v="turns">回合</button><button data-v="full">全文</button></div></div><div id="turnsBox"><div class="row" style="font-size:11.5px;color:var(--fg3)"><span class="lab">'+svg(IC.turns)+'回合数</span><b style="color:var(--fg)" id="turnsNum">6</b></div><input id="turns" type="range" min="0" max="10" value="6"></div></div><div class="grp"><div class="swgrid" id="switches"></div><button class="detailrow" id="detail"><span class="lb">'+svg(IC.detail)+'详情<span class="" style="color:var(--fg3);font-size:10.5px">状态与提示词</span></span><span class="chev">›</span></button></div></div></div></div>';
+const $=s=>document.querySelector(s),knob=$('#knob'),arc=$('#arc'),needle=$('#needle'),tname=$('#tname'),desc=$('#desc'),save=$('#save'),ticks=$('#ticks');
+ticks.innerHTML=[0,1,2,3].map(i=>{const a=(-135+90*i)*Math.PI/180,c=(50+31*Math.sin(a)).toFixed(2),s=(50-31*Math.cos(a)).toFixed(2),c2=(50+27*Math.sin(a)).toFixed(2),s2=(50-27*Math.cos(a)).toFixed(2);return '<line class="tick" data-i="'+i+'" x1="'+c+'" y1="'+s+'" x2="'+c2+'" y2="'+s2+'"/>'}).join('');
+const SW=[['advisor','顾问'],['english','英文模式'],['readTools','只读工具'],['bash','内置 Bash'],['doubleEnter','双击 Enter 跳过']];
+$('#switches').innerHTML=SW.map(([k,l])=>'<button class="swline" data-sw="'+k+'"><span class="lb">'+svg(IC[k])+l+'</span><span class="sw"></span></button>').join('');
+function drawTier(){const i=idx();arc.setAttribute('stroke-dasharray',P[i]+' 264');needle.setAttribute('transform','rotate('+(-135+90*i)+' 50 50)');tname.textContent=TN[S.tier];desc.textContent=TD[S.tier];document.documentElement.dataset.tier=S.tier;ticks.querySelectorAll('.tick').forEach(t=>t.dataset.on=String(+t.dataset.i===i));knob.setAttribute('aria-valuenow',String(i));knob.setAttribute('aria-valuetext',TN[S.tier])}
+function paint(){drawTier();
+ document.querySelectorAll('[data-seg]').forEach(g=>{const k=g.dataset.seg;g.querySelectorAll('button').forEach(b=>{b.setAttribute('aria-checked',String(S[k]===b.dataset.v));b.disabled=(k==='permission'||k==='mode')&&dis()})});
+ document.querySelectorAll('[data-sw]').forEach(b=>b.setAttribute('aria-checked',String(!!S[b.dataset.sw])));
+ document.querySelectorAll('[data-pick]').forEach(p=>{const k=p.dataset.pick,l=k==='model'?MODELS:EFFORTS;p.querySelector('.pv').textContent=(l.find(x=>x[0]===S[k])||l[0])[1]});
+ $('#turnsNum').textContent=String(S.turns);$('#turns').value=String(S.turns);$('#turnsBox').style.display=S.mode==='turns'?'':'none';
+ save.dataset.s=S.fail?'error':S.save;save.textContent=S.fail?'保存失败 · 点此重试':(S.save==='saving'?'保存中…':'自动保存')}
+let t=null;function commit(){if(S.fail)return;S.save='saving';paint();clearTimeout(t);t=setTimeout(()=>{S.save='saved';paint()},420)}
+function angle(e){const r=knob.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let a=Math.atan2(e.clientX-cx,cy-e.clientY)*180/Math.PI;return Math.max(-135,Math.min(135,a))}
+function tierOf(a){return TIERS[Math.max(0,Math.min(3,Math.round((a+135)/90)))][0]}
+let drag=false;
+knob.addEventListener('pointerdown',e=>{drag=true;knob.classList.remove('snap');knob.setPointerCapture?.(e.pointerId);const a=angle(e);needle.setAttribute('transform','rotate('+a+' 50 50)');const v=tierOf(a);if(v!==S.tier){S.tier=v;drawTier();commit()}});
+knob.addEventListener('pointermove',e=>{if(!drag)return;const a=angle(e);needle.setAttribute('transform','rotate('+a+' 50 50)');const v=tierOf(a);if(v!==S.tier){S.tier=v;drawTier();commit()}});
+const end=()=>{if(!drag)return;drag=false;knob.classList.add('snap');drawTier()};
+knob.addEventListener('pointerup',end);knob.addEventListener('pointercancel',end);
+knob.addEventListener('keydown',e=>{const i=idx();let n=null;
+ if(e.key==='ArrowUp'||e.key==='ArrowRight')n=Math.min(3,i+1);else if(e.key==='ArrowDown'||e.key==='ArrowLeft')n=Math.max(0,i-1);
+ else if(e.key==='Home')n=0;else if(e.key==='End')n=3;if(n===null)return;e.preventDefault();knob.classList.add('snap');S.tier=TIERS[n][0];drawTier();commit()});
+document.addEventListener('click',e=>{
+ const seg=e.target.closest('[data-seg] button');if(seg){if(seg.disabled)return;const k=seg.closest('[data-seg]').dataset.seg;if(S[k]===seg.dataset.v)return;S[k]=seg.dataset.v;commit();return}
+ const sw=e.target.closest('[data-sw]');if(sw){S[sw.dataset.sw]=!S[sw.dataset.sw];commit();return}
+ const pb=e.target.closest('[data-pick]>button');if(pb){const wrap=pb.parentElement,k=wrap.dataset.pick,menu=wrap.querySelector('.menu');
+  document.querySelectorAll('.menu').forEach(m=>{if(m!==menu)m.hidden=true});
+  if(menu.hidden){const l=k==='model'?MODELS:EFFORTS;menu.innerHTML=l.map(([v,t])=>'<button data-pv="'+v+'" aria-selected="'+String(S[k]===v)+'">'+t+'</button>').join('');menu.hidden=false}else menu.hidden=true;
+  return}
+ const it=e.target.closest('[data-pv]');if(it){const w=it.closest('[data-pick]');S[w.dataset.pick]=it.dataset.pv;w.querySelector('.menu').hidden=true;commit();return}
+ if(e.target.closest('#detail')){e.currentTarget.animate&&0;document.querySelectorAll('.menu').forEach(m=>m.hidden=true);return}
+ if(!e.target.closest('[data-pick]'))document.querySelectorAll('.menu').forEach(m=>m.hidden=true);
+});
+$('#turns').addEventListener('input',e=>{S.turns=+e.target.value;$('#turnsNum').textContent=String(S.turns);commit()});
+$('#close').addEventListener('click',()=>{const p=document.querySelector('.panel');const a=p.animate([{opacity:1,transform:'none'},{opacity:0,transform:'scale(.985)'}],{duration:160,easing:'ease-out'});a.onfinish=()=>{p.style.opacity=.4}});
+$('#theme').addEventListener('click',()=>document.body.classList.toggle('light'));
+$('#fail').addEventListener('click',e=>{S.fail=!S.fail;e.currentTarget.setAttribute('aria-pressed',String(S.fail));paint()});
+paint();
+</script></body></html>

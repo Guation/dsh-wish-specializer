@@ -1,0 +1,7 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>旋钮 · 左侧主控 · 许愿特化器</title><link rel="stylesheet" href="shared.css"></head><body>
+<div class="stage"><div id="app"></div>
+<div style="display:flex;justify-content:center;gap:8px;margin-top:14px">
+<button id="theme" style="border:1px solid var(--line);background:transparent;color:var(--fg3);border-radius:8px;padding:5px 10px;font:inherit;font-size:11px;cursor:pointer">切换深浅</button>
+<button data-a="fail" style="border:1px solid var(--line);background:transparent;color:var(--fg3);border-radius:8px;padding:5px 10px;font:inherit;font-size:11px;cursor:pointer">保存失败预览</button></div></div>
+<script>const LAYOUT=()=>'<div class="panel">'+head()+'<div style="display:grid;grid-template-columns:236px minmax(0,1fr)"><div style="display:grid;place-items:center;padding:24px 10px;border-right:1px solid var(--line2)">'+knob(190)+'<div class="dots" style="margin-top:16px">'+TIERS.map(t=>'<i data-on="'+(S.tier===t[0])+'"></i>').join('')+'</div><p class="muted" style="margin:10px 0 0;font-size:10.5px;max-width:19ch;text-align:center">拖动旋钮，或按方向键</p></div><div style="padding:16px 18px">'+tierRow()+gap(12)+permRow()+gap(12)+modelRow()+gap(12)+effortRow()+gap(12)+ctxRow()+gap(10)+(S.mode==="turns"?slider():'<p class="muted" style="font-size:11px">读入当前保留的全部回合。</p>')+gap(6)+allSw()+'</div></div>'+foot()+'</div>';</script><script src="shared.js"></script></body></html>

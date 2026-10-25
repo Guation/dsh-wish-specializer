@@ -1,0 +1,30 @@
+
+:root{--tier:#6ea8fe;--glow:rgba(110,168,254,.34);--ring:198}
+html[data-tier=off]{--tier:#8b8f98;--glow:rgba(139,143,152,.16)}
+html[data-tier=light]{--tier:#43c9a4;--glow:rgba(67,201,164,.28)}
+html[data-tier=standard]{--tier:#5b9bff;--glow:rgba(91,155,255,.38)}
+html[data-tier=heavy]{--tier:#a970ff;--glow:rgba(169,112,255,.46)}
+.ic{width:14px;height:14px;flex:0 0 14px;opacity:.75}
+.lb{display:inline-flex;align-items:center;gap:7px}
+.knob .arc-fg{stroke:var(--tier);filter:drop-shadow(0 0 6px var(--glow));transition:stroke .4s ease,stroke-dasharray .35s cubic-bezier(.2,.9,.25,1.05),filter .4s ease}
+.knob .tick[data-on=true]{stroke:var(--tier)}
+.knob .needle{stroke:var(--tier)}
+.knob-mid b{transition:color .3s ease}
+html[data-tier=heavy] .knob-mid b{color:var(--tier);text-shadow:0 0 18px var(--glow)}
+.knob .halo{position:absolute;inset:-14px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,var(--glow),transparent 62%);opacity:0;transition:opacity .5s ease,transform .5s ease}
+html[data-tier=light] .knob .halo{opacity:.35}
+html[data-tier=standard] .knob .halo{opacity:.6;animation:breath 4.2s ease-in-out infinite}
+html[data-tier=heavy] .knob .halo{opacity:.85;animation:breath 2.6s ease-in-out infinite}
+@keyframes breath{0%,100%{transform:scale(.97);opacity:.55}50%{transform:scale(1.05);opacity:.95}}
+.knob .sweep{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .4s}
+html[data-tier=standard] .knob .sweep{opacity:.5;background:conic-gradient(from 0deg,transparent 0 78%,var(--glow) 92%,transparent 100%);animation:spin 6s linear infinite;mask:radial-gradient(circle,transparent 58%,#000 60%)}
+html[data-tier=heavy] .knob .sweep{opacity:.9;animation:spin 3.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.seg button[aria-checked=true]{box-shadow:0 1px 2px rgba(0,0,0,.18),0 0 0 1px color-mix(in srgb,var(--tier) 45%,transparent)}
+html[data-tier=heavy] .seg button[aria-checked=true]{background:color-mix(in srgb,var(--tier) 22%,var(--surface));color:var(--fg)}
+html[data-tier=heavy] [aria-checked=true] .sw{box-shadow:0 0 10px var(--glow)}
+.press{animation:press .3s cubic-bezier(.2,.9,.25,1.05)}
+@keyframes press{40%{transform:scale(.96)}100%{transform:none}}
+.stage{display:grid;justify-items:center}.panel{width:100%}
+.row>.lb{min-width:0}
+.pick>button{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

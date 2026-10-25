@@ -1,0 +1,7 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>旋钮 · 紧凑单列 · 许愿特化器</title><link rel="stylesheet" href="shared.css"></head><body>
+<div class="stage"><div id="app"></div>
+<div style="display:flex;justify-content:center;gap:8px;margin-top:14px">
+<button id="theme" style="border:1px solid var(--line);background:transparent;color:var(--fg3);border-radius:8px;padding:5px 10px;font:inherit;font-size:11px;cursor:pointer">切换深浅</button>
+<button data-a="fail" style="border:1px solid var(--line);background:transparent;color:var(--fg3);border-radius:8px;padding:5px 10px;font:inherit;font-size:11px;cursor:pointer">保存失败预览</button></div></div>
+<script>const LAYOUT=()=>'<div class="panel" style="max-width:430px;margin:0 auto">'+head()+'<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--line2)"><div style="flex:0 0 auto">'+knob(104)+'</div><div style="min-width:0"><p style="margin:0;font-size:15px;font-weight:650">'+TN[S.tier]+'</p><p class="muted" style="margin:4px 0 0;font-size:11px;line-height:1.5">'+TD[S.tier]+'</p></div></div><div style="padding:12px 16px 14px">'+tierRow()+gap(10)+permRow()+gap(10)+modelRow()+gap(10)+effortRow()+gap(10)+ctxRow()+gap(8)+(S.mode==="turns"?slider():"")+gap(4)+allSw()+'</div>'+foot()+'</div>';</script><script src="shared.js"></script></body></html>

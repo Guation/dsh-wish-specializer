@@ -1,0 +1,7 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>双环 · 双侧栏 · 许愿特化器</title><link rel="stylesheet" href="shared.css"><link rel="stylesheet" href="tiers.css"></head><body>
+<div class="stage"><div id="app"></div>
+<div style="display:flex;justify-content:center;gap:8px;margin-top:14px">
+<button id="theme" style="border:1px solid var(--line);background:transparent;color:var(--fg3);border-radius:8px;padding:5px 10px;font:inherit;font-size:11px;cursor:pointer">切换深浅</button>
+<button data-a="fail" style="border:1px solid var(--line);background:transparent;color:var(--fg3);border-radius:8px;padding:5px 10px;font:inherit;font-size:11px;cursor:pointer">保存失败预览</button></div></div>
+<script>const LAYOUT=()=>'<div class="panel" style="max-width:560px;margin:0 auto">'+head()+'<div style="display:grid;grid-template-columns:200px minmax(0,1fr)"><div style="display:grid;place-items:center;padding:20px 8px;border-right:1px solid var(--line2)">'+'<div style="position:relative;width:168px;height:168px"><div class="halo"></div><div class="sweep"></div>'+knob(168)+'</div>'+'</div><div style="padding:14px 16px">'+tierRow()+permRow()+modelRow()+effortRow()+ctxRow()+(S.mode==='turns'?slider():'')+allSw()+'</div></div>'+foot()+'</div>';</script><script src="shared.js"></script></body></html>
