@@ -1137,6 +1137,42 @@ for (const sample of rejectedRequests) await ta('recorded tool rejection complet
   eq(h.mod.adapter.getWorkingText(h.session.id),response.body.packet)
 })
 
+
+// ── 注入只认「本轮已应用的包」（外部评审 P0-1 的接缝）──
+await ta('ready 包在本轮应用前不可注入，应用后只对这一轮生效，turn/end 清掉', async () => {
+  const h = await wireHost({ sid: 'wire-turn-scope', policy: { advisor: false } })
+  // 会话已有上一轮：这才能区分「本轮的包」与「会话最后一个包」。
+  emit(h.ctx, h.session, userEvent(USER_TEXT, 'turn-0'))
+  await flushHostEvents()
+  const response = await h.interpret('turn-scope-run')
+  eq(response.body.status, 'ready')
+  const packet = response.body.packet
+  ok(packet.length > 0)
+  eq(h.context().includes(packet), false, '尚未发送的一轮不能被注入（生成中/排队场景）')
+  const submitted = await h.submit('turn-scope-run', packet, 'send')
+  eq(submitted.body.ok, true, JSON.stringify(submitted.body))
+  eq(h.context().includes(packet), false, '提交本身还不等于这一轮已应用')
+  emit(h.ctx, h.session, userEvent(USER_TEXT, 'turn-1'))
+  await flushHostEvents()
+  eq(h.context().includes(packet), true, '已应用包必须进入它自己那一轮')
+  emit(h.ctx, h.session, userEvent(USER_TEXT + ' 下一轮', 'turn-2'))
+  await flushHostEvents()
+  eq(h.context().includes(packet), false, '下一轮不能继承上一轮的包')
+})
+
+await ta('turn/end 之后上一轮包不再注入，即使仍处于 ready', async () => {
+  const h = await wireHost({ sid: 'wire-turn-end', policy: { advisor: false } })
+  emit(h.ctx, h.session, userEvent(USER_TEXT, 'turn-end-0'))
+  await flushHostEvents()
+  const response = await h.interpret('turn-end-run')
+  await h.submit('turn-end-run', response.body.packet, 'send')
+  emit(h.ctx, h.session, userEvent(USER_TEXT, 'turn-end-1'))
+  await flushHostEvents()
+  eq(h.context().includes(response.body.packet), true)
+  emit(h.ctx, h.session, { type: 'turn/end', data: {}, seq: 99 })
+  await flushHostEvents()
+  eq(h.context().includes(response.body.packet), false, '轮次结束即失效')
+})
 console.log(JSON.stringify({
   suite: 'po06-wire', phase: 'v3-pre-send',
   total: pass + failures.length, pass, fail: failures.length, failures,

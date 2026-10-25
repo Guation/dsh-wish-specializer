@@ -1428,6 +1428,7 @@ class DshAdapter {
     // 早期版本用一个全局字符串，会让 A 会话的意图泄漏进 B 会话（违反隔离不变量）。
     // `systemPrompt.context` 的 text(context) 能拿到 `context.agent`，据此取会话 id。
     this.optimizationRuns = createOptimizationRuns()
+    this.lastRealUserMessageBySession = new Map()
     this.capability = createCapability({ home: DSH_HOME, namespace: process.env.DSH_PROFILE_DIR || process.env.DSH_PROFILE || 'default' })
     /** P11 包级回退：每会话最近 10 版**非空**包（旧到新）。 */
     // 第 5 项之后的新增（2026-10-18 用户要求）：顾问不该只是个摆设。
@@ -1503,6 +1504,7 @@ class DshAdapter {
    */
   clearIntentTexts(reason) {
     const n = this.optimizationRuns.clear()
+    this.lastRealUserMessageBySession.clear()
     this.capability.clear()
     if (n > 0) {
       try { appendWireLog({ trigger: 'packet-cleared', ok: true, cleared: n, reason: String(reason || '') }) } catch { /* 记账失败不影响清理 */ }
@@ -1715,8 +1717,11 @@ class DshAdapter {
   /** 取某会话当前的意图包文本（诊断/测试用）。 */
   getIntentText(sessionId) { return this.optimizationRuns.packet(sessionId) }
 
-  getWorkingText(sessionId) {
-    return this.optimizationRuns.bypass(sessionId) ? '' : this.getIntentText(sessionId)
+  getWorkingText(sessionId, messageId = null) {
+    if (this.optimizationRuns.bypass(sessionId)) return ''
+    // 诊断/预览入口（不传轮次）沿用旧语义；**装配入口**必须传本轮消息 id，只认这一轮已应用的包。
+    if (messageId == null) return this.getIntentText(sessionId)
+    return this.optimizationRuns.packetForTurn(sessionId, messageId)
   }
 
   getAdvisorText(sessionId, feedback = '') {
@@ -1952,7 +1957,7 @@ class DshAdapter {
                 this.capability.seed(session)
                 const taskContext=this.capability.taskContext(session)
                 const feedback = this.reviewFeedback ? this.reviewFeedback(agent, pol, { root: sessionHistory.getCwd(sid), taskContext }) : ''
-                return withAdvisorWorkflow(this.getWorkingText(sid), pol, this.getAdvisorText(sid, feedback))
+                return withAdvisorWorkflow(this.getWorkingText(sid, adapter.lastRealUserMessageBySession.get(sid)), pol, this.getAdvisorText(sid, feedback))
               } catch (e) {
                 // ⚠ **不得静默**（EV-0102）：这条路径若抛错，意图包会在**毫无痕迹**的情况下消失——
                 // 正是 EV-0078 那一类事故（产品安静地不做事，用户以为它开着）。
@@ -2691,7 +2696,6 @@ let syncAdvisorToolsRef=null
       const off = ctx.on('session/event', (session, event) => {
         try {
           const sid = session && session.id !== undefined ? String(session.id) : ''
-          const submitted = isRealUserInput(event) ? adapter.optimizationRuns.consume(sid, extractUserText(event)) : null
           // 子代理默认不解释（2026-10-19）：父代理派下来的任务再来一轮「解释 → 注入」通常只是白花 token。
           // 判定用会话头（宿主写的字段），并在同一个位置短路，避免它的 user/message 还去触发一次解释。
           // 预设切换（2026-10-19）：会话头的 agentPreset 是**创建时**写死的；中途切预设只会发事件。
@@ -2708,6 +2712,10 @@ let syncAdvisorToolsRef=null
             adapter.notePresetPending(event.data.agentPreset, sid)
             adapter.tracePresetEvent(sid, event.data.agentPreset)
           }
+          const submitted = isRealUserInput(event) ? adapter.optimizationRuns.consume(sid, extractUserText(event)) : null
+          if (submitted) adapter.optimizationRuns.apply(sid, extractMessageId(event), event.seq)
+          if (isRealUserInput(event)) adapter.lastRealUserMessageBySession.set(sid, String(extractMessageId(event) || ''))
+          if (event && event.type === 'turn/end') adapter.optimizationRuns.clearApplied(sid)
           inferenceContext.observe(session,event)
           // ── P10 步骤 2：先喂上下文累加器（**只观测，不做任何判定**）──────────
           // 放在最前面：`extractObservedModel` 命中时会 `return`，那个时候

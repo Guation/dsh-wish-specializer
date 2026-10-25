@@ -3218,6 +3218,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             run.commitController = null
             if (!r || r.ok !== true || r.runId !== run.runId || typeof r.packet !== 'string') {
               run.commit = null
+              // 控制面根本不可用（连不上/超时）时不能把消息卡住：直接按原文发出，
+              // 只是不带包。这不是协议拒绝，也不伪造成功。
+              const unreachable = !r || String(r.reason || '') === 'unreachable'
+              if (unreachable && disposition !== 'cancel' && !run.appliedFallback) {
+                run.appliedFallback = true
+                run.submitted = false
+                publishHold(run, { ...pending, phase: 'review', pendingAuto: false, injectCard: false })
+                releaseHold(h.text, { ...h, injectCard: false }, 'skipped')
+                return null
+              }
               run.protocolMismatch = r?.ok === true
               const missingFields = typeof r?.runId !== 'string' || !r.runId || typeof r?.packet !== 'string'
               const why = reasonText((r && r.reason) || (run.protocolMismatch && missingFields ? 'pipeline-version-mismatch' : 'invalid-packet-response'))

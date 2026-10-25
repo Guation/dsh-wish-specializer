@@ -33,10 +33,31 @@ export function createOptimizationRuns() {
       if (!current(run) || run.status !== 'running') return false
       run.detach?.()
       run.result = { ...result, runId: run.runId, packet: String(result.packet || '') }
+      run.appliedMessageId = null; run.appliedSeq = null
       run.status = result.ok === false ? 'failed' : run.result.packet ? 'ready' : 'empty'
       return true
     },
     get(sessionId) { return sessions.get(String(sessionId)) || null },
+    /** Packet is injectable only after it was applied to the message that carried it. */
+    apply(sessionId, messageId, seq = null) {
+      const run = sessions.get(String(sessionId))
+      if (!run || !messageId || !['ready', 'empty', 'submitted'].includes(run.status)) return false
+      run.appliedMessageId = String(messageId); run.appliedSeq = seq == null ? null : Number(seq); run.appliedAt = Date.now()
+      return true
+    },
+    clearApplied(sessionId) {
+      const run = sessions.get(String(sessionId))
+      if (!run) return false
+      run.appliedMessageId = null; run.appliedSeq = null; run.appliedAt = null
+      return true
+    },
+    /** Injection reads this: a packet for any other turn is not this turn's packet. */
+    packetForTurn(sessionId, messageId) {
+      const run = sessions.get(String(sessionId))
+      if (!run || !['ready', 'submitted'].includes(run.status)) return ''
+      if (!messageId || String(run.appliedMessageId || '') !== String(messageId)) return ''
+      return run.result?.packet || ''
+    },
     packet(sessionId) {
       const run = sessions.get(String(sessionId))
       return run && ['ready', 'empty', 'submitted'].includes(run.status) ? run.result?.packet || '' : ''
@@ -45,7 +66,7 @@ export function createOptimizationRuns() {
       let run = sessions.get(String(sessionId))
       if (runId && run && run.runId !== String(runId)) return { ok: false, reason: 'superseded-input' }
       if (!run && runId) run = api.begin(sessionId, runId)
-      if (run) { stop(run); run.status = 'cancelled'; run.result = null; run.submission = null; run.applied = null }
+      if (run) { stop(run); run.status = 'cancelled'; run.result = null; run.submission = null; run.applied = null; run.appliedMessageId = null; run.appliedSeq = null }
       return { ok: true }
     },
     // Explicit submission is the only way the observer can claim a packet/card.
