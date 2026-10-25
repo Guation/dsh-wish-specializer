@@ -201,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-06'
+    const CLIENT_BUILD = 'ring-07'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1104,9 +1104,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-kick="1"] .po06-kickwrap i{animation:po06-kick .82s cubic-bezier(.08,.72,.16,1) 1}
 [data-kick="1"] .po06-kickwrap i:nth-child(2){animation-delay:.09s}
 @keyframes po06-kick{0%{transform:scale(.52);opacity:.95;border-width:2.4px}100%{transform:scale(1.52);opacity:0;border-width:.5px}}
-[data-po06="options-pop"] .po06-kickflash{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,255,255,0) 32%,rgba(255,255,255,.85) 43%,rgba(255,255,255,0) 56%);mix-blend-mode:screen}
-[data-kick="1"] .po06-kickflash{animation:po06-kickflash .5s cubic-bezier(.1,.7,.2,1) 1}
-@keyframes po06-kickflash{0%{opacity:0;transform:scale(.95)}16%{opacity:.6}100%{opacity:0;transform:scale(1.14)}}
+[data-po06="options-pop"] .po06-kickflash{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,255,255,.55) 0%,rgba(255,255,255,.9) 42%,rgba(255,255,255,.35) 66%,rgba(255,255,255,0) 84%);mix-blend-mode:screen}
+[data-kick="1"] .po06-kickflash{animation:po06-kickflash .62s cubic-bezier(.18,.7,.25,1) 1}
+@keyframes po06-kickflash{0%{opacity:0;transform:scale(.94)}12%{opacity:.9}46%{opacity:.5}100%{opacity:0;transform:scale(1.09)}}
 /* ---- 描述与环对齐 ---- */
 [data-po06="options-pop"] .po06-tier-note{text-align:center;margin:0 auto;width:100%}
 
@@ -1133,6 +1133,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06="options-pop"][data-po06-tier=heavy] .po06-orbit{animation-duration:3.4s}
 [data-po06="options-pop"][data-po06-tier=heavy] .po06-gapword b{font-size:23px}
 [data-po06="options-pop"][data-po06-tier=heavy] .po06-left:before{opacity:.2}
+
+/* ---- 换挡：先亮再落色 ---- */
+@keyframes po06-arcWhite{0%{stroke:#fff}26%{stroke:#fff}100%{stroke:var(--t)}}
+@keyframes po06-glowWhite{0%{stroke:#fff;opacity:.95}34%{stroke:#fff;opacity:.8}100%{stroke:var(--t);opacity:.45}}
+@keyframes po06-hiWhite{0%{stroke:#fff;opacity:.9}30%{opacity:.85}100%{stroke:color-mix(in srgb,var(--t) 42%,#fff);opacity:.32}}
+[data-kick="1"] .po06-arc-fg{animation:po06-arcWhite .66s cubic-bezier(.22,.8,.3,1) 1}
+[data-kick="1"] .po06-arc-glow{animation:po06-glowWhite .66s cubic-bezier(.22,.8,.3,1) 1}
+[data-kick="1"] .po06-arc-hi{animation:po06-hiWhite .66s cubic-bezier(.22,.8,.3,1) 1}
+[data-kick="1"] .po06-gapword b{text-shadow:0 0 26px rgba(255,255,255,.75)}
+[data-kick="1"] .po06-kickwrap i{border-width:2px;box-shadow:0 0 22px rgba(255,255,255,.55)}
 [data-po06="options-pop"] .po06-fx{position:absolute;inset:0;pointer-events:none}
 [data-po06="options-pop"] .po06-vast{position:absolute;inset:-44px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--t) 38%,transparent);opacity:calc(.5 * var(--fx));animation:po06-spin 44s linear infinite}
 [data-po06="options-pop"] .po06-rays{position:absolute;left:50%;top:50%;width:216px;height:216px;margin:-108px 0 0 -108px;border-radius:50%;pointer-events:none;opacity:calc(.22 * var(--fx));background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--t) 60%,transparent) 0deg .6deg,transparent .6deg 7.5deg);mask:radial-gradient(circle,transparent 0 44%,#000 52%,#000 58%,transparent 64%);animation:po06-spin 90s linear infinite}
