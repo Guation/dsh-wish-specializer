@@ -36,6 +36,27 @@ const withIcon = (glyph, node) => [
   node,
 ]
 
+    // 图标用 React 元素画：项目禁止直接注入标记，图标一律走子节点
+    const PO06_ICONS = {
+      state: [['circle', { cx: 12, cy: 12, r: 3.2 }], ['path', { d: 'M12 3v4M12 17v4M3 12h4M17 12h4' }]],
+      perm: [['path', { d: 'M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z' }]],
+      model: [['rect', { x: 3, y: 5, width: 18, height: 12, rx: 2.5 }], ['path', { d: 'M7 21h10' }]],
+      effort: [['path', { d: 'M4 17l5-6 4 3 6-8' }]],
+      ctx: [['path', { d: 'M4 7h16M4 12h10M4 17h13' }]],
+      turns: [['circle', { cx: 12, cy: 12, r: 8 }], ['path', { d: 'M12 8v4l3 2' }]],
+      advisor: [['path', { d: 'M12 3l2.2 5.4L20 10.5l-4.4 3.7L16.9 20 12 16.9 7.1 20l1.3-5.8L4 10.5l5.8-2.1z' }]],
+      english: [['path', { d: 'M4 6h9M8.5 6v13M4 19h7' }], ['path', { d: 'M14 12h6M17 12v7' }]],
+      readTools: [['path', { d: 'M6 4l4 4-2 2-4-4z' }], ['path', { d: 'M13 11l7 7-2 2-7-7z' }]],
+      bash: [['rect', { x: 3, y: 4, width: 18, height: 16, rx: 2.5 }], ['path', { d: 'M7 9l3 3-3 3M13 15h4' }]],
+      doubleEnter: [['path', { d: 'M20 5v6a3 3 0 0 1-3 3H6' }], ['path', { d: 'M9 10l-3 3 3 3' }]],
+      detail: [['circle', { cx: 12, cy: 12, r: 8 }], ['path', { d: 'M12 11v6M12 8h.01' }]],
+    }
+    const po06Icon = (key) => h('svg', {
+      className: 'po06-ic', viewBox: '0 0 24 24', width: 14, height: 14,
+      fill: 'none', stroke: 'currentColor', strokeWidth: 1.55, strokeLinecap: 'round', strokeLinejoin: 'round',
+      'aria-hidden': 'true',
+    }, (PO06_ICONS[key] || []).map(([tag, attrs], i) => h(tag, { key: i, ...attrs })))
+
     const NS = 'dsh-po06'
     const API = '/po06/api'
     const PIPELINE_REVISION = 'single-run-1'
@@ -180,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-02'
+    const CLIENT_BUILD = 'ring-03'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1053,6 +1074,67 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06="options-pop"] .po06-close:hover{background:var(--po06-chip);color:var(--po06-fg);transform:rotate(90deg)}
 
 /* 两栏 */
+/* ---- 图标 ---- */
+[data-po06="options-pop"] .po06-ic{width:14px;height:14px;flex:0 0 14px;opacity:.72;vertical-align:-2px;margin-right:6px;transition:opacity .18s,color .18s}
+[data-po06="options-pop"] .po06-mini-label .po06-ic,[data-po06="options-pop"] .po06-field-label .po06-ic{margin-right:0}
+[data-po06="options-pop"] .po06-switch-label{display:inline-flex;align-items:center;gap:6px;min-width:0}
+[data-po06="options-pop"] .po06-switch-label .po06-ic{margin-right:0}
+[data-po06="options-pop"] .po06-feature-toggle:hover .po06-ic,
+[data-po06="options-pop"] .po06-setting-switch:hover .po06-ic,
+[data-po06="options-pop"] .po06-detailrow:hover .po06-ic{opacity:1;color:var(--t)}
+/* ---- 节拍 ---- */
+[data-po06="options-pop"]{--beat:2.6s;--fx:1}
+[data-po06-tier=standard]{--fx:.58}
+[data-po06-tier=light]{--fx:.28}
+[data-po06-tier=off]{--fx:0}
+[data-po06="options-pop"] .po06-fx{position:absolute;inset:0;pointer-events:none}
+[data-po06="options-pop"] .po06-vast{position:absolute;inset:-44px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--t) 38%,transparent);opacity:calc(.5 * var(--fx));animation:po06-spin 44s linear infinite}
+[data-po06="options-pop"] .po06-rays{position:absolute;left:50%;top:50%;width:216px;height:216px;margin:-108px 0 0 -108px;border-radius:50%;pointer-events:none;opacity:calc(.22 * var(--fx));background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--t) 60%,transparent) 0deg .6deg,transparent .6deg 7.5deg);mask:radial-gradient(circle,transparent 0 44%,#000 52%,#000 58%,transparent 64%);animation:po06-spin 90s linear infinite}
+[data-po06="options-pop"] .po06-sweep{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0;background:conic-gradient(from 0deg,transparent 0 72%,color-mix(in srgb,var(--t) 60%,transparent) 90%,transparent 100%);mask:radial-gradient(circle,transparent 54%,#000 58%);animation:po06-spin 6.5s linear infinite;transition:opacity .6s}
+[data-po06="options-pop"][data-po06-tier=standard] .po06-sweep{opacity:.32}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-sweep{opacity:.62}
+[data-po06="options-pop"] .po06-vortex{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0;background:conic-gradient(from 0deg,transparent 0 50%,color-mix(in srgb,var(--t) 45%,transparent) 74%,transparent 92%);filter:blur(5px);mask:radial-gradient(circle,transparent 34%,#000 50%,#000 64%,transparent 71%);animation:po06-spin 15s linear infinite;transition:opacity .6s}
+[data-po06="options-pop"][data-po06-tier=standard] .po06-vortex{opacity:.2}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-vortex{opacity:.42}
+[data-po06="options-pop"] .po06-core{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,color-mix(in srgb,var(--t) 55%,transparent),transparent 72%);opacity:.3;animation:po06-core var(--beat) ease-in-out infinite}
+[data-po06="options-pop"] .po06-orbit{position:absolute;inset:0;pointer-events:none;animation:po06-spin 6.5s linear infinite}
+[data-po06="options-pop"] .po06-orbit i{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--t);box-shadow:0 0 10px var(--t);opacity:.85}
+[data-po06="options-pop"] .po06-orbit i:nth-child(1){top:-2px;left:50%;margin-left:-2px}
+[data-po06="options-pop"] .po06-orbit i:nth-child(2){top:50%;right:-2px;margin-top:-2px}
+[data-po06="options-pop"] .po06-orbit i:nth-child(3){bottom:-2px;left:31%}
+[data-po06="options-pop"] .po06-shock{position:absolute;inset:0;pointer-events:none}
+[data-po06="options-pop"] .po06-shock i{position:absolute;inset:0;border-radius:50%;border:1.2px solid color-mix(in srgb,var(--t) 72%,#fff);opacity:0;animation:po06-shock var(--beat) cubic-bezier(.12,.7,.2,1) infinite}
+[data-po06="options-pop"] .po06-shock i:nth-child(2){animation-delay:.52s}
+[data-po06="options-pop"] .po06-shock i:nth-child(3){animation-delay:1.04s}
+[data-po06="options-pop"] .po06-spark i{position:absolute;width:2px;height:2px;border-radius:50%;background:var(--t);opacity:0;box-shadow:0 0 6px var(--t);animation:po06-spark var(--beat) linear infinite}
+[data-po06="options-pop"] .po06-flash{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,transparent 40%,rgba(255,255,255,.55) 47%,transparent 58%);mix-blend-mode:screen;opacity:0;animation:po06-flash var(--beat) linear infinite}
+[data-po06="options-pop"] .po06-charge{fill:none;stroke:var(--t);stroke-width:1;opacity:0;stroke-dasharray:0 226;animation:po06-charge var(--beat) cubic-bezier(.42,0,.58,1) infinite}
+[data-po06="options-pop"] .po06-arc-glow{animation:po06-arcGlow var(--beat) cubic-bezier(.42,0,.58,1) infinite}
+[data-po06="options-pop"] .po06-gapword b{animation:po06-name var(--beat) cubic-bezier(.4,0,.6,1) infinite;transform-origin:50% 60%}
+[data-po06="options-pop"] .po06-tip{animation:po06-tip var(--beat) ease-in-out infinite}
+[data-po06="options-pop"] .po06-studio-header{position:relative}
+[data-po06="options-pop"] .po06-studio-header:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--t),transparent);opacity:.3;animation:po06-rule var(--beat) ease-in-out infinite}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06=perm][data-po06-value=auto] .po06-pill{background:color-mix(in srgb,#f2a03c 22%,var(--po06-surface));border-color:#f2a03c66;animation:po06-autoGlow 2.6s ease-in-out infinite}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06=model-state][data-po06-value=extreme] .po06-pill{background:color-mix(in srgb,#f2545b 20%,var(--po06-surface));border-color:#f2545b66;box-shadow:0 0 0 3px #f2545b22}
+@keyframes po06-spin{to{transform:rotate(360deg)}}
+@keyframes po06-shock{0%,56%{transform:scale(.62);opacity:0}60%{opacity:calc(.6 * var(--fx))}100%{transform:scale(1.4);opacity:0}}
+@keyframes po06-spark{0%,54%{transform:translate(0,0);opacity:0}60%{opacity:calc(.9 * var(--fx))}100%{transform:translate(var(--dx,0),var(--dy,0));opacity:0}}
+@keyframes po06-flash{0%,62%{opacity:0}65%{opacity:calc(.26 * var(--fx))}71%{opacity:.06}100%{opacity:0}}
+@keyframes po06-charge{0%{stroke-dasharray:0 226;opacity:0}54%{stroke-dasharray:150 226;opacity:calc(.65 * var(--fx))}62%{stroke-dasharray:168 226;opacity:calc(.9 * var(--fx))}66%{opacity:0}100%{stroke-dasharray:168 226;opacity:0}}
+@keyframes po06-arcGlow{0%,100%{opacity:.3}56%{opacity:calc(.5 * var(--fx) + .15)}64%{opacity:calc(.9 * var(--fx) + .2)}80%{opacity:.34}}
+@keyframes po06-core{0%,100%{transform:scale(.7);opacity:.2}50%{transform:scale(1.25);opacity:calc(.45 + .35 * var(--fx))}}
+@keyframes po06-name{0%,100%{transform:scale(.985);opacity:.82}56%{transform:scale(1.02);opacity:.94}64%{transform:scale(1.07);opacity:1}80%{transform:scale(1);opacity:.9}}
+@keyframes po06-tip{0%,100%{opacity:.55}56%{opacity:.85}64%{opacity:1}}
+@keyframes po06-rule{0%,100%{opacity:.12}56%{opacity:.55}64%{opacity:.9}}
+@keyframes po06-autoGlow{0%,100%{box-shadow:0 0 0 3px #f2a03c22}50%{box-shadow:0 0 0 5px #f2a03c33,0 0 20px #f2a03c55}}
+[data-po06="options-pop"][data-po06-tier=off] .po06-shock,[data-po06="options-pop"][data-po06-tier=off] .po06-flash,
+[data-po06="options-pop"][data-po06-tier=off] .po06-spark,[data-po06="options-pop"][data-po06-tier=off] .po06-rays,
+[data-po06="options-pop"][data-po06-tier=off] .po06-vast,[data-po06="options-pop"][data-po06-tier=off] .po06-core{display:none}
+[data-po06="options-pop"][data-po06-tier=light] .po06-shock,[data-po06="options-pop"][data-po06-tier=light] .po06-flash,
+[data-po06="options-pop"][data-po06-tier=light] .po06-vortex{display:none}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-rays,[data-po06="options-pop"][data-po06-compact="1"] .po06-vast,
+[data-po06="options-pop"][data-po06-compact="1"] .po06-flash,[data-po06="options-pop"][data-po06-compact="1"] .po06-orbit{display:none}
+
 [data-po06="options-pop"] .po06-body{display:grid;grid-template-columns:330px minmax(0,1fr);flex:1 1 auto;min-height:0;align-content:start;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 [data-po06="options-pop"] .po06-left{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-self:start;gap:16px;padding:22px 18px 18px;border-right:1px solid var(--po06-line2);overflow:hidden}
 [data-po06="options-pop"] .po06-left:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 62% at 50% 0%,var(--t),transparent 72%);opacity:.14}
@@ -1338,6 +1420,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const [pending, setPending] = React.useState(null)
       React.useEffect(() => { setPending(null) }, [value, failTick])
       const shown = pending || value
+      const shownRef = React.useRef(shown)
+      shownRef.current = shown
+      const valueRef = React.useRef(value)
+      valueRef.current = value
+      const onPickRef = React.useRef(onPick)
+      onPickRef.current = onPick
       const idx = Math.max(0, TIER_KEYS.indexOf(shown))
       const angleOf = (i) => -135 + 90 * Math.max(0, Math.min(TIER_KEYS.length - 1, i))
       const point = (deg, radius) => ({
@@ -1358,7 +1446,35 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         return Math.max(-135, Math.min(135, (Math.atan2(e.clientX - cx, cy - e.clientY) * 180) / Math.PI))
       }
       const tierAt = (deg) => TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, Math.round((deg + 135) / 90)))]
-      const pick = (key) => { if (key !== shown && !disabled) { setPending(key); onPick(key) } }
+      // 拖动中只改本地（即时换色换弧），松手才写设置：每移动一次都 POST 会把交互拖垮
+      const pick = (key, commit) => { if (key === shown || disabled) return; setPending(key); if (commit) onPick(key) }
+      React.useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
+        const move = (e) => {
+          if (dragRef.current == null) return
+          const deg = angleAt(e)
+          setNeedle(deg)
+          pick(tierAt(deg), false)
+        }
+        const up = () => {
+          if (dragRef.current == null) return
+          dragRef.current = null
+          setSnap(true)
+          const key = shownRef.current
+          setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(key))))
+          if (key !== valueRef.current) onPickRef.current(key)
+        }
+        window.addEventListener('pointermove', move, true)
+        window.addEventListener('pointerup', up, true)
+        window.addEventListener('pointercancel', up, true)
+        window.addEventListener('blur', up)
+        return () => {
+          window.removeEventListener('pointermove', move, true)
+          window.removeEventListener('pointerup', up, true)
+          window.removeEventListener('pointercancel', up, true)
+          window.removeEventListener('blur', up)
+        }
+      }, [])
       const onDown = (e) => {
         if (disabled || (e.button != null && e.button !== 0)) return
         dragRef.current = e.pointerId
@@ -1366,15 +1482,21 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         try { e.currentTarget.setPointerCapture?.(e.pointerId) } catch { /* 忽略 */ }
         const deg = angleAt(e)
         setNeedle(deg)
-        pick(tierAt(deg))
+        pick(tierAt(deg), false)
       }
       const onMove = (e) => {
         if (dragRef.current == null) return
         const deg = angleAt(e)
         setNeedle(deg)
-        pick(tierAt(deg))
+        pick(tierAt(deg), false)
       }
-      const onUp = () => { if (dragRef.current == null) return; dragRef.current = null; setSnap(true) }
+      const onUp = () => {
+        if (dragRef.current == null) return
+        dragRef.current = null
+        setSnap(true)
+        setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(shown))))
+        if (pending && pending !== value) onPick(pending)
+      }
       const onKeyDown = (e) => {
         if (disabled) return
         let next = null
@@ -1385,9 +1507,23 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (next == null) return
         e.preventDefault()
         setSnap(true)
-        pick(TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, next))])
+        pick(TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, next))], true)
       }
       const dash = (TIER_ARC[shown] || 198) + ' 264'
+      const fxLayer = React.useMemo(() => h('div', { className: 'po06-fx', 'aria-hidden': 'true' },
+        h('div', { className: 'po06-vast' }),
+        h('div', { className: 'po06-rays' }),
+        h('div', { className: 'po06-vortex' }),
+        h('div', { className: 'po06-sweep' }),
+        h('div', { className: 'po06-core' }),
+        h('div', { className: 'po06-orbit' }, h('i'), h('i'), h('i')),
+        h('div', { className: 'po06-shock' }, h('i'), h('i'), h('i')),
+        h('div', { className: 'po06-spark' }, Array.from({ length: 22 }, (_, i) => {
+          const dx = ((i * 29) % 46) - 23, dy = ((i * 17) % 40) - 20
+          return h('i', { key: i, style: { left: (12 + (i * 37) % 76) + '%', top: (10 + (i * 53) % 80) + '%',
+            '--dx': dx + 'px', '--dy': dy + 'px', animationDelay: '-' + (((i * 37) % 90) / 34).toFixed(2) + 's' } })
+        })),
+        h('div', { className: 'po06-flash' })), [])
       return h('div', { className: 'po06-ringbox' },
         h('div', {
           ref: wrapRef, className: 'po06-ringwrap', role: 'slider', tabIndex: disabled ? -1 : 0,
@@ -1398,11 +1534,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onUp, onKeyDown,
         },
           h('div', { className: 'po06-halo', 'aria-hidden': 'true' }),
+          fxLayer,
           h('svg', { viewBox: '0 0 100 100', width: 224, height: 224, 'aria-hidden': 'true' },
             h('circle', { className: 'po06-arc-bg', cx: 50, cy: 50, r: 42, 'stroke-dasharray': '198 264', transform: 'rotate(135 50 50)' }),
             h('circle', { className: 'po06-arc-glow', cx: 50, cy: 50, r: 42, 'stroke-dasharray': dash, transform: 'rotate(135 50 50)' }),
             h('circle', { className: 'po06-arc-fg', cx: 50, cy: 50, r: 42, 'stroke-dasharray': dash, transform: 'rotate(135 50 50)' }),
             h('circle', { className: 'po06-arc-hi', cx: 50, cy: 50, r: 42, 'stroke-dasharray': dash, transform: 'rotate(135 50 50)' }),
+            h('circle', { className: 'po06-charge', cx: 50, cy: 50, r: 35.5, 'stroke-dasharray': '0 226', transform: 'rotate(135 50 50)' }),
             h('g', null, TIER_KEYS.map((key, i) => {
               const a = point(angleOf(i), 31), b = point(angleOf(i), 27)
               return h('line', { key, className: 'po06-tick', 'data-on': key === shown ? '1' : '0', x1: a.x, y1: a.y, x2: b.x, y2: b.y })
@@ -1419,11 +1557,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             { left: '2%', bottom: '12%' },
             { left: '2%', top: '10%' },
             { right: '2%', top: '10%' },
-            { right: '2%', bottom: '12%' }
+            { right: '2%', bottom: '12%' },
           ][i] || {}
           return h('span', { key, className: 'po06-tlabel', 'data-on': key === shown ? '1' : '0', style: corner },
             label ? label(key) : key)
         }))
+
     }
 
     function Segmented({ name, value, options, label, disabled, title, onPick, failTick, variant }) {
@@ -1480,6 +1619,38 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         dragRef.current = null
         setDragPct(null)
       }
+      React.useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
+        const move = (event) => {
+          const drag = dragRef.current
+          if (!drag || disabled) return
+          if (!drag.moved) {
+            if (Math.abs(event.clientX - drag.x) < 4) return
+            drag.moved = true
+          }
+          const el = groupRef.current
+          if (!el || !el.getBoundingClientRect) return
+          const r = el.getBoundingClientRect()
+          const inner = Math.max(1, r.width - 6)
+          const t = Math.max(0, Math.min(1, (event.clientX - r.left - 3) / inner))
+          setDragPct(t * (options.length - 1))
+          const next = options[Math.round(t * (options.length - 1))]
+          if (next && next !== shown) commit(next)
+        }
+        const up = () => {
+          if (!dragRef.current) return
+          dragRef.current = null
+          setDragPct(null)
+        }
+        window.addEventListener('pointermove', move, true)
+        window.addEventListener('pointerup', up, true)
+        window.addEventListener('pointercancel', up, true)
+        return () => {
+          window.removeEventListener('pointermove', move, true)
+          window.removeEventListener('pointerup', up, true)
+          window.removeEventListener('pointercancel', up, true)
+        }
+      }, [disabled, options, shown])
       const pill = isPill ? h('i', {
         key: 'pill', className: 'po06-pill', 'aria-hidden': 'true',
         style: {
@@ -1548,6 +1719,36 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const t = (clientX - r.left) / r.width
         return Math.round(TURNS_MIN + Math.max(0, Math.min(1, t)) * (TURNS_MAX - TURNS_MIN))
       }
+      React.useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
+        const move = (e) => {
+          if (disabled || !startRef.current) return
+          if (!startRef.current.moved && Math.abs(e.clientX - startRef.current.x) <= 3) return
+          startRef.current.moved = true
+          setDragging(true)
+          const r = rectRef.current
+          if (r && r.width) setDragPos(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
+          setDraft(valueAt(e.clientX))
+        }
+        const up = (e) => {
+          const start = startRef.current
+          startRef.current = null
+          rectRef.current = null
+          setDragging(false)
+          if (!start) return
+          const v = valueAt(e.clientX)
+          if (v != null) { setDraft(v); commit(v) }
+        }
+        const cancel = () => { startRef.current = null; rectRef.current = null; setDragging(false); setDragPos(null); setDraft(null) }
+        window.addEventListener('pointermove', move, true)
+        window.addEventListener('pointerup', up, true)
+        window.addEventListener('pointercancel', cancel, true)
+        return () => {
+          window.removeEventListener('pointermove', move, true)
+          window.removeEventListener('pointerup', up, true)
+          window.removeEventListener('pointercancel', cancel, true)
+        }
+      }, [disabled, dragging, value, shown])
       const onKeyDown = (e) => {
         if (disabled) return
         let next = null
@@ -1744,22 +1945,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     }
     const inferenceCallTime=c=>Math.max(0,((c.finishedAt||Date.now())-c.startedAt)/1000).toFixed(1)+'s'
     function outgoingUserText(hold){return hold?.englishMode&&typeof hold.outgoingText==='string'&&hold.outgoingText.trim()?hold.outgoingText:String(hold?.text||'')}
-    function StudioToggle({name,label,caption,on,disabled,onChange}) {
+    function StudioToggle({name,label,caption,on,disabled,onChange,icon}) {
       return h('button',{type:'button',role:'switch','aria-checked':!!on,disabled:!!disabled,
         'aria-label':label,'data-po06':name+'-toggle','data-po06-value':on?'on':'off',
         className:'po06-feature-toggle',onClick:onChange},
-        h('span',{className:'po06-feature-top'},h('span',null,label),
+        h('span',{className:'po06-feature-top'},h('span',{className:'po06-switch-label'},icon?po06Icon(icon):null,label),
           h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span'))),
         h('span',{className:'po06-feature-caption'},caption))
     }
 
     function AdvisorControls({settings={},save,ready,busy=false,failTick,compact=false}){
       const known=typeof settings.advisor==='boolean',on=settings.advisor===true
-      if (compact) return h(StudioToggle,{name:'advisor',label:L('顾问','Advisor'),caption:L('独立思考与复核','A second perspective'),on,disabled:busy||!known||ready===false,onChange:()=>save({advisor:!on})})
+      if (compact) return h(StudioToggle,{name:'advisor',icon:'advisor',label:L('顾问','Advisor'),caption:L('独立思考与复核','A second perspective'),on,disabled:!known||ready===false,onChange:()=>save({advisor:!on})})
       // Settings-page presentation shares the same saved value.
       return h('div',{style:S.optRow},h('span',{style:S.optLabel},...withIcon('✦',L('顾问','Advisor'))),
         h(Segmented,{ name:'advisor', value:on?'on':'off', options:['off','on'], failTick,
-          disabled:busy||!known||ready===false,
+          disabled:!known||ready===false,
           label:k=>k==='on'?L('开启','On'):L('关闭','Off'),
           title:!known?L('顾问：还没读到当前设置，这次不会发送这个字段','Advisor: current setting not read yet')
             :L('顾问：开启后可调用 consult_task / advisor_stage 做独立解题与复核；关闭后这两个工具直接拒绝，不发起任何模型调用。','Advisor: consult_task and advisor_stage are available when on; when off they refuse without any model call.'),
@@ -1768,12 +1969,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     }
     function EnglishControls({settings={},save,ready,busy=false,failTick,compact=false}){
       const known=typeof settings.englishMode==='boolean',on=settings.englishMode===true
-      if (compact) return h(StudioToggle,{name:'english-mode',label:L('英文模式','English mode'),caption:L('使用英文任务与建议','Task & advice in English'),on,disabled:busy||!known||ready===false,onChange:()=>save({englishMode:!on})})
+      if (compact) return h(StudioToggle,{name:'english-mode',icon:'english',label:L('英文模式','English mode'),caption:L('使用英文任务与建议','Task & advice in English'),on,disabled:!known||ready===false,onChange:()=>save({englishMode:!on})})
       // A missing status value is never guessed.
       return h('div',{style:S.optRow},h('span',{style:S.optLabel},...withIcon('A',L('英文模式','English mode'))),
         h(Segmented,{
           name:'english-mode', value:on?'on':'off', options:['off','on'], failTick,
-          disabled:busy||!known||ready===false,
+          disabled:!known||ready===false,
           label:k=>k==='on'?L('开启','On'):L('关闭','Off'),
           title:!known?L('英文模式：还没读到当前设置，这次不会发送这个字段','English mode: current setting not read yet; this field will not be sent')
             :L('英文模式：把用户任务、优化策略与辅助文转成英文再送给模型（界面仍是中文）。不添加答复语言要求，原话里的语言要求照常保留。',
@@ -1796,7 +1997,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const enabled=settings.reasoningBoost===true,known=typeof settings.reasoningBoost==='boolean'
       return h('div',{'data-po06':'inference-controls',style:{borderTop:'1px solid '+T('line2'),paddingTop:'8px',marginTop:'8px'}},
         h('div',{style:{...S.optRow,gap:'8px'}},h('span',{style:S.optLabel},...withIcon('⚡',L('快速增强','Quick enhancement'))),
-          h('button',{'data-po06':'reasoning-boost',type:'button',style:{...S.small,color:enabled?T('acc'):T('fg2')},disabled:busy||!known||ready===false&&!enabled,'aria-pressed':enabled,onClick:()=>save({reasoningBoost:!enabled})},enabled?L('开启','On'):L('关闭','Off'))),
+          h('button',{'data-po06':'reasoning-boost',type:'button',style:{...S.small,color:enabled?T('acc'):T('fg2')},disabled:!known||ready===false&&!enabled,'aria-pressed':enabled,onClick:()=>save({reasoningBoost:!enabled})},enabled?L('开启','On'):L('关闭','Off'))),
         h('div',{'data-po06':'inference-profile',style:{...S.muted,lineHeight:1.5}},
           L('固定 3+3 快速配置：先并发生成三条简短、公开的思考方向，再交给原工作模型正常执行。不做同一步串行精修，不调用择优裁判，也不先写几份实现；3+3 不表示实际执行了三轮修正。',
             'Fixed 3+3 fast profile: three concurrent brief public directions, followed by normal execution by the original working model. No same-step serial refinements, separate judge or multiple implementations; 3+3 does not mean three correction loops ran.')),
@@ -4046,11 +4247,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         h('p',{className:'po06-pane-kicker'},kicker),
         title?h('p',{className:'po06-pane-title'},title):null,
         h('p',{className:'po06-pane-note'},note))
+      const SWITCH_ICONS = { readtools: 'readTools', bash: 'bash', 'double-enter': 'doubleEnter' }
       const switchRow = (name,flag,known,label,title,onToggle) => h('button',{key:name,type:'button','data-po06':name,
         'data-po06-value':known?(flag?'on':'off'):'unknown',role:'switch','aria-checked':known&&flag,
-        disabled:busy||!known,className:'po06-setting-switch',title,
+        disabled:!known,className:'po06-setting-switch',title,
         onClick:()=>{if(!known){setMsg({kind:'warn',text:L('还没读到当前设置','Setting not loaded yet')});return}onToggle()}},
-        h('span',null,label),h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span')))
+        h('span',{className:'po06-switch-label'},po06Icon(SWITCH_ICONS[name]),label),
+        h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span')))
       const intensityPane = h(React.Fragment,null,
         paneHead(L('优化强度','Intensity'),tierNote,tierLabel(tier)),
         h(Segmented,{name:'tier',value:tier,options:TIER_KEYS,label:k=>tierLabel(k),variant:'stack',failTick,
@@ -4084,7 +4287,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           historyMode==='full'
             ? h('p',{'data-po06':'ctx-hint',className:'po06-setting-note'},L('读入当前保留的全部回合。','Read all turns currently retained.'))
             : h('div',{className:'po06-turns-editor'},
-              h('div',{className:'po06-turns-heading'},h('span',null,L('回合数','Turns')),h('span',{'data-po06':'ctx-num'},String(turns))),
+              h('div',{className:'po06-turns-heading'},h('span',{className:'po06-switch-label'},po06Icon('turns'),L('回合数','Turns')),h('span',{'data-po06':'ctx-num'},String(turns))),
               h(TurnsRange,{value:turns,disabled:tierOff,failTick,disabledTip:L('档位已关闭','Optimizer is off'),
                 title:L('上下文：0–10 回合，方向键调整','Context: 0–10 turns; adjust with arrow keys'),onCommit:n=>save({turns:n})}),
               h('div',{className:'po06-range-labels','aria-hidden':'true'},h('span',null,'0'),h('span',null,'10')))))
@@ -4192,12 +4395,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   h('div',{className:'po06-left-side'},
                   h('p',{className:'po06-tier-note'},tierNote),
                   h('div',{className:'po06-mini'},
-                    h('span',{className:'po06-mini-label'},...withIcon('◐',L('模型状态','Model state'))),
+                    h('span',{className:'po06-mini-label'},po06Icon('state'),L('模型状态','Model state')),
                     h(Segmented,{name:'model-state',variant:'pill',value:modelState,options:['normal','extreme'],failTick,
                       label:k=>k==='extreme'?L('极限','Extreme'):L('正常','Normal'),
                       title:L('正常：不添加压力测试说明；极限：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
                       onPick:v=>save({bySession:withSession({modelState:v})})}),
-                    h('span',{className:'po06-mini-label'},...withIcon('⛨',L('权限','Permission'))),
+                    h('span',{className:'po06-mini-label'},po06Icon('perm'),L('权限','Permission')),
                     h(Segmented,{name:'perm',variant:'pill',value:permission,options:['review','auto'],failTick,disabled:tierOff&&!englishOn,
                       label:k=>k==='review'?L('审查','Review'):L('自动','Auto'),
                       title:L('审查：确认后发送；自动：优化完成即发送','Review: confirm before sending. Auto: send when optimization completes.'),
@@ -4205,14 +4408,14 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 h('div',{className:'po06-right'},
                   h('div',{className:'po06-grid2'},
                     h('div',{className:'po06-field'},
-                      h('span',{className:'po06-field-label'},...withIcon('▤',L('模型','Model'))),
+                      h('span',{className:'po06-field-label'},po06Icon('model'),L('模型','Model')),
                       h(Options,{anchor:'model',variant:'chip',value:curKey,options:['inherit',...routes.map(mkey)],
                         labels:(()=>{const labels={inherit:L('跟随会话模型','Follow session model')};routes.forEach(route=>{labels[mkey(route)]=route.label||(route.provider+' / '+route.model)});return labels})(),
                         onChange:value=>{if(value==='inherit'){save({model:null});return}const route=routes.find(item=>mkey(item)===value);if(route)save({model:{provider:route.provider,model:route.model}})}})),
                     effortRow),
                   h('div',{className:'po06-group'},
                     h('div',{className:'po06-row'},
-                      h('span',{className:'po06-field-label'},...withIcon('≡',L('上下文','Context'))),
+                      h('span',{className:'po06-field-label'},po06Icon('ctx'),L('上下文','Context')),
                       h(Segmented,{name:'ctx-mode',variant:'pill',value:historyMode,options:['turns','full'],disabled:tierOff,failTick,
                         label:k=>k==='full'?L('全文','Full'):L('回合','Turns'),
                         title:L('回合：最近几轮；全文：当前保留的所有回合','Turns: recent turns. Full: all currently retained turns.'),
@@ -4233,7 +4436,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   h('button',{type:'button','data-po06':'detail','data-po06-open':open?'1':'0',className:'po06-detailrow',
                     title:L('详情：状态与解释层提示词','Details: status and optimizer prompt'),
                     onClick:()=>{setOpen(value=>!value);setOptOpen(false)}},
-                    h('span',null,
+                    h('span',{className:'po06-switch-label'},po06Icon('detail'),
                       h('span',{'data-po06':'state-dot','data-po06-value':statusLabel,className:'po06-state-dot',style:S.dot(on)}),
                       L('详情','Details'),
                       h('span',{style:{color:'var(--po06-fg3)',fontSize:'11px',marginLeft:'6px'}},L('状态与提示词','Status & prompt'))),
