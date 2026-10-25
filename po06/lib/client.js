@@ -201,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-08'
+    const CLIENT_BUILD = 'ring-09'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1083,10 +1083,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06="options-pop"] .po06-setting-switch:hover .po06-ic,
 [data-po06="options-pop"] .po06-detailrow:hover .po06-ic{opacity:1;color:var(--t)}
 /* ---- 节拍 ---- */
-[data-po06="options-pop"]{--beat:2.6s;--fx:1}
-[data-po06-tier=standard]{--fx:.58}
-[data-po06-tier=light]{--fx:.28}
-[data-po06-tier=off]{--fx:0}
+[data-po06="options-pop"]{--beat:2.6s;--fx:1;--kickA:1;--kickWhite:26%}
+[data-po06-tier=standard]{--fx:.58;--kickA:.72;--kickWhite:44%}
+[data-po06-tier=light]{--fx:.28;--kickA:.42;--kickWhite:62%}
+[data-po06-tier=off]{--fx:0;--kickA:0;--kickWhite:82%}
 /* ---- 外圈短弧闪电 ---- */
 [data-po06="options-pop"] .po06-fil{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 0 4px var(--t))}
 [data-po06="options-pop"] .po06-fil path{fill:none;stroke:var(--t);stroke-width:1.1;stroke-linecap:round;opacity:0;animation:po06-flick var(--beat) steps(1,end) infinite}
@@ -1103,10 +1103,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06="options-pop"] .po06-kickwrap i{position:absolute;inset:0;border-radius:50%;border:1.4px solid color-mix(in srgb,var(--t) 78%,#fff);opacity:0}
 .po06-kickwrap i{animation:po06-kick .82s cubic-bezier(.08,.72,.16,1) 1}
 .po06-kickwrap i:nth-child(2){animation-delay:.09s}
-@keyframes po06-kick{0%{transform:scale(.52);opacity:.95;border-width:2.4px}100%{transform:scale(1.52);opacity:0;border-width:.5px}}
+@keyframes po06-kick{0%{transform:scale(.52);opacity:calc(.95 * var(--kickA));border-width:2.4px}100%{transform:scale(1.52);opacity:0;border-width:.5px}}
 [data-po06="options-pop"] .po06-kickflash{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0;background:radial-gradient(circle,color-mix(in srgb,var(--t) 22%,#fff) 0%,color-mix(in srgb,var(--t) 10%,rgba(255,255,255,.92)) 42%,color-mix(in srgb,var(--t) 6%,rgba(255,255,255,.35)) 66%,transparent 84%);mix-blend-mode:screen}
 .po06-kickflash{animation:po06-kickflash .62s cubic-bezier(.18,.7,.25,1) 1}
-@keyframes po06-kickflash{0%{opacity:0;transform:scale(.94)}12%{opacity:.9}46%{opacity:.5}100%{opacity:0;transform:scale(1.09)}}
+@keyframes po06-kickflash{0%{opacity:0;transform:scale(.94)}12%{opacity:calc(.9 * var(--kickA))}46%{opacity:calc(.5 * var(--kickA))}100%{opacity:0;transform:scale(1.09)}}
 /* ---- 描述与环对齐 ---- */
 [data-po06="options-pop"] .po06-tier-note{text-align:center;margin:0 auto;width:100%}
 
@@ -1135,7 +1135,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06="options-pop"][data-po06-tier=heavy] .po06-left:before{opacity:.2}
 
 /* ---- 换挡：先亮再落色 ---- */
-@keyframes po06-arcWhite{0%{stroke:color-mix(in srgb,var(--t) 26%,#fff)}26%{stroke:color-mix(in srgb,var(--t) 26%,#fff)}100%{stroke:var(--t)}}
+@keyframes po06-arcWhite{0%{stroke:color-mix(in srgb,var(--t) var(--kickWhite),#fff)}26%{stroke:color-mix(in srgb,var(--t) var(--kickWhite),#fff)}100%{stroke:var(--t)}}
 @keyframes po06-glowWhite{0%{stroke:color-mix(in srgb,var(--t) 30%,#fff);opacity:.95}34%{opacity:.8}100%{stroke:var(--t);opacity:.45}}
 @keyframes po06-hiWhite{0%{stroke:color-mix(in srgb,var(--t) 18%,#fff);opacity:.92}30%{opacity:.85}100%{stroke:color-mix(in srgb,var(--t) 42%,#fff);opacity:.32}}
 
@@ -1146,7 +1146,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-kick="1"] .po06-arc-fg{animation:po06-arcWhite .66s cubic-bezier(.22,.8,.3,1) 1}
 [data-kick="1"] .po06-arc-glow{animation:po06-glowWhite .66s cubic-bezier(.22,.8,.3,1) 1}
 [data-kick="1"] .po06-arc-hi{animation:po06-hiWhite .66s cubic-bezier(.22,.8,.3,1) 1}
-[data-kick="1"] .po06-gapword b{text-shadow:0 0 26px color-mix(in srgb,var(--t) 40%,rgba(255,255,255,.75))}
+[data-kick="1"] .po06-gapword b{text-shadow:0 0 26px color-mix(in srgb,var(--t) 40%,rgba(255,255,255,.75));opacity:calc(.7 + .3 * var(--kickA))}
 .po06-kickwrap i{border-width:2px;box-shadow:0 0 22px color-mix(in srgb,var(--t) 45%,#fff)}
 [data-po06="options-pop"] .po06-fx{position:absolute;inset:0;pointer-events:none}
 [data-po06="options-pop"] .po06-vast{position:absolute;inset:-44px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--t) 38%,transparent);opacity:calc(.5 * var(--fx));animation:po06-spin 44s linear infinite}
@@ -1510,7 +1510,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }
       const tierAt = (deg) => TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, Math.round((deg + 135) / 90)))]
       // 拖动中只改本地（即时换色换弧），松手才写设置：每移动一次都 POST 会把交互拖垮
-      const pick = (key, commit) => { if (key === shown || disabled) return; setPending(key); fireKick(); if (onPreview) onPreview(commit ? null : key); if (commit) onPick(key) }
+      const pick = (key, commit) => { if (key === shown || disabled) return; setPending(key); fireKick(!!commit); if (onPreview) onPreview(commit ? null : key); if (commit) onPick(key) }
       React.useEffect(() => {
         if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
         const move = (e) => {
@@ -1576,7 +1576,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }
       const [kickSeq, setKickSeq] = React.useState(0)
       const kickTimer = React.useRef(null)
-      const fireKick = () => {
+      const kickAt = React.useRef(0)
+      const fireKick = (force) => {
+        const now = Date.now()
+        if (!force && now - kickAt.current < 620) return
+        kickAt.current = now
         setKickSeq((n) => n + 1)
         const wrap = wrapRef.current
         if (wrap && wrap.setAttribute) {
@@ -1591,7 +1595,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       React.useEffect(() => {
         if (prevValue.current === value) return
         prevValue.current = value
-        fireKick()
+        fireKick(true)
       }, [value])
       const dash = (TIER_ARC[shown] || 198) + ' 264'
       const fxLayer = React.useMemo(() => h('div', { className: 'po06-fx', 'aria-hidden': 'true' },
