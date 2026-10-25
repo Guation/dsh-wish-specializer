@@ -116,7 +116,7 @@ test('greeting Hello survives original Chinese in focus without inventing a task
  assert.equal(parsed.ok,true);assert.equal(parsed.patch,null);assert.equal(parsed.understanding.action,'acknowledge')
 })
 test('untranslated optional advice is omitted while valid user task and source quotes survive',()=>{
- const value={englishTask:'Build one HTML file',ops:[{op:'add_item',item:{id:'req-html',kind:'user_requirement',quote:'制作一个HTML文件',text:'Build one HTML file',englishQuote:'Build one HTML file'}}],understanding:{summary:'Build a page',action:'execute',focus:'这项任务'},support:{mode:'develop',reason:'Provide a usable file',contribution:'更精细的内部说明'},hardNote:'保持精细'}
+ const value={englishTask:'Build one HTML file',ops:[{op:'add_item',item:{id:'req-html',kind:'user_requirement',quote:'制作一个HTML文件',text:'Build one HTML file',englishQuote:'Build one HTML file'}}],understanding:{summary:'Build a page',action:'execute',focus:'这项任务'},support:{mode:'develop',reason:'Provide a usable file',contribution:'更精细的内部说明'}}
  const result=prepareEnglishInterpretation(value,'制作一个HTML文件')
  assert.equal(result.translation.text,'Build one HTML file');assert.equal(result.value.ops[0].item.quote,'制作一个HTML文件')
  assert.equal(result.value.support.contribution,'');assert.equal(result.value.understanding.focus,'')
@@ -387,13 +387,12 @@ test('all-invalid optimizer advice fails before English processing can erase its
 
 test('structured optimizer advice normalizes before English processing and keeps source IDs',()=>{
  const original='Create a result.'
- const raw={intent:{text:original,relation:'new'},add:[{id:'a1',text:'Keep comparable feedback.'}],scaffold:[{id:'s1',text:'保留有价值的局部反馈。'}],ask:[{id:'q1',question:'Which setting?'}],hardNote:'贴题的加码。',hardOn:['a1']}
+ const raw={intent:{text:original,relation:'new'},add:[{id:'a1',text:'Keep comparable feedback.'}],scaffold:[{id:'s1',text:'保留有价值的局部反馈。'}],ask:[{id:'q1',question:'Which setting?'}]}
  const before=structuredClone(raw),result=prepareEnglishInterpretation(raw,original)
  assert.deepEqual(result.value.add,['Keep comparable feedback.'])
  assert.deepEqual(result.value.scaffold,['保留有价值的局部反馈。'])
  assert.deepEqual(result.value.ask,['Which setting?'])
  assert.deepEqual(result.value.sourceIds,{add:['a1'],scaffold:['s1'],ask:['q1']})
- assert.deepEqual(result.value.hardOn,['a1']);assert.equal(result.value.hardNote,raw.hardNote)
  assert.ok(result.warnings.some(w=>w.reason==='untranslated-optional-assistance-preserved'))
  assert.deepEqual(raw,before)
 })
@@ -416,9 +415,9 @@ test('failed optional English repair preserves valid task, useful advice and att
  assert.equal(result.repair.ok,false);assert.deepEqual(result.repair.attempts,attempts);assert.deepEqual(raw,before)
 })
 
-test('batch English repair translates every normalized object field once and retains citations',async()=>{
- const raw={intent:{text:'Build an object.',relation:'new'},add:[{id:'a1',text:'制作方向。'}],scaffold:[{id:'s1',text:'反馈方向。'}],ask:[{id:'q1',question:'哪种场景？'}],hardNote:'贴题打气。',hardOn:['a1']}
- const translations={'add[0]':'A coherent result.','scaffold[0]':'Comparable feedback.','ask[0]':'Which setting?','hardNote':'Big energy, same scope.'}
+test('batch English repair translates every normalized object field once and retains source IDs',async()=>{
+ const raw={intent:{text:'Build an object.',relation:'new'},add:[{id:'a1',text:'制作方向。'}],scaffold:[{id:'s1',text:'反馈方向。'}],ask:[{id:'q1',question:'哪种场景？'}]}
+ const translations={'add[0]':'A coherent result.','scaffold[0]':'Comparable feedback.','ask[0]':'Which setting?'}
  let calls=0,fields
  const llm={stream:options=>{
   calls++;fields=JSON.parse(options.messages[0].content[0].text).texts.map(row=>row.id)
@@ -428,6 +427,6 @@ test('batch English repair translates every normalized object field once and ret
  assert.equal(result.ok,true);assert.equal(result.status,'ready');assert.equal(result.postProcessed,true)
  assert.equal(calls,1);assert.deepEqual(fields,Object.keys(translations))
  assert.deepEqual(result.value.add,['A coherent result.']);assert.deepEqual(result.value.scaffold,['Comparable feedback.'])
- assert.deepEqual(result.value.ask,['Which setting?']);assert.equal(result.value.hardNote,translations.hardNote)
- assert.deepEqual(result.value.sourceIds,{add:['a1'],scaffold:['s1'],ask:['q1']});assert.deepEqual(result.value.hardOn,['a1'])
+ assert.deepEqual(result.value.ask,['Which setting?'])
+ assert.deepEqual(result.value.sourceIds,{add:['a1'],scaffold:['s1'],ask:['q1']})
 })

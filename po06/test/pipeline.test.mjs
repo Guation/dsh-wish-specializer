@@ -31,7 +31,7 @@ test('one interpretation returns a complete packet without state initialization,
   }))
   assert.equal(calls, 1); checkPacket(out, true, 'ready')
   assert.equal(out.outcome, 'committed'); assert.equal(out.zeroAddition, false)
-  assert.equal(out.packet.text, renderOptimizerPacket(out.optimizer, 'zh', { framing: 'neutral' }))
+  assert.equal(out.packet.text, renderOptimizerPacket(out.optimizer, 'zh'))
   assert.equal(out.understanding.summary, 'Improve the current result')
   assert.deepEqual(out.trace.map(row => row.step), ['interpret', 'parse', 'render'])
 })
@@ -47,32 +47,32 @@ test('a detached optimizer snapshot excludes old machine advice', async () => {
   assert.equal(snapshot.revision, 42)
 })
 
-test('language and framing stay with the run even if shared adapter settings change while awaiting the model', async () => {
-  const adapter = { language: 'zh', framing: 'neutral' }; let complete, entered
+test('language stays with the run even if shared adapter settings change while awaiting the model', async () => {
+  const adapter = { language: 'zh' }; let complete, entered
   const started = new Promise(resolve => { entered = resolve })
   const pending = handleUserInput(adapter, session, input(() => { entered(); return new Promise(resolve => { complete = resolve }) }))
-  await started; adapter.language = 'en'; adapter.framing = 'hard'
+  await started; adapter.language = 'en'
   complete(value())
   const out = await pending
   assert.ok(out.packet.text.startsWith('请优先考虑')); assert.ok(out.packet.text.includes('【制作建议】'))
-  assert.deepEqual(out.trace.find(row => row.step === 'render'), { step: 'render', ok: true, status: 'ready', chars: out.packet.chars, language: 'zh', framing: 'neutral' })
+  assert.deepEqual(out.trace.find(row => row.step === 'render'), { step: 'render', ok: true, status: 'ready', chars: out.packet.chars, language: 'zh' })
 })
 
 test('structured advice accepts text and question fields, preserving prose and citation IDs', async () => {
-  const raw = value({ add: [{ id: 'a1', text: 'Keep PBR, roughness, AO and 中文 unchanged.' }], scaffold: [{ id: 's1', text: 'Comparable local feedback.' }], ask: [{ id: 'q1', question: 'Which setting?' }], hardNote: 'Big energy, same scope.', hardOn: ['a1'] })
+  const raw = value({ add: [{ id: 'a1', text: 'Keep PBR, roughness, AO and 中文 unchanged.' }], scaffold: [{ id: 's1', text: 'Comparable local feedback.' }], ask: [{ id: 'q1', question: 'Which setting?' }] })
   const before = structuredClone(raw)
-  const out = await handleUserInput(pureAdapter(), session, input(async () => raw, { policy: { englishMode: true, framing: 'hard' } }))
+  const out = await handleUserInput(pureAdapter(), session, input(async () => raw, { policy: { englishMode: true } }))
   checkPacket(out, true, 'ready')
   assert.deepEqual(out.optimizer.add, [raw.add[0].text])
   assert.deepEqual(out.optimizer.sourceIds, { add: ['a1'], scaffold: ['s1'], ask: ['q1'] })
   assert.ok(out.packet.text.includes(raw.add[0].text)); assert.ok(out.packet.text.includes('Which setting?'))
-  assert.ok(out.packet.text.endsWith(raw.hardNote)); assert.deepEqual(raw, before)
+  assert.deepEqual(raw, before)
   assert.equal(out.patch, undefined)
 })
 
 test('valid intent with no advice succeeds as empty without retries or an invented fallback', async () => {
   let calls = 0
-  const out = await handleUserInput(pureAdapter({ items: [{ kind: 'user_requirement', text: 'Stale tank requirement' }] }), session, input(async () => { calls++; return value({ add: [], hardNote: 'Pep talk alone is not advice.' }) }))
+  const out = await handleUserInput(pureAdapter({ items: [{ kind: 'user_requirement', text: 'Stale tank requirement' }] }), session, input(async () => { calls++; return value({ add: [] }) }))
   checkPacket(out, true, 'empty'); assert.equal(out.outcome, 'understood')
   assert.equal(out.packet.text, ''); assert.equal(out.zeroAddition, true); assert.equal(calls, 1)
   assert.equal(out.understanding.relation, 'continue')
@@ -141,7 +141,7 @@ for (const line of [4650, 4672]) {
   const fixture = line === 4650 ? stored : { source: { line: 4672, interpretTextChars: 1860, observedPacketChars: 370 }, response: stored }
   for (const language of ['zh', 'en']) test('replay wire line ' + line + ' retains every object advice in ' + language, async () => {
     let calls = 0
-    const out = await handleUserInput(pureAdapter(), session, input(async () => { calls++; return JSON.stringify(fixture.response) }, { language, framing: 'hard' }))
+    const out = await handleUserInput(pureAdapter(), session, input(async () => { calls++; return JSON.stringify(fixture.response) }, { language }))
     checkPacket(out, true, 'ready'); assert.equal(calls, 1)
     assert.equal(JSON.stringify(fixture.response).length, fixture.source.interpretTextChars)
     for (const field of ['add', 'scaffold', 'ask']) {
@@ -149,7 +149,7 @@ for (const line of [4650, 4672]) {
       assert.deepEqual(out.optimizer.sourceIds[field], fixture.response[field].map(row => row.id))
       for (const row of fixture.response[field]) assert.ok(out.packet.text.includes(row.text), field + ': ' + row.id)
     }
-    assert.ok(out.packet.text.endsWith(fixture.response.hardNote))
+    assert.deepEqual(Object.keys(out.optimizer).sort(), ['version', 'intent', 'clarify', 'add', 'scaffold', 'ask', 'decide', 'sourceIds'].sort())
     assert.ok(out.packet.chars > fixture.source.observedPacketChars)
     assert.doesNotMatch(out.packet.text, /unk-unevaluated-input|这一轮没有从中提取到可执行内容/)
     assert.equal(out.trace.filter(row => row.step === 'render').length, 1)

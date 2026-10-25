@@ -606,13 +606,13 @@ export function syncBashTool(ctx) {
 }
 
 /** 组装这次解释要用的 system：用户覆盖优先，拼上工具说明、（可选）会话上下文、以及**档位策略**。 */
-export async function buildInterpreterProtocol({ home, toolsEnabled, strategy, framing, englishMode = false, llm, cfg, signal }) {
+export async function buildInterpreterProtocol({ home, toolsEnabled, strategy, englishMode = false, llm, cfg, signal }) {
   const source = resolvePrompt({ home })
   // Resolve and translate the custom core once for both the tool and fallback requests.
   const core = source.source === 'file'
     ? (englishMode ? (await adapter.english.translate(source.text, { llm, cfg, signal, kind: 'custom-interpreter-v3' })).text : source.text)
     : undefined
-  const settings = { language: englishMode ? 'en' : 'zh', core, strategy, framing, englishMode }
+  const settings = { language: englishMode ? 'en' : 'zh', core, strategy, englishMode }
   const assembled = composeOptimizerSystem({ ...settings, toolsEnabled })
   return { ...assembled, source: source.source, noToolsText: toolsEnabled ? composeOptimizerSystem({ ...settings, toolsEnabled: false }).text : assembled.text }
 }
@@ -880,8 +880,6 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
     // 0.7.8：本轮任务类检查项。命中任务类才发（宁可漏发，不要错发），条数随补充程度缩放。
     // 放在这里而不是 pipeline 里：只有这里**同时**拿得到用户原话与生效档位。
     // No keyword-selected domain playbook. Current support is generated from task and evidence.
-    // 0.7.8：协作基调（普通 / 硬邦邦）。只有显式选硬邦邦时才注入那段语域块。
-    // Framing is also invocation-scoped; it does not become a cross-session default.
     // P11：这一轮**真正喂进解释层的上下文**要能被解析阶段读到（短消息的引文可以来自上下文）。
     let renderedCtx = '',englishTranslation=null
     // 英文后处理**降级**时要留下凭据：以前只在有翻译时消费 prepared.warnings，
@@ -915,7 +913,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         if (cwd) sessionHistory.setCwd(sessionId, cwd)
         const tools = readToolsFor({ readTools: pol.readTools, cwd: cwd || sessionHistory.getCwd(sessionId) })
         const promptStarted = Date.now()
-        const protocol = await buildInterpreterProtocol({ englishMode: pol.englishMode, llm, cfg, signal: message.signal || null, home: DSH_HOME, toolsEnabled: tools.enabled, strategy: pol.strategy, framing: pol.framing })
+        const protocol = await buildInterpreterProtocol({ englishMode: pol.englishMode, llm, cfg, signal: message.signal || null, home: DSH_HOME, toolsEnabled: tools.enabled, strategy: pol.strategy })
         const sys = protocol.text
         const sysNoTools = protocol.noToolsText
         renderedCtx = String(rendered.text || '')      // 供解析阶段校验"引文来自上下文"
@@ -2550,7 +2548,7 @@ let syncAdvisorToolsRef=null
           // 只读诊断口：把采集器**实际看见**的能力原样返回，便于核对“为什么脚手架没提某个工具”
           capabilityProbe: async (sid) => capabilitiesFor(String(sid || ''), ctx),
           workingText: async (sid) => adapter.getWorkingText(String(sid || '')),
-          workingTextInfo: async (sid) => { const key = String(sid || ''); const pol = adapter.policyNow(key) || {}; return { hasPacket: !!String(adapter.getIntentText(key) || '').trim(), framing: pol.framing || 'neutral', englishMode: pol.englishMode === true, advisor: pol.advisor !== false, status: adapter.optimizationRuns.get(key)?.status || null } },
+          workingTextInfo: async (sid) => { const key = String(sid || ''); const pol = adapter.policyNow(key) || {}; return { hasPacket: !!String(adapter.getIntentText(key) || '').trim(), englishMode: pol.englishMode === true, advisor: pol.advisor !== false, status: adapter.optimizationRuns.get(key)?.status || null } },
           resolveEfforts: async (provider, model) => {
             const llm = ctx.get('llm')
             if (!llm) return { ok: false, reason: 'no-llm-service', efforts: [], defaultEffort: null }
@@ -2601,10 +2599,7 @@ let syncAdvisorToolsRef=null
             let pol = null
             try { pol = adapter.policyNow() } catch { pol = null }
             const cleared = (pol && pol.injectPacket !== true) ? adapter.clearIntentTexts('settings:assist-off') : 0
-            // 协作基调 / 档位 / 补充程度变了 ⇒ **旧的包文本必须作废**：
-            // 它是按当时的政策编译好的一整段字符串，政策一变就过期；不作废的话，
-            // 切回普通档后那段硬邦邦文本会继续被注入（用户实测 2026-09-29）。
-            // 清掉不是"丢内容"：下一次拦截会按新政策重编译，那才是正确时机。
+            // 档位或语言变化使旧包失效；下一次拦截使用新的设置快照。
             const shapeChanged = packetShapeChanged(polBefore, pol)
             const clearedShape = shapeChanged ? adapter.clearIntentTexts('settings:packet-shape-changed') : 0
             // 内置 Bash 的开关在同一份配置里：写盘后立刻按差额同步（关掉即从模型视野消失，

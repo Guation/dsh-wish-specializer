@@ -236,7 +236,7 @@ t('mixed output recovers the complete v3 object with a visible warning in the sa
   const root = tmpRoot()
   const head = JSON.stringify({ intent: { text: 'read note.txt', relation: 'new' },
     add: [{ text: '使用读取到的 hello 内容。' }], scaffold: [], ask: [] })
-  const mixed = head + '\n\n等一下，中间这段是散文。\n' + '{"hardNote":"x"}'
+  const mixed = head + '\n\n等一下，中间这段是散文。\n' + '{"extra":"x"}'
   const llm = stubLlm([
     [...toolCall('c1', 'read', { path: 'note.txt' }), usageChunk(5), finish()],
     [textDelta(mixed), usageChunk(9), finish()],
@@ -261,7 +261,7 @@ t('mixed output recovers the complete v3 object with a visible warning in the sa
 
 t('malformed mixed objects still fail the production parser without retry and retain usage', async () => {
   const root = tmpRoot()
-  const raw = '{"intent": nope,"add": bad}\n中间散文\n{"hardNote": invalid}'
+  const raw = '{"intent": nope,"add": bad}\n中间散文\n{"extra": invalid}'
   const llm = stubLlm([[textDelta(raw), usageChunk(19), finish()]])
   const r = await interpretViaLlm({
     llm, cfg: { provider: 'p', model: 'm' }, userPrompt: 'x', system: 'S+TOOLS',

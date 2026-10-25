@@ -9,7 +9,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  policyFor, readPolicy, DETAIL_BUDGET, TOKENS_PER_CHAR, BUDGET_QUESTIONS, DEFAULT_DETAIL, DEFAULT_BUDGET, DEFAULT_ASSIST,
+  policyFor, readPolicy, effectiveSettings, DETAIL_BUDGET, TOKENS_PER_CHAR, BUDGET_QUESTIONS, DEFAULT_DETAIL, DEFAULT_BUDGET, DEFAULT_ASSIST,
 } from '../lib/policy.js'
 import { DEFAULT_BUDGET as COMPILER_DEFAULT_BUDGET } from '../lib/compiler.js'
 import { ASSIST_MODES, DETAIL_LEVELS, BUDGET_LEVELS } from '../lib/settings.js'
@@ -95,6 +95,28 @@ t('不变量：settings.js 值域里的**每个**取值都必须在这里有映�
   for (const v of BUDGET_LEVELS) {
     const n = policyFor({ budget: v }).maxQuestions
     ok(Number.isFinite(n) && n >= 0, 'budget 取值 ' + v + ' 要有非负配额映射：' + n)
+  }
+})
+
+t('旧 framing 不能进入生效设置或政策，按会话档位与英文/顾问保持有效', () => {
+  const current = { englishMode: true, advisor: false, bySession: {
+    a: { tier: 'light', englishMode: false }, b: { tier: 'off' },
+  } }
+  for (const framing of ['hard', 'neutral']) {
+    const legacy = { ...current, framing, bySession: {
+      a: { ...current.bySession.a, framing }, b: { ...current.bySession.b, framing },
+      onlyRemoved: { framing },
+    } }
+    for (const sessionId of [undefined, 'a', 'b', 'onlyRemoved']) {
+      const effective = effectiveSettings(legacy, sessionId)
+      ok(!('framing' in effective), '生效设置不得带占位字段')
+      eq(effective, effectiveSettings(current, sessionId), '会话生效结果与删除旧字段后的输入完全一致')
+      const policy = policyFor(legacy, sessionId)
+      ok(!('framing' in policy), '政策不得透传旧字段')
+      eq(policy, policyFor(current, sessionId), '旧字段不影响预算、档位、英文或顾问')
+      const read = readPolicy({ home: 'X:/nope', sessionId, readFile: () => JSON.stringify(legacy) })
+      eq(read, { ...policy, source: 'config' }, '读盘路径同样忽略全局与会话旧字段')
+    }
   }
 })
 

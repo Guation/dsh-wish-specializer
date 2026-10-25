@@ -59,20 +59,6 @@ export const HISTORY_MODES = Object.freeze(['turns', 'full'])
 export const TURNS_MIN = 0
 export const TURNS_MAX = 10
 
-/**
- * 协作基调（0.7.8）：模型以什么**姿态**执行这一轮。
- *
- * 为什么要有这一档（用户 2026-09-27 实测）：把同样的要求用口语、带情绪、带关系感的说法讲出来
- * （"兄弟""贼拉牛逼""硬邦邦""赶紧搞起"），模型的首轮交付明显好于同等字数、同等信息量的正式说法。
- * 机制不是模型被"激励"，而是**语域条件化的分布**：正式语域命中"专业助手接正式请求"那一簇
- * （客套、hedging、模板化、求稳），口语+高唤醒语域命中"哥们帮你把活干出来"那一簇
- * （直接开干、投入、把成品拿出来）。所以这一档必须**保留语域本身**——
- * 把它消毒成"请更积极"的正式条目，就恰好把起作用的那部分扔掉了。
- *
- * ⚠ 两条边界：① 它只影响工作模型的执行姿态，**不改用户原话**、不升格为要求；
- *   ② 它**不放松决策边界**——强结果导向最容易带来"懒得问、自己定了"，所以块内必须显式反制。
- */
-export const FRAMINGS = Object.freeze(['neutral', 'hard'])
 // Deprecated input domains: accepted for migration, never an execution-path selector.
 export const REASONING_MODES = Object.freeze(['parallel', 'loop', 'hybrid'])
 export const REASONING_PACES = Object.freeze(['fast', 'balanced', 'inherit'])
@@ -105,9 +91,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // ⚠ 只允许档位相关键：`bash`/`model`/`effortByModel`/`permission` 等仍是全局的
   //   （它们是"这台机器怎么跑"，不是"这个会话怎么跑"），越界的键会被归一化丢弃并记问题。
   bySession: {},
-  // 0.7.8：协作基调（普通 / 硬邦邦）。**默认普通**——硬邦邦只在用户显式选择时生效，
-  // 因为它会改变执行姿态（更强推进、更少客套），对正式类任务并不总是合适。
-  framing: 'neutral',
   reasoningBoost: false,
   ...FAST_REASONING_PROFILE,
   englishMode: false,
@@ -142,7 +125,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
 })
 
 /** 允许按会话覆盖的键（档位四件套；其余设置保持全局）。 */
-export const SESSION_KEYS = Object.freeze(['assist', 'detail', 'budget', 'tier', 'framing', 'englishMode', ...REASONING_KEYS])
+export const SESSION_KEYS = Object.freeze(['assist', 'detail', 'budget', 'tier', 'englishMode', ...REASONING_KEYS])
 
 /** 斜杠命令名单上限（32 个字符/条，最多 16 条）。 */
 export const SLASH_REVIEW_MAX = 16
@@ -158,7 +141,6 @@ export const SETTINGS_KEYS = Object.freeze([
   'skipHintDismissed',
   'effortByModel',
   'bySession',
-  'framing',
   'slashReview',
   ...REASONING_KEYS,
   'englishMode',
@@ -221,7 +203,7 @@ export function normalizeSettings(raw) {
     const v = src.bySession
     if (v === undefined) return {}
     if (!isPlainObject(v)) { problems.push({ key: "bySession", kind: "wrong-type", got: v, used: {} }); return {} }
-    const domains = { assist: ASSIST_MODES, detail: DETAIL_LEVELS, budget: BUDGET_LEVELS, tier: TIER_LEVELS, framing: FRAMINGS }
+    const domains = { assist: ASSIST_MODES, detail: DETAIL_LEVELS, budget: BUDGET_LEVELS, tier: TIER_LEVELS }
     const out = {}
     for (const [sid, ov] of Object.entries(v)) {
       if (typeof sid !== "string" || !sid) continue
@@ -292,7 +274,6 @@ export function normalizeSettings(raw) {
     model: null,
     effortByModel: pickEffortMap(),
     bySession: pickSessionMap(),
-    framing: pick('framing', FRAMINGS, DEFAULT_SETTINGS.framing),
     reasoningBoost: pickBool('reasoningBoost', DEFAULT_SETTINGS.reasoningBoost),
     reasoningMode: pickReasoning('reasoningMode'),
     reasoningCandidates: pickReasoning('reasoningCandidates'),
@@ -454,7 +435,7 @@ export function writeSettings({ path, patch, now = Date.now() } = {}) {
   //
   // 语义**故意与顶层写入不同**：按会话的写入**只能开、不能关** —— 把某一场设为"关闭"
   // 不代表别的会话也要关，所以 off 那条不写 gate（否则关掉一个会话就把整个插件关了）。
-  // 只改 `framing` 这类非档位字段同样不碰启用意图（与顶层那条边界一致）。
+  // 只改英文模式这类非档位字段同样不碰启用意图（与顶层那条边界一致）。
   // Client session writes preserve the complete map. An unchanged tier in that map
   // is not a new tier choice (e.g. an independent boost/English toggle).
   const sessionTurnsOn = isPlainObject(patch) && isPlainObject(patch.bySession)
@@ -477,6 +458,8 @@ export function writeSettings({ path, patch, now = Date.now() } = {}) {
   }
   // gatePatch **最后**展开：档位写入的启用意图要盖过搬运来的旧值。
   const after = { ...gateFrom, ...before, ...merged.settings, ...gatePatch }
+  // This removed setting is not metadata: never copy it back from the raw file.
+  delete after.framing
   const out = {
     ok: false, before, after, backup: null, problems: merged.problems, path,
     recoveredFromCorrupt: corruptBefore,

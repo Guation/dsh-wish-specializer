@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isRealUserInput, extractUserText } from './wire.js'
-import { OPTIMIZER_FORMAT } from './optimizer-protocol.js'
+import { OPTIMIZER_FORMAT, normalizeOptimizerValue } from './optimizer-protocol.js'
 
 export const CAPABILITY_VERSION = '3'
 const short = (value, cap = 1200) => {
@@ -24,7 +24,7 @@ export function normalizeCollaboration(value) {
   if (!value || typeof value !== 'object') return { understanding: null, support: null }
   const o = value.optimizer
   if (o?.version === '3' && typeof o.intent?.text === 'string' && ['new', 'continue', 'uncertain'].includes(o.intent.relation) && ['clarify', 'add', 'ask'].every(k => Array.isArray(o[k]) && o[k].every(s => typeof s === 'string'))) {
-    return { optimizer: copy(o), understanding: { summary: o.intent.text, relation: o.intent.relation, action: o.intent.relation === 'continue' ? 'continue' : 'execute', focus: '' }, support: { mode: 'none' } }
+    return { optimizer: copy(normalizeOptimizerValue(o).value), understanding: { summary: o.intent.text, relation: o.intent.relation, action: o.intent.relation === 'continue' ? 'continue' : 'execute', focus: '' }, support: { mode: 'none' } }
   }
   const u = value.understanding
   const understanding = u && typeof u === 'object' && typeof u.summary === 'string' && u.summary.trim()

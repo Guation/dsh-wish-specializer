@@ -71,7 +71,6 @@ Tiers widen "how much / how many questions", **never your decision rights**.
 
 - **Advisor**: a separate read-only model reviews the round and returns executable directions;
 - **Permission**: Review (show sources first) / Auto;
-- **Tone**: neutral / direct;
 - **English mode**: additionally return a faithful English task;
 - **Model and thinking effort** for the explainer;
 - **Context**: last N turns, or everything you still hold;
@@ -104,7 +103,7 @@ dsh --profile po061
 | Help text (same source as the panel's `?`) | [`po06/HELP-0.6.en.md`](po06/HELP-0.6.en.md) |
 | Install / self-check / troubleshooting | [`po06/README.md`](po06/README.md) |
 | Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
-| Human acceptance checklist | [`po06/HUMAN-TEST.md`](po06/HUMAN-TEST.md) |
+| Historical acceptance checklist | [Legacy checklist](docs/legacy/po06-HUMAN-TEST.md) (not current acceptance) |
 | Release procedure | [`docs/RELEASING.md`](docs/RELEASING.md) |
 | Legacy versions (0.1–0.6) | [`old/`](old/README.md) |
 

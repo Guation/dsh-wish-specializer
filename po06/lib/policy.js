@@ -70,8 +70,7 @@ export function policyFor(settings, sessionId) {
     model: s.model,
     detail: s.detail,
     budget: s.budget,
-    // 0.7.8 协作基调：`neutral` 不注入任何东西，`hard` 由编译器加一段语域匹配的短块。
-    framing: s.framing, englishMode:s.englishMode,
+    englishMode:s.englishMode,
     reasoningBoost: s.reasoningBoost, reasoningMode: s.reasoningMode,
     reasoningCandidates: s.reasoningCandidates, reasoningRounds: s.reasoningRounds, reasoningPace:s.reasoningPace,
     injectPacket: s.assist !== 'off',
@@ -120,11 +119,11 @@ export function policyFor(settings, sessionId) {
  *
  * 为什么单独拎出来：包文本是**按当时政策编译好的一整段字符串**（存在 intentBySession 里）。
  * 政策一变，那份字符串就过期了；若不作废，它会在后续回合继续被注入 ——
- * 用户实测 2026-09-29：切回普通档（framing=neutral）后，注入文里**仍然带着硬邦邦那段**。
+ * 因此辅助开关、补充程度、自主预算或英文模式变化时，必须重新生成包文本。
  */
 export function packetShapeOf(pol) {
   if (!pol) return ''
-  return ['scaffold-directions-1', pol.assist, pol.detail, pol.budget, pol.framing,pol.englishMode?'en':'original'].join('|')
+  return ['scaffold-directions-1', pol.assist, pol.detail, pol.budget,pol.englishMode?'en':'original'].join('|')
 }
 
 /** 写盘前后形状不同 ⇒ 已存的包文本必须作废（下一次拦截会重编译）。两侧都取不到时不作废。 */

@@ -207,7 +207,7 @@ function promptProjection(prompt, settings = {}) {
   const englishMode = settings.englishMode === true
   const effective = englishMode && prompt.source === 'file'
     ? { version: OPTIMIZER_PROTOCOL_VERSION, language: 'en', chars: null, text: null, reason: 'custom-core-translation-needed' }
-    : composeOptimizerSystem({ language: englishMode ? 'en' : 'zh', core: englishMode ? undefined : prompt.text, tier: settings.tier, toolsEnabled: settings.readTools === true, framing: settings.framing, englishMode })
+    : composeOptimizerSystem({ language: englishMode ? 'en' : 'zh', core: englishMode ? undefined : prompt.text, tier: settings.tier, toolsEnabled: settings.readTools === true, englishMode })
   return { ...prompt, protocolVersion: OPTIMIZER_PROTOCOL_VERSION, effective: { ...effective, preview: true } }
 }
 
@@ -346,7 +346,7 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
         let text = '', extra = {}
         try { text = (typeof workingText === 'function') ? String(await workingText(sid) || '') : '' } catch { text = '' }
         try { extra = (typeof workingTextInfo === 'function') ? (await workingTextInfo(sid)) || {} : {} } catch { extra = {} }
-        return send(200, { ok: true, chars: text.length, head: text.slice(0, 400), hasFraming: text.includes('协作基调'), ...extra })
+        return send(200, { ok: true, chars: text.length, head: text.slice(0, 400), ...extra })
       }
       if (method === 'GET' && path === API_PREFIX + '/capabilities') {
         const sid = String(query.get('session') || '').trim()
@@ -467,7 +467,7 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
           // 会话生效值（无 ?session= 时为 null）：界面用它显示"本会话的档位"
           sessionId: qsid || null,
           sessionEffective: sessEff
-            ? { tier: sessDesc.tier, assist: sessEff.assist, detail: sessEff.detail, budget: sessEff.budget, framing: sessEff.framing || 'neutral',
+            ? { tier: sessDesc.tier, assist: sessEff.assist, detail: sessEff.detail, budget: sessEff.budget,
                 reasoningBoost:sessEff.reasoningBoost,reasoningMode:sessEff.reasoningMode,reasoningCandidates:sessEff.reasoningCandidates,reasoningRounds:sessEff.reasoningRounds,reasoningPace:sessEff.reasoningPace,englishMode:sessEff.englishMode }
             : null,
           sessionDescribed: sessDesc,

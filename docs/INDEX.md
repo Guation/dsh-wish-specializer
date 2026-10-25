@@ -34,7 +34,7 @@
 
 ## 历史与验证
 
-[legacy/README.md](legacy/README.md) 所列计划、验收和实验仅作历史证据；更早发布物见 [old/README.md](../old/README.md)。旧 reducer/compiler、补占位或取用时换基调的行为不再是本次生产目标。
+[legacy/README.md](legacy/README.md) 所列计划、验收和实验仅作历史证据；更早发布物见 [old/README.md](../old/README.md)。旧 reducer/compiler、补占位等行为不再是本次生产目标。协作基调已整体移除；历史风格测试与时延测量只说明当时版本，不表示当前仍支持该功能，也不证明移除后的性能。
 
 最短路径：[根 README](../README.md) → 本索引 → 主契约 → 所需专项文档。判断当前行为时，记录实际模块版本与运行结果；历史套件通过数和 benchmark 不替代本次流程验证。
 

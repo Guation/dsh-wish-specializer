@@ -4,7 +4,6 @@ import { OPTIMIZER_CORE, OPTIMIZER_FORMAT, OPTIMIZER_OPTIONS, OPTIMIZER_TIERS, o
 export const EN_INTERPRETER = OPTIMIZER_CORE.en
 export const EN_CAPABILITY = OPTIMIZER_FORMAT.en
 export const EN_TOOL_NOTE = OPTIMIZER_OPTIONS.en.tools
-export const EN_HARD_NOTE = OPTIMIZER_OPTIONS.en.hardTone
 export const EN_WORKFLOW = [
   "[Problem-solving contribution and independent review] Preserve explicit user goals, chosen approaches and authorization; advice and checks add no requirements.",
   "For a consequential method choice or capability bottleneck, use develop_approach before locking the approach. Seek concrete constructions, derivations or usable content, not generic reminders; ordinary explanations need no procedural consultation.",

@@ -16,7 +16,7 @@ Enter → held → optimized → you confirm (or it auto-releases) → your text
 | Skip this round | Double-press Enter (enable it under Options first), or hit Skip |
 | Send once optimized | In review mode, **double-press Enter again** = confirm and send (not skip) |
 | See what was injected | The "Injected" card under your message |
-| Change strength / permission | Options: tier, review or auto, English mode |
+| Adjust this round | Options: tier, review or auto, English mode, model and thinking effort, context |
 
 ## Three switches
 

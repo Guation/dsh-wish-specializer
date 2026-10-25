@@ -225,7 +225,7 @@ async function within(promise, label) {
 async function wireHost({ sid, llm = fakeLlm(optimizerReply()), policy = {}, observed = true, enabled = true, cwd } = {}) {
   writeFileSync(join(TEST_HOME, 'po06.json'), JSON.stringify({
     settingsVersion: 1, enabled: true, rollout: { mode: 'all' },
-    advisor: false, readTools: false, englishMode: false, framing: 'neutral', ...policy,
+    advisor: false, readTools: false, englishMode: false, ...policy,
   }), 'utf8')
   const mod = await import('../lib/index.js')
   mod.__resetObservedModelsForTest()

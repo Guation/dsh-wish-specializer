@@ -60,7 +60,7 @@ test('automatic release commits the final packet once before changing the draft 
   assert.ok(Number.isSafeInteger(interpretation.body.generation) && interpretation.body.generation > 0)
   assert.equal(ui.hold('a').generation, interpretation.body.generation)
   assert.equal(ui.submissions.length, 0)
-  const finalPacket = '[Final, already rendered framing] requirements'
+  const finalPacket = '[Final, already rendered packet] requirements'
   ui.completeInterpret(interpretation, { packet: finalPacket, chars: finalPacket.length })
   await ui.flush()
   assert.equal(ui.pending('/packet').length, 1)
@@ -320,7 +320,7 @@ test('a complete English result survives both a background completion and a back
   const interpretation = ui.pending('/interpret')[0]
   first.unmount()
   const other = ui.mount('b', 'B session draft'); await ui.flush()
-  const result = { packet: '[English framing already rendered] Full requirements', chars: 51,
+  const result = { packet: '[English packet already rendered] Full requirements', chars: 51,
     outgoingText: 'The complete English user request', englishMode: true, translation: { text: 'The complete English user request', literals: ['C:/user/path'] },
     noAddition: false, understanding: { goal: 'full goal' }, support: { evidence: ['input'] },
     usage: { input: 120, output: 60 }, usageTotal: 180, ms: 3210, route: { provider: 'p', model: 'm' }, unsourced: 2 }

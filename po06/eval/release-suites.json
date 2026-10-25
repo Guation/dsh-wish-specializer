@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-25T04:39:22.427Z",
+  "at": "2026-10-25T05:02:55.924Z",
   "summary": {
-    "suites": 151,
-    "passed": 151,
+    "suites": 145,
+    "passed": 145,
     "failed": 0,
-    "passTotal": 1500,
+    "passTotal": 1484,
     "failing": []
   },
   "results": [
@@ -436,6 +436,13 @@
       "ok": true
     },
     {
+      "file": "client-settings.test.mjs",
+      "pass": 2,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "coexist-config.test.mjs",
       "pass": 8,
       "fail": 0,
@@ -536,62 +543,6 @@
     {
       "file": "follow-model-effort.test.mjs",
       "pass": 5,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
-      "file": "framing-dedupe.test.mjs",
-      "pass": 2,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
-      "file": "framing-en.test.mjs",
-      "pass": 4,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
-      "file": "framing-note.test.mjs",
-      "pass": 5,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
-      "file": "framing-packet.test.mjs",
-      "pass": 3,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
-      "file": "framing-payload.test.mjs",
-      "pass": 1,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
-      "file": "framing-register.test.mjs",
-      "pass": 2,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
-      "file": "framing-voice.test.mjs",
-      "pass": 2,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
-      "file": "framing.test.mjs",
-      "pass": 8,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -780,14 +731,14 @@
     },
     {
       "file": "packet-render.test.mjs",
-      "pass": 5,
+      "pass": 8,
       "fail": 0,
       "exit": 0,
       "ok": true
     },
     {
       "file": "packet-shape.test.mjs",
-      "pass": 5,
+      "pass": 6,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -822,7 +773,7 @@
     },
     {
       "file": "policy.test.mjs",
-      "pass": 7,
+      "pass": 8,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -926,6 +877,13 @@
       "ok": true
     },
     {
+      "file": "retired-optimizer-metadata.test.mjs",
+      "pass": 1,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "rollout.test.mjs",
       "pass": 11,
       "fail": 0,
@@ -955,7 +913,7 @@
     },
     {
       "file": "settings.test.mjs",
-      "pass": 17,
+      "pass": 20,
       "fail": 0,
       "exit": 0,
       "ok": true

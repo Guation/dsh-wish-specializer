@@ -24,7 +24,6 @@ export async function handleUserInput(adapter, session, input) {
   if (input.signal?.aborted) return aborted()
 
   const language = input.policy?.englishMode === true ? 'en' : input.policy?.englishMode === false ? 'zh' : input.language || adapter?.language || 'zh'
-  const framing = input.policy?.framing ?? input.framing ?? adapter?.framing ?? 'neutral'
   let raw
   try {
     const snapshot = typeof adapter?.intentStateOf === 'function' ? adapter.intentStateOf(session) : null
@@ -55,9 +54,9 @@ export async function handleUserInput(adapter, session, input) {
   step('parse', { ok: parsed.ok, code: parsed.code || null, warnings: parsed.warnings || [], dropped: parsed.dropped || [] })
   if (!parsed.ok) return finish({ ok: false, status: 'failed', outcome: 'parse-rejected', code: parsed.code, reason: parsed.reason, parsed })
 
-  const text = renderOptimizerPacket(parsed.optimizer, language, { framing })
+  const text = renderOptimizerPacket(parsed.optimizer, language)
   const status = text ? 'ready' : 'empty'
-  step('render', { ok: true, status, chars: text.length, language, framing })
+  step('render', { ok: true, status, chars: text.length, language })
   return finish({ ok: true, status, outcome: text ? 'committed' : 'understood', text, parsed })
 }
 

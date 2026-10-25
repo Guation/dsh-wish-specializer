@@ -3056,15 +3056,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         ...((s.bySession && typeof s.bySession === 'object') ? s.bySession : {}),
         [sessionId]: { ...(((s.bySession && typeof s.bySession === 'object') ? s.bySession[sessionId] : null) || {}), ...patch },
       })
-      // 协作基调（0.7.8）：会话覆盖优先，其次全局，默认 neutral。
-      // 与档位**正交**——可以「轻度 + 硬邦邦」，也可以「重度 + 普通」。
-      const framing = (eff && (eff.framing === 'hard' || eff.framing === 'neutral')) ? eff.framing : 'neutral'
-      // 点档位 = 整份替换该会话覆盖（避免带上陈旧展开值），但**必须保留已选的协作基调**：
-      // 基调与档位是两件事，换档位不该把基调一起抹掉。
+      // 点档位 = 替换该会话的档位项，保留独立的思考与英文设置。
       const replaceTier = (t) => {
         const all = (s.bySession && typeof s.bySession === 'object') ? s.bySession : {}
         const prev = all[sessionId] || {}
-        const keep = (prev.framing === 'hard' || prev.framing === 'neutral') ? { framing: prev.framing } : {}
+        const keep = {}
         for(const key of ['reasoningBoost','reasoningMode','reasoningCandidates','reasoningRounds','reasoningPace','englishMode'])if(prev[key]!==undefined)keep[key]=prev[key]
         return { ...all, [sessionId]: { ...keep, tier: t } }
       }
@@ -3846,17 +3842,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               // advisor 是全局键（不在 SESSION_KEYS 里）⇒ 必须写全局，否则补丁被丢弃、界面看起来"点了没反应"
               h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick}),
               h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick}),
-              // ①b 协作基调（0.7.8）：与档位正交，按会话存。语域本身就是效果来源（见 framing.js）。
-              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('≋', L('协作基调', 'Tone'))),
-                h(Segmented, {
-                  name: 'framing', value: framing, options: ['neutral', 'hard'], failTick,
-          // 基调是风格开关而不是开关机：neutral 蓝、hard 黄（与“开/关”的红绿区分开）。
-          tones: { neutral: '#4a9eff', hard: '#e0b23c' },
-                  label: (k) => (k === 'hard' ? L('硬邦邦', 'Hard') : L('普通', 'Plain')),
-                  title: L('硬邦邦：用更直接、更来劲的语气推动执行（不改你的原话，也不放松「不替你拍板」的边界）',
-                    'Hard: a blunter, more driven register (your words stay unchanged and decision boundaries stay intact)'),
-                  onPick: (v) => save({ bySession: withSession({ framing: v }) }),
-                })),
               // ② 优化权限：档位 off 时禁用
               h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('⚖', L('权限', 'Permission'))),
                 h(Segmented, {

@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   ASSIST_MODES, DETAIL_LEVELS, BUDGET_LEVELS, DEFAULT_SETTINGS, SETTINGS_KEYS,
-  TIER_LEVELS, PERMISSIONS, HISTORY_MODES,
+  TIER_LEVELS, PERMISSIONS, HISTORY_MODES, SESSION_KEYS,
   normalizeSettings, mergeSettings, writeSettings, describeSettings,
 } from '../lib/settings.js'
 
@@ -70,12 +70,43 @@ t('未知字段：**只报告，不采纳**（白名单之外的东西不该被�
   ok(!('tier' in r.settings) && !('enabled' in r.settings) && !('rollout' in r.settings), '白名单外的不得进入 settings')
   const kinds = r.problems.map((x) => x.key + ':' + x.kind).sort()
   eq(kinds, ['enabled:unknown-field', 'rollout:unknown-field', 'tier:not-in-domain'], '不认识 vs 值不在域内，必须分开报')
-  eq(SETTINGS_KEYS, ['assist', 'detail', 'budget', 'model', 'permission', 'historyMode', 'turns', 'readTools', 'bash', 'doubleEnterSkip', 'applyToSubagents', 'presetNoticeDismissed', 'skipHintDismissed', 'effortByModel', 'bySession', 'framing', 'slashReview', 'reasoningBoost', 'reasoningMode', 'reasoningCandidates', 'reasoningRounds', 'reasoningPace', 'englishMode', 'advisor'],
+  eq(SETTINGS_KEYS, ['assist', 'detail', 'budget', 'model', 'permission', 'historyMode', 'turns', 'readTools', 'bash', 'doubleEnterSkip', 'applyToSubagents', 'presetNoticeDismissed', 'skipHintDismissed', 'effortByModel', 'bySession', 'slashReview', 'reasoningBoost', 'reasoningMode', 'reasoningCandidates', 'reasoningRounds', 'reasoningPace', 'englishMode', 'advisor'],
     '白名单：P10 四项 + 0.7.2 的 bash + 0.8 的 slashReview（斜杠命令名单，默认空）')
   eq([ASSIST_MODES, DETAIL_LEVELS, BUDGET_LEVELS].map((x) => x.length), [2, 3, 3], '值域长度（界面上的选项数）')
   eq(TIER_LEVELS, ['off', 'light', 'standard', 'heavy'], '档位就是四个：关闭/轻度/标准/重度')
   eq(PERMISSIONS, ['review', 'auto'], '权限两项')
   eq(HISTORY_MODES, ['turns', 'full'], '上下文模式两项')
+})
+
+t('已删除的 framing 不在当前 schema：全局与会话旧值只走未知字段丢弃', () => {
+  ok(!('framing' in DEFAULT_SETTINGS), '默认设置不得再产生占位值')
+  ok(!SETTINGS_KEYS.includes('framing') && !SESSION_KEYS.includes('framing'), '全局和会话都不再支持该键')
+  for (const framing of ['hard', 'neutral']) {
+    const raw = { framing, englishMode: true, advisor: false, bySession: {
+      a: { tier: 'light', framing, englishMode: false, reasoningBoost: true },
+      onlyRemoved: { framing },
+    } }
+    const result = normalizeSettings(raw)
+    ok(!('framing' in result.settings), '全局旧值必须丢弃：' + framing)
+    eq(result.settings.bySession, { a: { tier: 'light', englishMode: false, reasoningBoost: true } }, '会话只保留仍受支持的设置')
+    eq([result.settings.englishMode, result.settings.advisor], [true, false], '独立开关保持原值')
+    ok(result.problems.some(p => p.key === 'framing' && p.kind === 'unknown-field'), '全局按普通未知键报告')
+    ok(result.problems.some(p => p.key === 'bySession[a].framing' && p.kind === 'not-session-scoped'), '会话按普通越界键报告')
+    eq(raw.bySession.a.framing, framing, '纯归一化不得改调用方输入')
+  }
+})
+
+t('mergeSettings 不恢复当前或补丁里的旧 framing，正常设置仍可更新', () => {
+  const current = { framing: 'hard', bySession: { a: { tier: 'light', framing: 'hard', englishMode: true } } }
+  const unrelated = mergeSettings(current, { advisor: false })
+  ok(!('framing' in unrelated.settings), '不相关合并也不能带回全局旧值')
+  eq(unrelated.settings.bySession, { a: { tier: 'light', englishMode: true } }, '当前会话的旧值也被丢弃')
+  const result = mergeSettings(current, { framing: 'neutral', englishMode: true,
+    bySession: { a: { ...current.bySession.a, framing: 'neutral', reasoningBoost: true } } })
+  ok(!('framing' in result.settings), '补丁里的旧值不能重新进入当前设置')
+  eq(result.settings.bySession, { a: { tier: 'light', englishMode: true, reasoningBoost: true } }, '旧值丢弃而新开关照常更新')
+  eq(result.settings.englishMode, true, '全局英文模式照常更新')
+  ok(result.problems.some(p => p.key === 'framing' && p.kind === 'unknown-field'), '旧键没有专用兼容路径')
 })
 
 // ── ② 合并：只改点到的项 ──────────────────────────────────────────────
@@ -88,7 +119,6 @@ t('mergeSettings：只改补丁里出现的键，其余原样；未知键忽略'
     assist: 'auto', detail: 'minimal', budget: 'minimal', model: null,
     effortByModel: DEFAULT_SETTINGS.effortByModel,
     bySession: DEFAULT_SETTINGS.bySession,
-    framing: DEFAULT_SETTINGS.framing,
     reasoningBoost: DEFAULT_SETTINGS.reasoningBoost, reasoningMode: DEFAULT_SETTINGS.reasoningMode,
     reasoningCandidates: DEFAULT_SETTINGS.reasoningCandidates, reasoningRounds: DEFAULT_SETTINGS.reasoningRounds, reasoningPace:DEFAULT_SETTINGS.reasoningPace,
     englishMode:DEFAULT_SETTINGS.englishMode,
@@ -124,6 +154,30 @@ t('writeSettings：写入成功、备份可解析、读回一致、别人的字�
   eq(now.rollout, { mode: 'all' }, 'rollout 原样保留')
   eq(now.settingsVersion, 1, 'settingsVersion 原样保留')
   ok(!existsSync(p + '.tmp-111'), '临时文件不该留下')
+})
+
+t('下一次保存删除全局和会话旧 framing，重复保存与旧补丁都不能复活它', () => {
+  for (const framing of ['hard', 'neutral']) {
+    const p = join(tmp(), 'po06.json')
+    const original = { settingsVersion: 1, enabled: false, rollout: { mode: 'off' },
+      metadata: { preserved: true }, framing, englishMode: true, advisor: true,
+      bySession: { a: { tier: 'light', framing, englishMode: false, reasoningBoost: true }, onlyRemoved: { framing } } }
+    writeFileSync(p, JSON.stringify(original), 'utf8')
+    const first = writeSettings({ path: p, patch: { advisor: false }, now: 51 })
+    eq(first.ok, true, '普通保存成功')
+    eq(JSON.parse(readFileSync(first.backup, 'utf8')), original, '回滚备份保留原始文件')
+    for (const [patch, stamp] of [[{}, 52], [{ framing: 'hard', bySession: original.bySession }, 53]]) {
+      const result = writeSettings({ path: p, patch, now: stamp })
+      eq(result.ok, true, '重复保存成功')
+      for (const saved of [first.after, result.after, JSON.parse(readFileSync(p, 'utf8'))]) {
+        ok(!('framing' in saved), '已删除的全局字段不许从原文件或旧补丁复活')
+        eq(saved.bySession, { a: { tier: 'light', englishMode: false, reasoningBoost: true } }, '会话旧字段也不许复活')
+        eq([saved.enabled, saved.rollout.mode], [false, 'off'], '清理旧字段不改变启用意图')
+        eq([saved.englishMode, saved.advisor], [true, false], '英文和顾问开关照常保留')
+        eq(saved.metadata, { preserved: true }, '不相关的原文件元数据继续保留')
+      }
+    }
+  }
 })
 
 t('writeSettings：文件不存在 ⇒ 直接创建（不报"备份失败"）', () => {
@@ -268,14 +322,14 @@ t('按会话设为"关闭" ⇒ **不许**关掉整个插件（只开不关）', 
   eq(now.rollout && now.rollout.mode, 'all', 'rollout 不得被改成 off')
 })
 
-t('按会话只改 framing 等非档位项 ⇒ 不碰启用意图', () => {
+t('按会话只改英文模式等非档位项 ⇒ 不碰启用意图', () => {
   const dir = tmp(); const p = join(dir, 'po06.json')
   writeFileSync(p, JSON.stringify({ settingsVersion: 1, enabled: false, rollout: { mode: 'off' } }), 'utf8')
-  const r = writeSettings({ path: p, patch: { bySession: { 's-1': { framing: 'hard' } } }, now: 27 })
+  const r = writeSettings({ path: p, patch: { bySession: { 's-1': { englishMode: true } } }, now: 27 })
   eq(r.ok, true, '写入成功')
   const now = JSON.parse(readFileSync(p, 'utf8'))
   eq(now.enabled, false, '非档位项不该顺手把插件打开')
-  eq(now.bySession['s-1'].framing, 'hard', 'framing 照旧落盘')
+  eq(now.bySession['s-1'].englishMode, true, '英文模式照旧落盘')
 })
 
 const total = pass + failures.length

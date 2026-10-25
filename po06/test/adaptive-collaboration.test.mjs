@@ -52,7 +52,7 @@ function adapterFor(){
   return a
 }
 test('生产adapter入口完成零增量并返回明确的empty状态',async()=>{
-  const a=adapterFor(),out=await a.handleInput(session,{messageId:'m1',text:'谢谢',policy:{framing:'neutral'},interpret:async()=>({intent:{text:'谢谢',relation:'continue'},add:[]})})
+  const a=adapterFor(),out=await a.handleInput(session,{messageId:'m1',text:'谢谢',interpret:async()=>({intent:{text:'谢谢',relation:'continue'},add:[]})})
   assert.equal(out.ok,true);assert.equal(out.status,'empty');assert.equal(out.outcome,'understood')
   assert.equal(out.understanding.summary,'谢谢');assert.equal(a.getWorkingText('s1'),'')
 })
