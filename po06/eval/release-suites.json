@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-25T03:29:32.092Z",
+  "at": "2026-10-25T04:17:52.108Z",
   "summary": {
-    "suites": 149,
-    "passed": 149,
+    "suites": 151,
+    "passed": 151,
     "failed": 0,
-    "passTotal": 1460,
+    "passTotal": 1498,
     "failing": []
   },
   "results": [
@@ -387,6 +387,13 @@
       "ok": true
     },
     {
+      "file": "client-abi.test.mjs",
+      "pass": 36,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "client-advisor-stream.test.mjs",
       "pass": 9,
       "fail": 0,
@@ -753,6 +760,13 @@
     {
       "file": "optimization-runs.test.mjs",
       "pass": 9,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
+      "file": "optimizer-intent-normalization.test.mjs",
+      "pass": 2,
       "fail": 0,
       "exit": 0,
       "ok": true

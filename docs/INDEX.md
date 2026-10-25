@@ -4,7 +4,7 @@
 
 ## 优化生产的主契约
 
-先读 [OPTIMIZATION-PIPELINE.md](OPTIMIZATION-PIPELINE.md)：运行身份、规范化、渲染、终态、保存与提交的唯一主契约。**整体简化正在实现，行为验证待完成**；以下规格描述目标，不能据此声称本次重构已经通过真实用户验收。其他文档涉及优化生产时，以主契约为准。
+先读 [OPTIMIZATION-PIPELINE.md](OPTIMIZATION-PIPELINE.md)：运行身份、规范化、渲染、终态、保存与提交的唯一主契约。**整体简化已实现并通过自动回归**；本机加载版本与接口已核对，真实用户的新会话操作仍按现场行为复测，不把接口探针当作用户验收。其他文档涉及优化生产时，以主契约为准。
 
 | 文档 | 用途 |
 | --- | --- |
@@ -37,6 +37,8 @@
 [legacy/README.md](legacy/README.md) 所列计划、验收和实验仅作历史证据；更早发布物见 [old/README.md](../old/README.md)。旧 reducer/compiler、补占位或取用时换基调的行为不再是本次生产目标。
 
 最短路径：[根 README](../README.md) → 本索引 → 主契约 → 所需专项文档。判断当前行为时，记录实际模块版本与运行结果；历史套件通过数和 benchmark 不替代本次流程验证。
+
+本机 Flash 耗时与接口错配的现场复查见 [测量与修复记录](evidence/flash-latency-and-api-20261025.md)。
 
 ## 调试依据
 

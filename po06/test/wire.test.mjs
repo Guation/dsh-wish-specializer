@@ -277,6 +277,13 @@ await ta('real object-array response completes once; HTTP preview, accepted pack
   }
   eq(llm.calls.length, 1, 'accept the recorded response without retry or alternate compiler call')
   eq(response.body.usageTotal, 15, 'usage reaches the completed response')
+  for (const phase of ['gateMs', 'routeMs', 'promptMs', 'modelMs', 'optimizationMs', 'englishRepairMs', 'taskTranslationMs', 'totalMs']) {
+    ok(Number.isFinite(response.body.timings?.[phase]) && response.body.timings[phase] >= 0, 'completed result exposes real phase time: ' + phase)
+  }
+  eq(response.body.timings.totalMs, response.body.ms, 'same wall clock boundary is reported once')
+  ok(response.body.timings.totalMs >= response.body.timings.modelMs, 'wall time includes model time')
+  const finalLedger = readFileSync(join(TEST_HOME, 'po06-wire.jsonl'), 'utf8').trim().split('\n').map(JSON.parse).findLast(row => row.sessionId === h.session.id && row.trigger === 'intercept-result')
+  eq(finalLedger.timings, response.body.timings, 'wire result and client response share the same phase readings')
   eq(call.options.provider, 'wire-provider', 'use the observed provider')
   eq(call.options.model, 'wire-model', 'use the observed model')
   for (const key of ['maxTokens', 'max_tokens', 'maxOutputTokens']) ok(!(key in call.options), 'model output is not capped: ' + key)

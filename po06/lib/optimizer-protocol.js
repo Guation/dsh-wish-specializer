@@ -107,6 +107,10 @@ const sourceId = id => typeof id === 'string' && id.trim() ? id.trim() : null
 export function normalizeOptimizerValue(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return { value, warnings: [], dropped: [] }
   const normalized = { ...value }, warnings = [], dropped = [], sourceIds = {}
+  if (typeof value.intent === 'string' && value.intent.trim()) {
+    normalized.intent = { text: value.intent.trim(), relation: value.relation }
+    warnings.push('string intent normalized with top-level relation')
+  }
   for (const field of ADVICE_FIELDS) {
     const supplied = value[field]
     let rows = Array.isArray(supplied) ? supplied : []
@@ -136,9 +140,9 @@ export function normalizeOptimizerValue(value) {
 export function parseOptimizerValue(value) {
   const bad = reason => ({ ok: false, code: 'BAD_OPTIMIZER_SHAPE', reason })
   if (!value || typeof value !== 'object' || Array.isArray(value)) return bad('expected an optimizer object')
-  const intent = value.intent
-  if (!intent || typeof intent !== 'object' || Array.isArray(intent) || typeof intent.text !== 'string' || !intent.text.trim()) return bad('intent.text must describe the current input')
   const normalized = normalizeOptimizerValue(value)
+  const intent = normalized.value.intent
+  if (!intent || typeof intent !== 'object' || Array.isArray(intent) || typeof intent.text !== 'string' || !intent.text.trim()) return bad('intent.text must describe the current input')
   const { warnings, dropped } = normalized
   if (dropped.length && !hasOptimizerContent(normalized.value)) return {
     ...bad('advice was supplied but none of it has usable text or questions'), warnings, dropped,

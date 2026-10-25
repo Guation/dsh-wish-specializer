@@ -18,7 +18,7 @@
 
 | 字段 | 规则 |
 | --- | --- |
-| `intent.text` | 非空的本轮机器理解；不替代原话，不增加用户授权 |
+| `intent.text` | 非空的本轮机器理解；不替代原话，不增加用户授权；模型回 `intent` 字符串和顶层 `relation` 时忠实归一化并记录 warning |
 | `intent.relation` | `new / continue / uncertain`；明确换任务才用 new，不明时保持 uncertain |
 | `add / scaffold` | 制作/临时脚手架建议；数组项可为字符串或 `{id,text}` 对象 |
 | `ask` | 只提供必要问题；字符串、`{id,text}` 或 `{question}` 均可规范化 |

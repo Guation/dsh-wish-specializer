@@ -38,6 +38,7 @@ const withIcon = (glyph, node) => [
 
     const NS = 'dsh-po06'
     const API = '/po06/api'
+    const PIPELINE_REVISION = 'single-run-1'
     // ── 拦截态的**跨挂载小仓库**（issue #19）───────────────────────────────
     // 控件栏是 per-session 挂载的：切到别的会话再回来会**重挂**，组件内的 hold 归零。
     // 原先的做法是把 hold 顺手写一份到 `window.__PO06_HOLD__[sessionId]`，但那只在**挂载时**读一次；
@@ -376,6 +377,7 @@ function holdBridgeRead(sessionId) {
       try { r = await fetch(API + path, { method: 'POST', headers: WRITE_HEADERS, body: JSON.stringify(body || {}), signal: opts && opts.signal }) }
       catch (e) { return { ok: false, reason: (e && e.name === 'AbortError') ? 'aborted' : 'unreachable' } }
       const j = await r.json().catch(() => null)
+      if (!r.ok) return { ...(j && typeof j === 'object' ? j : {}), ok: false, reason: (j && j.reason) || ('http-' + r.status) }
       if (!j || typeof j !== 'object') return { ok: false, reason: 'bad-json-response' }
       return (j.ok === true || j.reason) ? j : { ...j, ok: false, reason: 'http-' + r.status }
     }
@@ -408,6 +410,7 @@ function holdBridgeRead(sessionId) {
       if(raw==='english-translation-incomplete')return L('翻译调用未完成，可以重试或按原文发送','Translation did not finish; retry or send the original')
       if (raw === 'unreachable') return L('连不上宿主服务（它可能刚重启）', 'Cannot reach the host service (it may have just restarted)')
       if (raw === 'bad-json-response') return L('服务返回的内容读不出来', 'The server response could not be parsed')
+      if (raw === 'pipeline-version-mismatch') return L('许愿特化器后端与界面版本不匹配。请使用配套版本重启 DSH 并刷新界面；原文已保留，仍可普通发送。', 'Wish Specializer backend/UI version mismatch. Restart DSH with matching versions and reload the UI; your original text is preserved and ordinary send is available.')
       if (raw === 'backup-unusable') return L('旧配置的备份不可用，这次没有写入', 'Backup of the old config was unusable, so nothing was written')
       if (raw === 'readback-unparsable') return L('写进去的设置读不回来，已中止', 'Written settings could not be read back; aborted')
       if (/^readback-mismatch:/.test(raw)) return L('写回校验不一致：' + briefly(raw.slice(17)), 'Read-back mismatch: ' + briefly(raw.slice(17)))
@@ -2999,6 +3002,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         [LOCALE]))
 
       const data = status.data
+      // One explicit ABI handshake; loading/unknown status never authorizes a held send.
+      const pipelineReady = !status.loading && data?.capability?.pipelineRevision === PIPELINE_REVISION
+      const pipelineMismatch = !status.loading && !!data && !pipelineReady
+      const pipelineRef = React.useRef(null)
+      pipelineRef.current = { ready: pipelineReady, mismatch: pipelineMismatch }
       const s = (data && data.settings) || {}
       // 预设提示改版（2026-10-19 用户最终口径）：**不再判断预设**。
       // 只要切换会话（或刚打开 DSH）就提示一次——它的目的只是告诉新用户有这个特性；
@@ -3115,7 +3123,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       englishRef.current=englishOn
       const inputActionsRef = React.useRef(inputActions)
       inputActionsRef.current = inputActions
-      const canArm = !!(inputActions && typeof inputActions.submit === 'function' && sessionId)
+      const canArm = !!(inputActions && typeof inputActions.submit === 'function' && sessionId) && pipelineReady
       canArmRef.current = canArm
       // 斜杠命令放行（0.8）：名单来自设置，但**只有宿主确认该命令当前已注册**才会出现在 active 里。
       // 拿不到清单、没列、没注册 ⇒ 一律交还宿主（旧行为）——我们不认识这条命令，就绝不接管它。
@@ -3131,6 +3139,23 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
       const ownsHoldView = () => mountedRef.current && LAST_MOUNTED_BAR === ownerRef.current
         && String(sessionId || '') === LAST_MOUNTED_SID && isActiveInstance() && canArmRef.current
+      // A known incompatible backend cannot understand the new skip/cancel protocol.
+      // Retire locally, retaining the shared tombstone to reject non-cooperative late replies.
+      const retireHold = () => {
+        const run = HOLD_RUNS[sessionId]
+        if (run && !run.retired) {
+          run.retired = true; run.stopped = true; run.action += 1; run.intent = 'retired'; run.commit = null
+          abortHoldRequests(run)
+        }
+        holdRef.current = null
+        _setHold(null)
+        if (holdBridgeRead(sessionId)) holdBridgeWrite(sessionId, null)
+        setProg(null); setOvOpen(false); setOvBall(null)
+        ovLastRef.current = null; setOvLast(null)
+      }
+      React.useEffect(() => {
+        if (pipelineMismatch) retireHold()
+      }, [sessionId, pipelineMismatch])
       const publishHold = (run, value) => {
         if (!currentHoldRun(sessionId, run)) return
         if (ownsHoldView()) { holdRef.current = value; _setHold(value) }
@@ -3147,7 +3172,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       /** 唯一的宿主提交点；调用方必须先取得本轮 /packet 的成功确认。 */
       const releaseHold = (text, h, mark) => {
         const run = holdRunFor(sessionId, h)
-        if (!run || run.submitted || !ownsHoldView()) return false
+        if (!run || run.retired || run.protocolMismatch || run.submitted || !ownsHoldView()) return false
         const inputActions = inputActionsRef.current
         const action = run.action
         try {
@@ -3180,7 +3205,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       /** 自动、审查、跨挂载恢复以及无包放行共用一次提交协议。 */
       const commitAndRelease = async (h, disposition = 'send', mark = 'sent') => {
         const run = holdRunFor(sessionId, h)
-        if (!run || run.submitted || !ownsHoldView()) return false
+        if (!run || run.retired || run.protocolMismatch || run.submitted || !ownsHoldView()) return false
         if (disposition === 'send' && run.intent && run.intent !== 'send') return false
         if (run.intent !== disposition || !run.commit) {
           if (disposition !== 'send') { run.stopped = true; abortHoldRequests(run) }
@@ -3193,11 +3218,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           run.commitController = ac
           run.commit = apiPost('/packet', { sessionId, runId: run.runId, generation: run.generation, text: packet, disposition,
             originalText: h.text, outgoingText: outgoing }, ac ? { signal: ac.signal } : undefined).then((r) => {
-            if (!currentHoldRun(sessionId, run) || run.action !== action) return null
+            if (!pipelineRef.current.ready || !currentHoldRun(sessionId, run) || run.action !== action) return null
             run.commitController = null
             if (!r || r.ok !== true || r.runId !== run.runId || typeof r.packet !== 'string') {
               run.commit = null
-              const why = reasonText((r && r.reason) || 'invalid-packet-response')
+              run.protocolMismatch = r?.ok === true
+              const missingFields = typeof r?.runId !== 'string' || !r.runId || typeof r?.packet !== 'string'
+              const why = reasonText((r && r.reason) || (run.protocolMismatch && missingFields ? 'pipeline-version-mismatch' : 'invalid-packet-response'))
               publishHold(run, { ...pending, phase: 'error', pendingAuto: false,
                 reason: (disposition === 'send' ? L('改动没写进去：', 'Edit not applied: ') : L('这一轮的包没能清掉：', 'Could not clear this round packet: ')) + why })
               return null
@@ -3216,7 +3243,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         }
         const action = run.action
         const committed = await run.commit
-        if (!committed || !currentHoldRun(sessionId, run) || run.action !== action) return false
+        if (!pipelineRef.current.ready || !committed || !currentHoldRun(sessionId, run) || run.action !== action) return false
         if (disposition === 'cancel') return true
         if (!ownsHoldView()) return false    // 结果留在原会话桥上，回到该会话后复用这次确认。
         return releaseHold(disposition === 'skip' ? h.text : outgoingUserText(committed), committed, mark)
@@ -3234,7 +3261,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (ownsHoldView()) void commitAndRelease(original, 'skip')
       }
       const beginHold = (text, via) => {
-        if (holdRef.current) return
+        if (!ownsHoldView() || holdRef.current) return
         setInterceptCount((n) => n + 1)
         const run = newHoldRun(sessionId, { floor: data?.capability?.optimization?.generation })
         const ac = typeof AbortController === 'function' ? new AbortController() : null
@@ -3242,14 +3269,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const h = { runId: run.runId, generation: run.generation, text, via, englishMode: englishOn, t0: Date.now(), phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
         setHold(h)
         apiPost('/interpret', { sessionId, text, messageId: run.runId, generation: run.generation }, ac ? { signal: ac.signal } : undefined).then((r) => {
-          if (!currentHoldRun(sessionId, run) || run.stopped || run.intent) return
+          if (!pipelineRef.current.ready || !currentHoldRun(sessionId, run) || run.stopped || run.intent) return
           run.controller = null
           if (!r || r.ok !== true) {
             settleFailure(text, h, reasonText((r && r.reason) || 'unknown'))
             return
           }
           if (r.runId !== run.runId || (r.status !== 'ready' && r.status !== 'empty') || typeof r.packet !== 'string') {
-            settleFailure(text, h, reasonText('invalid-interpret-response'))
+            run.protocolMismatch = true
+            const missingFields = typeof r.runId !== 'string' || !r.runId || typeof r.status !== 'string' || typeof r.packet !== 'string'
+            publishHold(run, { ...h, phase: 'error', pendingAuto: false, injectCard: false,
+              reason: reasonText(missingFields ? 'pipeline-version-mismatch' : 'invalid-interpret-response') })
             return
           }
           if (ownsHoldView() && englishRef.current !== h.englishMode) { settleFailure(text, h, L('英文模式已改变，请重试或按原文发送', 'English mode changed; retry or send the original')); return }
@@ -3261,7 +3291,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           publishHold(run, done)
           if (done.pendingAuto && ownsHoldView()) void commitAndRelease(done)
         }, (e) => {
-          if (!currentHoldRun(sessionId, run) || run.stopped || run.intent) return
+          if (!pipelineRef.current.ready || !currentHoldRun(sessionId, run) || run.stopped || run.intent) return
           settleFailure(text, h, reasonText((e && e.message) || e))
         })
       }
@@ -3271,6 +3301,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (!h) return
         setOvExitKind('cancel')
         setProg(null)
+        if (holdRunFor(sessionId, h)?.protocolMismatch) { retireHold(); return }
         if (await commitAndRelease(h, 'cancel')) {
           if (ownsHoldView()) setMsg({ kind: 'warn', text: L('已取消这一轮优化：消息没有发出，你输入的原话仍在输入框里', 'Cancelled: nothing was sent; your text is still in the box') })
         }
@@ -3280,7 +3311,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const rollbackHold = async () => {
         const h = holdRef.current || hold
         const run = holdRunFor(sessionId, h)
-        if (!run || run.submitted || !ownsHoldView() || (run.intent && run.intent !== 'send')) return false
+        if (!run || run.retired || run.protocolMismatch || run.submitted || !ownsHoldView() || (run.intent && run.intent !== 'send')) return false
         run.stopped = true
         abortHoldRequests(run)
         run.intent = 'rollback'
@@ -3291,7 +3322,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const review = { ...h, phase: 'review', pendingAuto: false, pendingDisposition: 'send', pendingMark: 'sent' }
         publishHold(run, review)
         const r = await apiPost('/rollback', { kind: 'packet', sessionId, runId: run.runId, generation: run.generation }, ac ? { signal: ac.signal } : undefined)
-        if (!currentHoldRun(sessionId, run) || run.action !== action) return false
+        if (!pipelineRef.current.ready || !currentHoldRun(sessionId, run) || run.action !== action) return false
         run.commitController = null
         run.intent = null
         if (!r || r.ok !== true || r.runId !== run.runId || typeof r.packet !== 'string') {
@@ -3344,6 +3375,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       //      （否则用户的消息被拦着、却没有任何界面可以把它放出去 = 吞消息）
       //    · hold 被清空（= 放行后 1.6s）⇒ 收成 46px 悬浮球（0.5:1287「发送后收成悬浮球」）
       React.useEffect(() => {
+        if (pipelineMismatch) return
         if (hold) {
           setOvOpen(true)
           setOvBall((b) => (b && b.visible ? { ...b, visible: false } : b))
@@ -3354,7 +3386,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           setOvBall((b) => ({ visible: true, pos: (b && b.pos) || defaultBallPos(), sent: h.phase === 'sent', phase: h.phase }))
           setOvOpen(false)
         }
-      }, [hold])
+      }, [hold, pipelineMismatch])
 
       /** 「重新生成」：活的 hold 交给既有 regenHold；已经终结（hold 已被清）的那份用既有 beginHold 重跑。 */
       const doRegen = () => {
@@ -3386,6 +3418,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 桥里保留完整结果。恢复与实时广播都经过同一个 commit+release，按共享 run 去重。
       React.useEffect(() => {
         const accept = (value) => {
+          if (pipelineRef.current.mismatch) { retireHold(); return }
           if (!ownsHoldView()) return
           holdRef.current = value
           _setHold(value)
@@ -3473,6 +3506,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         loadLabels()
         const draftNow = () => composerDraft(composerCard(rootRef.current))
         const wantKey = (e) => {
+          if (!canArmRef.current) return 'pipeline-not-ready'
           if (!isActiveInstance()) return 'stale-instance'
           if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return 'not-plain-enter'
           if (e.isComposing === true || e.keyCode === 229) return 'composing'
@@ -3487,6 +3521,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           return null
         }
         const wantClick = (btn) => {
+          if (!canArmRef.current) return 'pipeline-not-ready'
           if (!isActiveInstance()) return 'stale-instance'
           if (!btn) return 'no-button'
           if (btn.closest && btn.closest('[data-po06]')) return 'our-own-button'   // 我们自己的按钮永不吞
@@ -3972,6 +4007,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             ),
           ) : null,
         ),
+        pipelineMismatch ? h('span', { 'data-po06': 'pipeline-mismatch', role: 'alert', style: { ...S.muted, color: T('err') } },
+          reasonText('pipeline-version-mismatch')) : null,
         !data && status.error ? h('span', { 'data-po06': 'status-error', style: { ...S.muted, color: T('err') } },
           L('读状态失败：', 'Status unavailable: ') + errorText(status.error)) : null,
         // 「?」帮助弹层（要求②）：正文来自宿主 GET /help；读不到就如实说，并给出文件路径
@@ -4007,7 +4044,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // 这里只做两件事：把**该显示的那一份**挑出来，把**既有处理函数**接上去。
         //   · `hold` 活着 ⇒ 显示它（拦截现场）
         //   · hold 已被 0.6 的 clearHoldSoon 清掉、而面板还开着 ⇒ 显示最后那一份快照（只读回看）
-        ovExit.mounted && ovShown ? h(InterceptPanel, {
+        pipelineReady && ovExit.mounted && ovShown ? h(InterceptPanel, {
           'data-po06-closing': ovExit.closing ? '1' : '0',
           hold: ovShown, phase: ovShown.phase, permission, tier, count: interceptCount, exitKind: ovExitKind,
           prog: prog, pos: ovGeom.pos, size: ovGeom.size,
@@ -4033,7 +4070,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onCollapse: collapseToBall,  // 收起为球
           onCloseSent: closeSent,      // foot-sent 的「关闭」
         }) : null,
-        ovBall && ovBall.visible ? h(InterceptBall, {
+        pipelineReady && ovBall && ovBall.visible ? h(InterceptBall, {
           ball: ovBall, tier,
           onOpen: reopenFromBall,
           onMove: (p) => setOvBall((b) => (b ? { ...b, pos: p } : b)),

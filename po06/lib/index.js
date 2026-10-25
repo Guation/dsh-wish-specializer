@@ -873,6 +873,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
     }
 
     const t0 = Date.now()
+    const timings = message.run?.timings || {}
     // 补充程度 → 意图包预算：pipeline 从 `adapter.packetBudget` 取（它本来就是这么设计的）。
     // 设置是**按 home** 的、不按会话，所以写在这里是安全的（不存在"两个会话各要不同预算"的情形）。
     // Compilation policy is passed to the invocation-scoped adapter below.
@@ -913,6 +914,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         // 不记的话，"这一轮解析不到 cwd"的会话会在整条会话里永远用不上工具。
         if (cwd) sessionHistory.setCwd(sessionId, cwd)
         const tools = readToolsFor({ readTools: pol.readTools, cwd: cwd || sessionHistory.getCwd(sessionId) })
+        const promptStarted = Date.now()
         const protocol = await buildInterpreterProtocol({ englishMode: pol.englishMode, llm, cfg, signal: message.signal || null, home: DSH_HOME, toolsEnabled: tools.enabled, strategy: pol.strategy, framing: pol.framing })
         const sys = protocol.text
         const sysNoTools = protocol.noToolsText
@@ -942,10 +944,12 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         appendFileSync(join(DSH_HOME, 'po06-capabilities.jsonl'), line + '\n', 'utf8')
       } catch { /* 记录失败不影响本轮 */ }
       const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: caps, context: combinedContext,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
+        timings.promptMs = Date.now() - promptStarted
         const requestRecord = { capabilityCount: Array.isArray(caps) ? caps.length : 0, capabilitySample: Array.isArray(caps) ? caps.slice(0, 8) : [], protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
         const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null, englishMode: pol.englishMode, sessionId })
+        timings.modelMs = r.ms
         if (message.run && !adapter.optimizationRuns.isCurrent(message.run)) throw new Error('aborted')
         if (optimizerRequests.get(sessionId) === requestRecord) {
           requestRecord.ms = r.ms
@@ -1000,7 +1004,9 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         if(pol.englishMode){
           const ex=readEnglishInterpretation(r.text)
           if(!ex.ok)return r.text
+          const englishStarted = Date.now()
           const prepared=await resolveEnglishInterpretation({value:ex.value,originalText:text,prepared:preparedTranslation,service:adapter.english,llm,cfg,signal:message.signal || null})
+          timings.englishRepairMs = Date.now() - englishStarted
           if (prepared.ok === false) {
             const error = new Error(prepared.reason || 'english-postprocess-failed')
             error.attempts = prepared.repair?.attempts || []
@@ -1018,6 +1024,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         return r.text
       },
     })
+    timings.optimizationMs = Date.now() - t0
     const st2 = adapter.intentStateOf ? adapter.intentStateOf(session) : null
     // 上下文/工具的**归因台账**（P10 步骤 2/3 的验收要求）：
     // `historyMode/turns/historyChars` 说明"这一轮读了多少上下文"；
@@ -1027,7 +1034,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
     lastContextBySession.delete(sid)
     appendWireLog({
       ...base, trigger, ok: out.ok === true, outcome: out.outcome, status: out.status, runId: messageId, cfgSource: cfg.source,
-      provider: cfg.provider, model: cfg.model, ms: Date.now() - t0,
+      provider: cfg.provider, model: cfg.model, ms: Date.now() - t0, timings: { ...timings },
       packetChars: out.packet && out.packet.ok ? out.packet.text.length : 0,
       packetOk: Boolean(out.packet && out.packet.ok),
       // 意图包**有没有超档位承诺的预算**：超了的话注入文本里会写【预算不足】，
@@ -1283,15 +1290,19 @@ async function runInterceptInput(ctx, payload) {
   if (!adapter.optimizationRuns.isCurrent(run)) return { ok: false, runId: messageId, reason: 'superseded-input' }
   run.policy = readPolicy({ home: DSH_HOME, sessionId: sid })
   const signal = run.controller.signal, startedAt = Date.now()
+  const timings = run.timings = { promptMs: 0, modelMs: 0, englishRepairMs: 0, taskTranslationMs: 0 }
   const englishToken = run.policy.englishMode ? adapter.english.begin(sid, messageId, text) : null
   const live = () => adapter.optimizationRuns.isCurrent(run)
   const progress = patch => { if (live()) progressSet(sid, { ...patch, runId: messageId, startedAt }) }
   progress({ stage: 'gate', text: '', reasoning: '', textChars: 0, reasoningChars: 0, usage: null })
   try {
     const gate = run.policy.injectPacket ? await awaitGateDecision(sid, 25000) : PENDING
+    timings.gateMs = Date.now() - startedAt
     if (!live()) return { ok: false, runId: messageId, reason: 'aborted' }
     progress({ stage: 'model' })
+    const routeStarted = Date.now()
     const route = await ensureModelRoute(ctx, sid)
+    timings.routeMs = Date.now() - routeStarted
     if (!live()) return { ok: false, runId: messageId, reason: 'aborted' }
     progress({ stage: 'interpret' })
     let produced, translation = null
@@ -1304,6 +1315,7 @@ async function runInterceptInput(ctx, payload) {
     } else if (!englishToken) throw new Error('assist-off')
     if (!live()) return { ok: false, runId: messageId, reason: 'aborted' }
     if (englishToken) {
+      const englishStarted = Date.now()
       const english = await finishEnglishInput({ service: adapter.english, token: englishToken,
         enabled: () => live() && readPolicy({ home: DSH_HOME, sessionId: sid }).englishMode,
         produced, signal, translate: async () => {
@@ -1311,6 +1323,7 @@ async function runInterceptInput(ctx, payload) {
           if (!cfg.ok) throw new Error('english-model-route-unavailable')
           return adapter.english.translate(text, { llm: ctx.get('llm'), cfg, signal, kind: 'user-task', sessionId: sid })
         } })
+      timings.taskTranslationMs = Date.now() - englishStarted
       if (!english.ok) throw new Error(english.reason || 'english-failed')
       translation = english.translation
       if (english.fallback && english.assistanceAvailable !== true) produced = { ...produced, packet: { ok: true, text: '' } }
@@ -1319,7 +1332,8 @@ async function runInterceptInput(ctx, payload) {
     const policyNow = readPolicy({ home: DSH_HOME, sessionId: sid })
     if (policyNow.englishMode !== run.policy.englishMode || (run.policy.injectPacket && !policyNow.injectPacket)) throw new Error('settings-changed')
     const packet = produced?.packet?.text || ''
-    const result = { ok: true, status: packet ? 'ready' : 'empty', runId: messageId, sessionId: sid,
+    timings.totalMs = Date.now() - startedAt
+    const result = { ok: true, timings: { ...timings }, status: packet ? 'ready' : 'empty', runId: messageId, sessionId: sid,
       packet, chars: packet.length, understood: true, noAddition: !packet,
       englishMode: !!englishToken, outgoingText: translation?.text || text,
       translation: translation ? { ...translation, originalText: text } : null,
@@ -1328,13 +1342,15 @@ async function runInterceptInput(ctx, payload) {
     if (!adapter.optimizationRuns.finish(run, result)) return { ok: false, runId: messageId, reason: 'superseded-input' }
     if (translation) { adapter.english.record(englishToken, translation.text, translation); adapter.capability.bindTranslation(sid, translation.text) }
     progress({ stage: packet ? 'done' : 'noop' })
+    appendWireLog({ sessionId: sid, runId: messageId, trigger: 'intercept-result', ok: true, status: result.status, ms: result.ms, timings: result.timings, packetChars: packet.length })
     return result
   } catch (error) {
     const reason = String(error?.message || error)
+    timings.totalMs = Date.now() - startedAt
     const englishAttempts = Array.isArray(error?.attempts) ? error.attempts : null
-    const result = { ok: false, status: signal.aborted ? 'aborted' : 'failed', runId: messageId, reason, packet: '', chars: 0, ms: Date.now() - startedAt, ...(englishAttempts ? { englishAttempts } : {}) }
+    const result = { ok: false, timings: { ...timings }, status: signal.aborted ? 'aborted' : 'failed', runId: messageId, reason, packet: '', chars: 0, ms: Date.now() - startedAt, ...(englishAttempts ? { englishAttempts } : {}) }
     if (live()) { adapter.optimizationRuns.finish(run, result); progress({ stage: 'failed', reason }) }
-    appendWireLog({ sessionId: sid, runId: messageId, trigger: 'intercept-result', ok: false, reason, ...(englishAttempts ? { englishAttempts } : {}) })
+    appendWireLog({ sessionId: sid, runId: messageId, trigger: 'intercept-result', ok: false, reason, timings: result.timings, ...(englishAttempts ? { englishAttempts } : {}) })
     return result
   }
 }

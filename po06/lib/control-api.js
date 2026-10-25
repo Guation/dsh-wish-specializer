@@ -596,7 +596,7 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
           understood: out.understood === true, noAddition: out.noAddition === true,
           understanding: out.understanding || null, support: out.support || null,
           chars: typeof out.chars === 'number' ? out.chars : 0,
-          ms: typeof out.ms === 'number' ? out.ms : null,
+          ms: typeof out.ms === 'number' ? out.ms : null, timings: out.timings || null,
           usage: usageOut,
           usageTotal: (usageOut && typeof usageOut.total === 'number') ? usageOut.total : null,
           // 无出处条目数（缺值 = null = "未记录"，界面不许拿 0 冒充"没有"）

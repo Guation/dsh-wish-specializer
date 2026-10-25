@@ -30,10 +30,11 @@ function element() {
 
 // Runs the real registered ControlBar, hooks, effects, composer events, and panel callbacks.
 // Network completions deliberately ignore abort so tests can deliver a truly late response.
-export function loadHoldClient({ permission = 'auto', englishMode = false, sessionSettings = {}, optimizationGeneration } = {}) {
+export function loadHoldClient({ permission = 'auto', englishMode = false, sessionSettings = {}, optimizationGeneration,
+  pipelineRevision = 'single-run-1', deferStatus = false } = {}) {
   const requests = [], submissions = [], order = [], timers = new Map(), mounts = []
   const armed = new Map()
-  let timerId = 0, rendering = null, cursor = 0, active = null, ControlBar
+  let timerId = 0, rendering = null, cursor = 0, active = null, ControlBar, revision = pipelineRevision
   const timer = (fn, ms, repeat) => { const id = ++timerId; timers.set(id, { fn, ms, repeat }); return id }
   const setTimeout = (fn, ms) => timer(fn, ms, false)
   const setInterval = (fn, ms) => timer(fn, ms, true)
@@ -83,7 +84,10 @@ export function loadHoldClient({ permission = 'auto', englishMode = false, sessi
   React.useLayoutEffect = React.useEffect
   const settings = { permission, englishMode, assist: 'auto', detail: 'standard', budget: 'standard',
     presetNoticeDismissed: true, skipHintDismissed: true, doubleEnterSkip: false }
-  const response = data => ({ ok: data.ok === true, status: data.ok === true ? 200 : 409, json: async () => data })
+  const response = (data, status = data.ok === true ? 200 : 409) => ({ ok: status >= 200 && status < 300, status, json: async () => data })
+  const statusData = sid => ({ ok: true, enabled: true, settings, described: { tier: 'standard' },
+    sessionEffective: { ...settings, ...(sessionSettings[sid] || {}) }, sessionDescribed: { tier: 'standard' },
+    capability: { ...(revision === undefined ? {} : { pipelineRevision: revision }), optimization: { generation: optimizationGeneration } } })
   const fetch = (url, options = {}) => {
     const parsed = new URL(url, 'http://127.0.0.1')
     const path = parsed.pathname.replace('/po06/api', '')
@@ -93,16 +97,18 @@ export function loadHoldClient({ permission = 'auto', englishMode = false, sessi
       req.signal?.addEventListener('abort', () => order.push({ type: 'abort', path, body: req.body }))
       order.push({ type: 'request', path, body: req.body })
       return new Promise(resolve => {
-        req.respond = data => {
-          order.push({ type: 'response', path, data })
-          if (path === '/packet' && data.ok === true && data.runId === req.body.runId) armed.set(req.body.sessionId, { ...req.body, packet: data.packet })
-          resolve(response(data))
+        req.respond = (data, status) => {
+          const result = response(data, status)
+          order.push({ type: 'response', path, data, status: result.status })
+          if (path === '/packet' && result.ok && data.ok === true && data.runId === req.body.runId) armed.set(req.body.sessionId, { ...req.body, packet: data.packet })
+          resolve(result)
         }
       })
     }
     if (path === '/status') {
-      const effective = { ...settings, ...(sessionSettings[parsed.searchParams.get('session')] || {}) }
-      return Promise.resolve(response({ ok: true, enabled: true, settings, described: { tier: 'standard' }, sessionEffective: effective, sessionDescribed: { tier: 'standard' }, capability: { optimization: { generation: optimizationGeneration } } }))
+      req.sessionId = parsed.searchParams.get('session')
+      if (deferStatus) return new Promise(resolve => { req.respond = (data, status) => resolve(response(data, status)) })
+      return Promise.resolve(response(statusData(req.sessionId)))
     }
     return Promise.resolve(response({ ok: true, active: false, models: [], efforts: [], notice: null, presetAt: null }))
   }
@@ -137,12 +143,20 @@ export function loadHoldClient({ permission = 'auto', englishMode = false, sessi
     card.querySelectorAll = () => [button]
     card.contains = node => [editor, bar, button].includes(node)
     bar.parentElement = card; button.parentElement = card
+    button.closest = selector => selector === 'button' ? button : null
     const m = { id: mounts.length + 1, live: true, dirty: true, hooks: [], effects: [], sessionId, draft: text, editor, card, bar, button }
     m.props = { sessionId, inputActions: {
       setDraft(text) { m.draft = text; editor.innerText = text; order.push({ type: 'draft', sessionId, text }) },
       submit() { const submission = { sessionId, mountId: m.id, text: m.draft, commit: armed.get(sessionId) }; submissions.push(submission); order.push({ type: 'submit', ...submission }) },
     } }
-    m.panel = () => { render(m); const node = find(m.tree, node => node.type === mod.__debug.InterceptPanel); assert.ok(node, 'Expected the interception panel'); return node.props }
+    m.find = predicate => { render(m); return find(m.tree, predicate) }
+    m.panel = () => { const node = m.find(node => node.type === mod.__debug.InterceptPanel); assert.ok(node, 'Expected the interception panel'); return node.props }
+    m.clickSend = () => {
+      const event = { type: 'click', target: button,
+        preventDefault() { this.defaultPrevented = true }, stopPropagation() {}, stopImmediatePropagation() { this.immediateStopped = true } }
+      win.dispatchEvent(event); render(m)
+      return event
+    }
     m.enter = () => {
       document.activeElement = editor
       const event = { type: 'keydown', key: 'Enter', target: editor,
@@ -169,7 +183,12 @@ export function loadHoldClient({ permission = 'auto', englishMode = false, sessi
     assert.ok(req, 'Expected a packet rollback')
     req.respond({ ok: true, runId: req.body.runId, generation: req.body.generation, packet: '上一版完整包', chars: 6, remaining: 2, ...result })
   }
-  return { mod, win, requests, submissions, order, mount, flush, pending, completeInterpret, completePacket, completeRollback,
+  const completeStatus = (req = requests.filter(req => req.path === '/status').at(-1), result = {}) => {
+    assert.ok(req?.respond, 'Expected a deferred status request')
+    req.respond({ ...statusData(req.sessionId), ...result })
+  }
+  return { mod, win, requests, submissions, order, mount, flush, pending, completeInterpret, completePacket, completeRollback, completeStatus,
+    setPipelineRevision(value) { revision = value },
     hold: sid => mod.__debug.holdBridgeRead(sid),
     advance(ms) { for (const [id, task] of [...timers]) if (task.ms <= ms) { if (!task.repeat) timers.delete(id); task.fn() } },
     close() { for (const m of mounts) if (m.live) m.unmount(); dispose(); timers.clear() },
