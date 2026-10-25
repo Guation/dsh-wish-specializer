@@ -30,7 +30,7 @@ test('界面：快捷键收在工具组，保存只改快捷键设置', async t 
   await ui.flush()
   bar.find(node=>node.props?.['data-po06']==='options-btn').props.onClick();await ui.flush()
   assert.equal(bar.find(node=>node.props?.['data-po06']==='double-enter'),null,'低频开关默认收起')
-  bar.find(node=>node.props?.['data-po06']==='group-tools').props.onClick();await ui.flush()
+  bar.find(node=>node.props?.['data-po06']==='nav-tools').props.onClick();await ui.flush()
   const control=bar.find(node=>node.props?.['data-po06']==='double-enter')
   assert.ok(control);assert.equal(control.props.role,'switch')
   assert.ok(bar.find(node=>node.props?.['data-po06']==='bash'))

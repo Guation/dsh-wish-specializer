@@ -933,6 +933,30 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
     // Scoped visual system: editorial hierarchy first, no runtime design dependencies.
     // Layout carries the hierarchy: one full-width intensity axis, hanging numerals, no card boxes.
+    const OPTIONS_DESK_CSS = `
+.po06-studio .po06-choices[data-po06-variant=stack]{display:grid;grid-template-columns:1fr;gap:0;padding:0;border:0;border-radius:0;background:transparent}
+.po06-studio .po06-choices[data-po06-variant=stack]>button{display:flex;justify-content:space-between;align-items:baseline;gap:10px;min-height:33px;padding:7px 2px 7px 0;border:0;border-bottom:1px solid var(--po06-line2);border-radius:0;background:transparent;box-shadow:none;color:var(--po06-fg3);font-size:12px;text-align:left}
+.po06-studio .po06-choices[data-po06-variant=stack]>button[aria-checked=true]{background:transparent;box-shadow:inset 2px 0 0 var(--po06-acc);color:var(--po06-fg);font-weight:600;padding-left:10px}
+.po06-studio .po06-desk{display:grid;grid-template-columns:116px minmax(0,1fr);min-height:292px}
+.po06-studio .po06-desk-nav{display:flex;flex-direction:column;gap:1px;padding:10px 8px;border-right:1px solid var(--po06-line2)}
+.po06-studio .po06-desk-tab{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;padding:8px 9px;border:0;border-radius:7px;background:transparent;color:var(--po06-fg3);font:inherit;text-align:left;cursor:pointer}
+.po06-studio .po06-desk-tab[data-po06-active="1"]{background:var(--po06-chip);color:var(--po06-fg)}
+.po06-studio .po06-desk-tab-label{font-size:12px;font-weight:500}
+.po06-studio .po06-desk-tab[data-po06-active="1"] .po06-desk-tab-label{font-weight:600}
+.po06-studio .po06-desk-tab-meta{font-size:10px;color:var(--po06-fg3);font-variant-numeric:tabular-nums}
+.po06-studio .po06-desk-pane{display:flex;flex-direction:column;padding:16px 18px 18px;animation:po06-desk-pane .15s ease-out both}
+.po06-studio .po06-pane-kicker{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--po06-fg3)}
+.po06-studio .po06-pane-title{margin-top:5px;font-size:30px;line-height:1.05;font-weight:650;letter-spacing:-.035em}
+.po06-studio .po06-pane-note{margin-top:6px;max-width:36ch;color:var(--po06-fg3);font-size:11.5px;line-height:1.55}
+.po06-studio .po06-desk-pane>.po06-choices[data-po06-variant=stack]{margin-top:13px}
+.po06-studio .po06-pane-row{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;margin-top:13px;font-size:11.5px;color:var(--po06-fg3)}
+.po06-studio .po06-pane-row .po06-choices{width:100%}
+.po06-studio .po06-pane-switches{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:15px;padding-bottom:12px;border-bottom:1px solid var(--po06-line2)}
+.po06-studio .po06-tools-list{display:flex;flex-direction:column}
+.po06-studio .po06-tools-list .po06-setting-switch:last-child{border-bottom:0}
+@keyframes po06-desk-pane{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:none}}
+@media(max-width:420px){.po06-studio .po06-desk{grid-template-columns:minmax(0,1fr)}.po06-studio .po06-desk-nav{flex-direction:row;padding:8px;border-right:0;border-bottom:1px solid var(--po06-line2);overflow-x:auto}.po06-studio .po06-desk-tab{flex:0 0 auto}.po06-studio .po06-desk-tab-meta{display:none}.po06-studio .po06-pane-title{font-size:26px}}
+`
     const OPTIONS_STUDIO_CSS = `
 .po06-choices{display:flex;gap:2px;min-width:0;padding:2px;border:1px solid var(--po06-line2);border-radius:8px;background:var(--po06-chip);font:inherit}
 .po06-choices>button{flex:1 1 0;min-width:0;min-height:26px;padding:3px 8px;border:0;border-radius:6px;background:transparent;color:var(--po06-fg3);font:inherit;font-size:12px;cursor:pointer;transition:background-color .13s ease,color .13s ease}
@@ -2683,7 +2707,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const optRef = React.useRef(null)
       // 密度档：0 正常 / 1 紧凑 / 2 极紧。打开后按"内容高度 vs 可用高度"自动升档，
       // 这是"边界自动挤压"：先缩间距与行高，挤不下才允许内部滚动。
-      const [optSection, setOptSection] = React.useState(null)
+      const [optSection, setOptSection] = React.useState('intensity')
       // issue #18（用户澄清）：弹层/面板**不许与右侧栏重合** —— 它们的右边界要收在会话窗内。
       // 会话窗宽度没有现成的常量可读，所以**量输入卡片**：侧栏一开，会话列变窄、卡片跟着变窄。
       // 观察点用 ResizeObserver 而不是只听 window.resize：侧栏开关时窗口尺寸不变，变的是列宽。
@@ -2845,7 +2869,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         reflow()
         return ovReflowWatch(reflow, optBtnRef.current)
       }, [])
-      React.useEffect(() => { if (!optOpen) setOptSection(null) }, [optOpen])
+      const activeSection = ['intensity','model','context','tools'].includes(optSection) ? optSection : 'intensity'
+      React.useEffect(() => { if (!optOpen) setOptSection('intensity') }, [optOpen])
       // 点面板外 / 按 Esc 收起（键盘可达；不抢输入框的回车）
       React.useEffect(() => {
         if (!optOpen) return undefined
@@ -3696,6 +3721,68 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         positionOptions()
         return ovReflowWatch(positionOptions, optBtnRef.current)
       }, [optOpen,positionOptions])
+      const SECTION_IDS = ['intensity','model','context','tools']
+      const SECTION_LABELS = [
+        [L('强度','Intensity'), tierLabel(tier)],
+        [L('模型','Model'), permission==='review'?L('审查','Review'):L('自动','Auto')],
+        [L('上下文','Context'), historyMode==='full'?L('全文','Full'):String(turns)+L(' 回合',' turns')],
+        [L('行为','Behavior'), String([readTools,bashOn,doubleEnterSkip,s.advisor!==false].filter(Boolean).length)+' / 4'],
+      ]
+      const paneHead = (kicker, note, title) => h(React.Fragment,null,
+        h('p',{className:'po06-pane-kicker'},kicker),
+        title?h('p',{className:'po06-pane-title'},title):null,
+        h('p',{className:'po06-pane-note'},note))
+      const switchRow = (name,flag,known,label,title,onToggle) => h('button',{key:name,type:'button','data-po06':name,
+        'data-po06-value':known?(flag?'on':'off'):'unknown',role:'switch','aria-checked':known&&flag,
+        disabled:busy||!known,className:'po06-setting-switch',title,
+        onClick:()=>{if(!known){setMsg({kind:'warn',text:L('还没读到当前设置','Setting not loaded yet')});return}onToggle()}},
+        h('span',null,label),h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span')))
+      const intensityPane = h(React.Fragment,null,
+        paneHead(L('优化强度','Intensity'),tierNote,tierLabel(tier)),
+        h(Segmented,{name:'tier',value:tier,options:TIER_KEYS,label:k=>tierLabel(k),variant:'stack',failTick,
+          title:L('档位：选择优化强度；方向键或 Home / End 切换','Tier: choose intensity; arrow keys or Home / End to change'),
+          onPick:v=>save({bySession:replaceTier(v)})}),
+        h('div',{className:'po06-pane-row'},h('span',null,L('模型状态','Model state')),
+          h(Segmented,{name:'model-state',value:modelState,options:['normal','extreme'],failTick,
+            label:k=>k==='extreme'?L('极限','Extreme'):L('正常','Normal'),
+            title:L('正常：不添加压力测试说明；极限：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
+            onPick:v=>save({bySession:withSession({modelState:v})})})))
+      const modelPane = h(React.Fragment,null,
+        paneHead(L('模型与执行','Model & delivery'),L('这一轮由谁来解释，以及结果是否要你确认。','Who interprets this round, and whether you confirm the result.')),
+        h('div',{className:'po06-pane-row'},h('span',null,L('权限','Permission')),
+          h(Segmented,{name:'perm',value:permission,options:['review','auto'],failTick,disabled:tierOff&&!englishOn,
+            label:k=>k==='review'?L('审查','Review'):L('自动','Auto'),
+            title:L('审查：确认后发送；自动：优化完成即发送','Review: confirm before sending. Auto: send when optimization completes.'),
+            onPick:v=>save({permission:v})})),
+        h('div',{className:'po06-pane-row'},h('span',null,L('模型','Model')),
+          h(Options,{anchor:'model',value:curKey,options:['inherit',...routes.map(mkey)],
+            labels:(()=>{const labels={inherit:L('跟随会话模型','Follow session model')};routes.forEach(route=>{labels[mkey(route)]=route.label||(route.provider+' / '+route.model)});return labels})(),
+            onChange:value=>{if(value==='inherit'){save({model:null});return}const route=routes.find(item=>mkey(item)===value);if(route)save({model:{provider:route.provider,model:route.model}})}})),
+        effortRow)
+      const contextPane = h(React.Fragment,null,
+        paneHead(L('上下文','Context'),L('解释这一轮时，它可以读回多少对话。','How much conversation this round may read back.')),
+        h('div',{'data-po06':'ctx-wrap',className:'po06-context-editor'},
+          h('div',{className:'po06-pane-row'},h('span',null,L('读取范围','Read from')),
+            h(Segmented,{name:'ctx-mode',value:historyMode,options:['turns','full'],disabled:tierOff,failTick,
+              label:k=>k==='full'?L('全文','Full'):L('回合','Turns'),
+              title:L('回合：最近几轮；全文：当前保留的所有回合','Turns: recent turns. Full: all currently retained turns.'),
+              onPick:value=>{if(!tierOff)save({historyMode:value})}})),
+          historyMode==='full'
+            ? h('p',{'data-po06':'ctx-hint',className:'po06-setting-note'},L('读入当前保留的全部回合。','Read all turns currently retained.'))
+            : h('div',{className:'po06-turns-editor'},
+              h('div',{className:'po06-turns-heading'},h('span',null,L('回合数','Turns')),h('span',{'data-po06':'ctx-num'},String(turns))),
+              h(TurnsRange,{value:turns,disabled:tierOff,failTick,disabledTip:L('档位已关闭','Optimizer is off'),
+                title:L('上下文：0–10 回合，方向键调整','Context: 0–10 turns; adjust with arrow keys'),onCommit:n=>save({turns:n})}),
+              h('div',{className:'po06-range-labels','aria-hidden':'true'},h('span',null,'0'),h('span',null,'10')))))
+      const toolsPane = h(React.Fragment,null,
+        paneHead(L('行为','Behavior'),L('解释层能做哪些事，以及这些开关对模型的直接影响。','What the explainer may do, and how it affects the working model.')),
+        h('div',{className:'po06-pane-switches'},
+          h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick,compact:true}),
+          h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick,compact:true})),
+        h('div',{className:'po06-tools-list'},
+          switchRow('readtools',readTools,rtKnown,L('只读工具','Read-only tools'),L('读取项目文件后再补充建议','Read project files before preparing advice'),()=>save({readTools:!readTools})),
+          switchRow('bash',bashOn,bashKnown,L('内置 Bash','Built-in Bash'),L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),()=>save({bash:!bashOn})),
+          switchRow('double-enter',doubleEnterSkip,desKnown,L('双击 Enter 跳过','Double Enter to skip'),L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),()=>save({doubleEnterSkip:!doubleEnterSkip}))))
       const optExit = useExit(optOpen, 160)
       const helpExit = useExit(helpOpen, 140)
       const noticeExit = useExit(!!notice, 170)
@@ -3781,72 +3868,23 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                 h('button',{type:'button','data-po06':'options-close',className:'po06-close',
                   'aria-label':L('关闭优化选项','Close options'),
                   onClick:()=>{setOptOpen(false);optBtnRef.current?.focus?.()}},'×')),
-              h('section',{className:'po06-intensity','data-po06':'options-intensity'},
-                h('div',{className:'po06-intensity-top'},
-                  h('span',{className:'po06-eyebrow'},L('优化强度','Intensity'))),
-                h('div',{className:'po06-current-tier'},tierLabel(tier)),
-                h('p',{className:'po06-tier-note'},tierNote),
-                h(Segmented,{name: 'tier',value:tier,options:TIER_KEYS,label:k=>tierLabel(k),variant:'intensity',failTick,
-                  title:L('档位：选择优化强度；方向键或 Home / End 切换','Tier: choose intensity; arrow keys or Home / End to change'),
-                  onPick:v=>save({bySession:replaceTier(v)})}),
-                h('div',{className:'po06-state-row'},
-                  h('span',null,L('模型状态','Model state')),
-                  h(Segmented,{name: 'model-state',value:modelState,options:['normal','extreme'],failTick,
-                    label:k=>k==='extreme'?L('极限','Extreme'):L('正常','Normal'),
-                    title:L('正常：不添加压力测试说明；极限：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
-                    onPick:v=>save({bySession:withSession({modelState:v})})}))),
-              h('div',{className:'po06-feature-grid'},
-                h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick,compact:true}),
-                h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick,compact:true})),
-              h('div',{className:'po06-options-index'},
-                renderOptionGroup('generation','01',L('模型与执行','Model & delivery'),
-                  (permission==='review'?L('审查','Review'):L('自动','Auto'))+' / '+selectedModel,
-                  h(React.Fragment,null,
-                    h('div',{className:'po06-control-row'},h('span',null,L('权限','Permission')),
-                      h(Segmented,{name: 'perm',value:permission,options:['review','auto'],failTick,disabled:tierOff&&!englishOn,
-                        label:k=>k==='review'?L('审查','Review'):L('自动','Auto'),
-                        title:L('审查：确认后发送；自动：优化完成即发送','Review: confirm before sending. Auto: send when optimization completes.'),
-                        onPick:v=>save({permission:v})})),
-                    h('div',{className:'po06-control-row'},h('span',null,L('模型','Model')),
-                      h(Options,{anchor:'model',value:curKey,options:['inherit',...routes.map(mkey)],
-                        labels:(()=>{const labels={inherit:L('跟随会话模型','Follow session model')};routes.forEach(route=>{labels[mkey(route)]=route.label||(route.provider+' / '+route.model)});return labels})(),
-                        onChange:value=>{if(value==='inherit'){save({model:null});return}const route=routes.find(item=>mkey(item)===value);if(route)save({model:{provider:route.provider,model:route.model}})}})),
-                    effortRow)),
-                renderOptionGroup('context','02',L('上下文','Context'),
-                  historyMode==='full'?L('全部回合','All turns'):L('最近 '+turns+' 回合','Last '+turns+' turns'),
-                  h('div',{'data-po06':'ctx-wrap',className:'po06-context-editor'},
-                    h('div',{className:'po06-control-row'},h('span',null,L('读取范围','Read from')),
-                      h(Segmented,{name: 'ctx-mode',value:historyMode,options:['turns','full'],disabled:tierOff,failTick,
-                        label:k=>k==='full'?L('全文','Full'):L('回合','Turns'),
-                        title:L('回合：最近几轮；全文：当前保留的所有回合','Turns: recent turns. Full: all currently retained turns.'),
-                        onPick:value=>{if(!tierOff)save({historyMode:value})}})),
-                    historyMode === 'full'
-                      ? h('p',{'data-po06':'ctx-hint',className:'po06-setting-note'},L('读入当前保留的全部回合。','Read all turns currently retained.'))
-                      : h('div',{className:'po06-turns-editor'},
-                        h('div',{className:'po06-turns-heading'},h('span',null,L('回合数','Turns')),
-                          h('span',{'data-po06':'ctx-num'},String(turns))),
-                        h(TurnsRange,{value:turns,disabled:tierOff,failTick,
-                          disabledTip:L('档位已关闭','Optimizer is off'),
-                          title:L('上下文：0–10 回合，方向键调整','Context: 0–10 turns; adjust with arrow keys'),onCommit:n=>save({turns:n})}),
-                        h('div',{className:'po06-range-labels','aria-hidden':'true'},h('span',null,'0'),h('span',null,'10'))))),
-                renderOptionGroup('tools','03',L('工具与快捷键','Tools & shortcuts'),
-                  [readTools,bashOn,doubleEnterSkip].filter(Boolean).length+L(' 项开启',' enabled'),
-                  h('div',{className:'po06-tools-list'},
-                    h('button',{type:'button','data-po06':'readtools','data-po06-value':rtKnown?(readTools?'on':'off'):'unknown',
-                      role:'switch','aria-checked':rtKnown&&readTools,disabled:busy||!rtKnown,className:'po06-setting-switch',
-                      title:L('读取项目文件后再补充建议','Read project files before preparing advice'),
-                      onClick:()=>{if(!rtKnown){setMsg({kind:'warn',text:L('还没读到当前设置','Setting not loaded yet')});return}save({readTools:!readTools})}},
-                      h('span',null,L('只读工具','Read-only tools')),h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span'))),
-                    h('button',{type:'button','data-po06':'bash','data-po06-value':bashKnown?(bashOn?'on':'off'):'unknown',
-                      role:'switch','aria-checked':bashKnown&&bashOn,disabled:busy||!bashKnown,className:'po06-setting-switch',
-                      title:L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),
-                      onClick:()=>{if(!bashKnown){setMsg({kind:'warn',text:L('还没读到当前设置','Setting not loaded yet')});return}save({bash:!bashOn})}},
-                      h('span',null,L('内置 Bash','Built-in Bash')),h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span'))),
-                    h('button',{type:'button','data-po06':'double-enter','data-po06-value':desKnown?(doubleEnterSkip?'on':'off'):'unknown',
-                      role:'switch','aria-checked':desKnown&&doubleEnterSkip,disabled:busy||!desKnown,className:'po06-setting-switch',
-                      title:L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),
-                      onClick:()=>{if(!desKnown){setMsg({kind:'warn',text:L('还没读到当前设置','Setting not loaded yet')});return}save({doubleEnterSkip:!doubleEnterSkip})}},
-                      h('span',null,L('双击 Enter 跳过','Double Enter to skip')),h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span')))))),
+              h('div',{className:'po06-desk'},
+                h('nav',{className:'po06-desk-nav',role:'tablist','aria-label':L('设置分区','Sections')},
+                  SECTION_IDS.map((id,index)=>h('button',{key:id,type:'button',role:'tab',
+                    'aria-selected':activeSection===id,'data-po06':'nav-'+id,'data-po06-active':activeSection===id?'1':'0',
+                    className:'po06-desk-tab',onClick:()=>setOptSection(id),
+                    onKeyDown:event=>{const step=event.key==='ArrowDown'||event.key==='ArrowRight'?1:event.key==='ArrowUp'||event.key==='ArrowLeft'?-1:0
+                      if(!step)return;event.preventDefault()
+                      const next=SECTION_IDS[(index+step+SECTION_IDS.length)%SECTION_IDS.length]
+                      setOptSection(next);event.currentTarget.parentElement?.querySelector('[data-po06=nav-'+next+']')?.focus()}},
+                    h('span',{className:'po06-desk-tab-label'},SECTION_LABELS[index][0]),
+                    h('span',{className:'po06-desk-tab-meta'},SECTION_LABELS[index][1])))),
+                h('div',{className:'po06-desk-pane',role:'tabpanel'},
+                  activeSection==='intensity'?intensityPane:null,
+                  activeSection==='model'?modelPane:null,
+                  activeSection==='context'?contextPane:null,
+                  activeSection==='tools'?toolsPane:null)),
+
               h('footer',{className:'po06-options-footer'},
                 h('button',{type:'button','data-po06':'detail','data-po06-open':open?'1':'0',className:'po06-details-link',
                   title:L('详情：状态与解释层提示词','Details: status and optimizer prompt'),
@@ -4682,6 +4720,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             //   （见 THEME_TOKENS 顶部那段说明：题目是"颜色由主题驱动"，不是"给浅色打补丁"。）
             themeTokensCss(),
             OPTIONS_STUDIO_CSS,
+            OPTIONS_DESK_CSS,
             '[data-po06] button:hover{border-color:color-mix(in srgb, var(--po06-acc) 45%, transparent)}',
             // ── 液态玻璃：悬停 / 按下 / 焦点 三态（2026-10-25）──────────────
             // 玻璃顶部光带：一条很淡的斜向高光，制造“光从上方掠过”的实体感

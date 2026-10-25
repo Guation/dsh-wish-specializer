@@ -138,6 +138,7 @@ t('界面锚点：关键节点带 data-po06 标记（真机验证靠它，不靠
     || compact.includes("name:'" + a + "'")
     || compact.includes('anchor:"' + a + '"')
     || compact.includes("anchor:'" + a + "'")
+    || compact.includes("switchRow('" + a + "'")
   for (const anchor of ['bar', 'ctx', 'ctx-mode', 'readtools', 'model', 'help-btn', 'help-pop', 'help-close',
     'panel', 'controls', 'turns', 'prompt', 'settings']) {
     ok(hasAnchor(anchor), '缺少界面锚点 data-po06=' + anchor)
@@ -150,7 +151,7 @@ t('界面锚点：关键节点带 data-po06 标记（真机验证靠它，不靠
   ok(hasAnchor('state-dot'), '「详情」必须保留灰绿状态灯（state-dot）')
   // 2026-10-19：上下文重做——模式用分段控件（ctx-mode），回合数用自绘滑杆（ctx）。
   // 旧断言钉的是"一个 range 伪装两种模式"，那正是这次要拆掉的东西。
-  ok(/name: 'ctx-mode'/.test(src), '上下文模式必须是分段控件（data-po06=ctx-mode）')
+  ok(/name:\s*'ctx-mode'/.test(src), '上下文模式必须是分段控件（data-po06=ctx-mode）')
   ok(/historyMode === 'full'/.test(src), '全文模式要给静态说明，而不是假装有 0~10 量程')
   ok(/'data-po06': 'ctx-fill'/.test(src) && /'data-po06': 'ctx-thumb'/.test(src), '滑杆是自绘的（已选段 + 滑块）')
   ok(/'data-po06': 'bar-row-1'/.test(src), '第一层锚点 bar-row-1')
