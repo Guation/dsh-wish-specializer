@@ -151,6 +151,7 @@ test('actual read loop runs S1 and S2 with empty files, manifests and fingerprin
      const report={...manifest.reportTemplate,verdict:'pass',summary:'read real source',nextStep:'done',stopCondition:'stop',checks:manifest.reportTemplate.checks.map(c=>({...c,status:'satisfied',evidenceRefs:['read:app.js']}))}
      yield {type:'text-delta',text:JSON.stringify(report)}
     }
+    yield {type:'finish',reason:{kind:turn===1?'tool-calls':'stop'}}
    })()}
    const invoke=createAdvisor({stages:x.stages,resolveRuntime:async()=>({ok:true,cwd:x.root,readTools:true,cfg:{provider:'p',model:'m'},llm}),runLoop:opts=>runReadOnlyToolLoop({...opts,shape:{make:({callId,content,isError})=>({role:'tool',toolCallId:callId,content,isError})}})})
    const ref={taskId:task.taskId,stageId:stage.stage.id}

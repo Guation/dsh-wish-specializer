@@ -4,8 +4,6 @@ import { createCapability, collectToolEvidence } from '../lib/capability.js'
 import { parseInterpreterOutput } from '../lib/interpreter.js'
 import { advisorSnapshot, parseAdvisorReport, createAdvisor, registerAdvisorTool, acceptanceBanner } from '../lib/advisor.js'
 import { adapter as productionAdapter } from '../lib/index.js'
-import { createState } from '../lib/schema.js'
-import { reduce, recordUserInput } from '../lib/reducer.js'
 const human=(id,text,seq)=>({type:'user/message',seq,data:{id,source:{kind:'user'},content:[{type:'text',text}]}})
 const parse=(v,text='继续')=>parseInterpreterOutput(JSON.stringify(v),{userText:text,sessionId:'s1',messageId:'m1',baseRevision:0,baseInputRevision:0})
 const session={id:'s1',header:{cwd:process.cwd()},snapshotEvents:()=>[]}
@@ -49,28 +47,28 @@ test('无偏差引用的failed保持未验证',()=>{
  assert.equal(p.ok,true);assert.equal(p.report.checks[0].status,'unverified')
 })
 function adapterFor(){
- const a=new productionAdapter.constructor();a.capability=createCapability();a.services.agents={get:()=>({})}
- let state=createState({sessionId:'s1',taskId:'task1'})
- a.intentStateOf=()=>state;a.initIntent=()=>({ok:true,state})
- a.commitUserInput=(_s,input)=>{state=recordUserInput(state,input);return {ok:true,state}}
- a.commit=(_s,patch)=>{const r=reduce(state,patch);if(r.ok)state=r.state;return r}
- return a
+  const a=new productionAdapter.constructor();a.capability=createCapability();a.services.agents={get:()=>({})}
+  a.policyNow=()=>({advisor:false})
+  return a
 }
-test('生产adapter入口完成零增量而不是no-packet',async()=>{
- const a=adapterFor(),out=await a.handleInput(session,{messageId:'m1',text:'谢谢',budget:700,policy:{framing:'neutral'},interpret:async()=>JSON.stringify({ops:[],understanding:{summary:'谢谢',relation:'continue',action:'acknowledge'},support:{mode:'none'}})})
- assert.equal(out.outcome,'understood');assert.equal(out.understanding.action,'acknowledge');assert.equal(a.getWorkingText('s1'),'')
+test('生产adapter入口完成零增量并返回明确的empty状态',async()=>{
+  const a=adapterFor(),out=await a.handleInput(session,{messageId:'m1',text:'谢谢',policy:{framing:'neutral'},interpret:async()=>({intent:{text:'谢谢',relation:'continue'},add:[]})})
+  assert.equal(out.ok,true);assert.equal(out.status,'empty');assert.equal(out.outcome,'understood')
+  assert.equal(out.understanding.summary,'谢谢');assert.equal(a.getWorkingText('s1'),'')
 })
-test('真实并发输入：旧解释不能替换新辅助',async()=>{
- const a=adapterFor();let finish
- const first=a.handleInput(session,{messageId:'m1',text:'原任务',interpret:()=>new Promise(resolve=>{finish=resolve})})
- for(let i=0;i<20 && !finish;i++)await Promise.resolve()
- assert.equal(typeof finish,'function','first input must reach the interpretation hook')
- const next=await a.handleInput(session,{messageId:'m2',text:'当前任务',interpret:async()=>JSON.stringify({ops:[],understanding:{summary:'最新理解',relation:'new',action:'execute'},support})})
- assert.equal(next.outcome,'understood');finish(JSON.stringify({ops:[],understanding:{summary:'过期理解',relation:'new',action:'execute'}}))
- assert.equal((await first).outcome,'superseded-input')
- // 2026-10-25 契约变更：注入**只来自包**（用户：就不应该有壳）。理解仍写进状态，但不再经编译器渲染进注入文。
- // 只断言“过期的理解不能出现在注入里”——注入源已是包，正例由注入测试覆盖。
- assert.doesNotMatch(a.getWorkingText('s1'),/过期理解/)
+test('真实并发输入：当前完整建议保留，旧解释不能替换新辅助',async()=>{
+  const a=adapterFor();let finish,entered
+  const started=new Promise(resolve=>{entered=resolve})
+  const first=a.handleInput(session,{messageId:'m1',text:'原任务',interpret:()=>{entered();return new Promise(resolve=>{finish=resolve})}})
+  await started
+  const next=await a.handleInput(session,{messageId:'m2',text:'当前任务',interpret:async()=>({intent:{text:'最新理解',relation:'new'},add:[{id:'current',text:'当前完整建议'}]})})
+  assert.equal(next.ok,true);assert.equal(next.status,'ready');assert.ok(next.packet.text.includes('当前完整建议'))
+  finish({intent:{text:'过期理解',relation:'new'},add:[{id:'old',text:'过期建议'}]})
+  assert.equal((await first).outcome,'superseded-input')
+  assert.equal(a.getWorkingText('s1'),next.packet.text)
+  assert.match(a.getWorkingText('s1'),/当前完整建议/)
+  assert.doesNotMatch(a.getWorkingText('s1'),/过期理解|过期建议/)
+  assert.deepEqual(a.capability.status('s1').current.optimizer.add,['当前完整建议'])
 })
 
 test('具体解题贡献和待核前提完整经过解释、状态与工作注入',()=>{

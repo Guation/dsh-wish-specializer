@@ -46,9 +46,42 @@ const withIcon = (glyph, node) => [
     // 现在把桥收敛成三个函数：写入即广播，订阅者按 sessionId 认领。
     // 它**只按会话隔离**（绝不把 A 会话的拦截态显示到 B 会话），且桥不可用时静默降级（不影响本轮）。
     const HOLD_BRIDGE_EVENT = NS + ':hold'
-    // 谁是"当前面板上的会话"：由 ControlBar 每次渲染更新。切会话时旧实例可能还活着，
-// 但它的 sessionId 已经不等于这个值 ⇒ 它不再往桥上写、也不在这里提交（2026-10-19 真机）。
-let LAST_MOUNTED_SID = ''
+    // 谁是"当前面板上的会话"：由 ControlBar 挂载时认领。旧挂载的后台重绘不能抢回提交权。
+    // 结果仍写回原会话；只有当前挂载的控件栏可以调用宿主 submit。
+    let LAST_MOUNTED_SID = ''
+    let LAST_MOUNTED_BAR = null
+
+    // 请求和放行身份按会话共享，不能随 React 重挂归零。取消后的记录作为墓碑保留，
+    // 即使旧请求不响应 AbortSignal，完成回调也无法重新认领这一轮。
+    const HOLD_RUNS = window.__PO06_HOLD_RUNS__ || (window.__PO06_HOLD_RUNS__ = Object.create(null))
+    function abortHoldRequests(run) {
+      for (const controller of [run.controller, run.commitController]) {
+        try { if (controller) controller.abort() } catch { /* 身份检查仍会挡住迟到结果 */ }
+      }
+      run.controller = null
+      run.commitController = null
+    }
+    function newHoldRun(sessionId, { runId, generation: restoredGeneration, floor } = {}) {
+      const previous = HOLD_RUNS[sessionId]
+      if (previous) { previous.stopped = true; previous.action += 1; abortHoldRequests(previous) }
+      const previousGeneration = window.__PO06_HOLD_RUN_SEQ__ || 0
+      const serverFloor = Number.isSafeInteger(floor) && floor > 0 ? floor : 0
+      const generation = Number.isSafeInteger(restoredGeneration) && restoredGeneration > 0
+        ? restoredGeneration : Math.max(Date.now(), previousGeneration + 1, serverFloor + 1)
+      window.__PO06_HOLD_RUN_SEQ__ = Math.max(previousGeneration, generation)
+      const run = { runId: runId || NS + '-' + generation + '-' + Math.random().toString(36).slice(2), generation,
+        action: 0, stopped: false, intent: null, commit: null, controller: null, commitController: null, submitted: false }
+      HOLD_RUNS[sessionId] = run
+      return run
+    }
+    function currentHoldRun(sessionId, run) { return !!run && HOLD_RUNS[sessionId] === run }
+    function holdRunFor(sessionId, hold) {
+      if (!hold || typeof hold !== 'object' || typeof hold.runId !== 'string' || !hold.runId
+        || !Number.isSafeInteger(hold.generation) || hold.generation <= 0) return null
+      const run = HOLD_RUNS[sessionId]
+      return run ? (run.runId === hold.runId && run.generation === hold.generation ? run : null)
+        : newHoldRun(sessionId, { runId: hold.runId, generation: hold.generation })
+    }
 
 function holdBridgeRead(sessionId) {
       try { return (window.__PO06_HOLD__ || {})[sessionId] || null } catch { return null }
@@ -2915,14 +2948,26 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 原因：控件栏是 per-session 挂载的，切会话会重挂 ⇒ 组件内的 hold 归零。
       // 而"消息还被我拦着"这件事**必须跨会话切换活下来** ⇒ hold 同时写一份到 window 上，
       // 重挂时按 sessionId 取回（只认同一会话，绝不把 A 会话的拦截态显示到 B 会话）。
-      LAST_MOUNTED_SID = String(sessionId || '')
+      const ownerRef = React.useRef({})
+      const mountedRef = React.useRef(true)
       const [hold, _setHold] = React.useState(() => holdBridgeRead(sessionId))
-      const setHold = React.useCallback((v) => {
-        _setHold(v)
-        // ⚠ 旧实例（会话已切走）不许再往桥上写：它的 clearHoldSoon 会把**别的会话**的拦截态清掉，
-        // 用户看到的就是"优化自己消失"（2026-10-19 真机）。跨会话的结果由完成回调直接写回发起会话。
-        if (String(sessionId || '') !== LAST_MOUNTED_SID) return
-        holdBridgeWrite(sessionId, v)   // 写桥即广播（issue #19）：别的挂载/后台完成的那一份也能被认领
+      const holdRef = React.useRef(hold)
+      const setHold = React.useCallback((value) => {
+        // 先求出具体对象，再同时交给 React 与桥；不能把 React updater 函数存进桥。
+        const next = typeof value === 'function' ? value(holdRef.current) : value
+        if (!mountedRef.current || LAST_MOUNTED_BAR !== ownerRef.current || String(sessionId || '') !== LAST_MOUNTED_SID) return
+        holdRef.current = next
+        _setHold(next)
+        holdBridgeWrite(sessionId, next)
+      }, [sessionId])
+      React.useEffect(() => {
+        mountedRef.current = true
+        LAST_MOUNTED_SID = String(sessionId || '')
+        LAST_MOUNTED_BAR = ownerRef.current
+        return () => {
+          mountedRef.current = false
+          if (LAST_MOUNTED_BAR === ownerRef.current) { LAST_MOUNTED_BAR = null; LAST_MOUNTED_SID = '' }
+        }
       }, [sessionId])
       const [tick, setTick] = React.useState(0)        // 只用于"已用 N 秒"重新渲染
       useLocaleLive()                                  // 语言是活的：DSH 里切语言 ⇒ 立刻换文案
@@ -2943,11 +2988,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 两处展示同一份记录是重复噪音。注入记录的读取只保留对话流卡（按 id 查）。
 
       const rootRef = React.useRef(null)
-      const holdRef = React.useRef(null)               // 去重要用 ref（同一个事件循环里 state 还没生效）
-      // P11：**在飞请求的世代号**。跳过 / 取消 / 重新生成都会推进它，
-      // 于是"已经作废的那次解释"回来时写不进界面（真机缺陷：跳过之后过一会儿又弹出优化结果）。
-      const holdSeq = React.useRef(0)
-      const abortRef = React.useRef(null)
       const canArmRef = React.useRef(false)
       const [catalog, reloadCatalog] = useOnce(React.useCallback(() => apiGet('/models'), []))
       // 帮助**预取**（2026-10-19）：点开时才发请求 ⇒ 弹层先空后满，视觉上就是"卡一下"。
@@ -3066,16 +3106,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
       // ── P11 前置拦截的运行时（放行 / 失败兜底 / 去重）──────────────────
       // 三条不变量：
-      //   ① **拦下就一定要放行**（成功、失败、被跳过、用户点"按原文发出"都算）——绝不让消息凭空消失；
+      //   ① 放行前必须确认本轮包或无包标记已提交；失败留在面板里，消息不能悄悄消失；
       //   ② **拿不到 `inputActions` 就绝不拦截**（`canArm` 为 false 时监听器根本不挂）；
       //   ③ 同一次发送可能同时命中 Enter 与 click（0.5 的 `coalesced`）⇒ 用 ref 去重，不能靠 state。
       const permissionRef = React.useRef(permission)
       permissionRef.current = permission
-      // 当前"哪个会话正挂在这个面板上"：切走之后回来的结果不能写进别人的会话
-      const liveSidRef = React.useRef(sessionId)
-      liveSidRef.current = sessionId
       const englishRef=React.useRef(englishOn)
       englishRef.current=englishOn
+      const inputActionsRef = React.useRef(inputActions)
+      inputActionsRef.current = inputActions
       const canArm = !!(inputActions && typeof inputActions.submit === 'function' && sessionId)
       canArmRef.current = canArm
       // 斜杠命令放行（0.8）：名单来自设置，但**只有宿主确认该命令当前已注册**才会出现在 active 里。
@@ -3090,204 +3129,197 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }
       const slashAllowedDraft = (t) => slashReviewAllowed([...slashActive], t)
 
-      const clearHoldSoon = () => { window.setTimeout(() => { holdRef.current = null; setHold(null) }, 1600) }
-      /** 放行：**先把拦下的那条原话写回草稿**，再交给宿主的 submit。
-       *  为什么"总是写一遍"（而不是仅在 DOM 与状态不一致时）：拦下的字是从 **DOM** 读的，
-       *  而 submit 发的是**宿主状态**里的草稿——两者可能不同步（真机探针实测：headless 下
-       *  `execCommand` 不生效、DOM 有字而状态没有）。放行的必须是**用户按下发送时的那一条**，
-       *  所以这里无条件对齐一次（草稿本来就一样时，写回是幂等的）。 */
+      const ownsHoldView = () => mountedRef.current && LAST_MOUNTED_BAR === ownerRef.current
+        && String(sessionId || '') === LAST_MOUNTED_SID && isActiveInstance() && canArmRef.current
+      const publishHold = (run, value) => {
+        if (!currentHoldRun(sessionId, run)) return
+        if (ownsHoldView()) { holdRef.current = value; _setHold(value) }
+        holdBridgeWrite(sessionId, value)
+      }
+      const clearHoldSoon = (h) => {
+        window.setTimeout(() => {
+          const saved = holdBridgeRead(sessionId)
+          if (!saved || saved.runId !== h.runId || (saved.phase !== 'sent' && saved.phase !== 'skipped')) return
+          const run = holdRunFor(sessionId, saved)
+          if (run) publishHold(run, null)
+        }, 1600)
+      }
+      /** 唯一的宿主提交点；调用方必须先取得本轮 /packet 的成功确认。 */
       const releaseHold = (text, h, mark) => {
+        const run = holdRunFor(sessionId, h)
+        if (!run || run.submitted || !ownsHoldView()) return false
+        const inputActions = inputActionsRef.current
+        const action = run.action
         try {
           setOvExitKind(mark === 'skipped' ? 'skipped' : 'sent')
-          // 名单内命令的守门（0.8）：审查浮层可以改内容，但**不允许把命令本身换掉**。
-          // 换掉就不再是原命令了 ⇒ 退回用户按下发送时的那一条原话，交还宿主自行处理。
           let outgoing = text
           const held = h && typeof h.text === 'string' ? h.text : ''
           const heldName = slashNameOf(held)
           if (heldName && slashActive.has(heldName) && slashNameOf(outgoing) !== heldName) outgoing = held
           if (typeof inputActions.setDraft === 'function') inputActions.setDraft(outgoing)
-          inputActions.submit()
-          setHold({ ...(h || {}), phase: mark || 'sent' })
-          clearHoldSoon()
+          run.submitted = true
+          let submission
+          try { submission = inputActions.submit() }
+          catch (e) {
+            // 只认同步抛错；推进既有 action，让同一确认上其余等待者也失效。
+            run.submitted = false; run.action += 1; run.commit = null; run.intent = null
+            throw e
+          }
+          if (submission && typeof submission.then === 'function') void Promise.resolve(submission).catch((e) => {
+            if (!currentHoldRun(sessionId, run) || run.action !== action) return
+            publishHold(run, { ...h, phase: 'error', pendingAuto: false, reason: L('放行失败：','Release failed: ') + String((e && e.message) || e) })
+          })
+          setHold({ ...h, phase: mark || 'sent', pendingAuto: false, sentAt: Date.now() })
+          clearHoldSoon(h)
+          return true
         } catch (e) {
-          // 连放行都失败 ⇒ 必须说出来（用户至少知道消息没发出去，可以手动再按一次）
-          setHold({ ...(h || {}), phase: 'error', reason: L('放行失败：','Release failed: ') + String((e && e.message) || e) })
+          setHold({ ...h, phase: 'error', pendingAuto: false, reason: L('放行失败：','Release failed: ') + String((e && e.message) || e) })
+          return false
         }
       }
-      /**
-       * 失败时的收场（用户 2026-09-21 报的缺陷："即使处在审查模式，拦截后仍会在几秒后自动把原文发送出去"）。
-       *
-       * 两条路径必须分开：
-       *   · **自动**：fail-open —— 按原文发出（0.5 auto 档的语义），并把原因留在面板上；
-       *   · **审查**：**绝不自动发送**。把失败原因摆在面板里，由用户自己点「按原文发出」或「重试」。
-       *     消息不会丢：草稿仍在输入框里（我们从头到尾没动它），面板就在旁边。
-       */
+      /** 自动、审查、跨挂载恢复以及无包放行共用一次提交协议。 */
+      const commitAndRelease = async (h, disposition = 'send', mark = 'sent') => {
+        const run = holdRunFor(sessionId, h)
+        if (!run || run.submitted || !ownsHoldView()) return false
+        if (disposition === 'send' && run.intent && run.intent !== 'send') return false
+        if (run.intent !== disposition || !run.commit) {
+          if (disposition !== 'send') { run.stopped = true; abortHoldRequests(run) }
+          run.intent = disposition
+          const action = ++run.action
+          const pending = { ...h, phase: 'review', pendingAuto: disposition !== 'cancel', pendingDisposition: disposition, pendingMark: mark }
+          const packet = disposition === 'send' ? String(h.edited == null ? (h.packet || '') : h.edited) : ''
+          const outgoing = disposition === 'send' ? outgoingUserText(h) : h.text
+          const ac = typeof AbortController === 'function' ? new AbortController() : null
+          run.commitController = ac
+          run.commit = apiPost('/packet', { sessionId, runId: run.runId, generation: run.generation, text: packet, disposition,
+            originalText: h.text, outgoingText: outgoing }, ac ? { signal: ac.signal } : undefined).then((r) => {
+            if (!currentHoldRun(sessionId, run) || run.action !== action) return null
+            run.commitController = null
+            if (!r || r.ok !== true || r.runId !== run.runId || typeof r.packet !== 'string') {
+              run.commit = null
+              const why = reasonText((r && r.reason) || 'invalid-packet-response')
+              publishHold(run, { ...pending, phase: 'error', pendingAuto: false,
+                reason: (disposition === 'send' ? L('改动没写进去：', 'Edit not applied: ') : L('这一轮的包没能清掉：', 'Could not clear this round packet: ')) + why })
+              return null
+            }
+            if (disposition === 'cancel') { publishHold(run, null); return pending }
+            const saved = holdBridgeRead(sessionId)
+            const committed = { ...(saved && saved.runId === run.runId ? saved : pending), packet: r.packet, edited: r.packet,
+              chars: typeof r.chars === 'number' ? r.chars : r.packet.length,
+              pendingAuto: true, pendingDisposition: disposition, pendingMark: mark,
+              ...(disposition === 'skip' ? { englishMode: false, outgoingText: h.text, injectCard: false } : {}) }
+            publishHold(run, committed)
+            return committed
+          })
+          // promise 先认领，再广播；同步桥订阅者也只能复用同一次写入。
+          publishHold(run, disposition === 'cancel' ? null : pending)
+        }
+        const action = run.action
+        const committed = await run.commit
+        if (!committed || !currentHoldRun(sessionId, run) || run.action !== action) return false
+        if (disposition === 'cancel') return true
+        if (!ownsHoldView()) return false    // 结果留在原会话桥上，回到该会话后复用这次确认。
+        return releaseHold(disposition === 'skip' ? h.text : outgoingUserText(committed), committed, mark)
+      }
       const settleFailure = (text, h, why) => {
+        const run = holdRunFor(sessionId, h)
+        if (!run || run.stopped || run.intent) return
+        const failed = { ...h, phase: 'error', reason: why, injectCard: false, pendingAuto: false }
         if (permissionRef.current === 'review') {
-          const failed = { ...h, phase: 'error', reason: why }
-          holdRef.current = failed; setHold(failed)          // 面板停在 error 态：重试 / 按原文发出
+          publishHold(run, failed)
           return
         }
-        // 解释失败后的 fail-open：这一轮没有注入（包没产出来），卡片不该给它作证
-        releaseHold(text, { ...h, reason: why, injectCard: false }, 'sent')
+        const original = { ...failed, pendingAuto: true, pendingDisposition: 'skip', pendingMark: 'sent' }
+        publishHold(run, original)
+        if (ownsHoldView()) void commitAndRelease(original, 'skip')
       }
-
       const beginHold = (text, via) => {
-        if (holdRef.current) return                        // 去重：同一次发送的第二条事件直接忽略
-        // 拦截计数**放在去重之后**：同一次发送可能同时命中 Enter 与 click（0.5 也要处理这件事，
-        // 见 0.5:443-453 的 `coalesced`）。放在事件处理函数里会让同一次发送**记两次**，
-        // "本会话已拦截 N 次"就变成了一个虚高的数字——界面上的数字不允许这样。
+        if (holdRef.current) return
         setInterceptCount((n) => n + 1)
-        const my = ++holdSeq.current                        // 这一轮的世代号
-        try { if (abortRef.current) abortRef.current.abort() } catch { /* 上一轮先断掉 */ }
-        const ac = (typeof AbortController === 'function') ? new AbortController() : null
-        abortRef.current = ac
-        const startSid = sessionId                       // 这一轮属于哪个会话（切走也要认账）
-        const h = { text, via,englishMode:englishOn, t0: Date.now(), phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
-        holdRef.current = h; setHold(h)
-        apiPost('/interpret', { sessionId, text }, ac ? { signal: ac.signal } : undefined).then(async (r) => {
-          if (my !== holdSeq.current) return                // ⚠ 过期世代：这一轮已被跳过/取消/重跑 ⇒ 结果丢弃
+        const run = newHoldRun(sessionId, { floor: data?.capability?.optimization?.generation })
+        const ac = typeof AbortController === 'function' ? new AbortController() : null
+        run.controller = ac
+        const h = { runId: run.runId, generation: run.generation, text, via, englishMode: englishOn, t0: Date.now(), phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
+        setHold(h)
+        apiPost('/interpret', { sessionId, text, messageId: run.runId, generation: run.generation }, ac ? { signal: ac.signal } : undefined).then((r) => {
+          if (!currentHoldRun(sessionId, run) || run.stopped || run.intent) return
+          run.controller = null
           if (!r || r.ok !== true) {
             settleFailure(text, h, reasonText((r && r.reason) || 'unknown'))
             return
           }
-          if(englishRef.current!==h.englishMode){settleFailure(text,h,L('英文模式已改变，请重试或按原文发送','English mode changed; retry or send the original'));return}
-          // P11 修复（2026-09-26）：token 用量挂在**结果**上。
-          // 进度面（prog）在离开 optimizing 那一刻就被清空，用量若只存那里，界面永远读不到。
-          // 用户已经切到别的会话：结果写回**发起那一轮**的桥，别写进当前会话；
-          // 自动模式下也**不能**在这里提交（会把别的会话的草稿发出去）——回到该会话时再补发。
-          if (startSid !== LAST_MOUNTED_SID) {
-            holdBridgeWrite(startSid, { ...h, phase: 'review', outgoingText: r.outgoingText || text,
-              done: true, pendingAuto: permissionRef.current !== 'review', englishMode: r.englishMode === true })
+          if (r.runId !== run.runId || (r.status !== 'ready' && r.status !== 'empty') || typeof r.packet !== 'string') {
+            settleFailure(text, h, reasonText('invalid-interpret-response'))
             return
           }
-          const done = { ...h, phase: 'review', englishMode:r.englishMode===true,outgoingText:r.outgoingText||text,translation:r.translation||null,noAddition: r.noAddition === true, understanding: r.understanding || null, support: r.support || null, packet: r.packet || '', chars: r.chars || 0, ms: r.ms || null, unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null, edited: r.packet || '', usage: r.usage || null, usageTotal: (typeof r.usageTotal === 'number') ? r.usageTotal : null }
-          holdRef.current = done; setHold(done)
-          // 「自动」= 完成即发；「审查」= 等用户确认（0.5 §5 的权限语义）
-          if (permissionRef.current !== 'review') {
-            let ready = done
-            if (!String(done.packet || '').trim()) {
-              const got = await waitForPacket(startSid)
-              if (my !== holdSeq.current) return          // 等包期间被跳过/取消 ⇒ 作废
-              if (got && got.packet) ready = { ...done, packet: got.packet, chars: got.chars }
-            }
-            releaseHold(outgoingUserText(ready), ready, 'sent')
-          }
+          if (ownsHoldView() && englishRef.current !== h.englishMode) { settleFailure(text, h, L('英文模式已改变，请重试或按原文发送', 'English mode changed; retry or send the original')); return }
+          // /interpret 的包已经完成语言与基调渲染并落库；先保存完整结果，再决定由哪个挂载放行。
+          const done = { ...h, ...r, runId: run.runId, generation: run.generation, text: h.text, phase: 'review', done: true,
+            englishMode: r.englishMode === true, outgoingText: typeof r.outgoingText === 'string' ? r.outgoingText : text,
+            translation: r.translation || null, packet: r.packet, edited: r.packet,
+            pendingAuto: permissionRef.current !== 'review', pendingDisposition: 'send', pendingMark: 'sent' }
+          publishHold(run, done)
+          if (done.pendingAuto && ownsHoldView()) void commitAndRelease(done)
         }, (e) => {
-          if (my !== holdSeq.current) return
+          if (!currentHoldRun(sessionId, run) || run.stopped || run.intent) return
           settleFailure(text, h, reasonText((e && e.message) || e))
         })
       }
-
-      /**
-       * 「取消」（0.5 那颗 `‹ 回退` 真正干的事，用户 2026-09-21 指出我误解了它）：
-       * **中止这一轮优化、什么都不发**，草稿留在输入框里等用户接着改。
-       * 与「跳过并直接发送」的区别：跳过是"发，但不带包"；取消是"不发"。
-       */
+      /** 取消只撤销本轮，不提交草稿。共享记录会挡住重挂后仍迟到的解释结果。 */
       const cancelHold = async () => {
+        const h = holdRef.current || hold
+        if (!h) return
         setOvExitKind('cancel')
-        holdSeq.current += 1                                  // 让在飞的那次结果作废
-        try { if (abortRef.current) abortRef.current.abort() } catch { /* 断不掉也要作废世代 */ }
-        abortRef.current = null
-        // 取消 = **这一轮彻底作废**：宿主侧必须真的停下，并把本轮包清掉。
-        // 真机 2026-10-22：只中止浏览器这一侧时，宿主那轮会跑完并把包留在账上，
-        // 于是下一次发消息会“接着上次取消的优化继续优化”。这里一次处理干净。
-        try { await apiPost('/inference-cancel', { sessionId }) } catch { /* 取消失败也要继续清 */ }
-        try { await apiPost('/packet', { sessionId, text: '' }) } catch { /* 同上 */ }
-        setProg(null)                                         // 立刻收掉"还在跑"的观感
-        holdRef.current = null
-        setHold(null)
-        // 用户 2026-09-21 更正（我第一次改过头了）：取消**不要清空用户输入的原话**——
-        // 他说的"不要留草稿"指的是**拦截态与那个隐藏弹窗的残留**，不是把用户打的字擦掉。
-        // 所以这里只清拦截残留（hold / 在飞请求 / window 桥），输入框原样保留。
-        try { const b = window.__PO06_HOLD__ || {}; if (sessionId) delete b[sessionId] } catch { /* 桥只是保险 */ }
-        setMsg({ kind: 'warn', text: L('已取消这一轮优化：消息没有发出，你输入的原话仍在输入框里', 'Cancelled: nothing was sent; your text is still in the box') })
+        setProg(null)
+        if (await commitAndRelease(h, 'cancel')) {
+          if (ownsHoldView()) setMsg({ kind: 'warn', text: L('已取消这一轮优化：消息没有发出，你输入的原话仍在输入框里', 'Cancelled: nothing was sent; your text is still in the box') })
+        }
       }
       /** 回退（用户 2026-09-21 要求）：把上一版注入的包放回来，并把新正文读回界面。
        *  没有历史时**如实说没有**（不假装成功）；回退本身由宿主记账（`trigger:'packet-rollback'`）。 */
       const rollbackHold = async () => {
         const h = holdRef.current || hold
-        const r = await apiPost('/rollback', { kind: 'packet', sessionId })
-        if (!r || r.ok !== true) {
-          setHold({ ...(h || {}), reason: L('回退失败：', 'Rollback failed: ') + reasonText(r && r.reason) })
-          return
+        const run = holdRunFor(sessionId, h)
+        if (!run || run.submitted || !ownsHoldView() || (run.intent && run.intent !== 'send')) return false
+        run.stopped = true
+        abortHoldRequests(run)
+        run.intent = 'rollback'
+        run.commit = null
+        const action = ++run.action
+        const ac = typeof AbortController === 'function' ? new AbortController() : null
+        run.commitController = ac
+        const review = { ...h, phase: 'review', pendingAuto: false, pendingDisposition: 'send', pendingMark: 'sent' }
+        publishHold(run, review)
+        const r = await apiPost('/rollback', { kind: 'packet', sessionId, runId: run.runId, generation: run.generation }, ac ? { signal: ac.signal } : undefined)
+        if (!currentHoldRun(sessionId, run) || run.action !== action) return false
+        run.commitController = null
+        run.intent = null
+        if (!r || r.ok !== true || r.runId !== run.runId || typeof r.packet !== 'string') {
+          publishHold(run, { ...review, reason: L('回退失败：', 'Rollback failed: ') + reasonText((r && r.reason) || 'invalid-rollback-response') })
+          return false
         }
-        let text = ''
-        try {
-          const g = await apiGet('/packet?session=' + encodeURIComponent(sessionId))
-          if (g && typeof g.packet === 'string') text = g.packet
-        } catch { /* 读不回来就保持原正文，并在下面说明 */ }
-        const next = {
-          ...(h || {}), packet: text, edited: text, chars: text.length,
+        publishHold(run, { ...review, packet: r.packet, edited: r.packet, chars: typeof r.chars === 'number' ? r.chars : r.packet.length,
           reason: L('已回退到上一版包（还剩 ' + (r.remaining == null ? '?' : r.remaining) + ' 版可退）',
-            'Rolled back to the previous packet (' + (r.remaining == null ? '?' : r.remaining) + ' more available)'),
-        }
-        holdRef.current = next; setHold(next)
+            'Rolled back to the previous packet (' + (r.remaining == null ? '?' : r.remaining) + ' more available)') })
+        return true
       }
 
       const skipHold = async () => {
-        const h = holdRef.current || hold || {}
-        if (!h.text) { holdRef.current = null; setHold(null); setProg(null); return }
-        holdSeq.current += 1                                 // ⚠ 跳过之后，在飞的那次解释结果必须作废
-        try { if (abortRef.current) abortRef.current.abort() } catch { /* 同上 */ }
-        abortRef.current = null
-        setProg(null)                                        // 立刻收掉"还在跑"的观感（不再等下一次刷新）
-        // 跳过 = **无插件**：必须让宿主真的停下，而不是只掐断浏览器这一侧（否则它会跑完再一起发）。
-        // 顺序：先取消在途推理 → 清掉本轮包 → 放行原文；三步都在同一次点击里完成。
-        try { await apiPost('/inference-cancel', { sessionId }) } catch { /* 取消失败也要放行 */ }
-        try { await apiPost('/packet', { sessionId, text: '' }) } catch { /* 同上 */ }
-        // 跳过 = 这一轮**没有注入**任何包 ⇒ 不留注入快照（否则卡片会替一次空注入作证）
-        releaseHold(h.text, { ...h, phase: 'sent', injectCard: false }, 'skipped')
+        const h = holdRef.current || hold
+        if (!h || !h.text) return
+        setProg(null)
+        return commitAndRelease({ ...h, injectCard: false }, 'skip', 'skipped')
       }
-      /** 审查确认：用户改过正文 ⇒ 先把改动写进"本轮注入的包"，再放行。 */
       const confirmHold = async () => {
         const h = holdRef.current || hold
-        if (!h) return
-        let submitted=h
-        if(h.englishMode&&!englishRef.current)submitted={...h,englishMode:false,outgoingText:h.text}
-        const edited = String(h.edited == null ? h.packet : h.edited)
-        // 2026-10-22：**无条件**把这一轮的包写回去再放行。
-        // 原来只在“用户改过正文”时才写（edited !== h.packet）⇒ 直接确认时什么也没写，
-        // 宿主在落盘那刻读不到包 ⇒ 卡片不出现（自动发送没这个问题，因为它一直带着包）。
-        {
-          const r = await apiPost('/packet', { sessionId, text: edited })
-          if (!r || r.ok !== true) {
-            setHold({ ...h, phase: 'review', reason: L('改动没写进去：', 'Edit not applied: ') + reasonText(r && r.reason) })
-            return
-          }
-          if(typeof r.packet==='string')submitted={...submitted,packet:r.packet,edited:r.packet,chars:r.chars}
-        }
-        releaseHold(outgoingUserText(submitted), { ...submitted, phase: 'sent' }, 'sent')
+        if (h) return commitAndRelease(h)
       }
-      /**
-       * 自动模式放行前**等包落库**（2026-10-25 用户定稿 B 方案）。
-       *
-       * 真机：优化跑了十几秒，`/interpret` 先返回、包 6 秒后才落库 ⇒ 那一轮注入的是壳。
-       * 现在：没包就短轮询（最多 15 秒），有了再发；超时仍无包 ⇒ 按“无包”发（不注入任何东西）。
-       * 「跳过发送」不走这条——它就是无包（用户明确要求）。
-       */
-      const waitForPacket = async (sid, budgetMs = 15000) => {
-        const t0 = Date.now()
-        for (;;) {
-          const r = await apiGet('/packet?session=' + encodeURIComponent(sid)).catch(() => null)
-          if (r && r.ok === true && typeof r.chars === 'number' && r.chars > 0) return r
-          if (Date.now() - t0 > budgetMs) return null
-          await new Promise((res) => setTimeout(res, 300))
-        }
-      }
-      /** 「按原文发出」：清掉本轮包，再原样放行（用户明确不要这次的结果）。 */
+      /** 按原文发出也先取消在途解释，再由同一个无包协议放行。 */
       const sendOriginal = async () => {
         const h = holdRef.current || hold
         if (!h) return
-        // ⚠ 清包**必须真的成功**才放行：失败还标 sent 就是「伪成功」——界面说按原文发了，
-        //   而上一轮的包继续被注入（本项目最忌的那类失败）。与「确认提交」分支同一条纪律。
-        const r = await apiPost('/packet', { sessionId, text: '' })
-        if (!r || r.ok !== true) {
-          setHold({ ...h, phase: 'review', reason: L('这一轮的包没能清掉：', 'Could not clear this round packet: ') + reasonText(r && r.reason) })
-          return
-        }
-        // 「按原文发出」已经清掉了本轮包 ⇒ 没有注入，不留快照
-        releaseHold(h.text, { ...h, phase: 'sent', injectCard: false }, 'sent')
+        setProg(null)
+        return commitAndRelease({ ...h, injectCard: false }, 'skip')
       }
       const regenHold = () => {
         const h = holdRef.current || hold
@@ -3351,26 +3383,20 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       /** foot-sent 的「关闭」（0.5:1653 close-sent）：浮层与球一起收掉。 */
       const closeSent = () => { setOvOpen(false); setOvBall(null) }
 
-      // 重挂（切会话来回）后把 holdRef 也接回桥上的那一份——否则界面显示了面板，逻辑却以为"没在拦"；
-      // 并**订阅**后续变化（issue #19）：切走期间跑完的那一轮，回来要能看见它的结果。
+      // 桥里保留完整结果。恢复与实时广播都经过同一个 commit+release，按共享 run 去重。
       React.useEffect(() => {
-        const saved = holdBridgeRead(sessionId)
-        if (saved && !holdRef.current) holdRef.current = saved
-        // 切走期间跑完、且是「自动」权限 ⇒ 回到这个会话时把这一轮补发出去（不许悄悄消失）
-        if (saved && saved.pendingAuto === true && saved.phase === 'review') {
-          const text = outgoingUserText(saved)
-          const next = { ...saved, phase: 'sent', pendingAuto: false, sentAt: Date.now() }
-          try { inputActions.setDraft(text); inputActions.submit() } catch { /* 发不出去也要留痕 */ }
-          holdRef.current = next
-          _setHold(next)
-          holdBridgeWrite(sessionId, next)
-          try { clearHoldSoon() } catch { /* 忽略 */ }
-        }
-        return holdBridgeOn(sessionId, (value) => {
+        const accept = (value) => {
+          if (!ownsHoldView()) return
           holdRef.current = value
           _setHold(value)
-        })
-      }, [sessionId])
+          if (value && value.pendingAuto === true) {
+            void commitAndRelease(value, value.pendingDisposition || 'send', value.pendingMark || 'sent')
+          }
+        }
+        const off = holdBridgeOn(sessionId, accept)
+        accept(holdBridgeRead(sessionId))
+        return off
+      }, [sessionId, canArm])
 
       // 计时器：只在"优化中"时走（用户要看得见已经等了多久，因为**不设超时**）
       React.useEffect(() => {
@@ -3445,7 +3471,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           } catch { /* 字典不可用 ⇒ 点击路径走结构兜底 */ }
         }
         loadLabels()
-        const draftNow = () => composerDraft(composerCard(rootRef.current)).trim()
+        const draftNow = () => composerDraft(composerCard(rootRef.current))
         const wantKey = (e) => {
           if (!isActiveInstance()) return 'stale-instance'
           if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return 'not-plain-enter'
@@ -3454,7 +3480,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if (!card) return 'no-card'
           if (!focusInComposer(card, e.target)) return 'focus-outside'
           const t = draftNow()
-          if (!t) return 'empty-draft'
+          if (!t.trim()) return 'empty-draft'
           // 斜杠命令默认交还官方；**只有名单内且已注册**的命令才继续走拦截（0.8）。
           // 英文模式**不改这条判据**：命令名会被翻译保护当作字面量保留；名单内命令照旧走拦截。
           if (t.startsWith('/') && !slashAllowedDraft(t)) return 'slash-command'
@@ -3467,7 +3493,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const card = composerCard(rootRef.current)
           if (!card) return 'no-card'
           if (!card.contains(btn)) return 'button-outside-card'
-          if (!draftNow()) return 'empty-draft'                                    // 空草稿时主按钮是"停止生成"，绝不能吞
+          if (!draftNow().trim()) return 'empty-draft'                                    // 空草稿时主按钮是"停止生成"，绝不能吞
           const label = btn.getAttribute('aria-label')
           if (label && stopLabels.has(label)) return 'stop-button'
           return ((label && sendLabels.has(label)) || lastComposerButton(card) === btn) ? null : 'not-send-button'
@@ -3523,7 +3549,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           window.removeEventListener('click', onClick, true)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [canArm, tierOff,englishOn, !!data, sessionId])
+      }, [canArm, tierOff,englishOn, !!data, sessionId, data?.capability?.optimization?.generation])
 
       // ── ② 模型清单（可能 35+ 项 ⇒ 用 <select>，**不要**平铺成一排按钮）
       const cat = (catalog.data && typeof catalog.data === 'object') ? catalog.data : {}
@@ -3990,8 +4016,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onEdit: (e) => {
             // 审查态里用户改的那份就是**本轮注入的包**（既有逻辑不变，只是搬到新面板里）
             const v = e.target.value
-            holdRef.current = { ...(holdRef.current || ovShown), edited: v }
-            setHold((x) => ({ ...(x || ovShown), edited: v }))
+            const next = { ...(holdRef.current || ovShown), edited: v }
+            setHold(next)
           },
           onConfirm: confirmHold,      // 确认提交
           onRollback: rollbackHold,    // 回退上一版包（包级历史，宿主侧保留 10 版）

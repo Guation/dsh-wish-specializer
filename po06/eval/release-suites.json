@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-24T18:54:29.742Z",
+  "at": "2026-10-25T03:29:32.092Z",
   "summary": {
     "suites": 149,
     "passed": 149,
     "failed": 0,
-    "passTotal": 1427,
+    "passTotal": 1460,
     "failing": []
   },
   "results": [
@@ -275,13 +275,6 @@
       "ok": true
     },
     {
-      "file": "auto-switch.test.mjs",
-      "pass": 3,
-      "fail": 0,
-      "exit": 0,
-      "ok": true
-    },
-    {
       "file": "bash-diagnostics.test.mjs",
       "pass": 16,
       "fail": 0,
@@ -402,7 +395,7 @@
     },
     {
       "file": "client-auto-wait.test.mjs",
-      "pass": 3,
+      "pass": 34,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -486,7 +479,7 @@
     },
     {
       "file": "english-mode.test.mjs",
-      "pass": 27,
+      "pass": 30,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -556,7 +549,7 @@
     },
     {
       "file": "framing-note.test.mjs",
-      "pass": 9,
+      "pass": 5,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -570,7 +563,7 @@
     },
     {
       "file": "framing-payload.test.mjs",
-      "pass": 2,
+      "pass": 1,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -584,7 +577,7 @@
     },
     {
       "file": "framing-voice.test.mjs",
-      "pass": 4,
+      "pass": 2,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -758,6 +751,13 @@
       "ok": true
     },
     {
+      "file": "optimization-runs.test.mjs",
+      "pass": 9,
+      "fail": 0,
+      "exit": 0,
+      "ok": true
+    },
+    {
       "file": "optimizer-protocol.test.mjs",
       "pass": 15,
       "fail": 0,
@@ -766,7 +766,7 @@
     },
     {
       "file": "packet-render.test.mjs",
-      "pass": 6,
+      "pass": 5,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -780,7 +780,7 @@
     },
     {
       "file": "pending-decisions.test.mjs",
-      "pass": 5,
+      "pass": 6,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -794,7 +794,7 @@
     },
     {
       "file": "pipeline.test.mjs",
-      "pass": 23,
+      "pass": 15,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -892,7 +892,7 @@
     },
     {
       "file": "read-tools.test.mjs",
-      "pass": 11,
+      "pass": 12,
       "fail": 0,
       "exit": 0,
       "ok": true
@@ -1039,7 +1039,7 @@
     },
     {
       "file": "wire.test.mjs",
-      "pass": 36,
+      "pass": 43,
       "fail": 0,
       "exit": 0,
       "ok": true

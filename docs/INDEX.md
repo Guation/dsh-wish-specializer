@@ -1,28 +1,24 @@
 # 文档索引（先读这个）
 
-> 目标：让任何人（尤其是 AI 助手）在**十分钟内**建立对这个插件的正确认识，且不会被历史文档误导。
+**许愿特化器**在发送前补充制作、临时脚手架与必要提问的方向建议。建议供工作模型优先考虑，不增加用户要求或授权。原话始终保留为来源；英文模式开启时，实际发送的任务可使用忠实英文译文，跳过则发送原话。
 
-## 一句话
+## 优化生产的主契约
 
-**许愿特化器**：用户说愿望，插件在发送前用另一个模型补上三段方向建议（制作 / 临时脚手架 / Ask），
-原话一字不改地发出去；建议是“值得优先考虑”，不是硬性要求。
+先读 [OPTIMIZATION-PIPELINE.md](OPTIMIZATION-PIPELINE.md)：运行身份、规范化、渲染、终态、保存与提交的唯一主契约。**整体简化正在实现，行为验证待完成**；以下规格描述目标，不能据此声称本次重构已经通过真实用户验收。其他文档涉及优化生产时，以主契约为准。
 
-## 现行契约（当作事实读）
-
-| 文档 | 说明 |
+| 文档 | 用途 |
 | --- | --- |
-| [OVERVIEW.md](OVERVIEW.md) | 当前状态总入口：能力、边界、已知问题 |
-| [SPEC.md](SPEC.md) | 行为规格（协议、拦截、注入、预算） |
-| [OPTIMIZER-PROTOCOL.md](OPTIMIZER-PROTOCOL.md) | 三段输出的协议与解析规则 |
-| [SCAFFOLD-DIRECTIONS.md](SCAFFOLD-DIRECTIONS.md) | 脚手架建议的判据（六问）与反例 |
-| [DECISIONS.md](DECISIONS.md) | 关键取舍与理由（含被否决的方案） |
-| [EVIDENCE.md](EVIDENCE.md) | 证据清单（EV 编号）与验证方式 |
-| [EVAL-REGISTRY.md](EVAL-REGISTRY.md) | 评测登记：跑过什么、结论是什么 |
-| [DELIVERY.md](DELIVERY.md) | 交付面（注入、卡片、审查面板）的现行行为 |
-| [MIGRATION-TO-ANOTHER-MACHINE.md](MIGRATION-TO-ANOTHER-MACHINE.md) | 换机/重装时的迁移步骤 |
-| [DSH-COMPAT.md](DSH-COMPAT.md) / [DSH-0.2-COMPAT.md](DSH-0.2-COMPAT.md) | 与宿主版本的兼容边界 |
-| [../po06/README.md](../po06/README.md) | 面向用户的能力说明 + **实测效果**（跑分结论与局限） |
-| [../po06/ADVISOR.md](../po06/ADVISOR.md) | 顾问（consult_task）的用法与边界 |
+| [SPEC.md](SPEC.md) | 产品目标、档位与来源边界 |
+| [OPTIMIZER-PROTOCOL.md](OPTIMIZER-PROTOCOL.md) | v3 输出形状与规范化规则 |
+| [DELIVERY.md](DELIVERY.md) | 审查、发送、跳过、取消与卡片 |
+| [KNOWN-ISSUES.md](KNOWN-ISSUES.md) | 故障证据、未闭环回归与验证状态 |
+| [SCAFFOLD-DIRECTIONS.md](SCAFFOLD-DIRECTIONS.md) | 脚手架建议的六问与反例 |
+| [DECISIONS.md](DECISIONS.md) | 关键取舍及历史理由 |
+| [EVIDENCE.md](EVIDENCE.md) / [EVAL-REGISTRY.md](EVAL-REGISTRY.md) | 证据与评测登记；按所测版本解读 |
+| [MIGRATION-TO-ANOTHER-MACHINE.md](MIGRATION-TO-ANOTHER-MACHINE.md) | 换机与重装 |
+| [DSH-COMPAT.md](DSH-COMPAT.md) / [DSH-0.2-COMPAT.md](DSH-0.2-COMPAT.md) | 宿主兼容边界 |
+| [../po06/README.md](../po06/README.md) | 用户说明与实测效果 |
+| [../po06/ADVISOR.md](../po06/ADVISOR.md) | 顾问用法与边界 |
 | [../po06/RELEASE-CHECKLIST.md](../po06/RELEASE-CHECKLIST.md) | 发版门 |
 
 ## 实测数据（2026-10，0.9.0-beta-1）
@@ -36,21 +32,17 @@
 
 复现：`node po06/scripts/bench-dims.mjs`（带双评与缓存，可中断续跑）。
 
-## 历史文档（**不要当契约读**）
+## 历史与验证
 
-`docs/legacy/` 里是 0.5–0.8 的计划、验收与实验记录；更早的 0.1–0.6 发布物在仓库根的 [`old/`](../old/README.md)。它们在当时成立，现在可能完全相反
-（例如工具箱计划已被撤掉、注入协议已经换到第三版）。规则见 [legacy/README.md](legacy/README.md)。
+[legacy/README.md](legacy/README.md) 所列计划、验收和实验仅作历史证据；更早发布物见 [old/README.md](../old/README.md)。旧 reducer/compiler、补占位或取用时换基调的行为不再是本次生产目标。
 
-## AI 读者的最短路径
+最短路径：[根 README](../README.md) → 本索引 → 主契约 → 所需专项文档。判断当前行为时，记录实际模块版本与运行结果；历史套件通过数和 benchmark 不替代本次流程验证。
 
-1. 读 root `README.md` 了解产品形态 → 2. 读本索引 → 3. 只打开「现行契约」表里的文件 →
-4. 需要判断“现在到底行不行”时，跑 `po06/scripts/run-suites.mjs` 与 `bench-dims.mjs`，不要引用历史结论。
+## 调试依据
 
-## 调试须知（踩过的坑）
-
-| 现象 | 真相 |
+| 现象 | 应核对的证据 |
 | --- | --- |
-| 改了 `po06/lib/index.js` 但行为没变 | **宿主侧插件代码不随客户端热重载生效**，必须重启。判断依据：如果新逻辑在代码上不可能产生你看到的输出，那多半是进程没换 |
-| 改了 `po06/lib/client.js` 样式却没变 | 客户端 bundle 会热重载；若仍不变，确认 `pnpm run dev:web` 之类的构建在跑 |
-| 注入文与卡片对不上 | 卡片由**包**驱动：包为空就不该有卡片，也不该有注入文。判据用 `GET /po06/api/packet?session=` 看 `chars` |
-| 历史文档与现行行为冲突 | 一律以本索引「现行契约」表里的文档为准，`legacy/` 只作历史证据 |
+| 修改后行为没变 | 实际加载的模块版本、路由与运行行为；不能一概归因为“宿主代码必须重启”或“新分支不能热更新” |
+| 客户端修改未显示 | 构建/watch 是否确实产出并加载了新 bundle；是否需要页面刷新由实际加载版本决定 |
+| 只有外壳或卡片不一致 | 同一会话、同一 `runId` 的完整结果、终态与最终 packet；非零字符数不证明正文有效 |
+| 切走会话后结果丢失 | 发起会话的完整结果保存与恢复，以及提交使用的 `runId`；不以当前页面会话代替来源会话 |

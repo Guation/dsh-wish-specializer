@@ -84,12 +84,20 @@ test('host context callback includes persisted gap state, honors off gate and se
  try{
   adapter.enableGate={ensure:()=>({enabled:true})};adapter.policyNow=()=>({injectPacket:true})
   adapter.reviewFeedback=agent=>agent.id==='s'?renderReviewFeedback({openIssues:[{id:'R1',criterion:'runtime',action:'provide-evidence'}],limitations:[]}):''
+  adapter.setIntentText('s','exact accepted packet')
+  adapter.noteAdvisorDirective('s','independent advisor direction')
+  assert.equal(adapter.getWorkingText('s'),'exact accepted packet')
+  assert.ok(adapter.getAdvisorText('s','pending feedback').includes('pending feedback'))
   adapter.registerContext({inject:(_services,cb)=>cb({systemPrompt:{context:p=>{provider=p;return ()=>{}}}})})
-  assert.ok(provider.text({agent:{id:'s'}}).includes('R1'))
+  const composed=provider.text({agent:{id:'s'}})
+  assert.ok(composed.includes('R1'))
+  assert.ok(composed.includes('exact accepted packet'))
+  assert.ok(composed.includes('independent advisor direction'))
+  assert.equal(adapter.getWorkingText('s'),'exact accepted packet','feedback and directives cannot alter preview/card identity')
   assert.ok(!provider.text({agent:{id:'other'}}).includes('R1'))
   adapter.policyNow=()=>({injectPacket:false})
   assert.equal(provider.text({agent:{id:'s'}}),'')
- }finally{adapter.enableGate=old.gate;adapter.policyNow=old.policy;adapter.reviewFeedback=old.feedback}
+ }finally{adapter.optimizationRuns.cancel('s');adapter.advisorDirectives.delete('s');adapter.enableGate=old.gate;adapter.policyNow=old.policy;adapter.reviewFeedback=old.feedback}
 })
 
 test('empty material pass cannot close; material addition can close in same request',()=>{

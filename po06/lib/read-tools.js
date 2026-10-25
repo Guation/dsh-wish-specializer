@@ -427,6 +427,8 @@ export async function drainWithTools(stream, t0, sink) {
     out.error = String((e && e.message) || e)
   }
   out.content=out.content.sort((a,b)=>a.index-b.index).map(x=>x.block)
+  const endedText = out.content.filter(block => block.type === 'text').map(block => String(block.text || '')).join('')
+  if (endedText) { const missingDeltas = !out.text; out.text = endedText; if (missingDeltas) emit(endedText, '') }
   out.ms = Date.now() - t0
   return out
 }
@@ -516,7 +518,7 @@ export async function runReadOnlyToolLoop(opts) {
   let rounds = 0
   let capped = false
   let error = null
-  let text = ''
+  let text = '', finish = null
   for (let round = 1; round <= maxRounds + 1; round += 1) {
     if (signal?.aborted) { error = 'cancelled'; break }
     const useTools = round <= maxRounds && (deadline === null || now() < deadline)
@@ -559,6 +561,7 @@ export async function runReadOnlyToolLoop(opts) {
     }
     const r = await drainWithTools(stream, rt, typeof opts.onDelta === 'function' ? opts.onDelta : null)
     rounds = round
+    finish = r.finish
     if(r.usage&&Object.values(r.usage).some(x=>typeof x==='number'&&Number.isFinite(x)))usageKnownCalls++;else usageUnknownCalls++
     if (r.usage) for (const [key, value] of Object.entries(r.usage)) {
       if (typeof value === 'number' && Number.isFinite(value)) usageSum[key] = (usageSum[key] || 0) + value
@@ -566,7 +569,11 @@ export async function runReadOnlyToolLoop(opts) {
     if (r.text) text = r.text
     if (r.error) { error = r.error; break }
     const calls = Array.isArray(r.calls) ? r.calls.filter((c) => c && c.id && c.name) : []
-    if (!useTools || calls.length === 0) break
+    if (!useTools || calls.length === 0) {
+      const kind = typeof r.finish === 'object' ? r.finish?.kind : r.finish
+      if (!['stop', 'end', 'complete', 'completed'].includes(kind)) error = 'optimizer-incomplete:' + String(kind || 'missing-finish')
+      break
+    }
     messages.push(assistantToolCallMessage(calls, cfg.provider, cfg.model, llmMod, r))
     const outputs = []
     for (const call of calls) {
@@ -597,7 +604,7 @@ export async function runReadOnlyToolLoop(opts) {
   }
   const outText = String(text || '')
   return {
-    ...base, ok: !error, error, text: outText, rounds, toolCalls: trace.length,
+    ...base, ok: !error, error, finish, text: outText, rounds, toolCalls: trace.length,
     usageSum: Object.keys(usageSum).length ? usageSum : null,usageComplete:usageUnknownCalls===0,usageKnownCalls,usageUnknownCalls,
     names: namesOf(trace), trace, capped, ms: now() - t0, empty: outText.trim().length === 0,
   }

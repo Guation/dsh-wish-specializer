@@ -114,7 +114,14 @@ export function createCapability({ home = null, namespace = 'default', now = () 
   }
   const current=(sid,token)=>{const s=get(sid);return !!s && !!token && s.epoch===token.epoch && s.current?.id===token.id}
   const api={
-    beginInput:begin,
+    beginInput(sid, id, text, seq = null) { const token = begin(sid, id, text, seq); const s = get(sid); if (token && s?.current) s.current.pending = true; return token },
+    bindSubmitted(sid, runId, messageId, seq) {
+      const s = get(String(sid))
+      if (!s?.current || s.current.id !== runId || !messageId) return false
+      s.current.id = String(messageId); s.current.seq = seq; s.current.pending = false
+      for (const input of s.taskInputs) if (input.id === runId) { input.id = String(messageId); input.seq = seq }
+      save(s); return true
+    },
     token(sid){const s=get(String(sid));return s?.current ? {sessionId:String(sid),id:s.current.id,epoch:s.epoch} : null},
     isCurrent:current,
     bindTranslation(sid,translatedText){const s=get(sid);if(s?.current)s.current.sentFingerprint=inputHash(translatedText)},
@@ -133,11 +140,7 @@ export function createCapability({ home = null, namespace = 'default', now = () 
       if(isRealUserInput(event)) {
         const id=String(d.id || d.message?.id || 'human-'+String(seq)),text=extractUserText(event)
         if(!text.trim())return false
-        if((s.current?.fingerprint===inputHash(text)||s.current?.sentFingerprint===inputHash(text)) && s.current.id.startsWith('po06-intercept-')) {
-          const previous=s.current.id;s.current.id=id;s.current.seq=seq
-          for(const input of s.taskInputs)if(input.id===previous){input.id=id;input.seq=seq}
-          save(s);return 'submitted'
-        }else if(s.current?.id!==id){begin(sid,id,text,seq);return 'new-input'}
+        if(s.current?.id!==id){begin(sid,id,text,seq);return 'new-input'}
         if(seq!==undefined){s.current.seq=seq;for(const input of s.taskInputs)if(input.id===id)input.seq=seq}
         return 'same-input'
       }
@@ -183,7 +186,7 @@ export function createCapability({ home = null, namespace = 'default', now = () 
       let start=0
       for(let i=events.length-1;i>=0;i--)if(isRealUserInput(events[i])){start=i;break}
       for(const event of events.slice(start)){
-        if(isRealUserInput(event) && s.current?.id.startsWith('po06-intercept-'))continue
+        if(isRealUserInput(event) && s.current?.pending)continue
         api.observe(session,event)
       }
     },
@@ -242,6 +245,14 @@ export function createCapability({ home = null, namespace = 'default', now = () 
         current:s ? {inputId:s.current?.id || null,understanding:s.understanding,support:s.support,
           optimizer:s.optimizer || null,sourceMessages:s.taskInputs.length,contributionChars:s.support?.contribution?.length || 0,claims:s.claims,failures:s.failures.map(f=>({name:f.name,count:f.count})),
           review:s.review,metrics:{...s.metrics},injectedChars:s.lastInjectedChars || 0,problem:s.problem} : null}
+    },
+    abandonInput(sid, id) {
+      const s = get(String(sid))
+      if (!s || (id && s.current?.id !== id)) return
+      const cancelledId = s.current?.id
+      s.taskInputs = s.taskInputs.filter(input => input.id !== cancelledId)
+      s.current = null; s.understanding = null; s.support = null; s.optimizer = null; s.claims = []; s.epoch++
+      save(s)
     },
     clear(sid) {if(sid){const s=get(String(sid));if(s){s.understanding=null;s.support=null;s.optimizer=null;s.claims=[];s.epoch++}}else for(const s of states.values()){s.understanding=null;s.support=null;s.optimizer=null;s.claims=[];s.epoch++}},
     dispose(){states.clear()}

@@ -1,23 +1,5 @@
-// dsh-prompt-optimizer 0.6 · 宿主适配层（DshAdapter）
-//
-// 职责边界：
-//   ① 把「当前意图包文本」注册成动态上下文，由**宿主**负责合并/排序/去重（EV-0014）。
-//   ② 提供不唤醒的投递：plugin 来源消息 → agent.inject（ADR-0012 的默认档）。
-//   ③ 唤醒式投递单独一个方法，且**只允许调用方在已授权场景下使用**（本原型不主动调用它）。
-//   ④ **生产触发**（A15）：真实用户输入 → 解释层（唯一 LLM 调用）→ reducer → 编译 → 写上下文。
-//      见本文件下方的 `runProductionInput` 与 wire.js。
-//
-// 明确不做：不做质量展开、不注册路由、不写用户会话内容。
-//
-// ⚠ 本条曾经写着"**不调用 LLM、不解析用户输入**"——那是 P1 阶段的边界，
-//   后来 P2–P5 把解释/编译全实现好了，**但没人把它们接到生产路径上**，
-//   于是产品在真实会话里贡献 0 字符（EV-0078）。注释与代码一起过期，是这次事故的一部分：
-//   读到"本模块不调用 LLM"的人，没有理由再去问"那谁调用它？"。
-//
-// 两条 P1-6 实测教训（都写进了实现）：
-//   · `ctx.inject` 的回调**不是同步执行**的 → 必须 await 就绪信号，不能假定服务立即可用。
-//   · 动态上下文是**全局注册**的：只要文本非空，就会进入**所有**会话（含用户正在用的那个）
-//     → 静默待命时文本必须为空（空文本被宿主聚合渲染过滤掉），只在确有内容时才置非空。
+// Wish Specializer host integration: one pre-send optimization run, one final packet.
+// The session observer records submitted packets; it never starts another optimization.
 import { mkdirSync, writeFileSync, existsSync, readFileSync, appendFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join, dirname, isAbsolute } from 'node:path'
@@ -55,7 +37,7 @@ import {createInferenceEvidenceContext} from './inference-context.js'
 import {createInferenceFocus} from './inference-focus.js'
 import { createEnglishMode,protectEnglishLiterals,prepareEnglishInterpretation,finishEnglishInput,resolveEnglishInterpretation } from './english-mode.js'
 import { withAdvisorWorkflow } from './advisor-workflow.js'
-import { applyFramingToPacket } from './framing.js'
+import { createOptimizationRuns } from './optimization-runs.js'
 import { createAdvisorFeedback } from './advisor-context.js'
 import { createAdvisorCoverage } from './advisor-coverage.js'
 import {createAdvisorDeliveryReader} from './advisor-delivery.js'
@@ -73,7 +55,6 @@ import { runPosix, SUPPORTED_COMMANDS, SUPPORTED_OPERATORS } from './posix.js'
 import { registerControlApi, resolvePrompt } from './control-api.js'
 // 手动结案（用户 2026-09-21 拍板 A 案）后要**立刻重编译并写回动态上下文**：
 // 不重编译的话，包里还是旧的那一份，用户会以为"点了没用"。
-import { compileAudited } from './compiler.js'
 import { readPolicy, packetShapeChanged } from './policy.js'
 import { runGate, createMemoryLedgerStore, LEVEL, resolveLevel } from './gate.js'
 import { detectOldPluginRuntime, mergeOldPluginSignals } from './detect-old.js'
@@ -231,36 +212,7 @@ function ownModelFor(sessionId) {
   return sessionId ? (observedModelBySession.get(String(sessionId)) || null) : null
 }
 
-// ── 定点核对用的出口（P11）在文件末尾（`export const __test`）────────────
-// ⚠ 不能放在这里：它引用的 `interceptedText` / 进度表都是 `const`，此刻还在 TDZ 里。
-
-/**
- * 还没解释的用户输入（每会话一条）。
- *
- * 为什么需要：宿主总是**先**发用户消息、**后**发 `request/header`，
- * 所以新会话的第一条消息在到达时还不知道该用哪个模型。旧行为是直接放弃这一轮；
- * 现在改成"记下来，等模型一出现立刻补跑"——包因此能落在**同一轮的第 2 步**，
- * 而不是整整晚一轮。
- * 只记**一条**：更新的用户输入会覆盖它（晚到的旧输入没有解释价值，且 reducer 的 CAS 也会拦）。
- */
-const pendingInput = new Map()
-/** P11：本会话**刚被前置拦截解释过**的原话（放行后宿主会照常追加这条消息，不能再解释第二遍）。 */
-const interceptedText = new Map()
-/**
- * 本轮**已经产出的包**：卡片要用它，而不是在消息落盘那一刻去实时读上下文。
- * 真机 2026-10-22：确认发送时上下文已被消费/清空 ⇒ 读到空 ⇒ 卡片不出；
- * 而跳过优化时上一轮的残留还在 ⇒ 反而冒出一张旧卡片。两边的表现都错，
- * 根因就是“卡片内容取决于落盘那一刻还剩下什么”，而不是“这一轮注入了什么”。
- */
-const pendingCardBySession = new Map()
-
-/**
- * **会话上下文累加器**（P10 步骤 2）：按会话攒「用户原话 + 工作 AI 回复正文」。
- *
- * 为什么在插件内存里而不是读宿主投影：0.6 是第三方插件，手上只有 `session/event`
- * 事件流，拿不到工作 AI 所见的派生投影（理由与后果见 session-context.js 文件头）。
- * 内存有界由累加器自己保证（每会话 12 回合、单段 4000 字、最多 200 个会话）。
- */
+// Conversation history is observation only; optimizer output is never fed back as user input.
 const sessionHistory = createSessionHistory()
 
 /**
@@ -717,19 +669,6 @@ export function ledgerContextFields({ policy, cx } = {}) {
 }
 
 /**
- * 把生产工作**推迟出事件派发窗口**再跑。
- *
- * 为什么必须这样做（真机实测，EV-0080）：宿主在派发会话事件时，该事件**正在被发布**
- * （append 未结束）。此时任何 `session.append` 都会被拒绝：
- *   `session append cannot reenter while another append is being published`
- * 我们这条链的第一步（初始化状态 / 记录输入 / 推进轮次）就是 append，
- * 所以**同步执行必然失败**——而且失败得很安静（只在台账里留一行 throw）。
- * 推迟到下一个宏任务即可：包不受影响（本来也只从第 2 步起生效）。
- */
-function defer(fn) {
-  try { setTimeout(() => { try { void fn() } catch { /* 台账已记 */ } }, 0) } catch { /* best effort */ }
-}
-/**
  * 把 usage 拆成**输入 / 输出 / 缓存命中 / 合计**（各家字段名不一，全部认一遍）。
  * 取不到的项回 null —— 界面显示 `—`，**不做估算**（用户 2026-09-21："尽可能不要用估算"）。
  */
@@ -821,120 +760,27 @@ function capabilitiesFor(sessionId, ctx) {
   return out.sort()
 }
 
-export async function interpretViaLlm({ llm, cfg, userPrompt, system, systemNoTools, tools, onDelta, signal = null, englishMode = false, sessionId = null }) {
-  // ⚠ `signal`：用户在拦截期间按「跳过并发送 / 取消」时，浏览器 abort 那次 fetch ⇒ control-api 把
-  // "连接断了"变成取消信号 ⇒ **模型调用当场停下**（而不是跑完再被丢掉，白烧 token）。
-  const withSignal = (opts) => (signal ? { ...opts, signal } : opts)
+export async function interpretViaLlm({ llm, cfg, userPrompt, system, tools, onDelta, signal = null, englishMode = false, sessionId = null }) {
   const t0 = Date.now()
-  const sys = system !== undefined && system !== null ? String(system) : String(resolvePrompt({ home: DSH_HOME }).text || '')
+  const sys = String(system ?? resolvePrompt({ home: DSH_HOME }).text ?? '')
   const messages = [{ role: 'user', content: [{ type: 'text', text: String(userPrompt) }] }]
-
-  // ── 工具路径（步骤 3）────────────────────────────────────────────
-  if (tools && tools.enabled === true && typeof tools.root === 'string' && tools.root) {
-    // ⚠ 真机实测（用户 2026-09-21）：开着"只读工具"时解释步骤**在 7 毫秒内就抛了**（台账 `interpret:fail`），
-    // 连模型都没调上 ⇒ 整轮 no-packet。工具路径是**增强**，绝不该有能力把整轮弄死：
-    // 所以这里包一层 try/catch —— 任何抛出都降级成"工具路径没成功"，由下面的回落（无工具单次调用）接手，
-    // 并把错误原文记进 `toolLoopError`（不吞、可归因）。
-    let loop = null
-    try {
-      // **宿主 llm 模块在这里加载一次**（工具结果的形状由它决定：0.1.7+ 的 `role:'tool'` 一等消息
-      // 要靠 `createToolResultMessage` 造，id 也是它给的 brand id）。加载失败就传 null ——
-      // 循环会因此不造结果消息、自然收敛，再由下面的回落接手（**绝不在形状上猜**）。
-      const llmT = await loadLlmLib({ env: process.env, argv1: process.argv[1], cwd: process.cwd() }).catch(() => null)
-      loop = await runReadOnlyToolLoop({
-        llm, cfg, system: sys, messages, root: tools.root, count: tools.count, englishMode,
-        // 网关要求的会话头由它派生（缺了就是 400）
-        sessionId,
-        // The compact system already contains the authorized read note; do not append it twice.
-        systemNote: '',
-        finalNote: englishMode ? 'Read budget reached. Follow the current output contract and return intent/add/scaffold/ask JSON from existing evidence.' : '只读预算已到，基于已有材料按当前输出契约返回 intent/add/scaffold/ask JSON。',
-        shape: llmT, mod: llmT && llmT.mod ? llmT.mod : null,
-        // 思维层：工具路径也要把流式片段接到进度面（否则开着工具时界面只剩"已用 N 秒"）
-        onDelta,
-        signal,
-      })
-    } catch (e) {
-      loop = {
-        ok: false, text: '', empty: true, error: 'tools-threw:' + String((e && e.message) || e),
-        rounds: 0, toolCalls: 0, names: [], trace: [], capped: false, ms: Date.now() - t0, root: tools.root,
-      }
-    }
-    // ⚠ 真机实测（用户 2026-09-21）：**打开"只读工具"就必定 no-packet**。
-    // 机制：工具循环跑完，模型往往给的是**查证后的散文**（"我看过 xxx 文件……"），
-    // 而 pipeline 需要的是**那一个 JSON**（`{"ops":[…]}`）⇒ 解析不出补丁 ⇒ `noop` ⇒ `no-packet`。
-    // 所以这里收紧接受条件：**只有看起来真是那份 JSON 才认工具路径的产出**，否则一律回落无工具单次调用。
-    // issue #22 修复：原先只查 ops 子串，于是「合法 JSON + 中间散文 + JSON 尾巴」的混合体
-    //   被判为通过 ⇒ 接受工具路径产出 ⇒ **跳过紧随其后的 no-tools-retry 回落** ⇒ pipeline 取首个 { 到
-    //   末个 } 去 parse、撞上中间散文 ⇒ BAD_JSON ⇒ 空包 ⇒ 界面「失败：no-packet」。
-    //   这与本段的设计意图（工具路径是增强，绝不该有能力把整轮弄死）正好相反。
-    //   现在改用**与 pipeline 同一个抽取器**（interpreter.js 的 extractJson：容忍围栏与前后废话，
-    //   取首 { 到末 } 再 JSON.parse）：只有**真能 parse 成对象**才认，否则照旧回落重跑一次。
-    const toolJson = extractJson(loop.text)
-    const looksLikeJson = toolJson.ok === true && !toolJson.recovered && toolJson.value !== null && typeof toolJson.value === 'object'
-    if (loop.ok && !loop.empty && looksLikeJson) {
-      return { text: loop.text, ms: Date.now() - t0, via: 'tools', context: {
-        toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,
-        toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,
-        toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',
-      }, usage: loop.usageSum || loop.usage || null }
-    }
-    // 报错 / 产出为空 ⇒ **回落**：再跑一次无工具的。这次回落本身要留痕（0.5 的红旗 6：
-    // 工具循环降级在界面上毫无提示，用户只看到"产出怪怪的"）。
-    // **回落也要交代代价**：`toolCalls/toolMs` 保留真实数字——那几次调用是真花掉了。
-    const fell = {
-      toolRounds: loop.rounds, toolCalls: loop.toolCalls, toolNames: loop.names,
-      toolCapped: loop.capped === true, toolTrace: loop.trace, toolMs: loop.ms,
-      toolRoot: loop.root, toolsEnabled: true, toolsReason: tools.reason || 'enabled',
-      toolLoopError: String(loop.error || (loop.empty ? 'empty-output' : (looksLikeJson ? 'unknown' : ((toolJson.recovered || toolJson.code === 'BAD_JSON') ? 'tools-answer-bad-json' : 'tools-answer-not-json')))),
-      toolFallback: 'no-tools-retry',
-    }
-    if(signal?.aborted){
-      const usage=loop.usageSum || loop.usage || null,known=!!(usage && Object.values(usage).some(Number.isFinite))
-      return {text:'',error:'cancelled',via:'tools-cancelled',usage,usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),
-        context:{...fell,toolFallback:'cancelled-no-retry',usageComplete:!!(usage && Number.isFinite(usage.totalTokens)),usageKnownCalls:known?1:0,usageUnknownCalls:known?0:1}}
-    }
-    const r2 = await plainDrain(() => llm.stream(withSignal({
-      // ⚠ 回落这一次**必须换掉系统提示词**：开着工具时 `sys` 里带着"你可以用 read/glob/grep 查证"的整段说明，
-      // 而我们这次**不传工具** ⇒ 模型只会回答"我打算去读哪些文件……"这样的散文 ⇒ 解析不出那份 JSON ⇒
-      // 又变成 `noop`/`no-packet`。这正是用户实测"开只读工具必定 no-packet"的第二段机制。
-      provider: cfg.provider, model: cfg.model, system: String(systemNoTools || sys), messages,
-      // 会话标识：某些网关（opencode 系）要求 x-*-session 头，pi-ai 只在拿到 sessionId 时才会生成；
-      // 少了它 ⇒ 400 MissingSessionID ⇒ 整轮优化/顾问直接失败（2026-10-22 定位）。
-      ...(sessionId ? { sessionId: String(sessionId) } : {}),
-      // 0.7.5：思考档位——**按本次这个模型自己那份设置**（cfg.reasoningEffort 已在定完路由后查过表）。
-      // 没配就不传，由 provider 用自己的默认（宿主契约 types.d.ts:355）。
-      ...(cfg.reasoningEffort ? { reasoningEffort: cfg.reasoningEffort } : {}),
-    })), t0, onDelta)      // ⚠ 第三个参数是思维流的 sink：漏了它，开着工具时界面就没有思考（真机 bug，2026-09-24）
-    // 连回落都没跑通（同一层服务坏了）⇒ 如实记，**不把异常往上抛**：
-    // 抛出去会被 `runProductionInput` 的 catch 变成一行 `threw:`，工具那截代价与原因就丢了。
-    if (r2.error) fell.toolLoopError = String(fell.toolLoopError) + ' ｜ 回落也失败：' + r2.error
-    const reports=[loop.usageSum || loop.usage || null,r2.usage || null],usage={}
-    for(const report of reports)if(report && typeof report==='object')for(const [key,value] of Object.entries(report)){
-      if(typeof value==='number' && Number.isFinite(value))usage[key]=(usage[key] || 0)+value
-    }
-    fell.usageComplete=reports.every(report=>report && Number.isFinite(report.totalTokens))
-    fell.usageKnownCalls=reports.filter(report=>report && Object.values(report).some(Number.isFinite)).length
-    fell.usageUnknownCalls=reports.length-fell.usageKnownCalls
-    return { ...r2, usage:Object.keys(usage).length?usage:null,usageComplete:fell.usageComplete,via: 'tools-fallback', context: fell }
+  if (tools?.enabled && tools.root) {
+    const shape = await loadLlmLib({ env: process.env, argv1: process.argv[1], cwd: process.cwd() }).catch(() => null)
+    const result = await runReadOnlyToolLoop({ llm, cfg, system: sys, messages, root: tools.root,
+      count: tools.count, englishMode, sessionId, systemNote: '', rootListing: false,
+      finalNote: englishMode ? 'Return intent/add/scaffold/ask JSON from the evidence already read.' : '基于已有证据返回 intent/add/scaffold/ask JSON。',
+      shape, mod: shape?.mod || null, onDelta, signal })
+    return { text: result.text, error: result.error || null, finish: result.finish, ms: Date.now() - t0,
+      via: 'tools', usage: result.usageSum || null, context: {
+        toolRounds: result.rounds, toolCalls: result.toolCalls, toolNames: result.names,
+        toolTrace: result.trace, toolCapped: result.capped, toolsEnabled: true, toolsReason: tools.reason || 'enabled',
+      } }
   }
-
-  // ── 无工具路径（**默认**；形状与改动前完全相同）──────────────────
-  // 这里**故意**还是裸的 `drain(...)`（不换成下面的 plainDrain）：默认路径要和改动前
-  // **逐字节等价**，包括"`llm.stream` 抛错就抛上去、由 runProductionInput 记一行 threw"
-  // 这个既有行为。换掉它会让默认路径的失败形态也变了——那不是本次要动的东西。
-  const stream = llm.stream(withSignal({
-    provider: cfg.provider,
-    model: cfg.model,
-    system: sys,
-    messages,
-    ...(sessionId ? { sessionId: String(sessionId) } : {}),
-    // 0.7.5：**这里就是"思考与不思考由什么决定"的答案**。原先一个档位字段都不传，
-    // 于是每次都走 provider 默认档，模型自己决定要不要思考 ⇒ 用户看到"有时有思考、有时没有"
-    // （用户 2026-09-26 实测反馈）。档位按 cfg 选定的那个模型查，与工作模型互不干扰。
-    ...(cfg.reasoningEffort ? { reasoningEffort: cfg.reasoningEffort } : {}),
-  }))
-  const r = await drain(stream, t0, onDelta)
-  return { ...r, via: 'plain', context: null }
+  const result = await plainDrain(() => llm.stream({ provider: cfg.provider, model: cfg.model,
+    system: sys, messages, ...(sessionId ? { sessionId: String(sessionId) } : {}),
+    ...(cfg.reasoningEffort ? { reasoningEffort: cfg.reasoningEffort } : {}), ...(signal ? { signal } : {}),
+  }), t0, onDelta)
+  return { ...result, via: 'plain', context: null }
 }
 
 /**
@@ -988,7 +834,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
     // **不解释、不注入**（省一次模型调用），并在台账里留下可归因的理由。
     // 这一条让控制面板上那句"只记录、不补充"**真的**是那个意思。
     // ⚠ 档位按会话（0.7.7）：这里必须带上 sid，否则会话级覆盖读不到
-    const pol = readPolicy({ home: DSH_HOME, sessionId: sid })
+    const pol = message.run?.policy || readPolicy({ home: DSH_HOME, sessionId: sid })
     if (!pol.injectPacket) {
       appendWireLog({ ...base, trigger, ok: false, reason: 'assist-off',
         policy: { assist: pol.assist, detail: pol.detail, budget: pol.budget } })
@@ -1015,11 +861,6 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
       cfg,
       llmAvailable: Boolean(llm && typeof llm.stream === 'function'),
     })
-    // 模型还没观测到 ⇒ 记下这条待办：等 `request/header` 到达时**补跑**。
-    // 这样包能落在**同一轮的第 2 步**，而不是白等一整轮（宿主总是先发用户消息、后发请求头）。
-    if (d.reason === 'no-model-route' && messageId) {
-      pendingInput.set(sid, { text, messageId })
-    }
     // 记录闸门**码与理由**：`old-plugin-unknown` 这类保守拒绝如果只留一个码，
     // 用户会看到"插件装了却什么都不做"而查不出原因（EV-0078 的教训）。
     if (!d.ok) {
@@ -1057,7 +898,8 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
       maxQuestions: pol.maxQuestions,
       policy: pol,
       signal: message.signal || null,
-      interpret: async ({ userText, state, sessionId, messageId: mid, observations, retryEmpty = false, emptyReason = null }) => {
+      run: message.run || null,
+      interpret: async ({ userText, state, sessionId, messageId: mid, observations }) => {
         // ── P10 步骤 2：会话上下文（按 historyMode/turns 决定注不注、注多少）──
         // 读取范围与降级事实**写在注入文本里**（见 session-context.js），台账只记数字。
         const rendered = renderObserverBlock({
@@ -1099,11 +941,12 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const line = JSON.stringify({ at: new Date().toISOString(), sessionId, count: Array.isArray(caps) ? caps.length : 0, sample: Array.isArray(caps) ? caps.slice(0, 12) : [] })
         appendFileSync(join(DSH_HOME, 'po06-capabilities.jsonl'), line + '\n', 'utf8')
       } catch { /* 记录失败不影响本轮 */ }
-      const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: caps, context: combinedContext, retryEmpty, emptyReason,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
+      const um = buildUserMessage({ userText, state, sessionId, messageId: mid, observations, capabilities: caps, context: combinedContext,englishMode:pol.englishMode,styleHint,translationInput:preparedTranslation?.masked })
         const requestRecord = { capabilityCount: Array.isArray(caps) ? caps.length : 0, capabilitySample: Array.isArray(caps) ? caps.slice(0, 8) : [], protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
         const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null, englishMode: pol.englishMode, sessionId })
+        if (message.run && !adapter.optimizationRuns.isCurrent(message.run)) throw new Error('aborted')
         if (optimizerRequests.get(sessionId) === requestRecord) {
           requestRecord.ms = r.ms
           requestRecord.reasoningChars = String(r.reasoning || '').length
@@ -1150,10 +993,20 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
           reasoningChars: String(r.reasoning == null ? '' : r.reasoning).length,
           ...(r.context || {}),
         })
+        if (r.error) throw new Error(String(r.error))
+        const finish = typeof r.finish === 'object' ? r.finish?.kind : r.finish
+        if (!['stop', 'end', 'completed', 'complete'].includes(finish)) throw new Error('optimizer-incomplete:' + String(finish || 'missing-finish'))
+        if (message.signal?.aborted) throw new Error('aborted')
         if(pol.englishMode){
           const ex=readEnglishInterpretation(r.text)
-          if(!ex.ok)return '{}'
+          if(!ex.ok)return r.text
           const prepared=await resolveEnglishInterpretation({value:ex.value,originalText:text,prepared:preparedTranslation,service:adapter.english,llm,cfg,signal:message.signal || null})
+          if (prepared.ok === false) {
+            const error = new Error(prepared.reason || 'english-postprocess-failed')
+            error.attempts = prepared.repair?.attempts || []
+            error.warnings = prepared.warnings || []
+            throw error
+          }
           if(prepared.translation)englishTranslation={...prepared.translation,source:'interpreter',ms:r.ms,usage:r.usage||null,warnings:prepared.warnings}
           else {
             const degraded=Array.isArray(prepared.warnings)?prepared.warnings.filter(w=>w&&w.reason):null
@@ -1173,7 +1026,7 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
     const cx = lastContextBySession.get(sid) || null
     lastContextBySession.delete(sid)
     appendWireLog({
-      ...base, trigger, ok: true, outcome: out.outcome, cfgSource: cfg.source,
+      ...base, trigger, ok: out.ok === true, outcome: out.outcome, status: out.status, runId: messageId, cfgSource: cfg.source,
       provider: cfg.provider, model: cfg.model, ms: Date.now() - t0,
       packetChars: out.packet && out.packet.ok ? out.packet.text.length : 0,
       packetOk: Boolean(out.packet && out.packet.ok),
@@ -1217,7 +1070,9 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
     })
     return {...out,englishTranslation,...(englishWarnings?{englishWarnings}:{})}
   } catch (e) {
-    appendWireLog({ ...base, trigger, ok: false, reason: 'threw:' + String((e && e.message) || e) })
+    const reason = String(e?.message || e)
+    appendWireLog({ ...base, trigger, ok: false, reason: 'threw:' + reason })
+    return { ok: false, status: 'failed', outcome: 'interpret-threw', reason, packet: null }
   }
 }
 
@@ -1416,137 +1271,71 @@ async function ensureModelRoute(ctx, sid) {
  *   · **如实归因**：台账记 `trigger:'intercept'`，与零延迟路径的 `user-message` 区分得开。
  */
 async function runInterceptInput(ctx, payload) {
-  const sid = String((payload && payload.sessionId) || '')
-  const text = String((payload && payload.text) || '')
-  if (!sid) return { ok: false, reason: 'session-required' }
-  if (!text.trim()) return { ok: false, reason: 'empty-text' }
+  const sid = String(payload?.sessionId || ''), text = String(payload?.text || '')
+  if (!sid || !text.trim()) return { ok: false, reason: !sid ? 'session-required' : 'empty-text' }
   const agent = adapter.agentFor(sid)
-  const session = agent && (agent.session || (typeof agent.getSession === 'function' ? agent.getSession() : null))
+  const session = agent && (agent.session || agent.getSession?.())
   if (!session) return { ok: false, reason: 'session-not-found' }
-  // ⚠ **这里必须自己造一个 messageId**：拦下的消息此刻还不存在于宿主（这正是"前置"的含义），
-  // 而 pipeline 的 `commitUserInput` 要求非空 id（真机台账抓到的失败就是
-  // `threw:recordUserInput: messageId required`，见 2026-09-21 的 intercept 记录）。
-  const messageId = (payload && payload.messageId) ? String(payload.messageId) : ('po06-intercept-' + Date.now().toString(36))
-  const t0 = Date.now()
-  const languagePolicy=readPolicy({home:DSH_HOME,sessionId:sid})
-  const englishToken=languagePolicy.englishMode?adapter.english.begin(sid,messageId,text):null
-  // 记下"这条原话已经被前置解释过了"：放行之后宿主照常追加这条用户消息，
-  // 届时 `session/event` 触发若再解释一遍 ⇒ 同一句话跑两次模型（白花钱）且会把刚定下的包覆盖掉。
-  interceptedText.set(sid, { text, at: Date.now() })
-  // ── 三道**只有前置路径才等得起**的准备（真机台账逐条照出来的失败原因）──────────
-  // 旧写法直接跑 pipeline，于是三条路都白跑：
-  //   `gate-disabled`（启用判定是**异步且懒**的，第一次拦截时还在"判定中"，保守方向=不启用）
-  //   `no-model-route`（解释层模型是**从请求头观测**来的，本轮消息还没发 ⇒ 还没观测到）
-  //   `noop`（上面两条任一为假 ⇒ pipeline 什么都不做、包里 0 字）
-  // 用户按下发送后本来就要等解释层（20–60 s），**判定与路由这点等待完全付得起**。
-  progressSet(sid, { stage: 'gate', startedAt: t0, text: '', reasoning: '', textChars: 0, reasoningChars: 0, droppedChars: 0,
-    // ⚠ 每一轮**必须把上一轮的用量清掉**：进度面按会话留存，不清的话"刚开始那一瞬间"显示的是
-    // **上一轮的数字**，而这一轮结束后的新数字又因为客户端已停止轮询而看不到 ——
-    // 用户实测"刚开始有数字、产出后不变"就是这么来的（两轮的数字被看成一个）。
-    usage: null })
-  let gate = PENDING
-  try { if(languagePolicy.injectPacket)gate = await awaitGateDecision(sid, 25000) } catch { /* 拿不到就按保守方向，下面如实记 */ }
-  progressSet(sid, { stage: 'model', startedAt: t0 })
-  let route = { ok: true, source: 'observed' }
-  try { route = await ensureModelRoute(ctx, sid) } catch (e) { route = { ok: false, reason: String((e && e.message) || e) } }
-  progressSet(sid, { stage: 'interpret', startedAt: t0, text: '', reasoning: '' })
-  // 这一轮一旦产出包，就把它记给“下次落盘要画的卡片”；用户跳过/取消时清掉，避免旧包串台。
-
-  const signal = (payload && payload.signal) || null
-  const aborted = () => Boolean(signal && signal.aborted)
-  let produced = null
+  const messageId = String(payload.messageId || 'po06-intercept-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2))
+  const existing = adapter.optimizationRuns.get(sid)
+  if (existing?.runId === messageId) return existing.result || { ok: false, runId: messageId, reason: existing.status === 'running' ? 'already-running' : 'aborted' }
+  const run = adapter.optimizationRuns.begin(sid, messageId, { signal: payload.signal, generation: payload.generation })
+  if (!adapter.optimizationRuns.isCurrent(run)) return { ok: false, runId: messageId, reason: 'superseded-input' }
+  run.policy = readPolicy({ home: DSH_HOME, sessionId: sid })
+  const signal = run.controller.signal, startedAt = Date.now()
+  const englishToken = run.policy.englishMode ? adapter.english.begin(sid, messageId, text) : null
+  const live = () => adapter.optimizationRuns.isCurrent(run)
+  const progress = patch => { if (live()) progressSet(sid, { ...patch, runId: messageId, startedAt }) }
+  progress({ stage: 'gate', text: '', reasoning: '', textChars: 0, reasoningChars: 0, usage: null })
   try {
-    if(languagePolicy.englishMode&&!languagePolicy.injectPacket){
-      const pol=languagePolicy,cfg=resolveInterpreterCfg({config:pol.model?{interpreter:pol.model}:pluginConfig,observed:modelFor(sid),effortByModel:pol.effortByModel})
-      if(!cfg?.ok)throw new Error('english-model-route-unavailable')
-      const translation=await adapter.english.translate(text,{llm:ctx.get('llm'),cfg,signal,onDelta:d=>progressAppend(sid,d),kind:'user-task',sessionId:sid})
-      if(signal?.aborted||!readPolicy({home:DSH_HOME,sessionId:sid}).englishMode)throw new Error('english-aborted-or-disabled')
-      adapter.english.record(englishToken,translation.text,translation)
-      progressSet(sid,{stage:'done',startedAt:t0})
-      return {ok:true,sessionId:sid,packet:'',chars:0,understood:true,noAddition:true,englishMode:true,outgoingText:translation.text,translation:{...translation,originalText:text},ms:Date.now()-t0}
+    const gate = run.policy.injectPacket ? await awaitGateDecision(sid, 25000) : PENDING
+    if (!live()) return { ok: false, runId: messageId, reason: 'aborted' }
+    progress({ stage: 'model' })
+    const route = await ensureModelRoute(ctx, sid)
+    if (!live()) return { ok: false, runId: messageId, reason: 'aborted' }
+    progress({ stage: 'interpret' })
+    let produced, translation = null
+    if (run.policy.injectPacket) {
+      produced = await runProductionInput(ctx, session, { text, messageId, signal, run }, {
+        trigger: 'intercept', gate, route: route.source,
+        onDelta: delta => { if (live()) progressAppend(sid, delta) },
+      })
+      if (!produced?.ok) throw new Error(produced?.reason || produced?.outcome || 'optimization-failed')
+    } else if (!englishToken) throw new Error('assist-off')
+    if (!live()) return { ok: false, runId: messageId, reason: 'aborted' }
+    if (englishToken) {
+      const english = await finishEnglishInput({ service: adapter.english, token: englishToken,
+        enabled: () => live() && readPolicy({ home: DSH_HOME, sessionId: sid }).englishMode,
+        produced, signal, translate: async () => {
+          const cfg = resolveInterpreterCfg({ config: run.policy.model ? { interpreter: run.policy.model } : pluginConfig, observed: modelFor(sid), effortByModel: run.policy.effortByModel })
+          if (!cfg.ok) throw new Error('english-model-route-unavailable')
+          return adapter.english.translate(text, { llm: ctx.get('llm'), cfg, signal, kind: 'user-task', sessionId: sid })
+        } })
+      if (!english.ok) throw new Error(english.reason || 'english-failed')
+      translation = english.translation
+      if (english.fallback && english.assistanceAvailable !== true) produced = { ...produced, packet: { ok: true, text: '' } }
     }
-    const runOnce = () => runProductionInput(ctx, session, { text, messageId, signal }, {
-      trigger: 'intercept',
-      gate,
-      route: route.source,
-      onDelta: (d) => progressAppend(sid, d),
-    })
-    produced = await runOnce()
-    const okRoute = modelFor(sid)
-  } catch (e) {
-    interceptedText.delete(sid)
-    progressSet(sid, { stage: 'failed', startedAt: t0, reason: String((e && e.message) || e) })
-    // GitHub #33B：翻译失败要看得出「试了几次、每轮以什么收尾」。english-mode 的**每条**失败路径
-    // 都会把 attempts 挂在 error 上；这里必须原样入台账，否则排查只能靠猜。
-    const thrownAttempts = Array.isArray(e && e.attempts) ? e.attempts : null
-    appendWireLog({ sessionId: sid, trigger: 'intercept', ok: false, reason: 'threw:' + String((e && e.message) || e), ...(thrownAttempts ? { englishAttempts: thrownAttempts } : {}) })
-    return { ok: false, reason: 'intercept-threw:' + String((e && e.message) || e), ...(thrownAttempts ? { englishAttempts: thrownAttempts } : {}) }
-  }
-  // 用户按了「跳过并发送」/「取消」⇒ **这一轮到此为止**：不读包、不认这条原话、进度面标成已中止。
-  // （pipeline 里还有一道"提交前检查 aborted"的闸门，两层都拦：模型就算跑完也写不进上下文。）
-  if (aborted()) {
-    interceptedText.delete(sid)
-    progressSet(sid, { stage: 'aborted', startedAt: t0 })
-    appendWireLog({ sessionId: sid, trigger: 'intercept', ok: false, reason: 'aborted', ms: Date.now() - t0 })
-    return { ok: false, reason: 'aborted' }
-  }
-  // ── 档位闸门（关闭档 ⇒ 不注入；这里还要**把旧包撤掉**）──────────────────────
-  // 客户端在关闭档根本不会调 `/interpret`，所以这一层是给两类漏网场景兜底的：
-  //   ① 客户端档位状态过期（另一个窗口/另一台设备刚把档位拨到关闭）；
-  //   ② 任何"关了档但缓存里还留着上一版包"的时刻 —— 不拦的话，下面那句
-  //      `adapter.getIntentText(sid)` 会把**上一轮的包**当成"这一轮的产出"返回给界面并注入。
-  {
-    let pol = null
-    try { pol = readPolicy({ home: DSH_HOME, sessionId: sid }) } catch { pol = null }
-    if (pol && pol.injectPacket !== true) {
-      const cleared = adapter.clearIntentTexts('intercept:assist-off')
-      interceptedText.delete(sid)
-      progressSet(sid, { stage: 'aborted', startedAt: t0, reason: 'assist-off' })
-      appendWireLog({ sessionId: sid, trigger: 'intercept', ok: false, reason: 'assist-off', cleared, ms: Date.now() - t0 })
-      return { ok: false, reason: 'assist-off', cleared }
-    }
-  }
-  let translation=null
-  if(englishToken){
-    const result=await finishEnglishInput({service:adapter.english,token:englishToken,enabled:()=>readPolicy({home:DSH_HOME,sessionId:sid}).englishMode,produced,signal,
-      translate:async()=>{
-        const pol=readPolicy({home:DSH_HOME,sessionId:sid}),cfg=resolveInterpreterCfg({config:pol.model?{interpreter:pol.model}:pluginConfig,observed:modelFor(sid),effortByModel:pol.effortByModel})
-        if(!cfg.ok)throw new Error('english-model-route-unavailable')
-        return adapter.english.translate(text,{llm:ctx.get('llm'),cfg,signal,kind:'user-task',sessionId:sid})
-      }})
-    if(!result.ok){
-      interceptedText.delete(sid)
-      const tries=Array.isArray(result.attempts)?result.attempts:null
-      appendWireLog({sessionId:sid,trigger:'intercept',ok:false,reason:'english:'+String(result.reason||'failed'),...(tries?{englishAttempts:tries}:{})})
-      return {ok:false,reason:result.reason,assistanceReason:result.assistanceReason||null,...(tries?{englishAttempts:tries}:{})}
-    }
-    translation=result.translation
-    if(result.fallback && result.assistanceAvailable!==true){adapter.intentBySession.delete(sid);adapter.reviewedPackets.delete(sid);adapter.capability.clear(sid)}
-    adapter.english.record(englishToken,translation.text,translation)
-    adapter.capability.bindTranslation(sid,translation.text)
-    interceptedText.set(sid,{text:translation.text,originalText:text,at:Date.now()})
-  }
-  const packet = adapter.getWorkingText(sid) || ''
-  const understood = !!produced?.understanding && ['understood','committed','noop'].includes(produced.outcome)
-  const noAddition = (understood||!!englishToken) && packet.length === 0
-  progressSet(sid, { stage: packet.length ? 'done' : 'noop', startedAt: t0 })
-  // "无出处条目"这条诚实信号要跟着包一起回去（界面把它显示在审查面板里）：
-  // 用户 2026-09-21 删掉了详情面板里那块"它在替我做什么"，但**机器自己编的要求必须看得见**。
-  let unsourced = null
-  try {
-    const st = adapter.intentStateOf ? adapter.intentStateOf(session) : null
-    if (st && st.counts && typeof st.counts.unsourced === 'number') unsourced = st.counts.unsourced
-  } catch { /* 取不到就回 null（界面显示"未记录"，不拿 0 冒充"没有"） */ }
-  if (!packet.length && !understood && !englishToken) interceptedText.delete(sid)     // 没产出包 ⇒ 不认这条，让正常路径去解释
-  return {
-    ok: packet.length > 0 || understood || !!englishToken,
-    englishMode:!!englishToken,outgoingText:translation?.text||text,translation:translation?{...translation,originalText:text}:null,
-    understood, noAddition, understanding: produced?.understanding || null, support: produced?.support || null,
-    reason: (packet.length || understood || englishToken) ? null : (gate && gate.enabled !== true ? 'gate:' + (gate.code || 'disabled') : (route.ok ? 'no-packet' : 'route:' + route.reason)),
-    sessionId: sid, packet, chars: packet.length, ms: Date.now() - t0, unsourced,
-    gate: gate && gate.code ? gate.code : null,
-    route: route.source || null,
-    routePicked: route.picked || null,
+    if (!live()) return { ok: false, runId: messageId, reason: 'aborted' }
+    const policyNow = readPolicy({ home: DSH_HOME, sessionId: sid })
+    if (policyNow.englishMode !== run.policy.englishMode || (run.policy.injectPacket && !policyNow.injectPacket)) throw new Error('settings-changed')
+    const packet = produced?.packet?.text || ''
+    const result = { ok: true, status: packet ? 'ready' : 'empty', runId: messageId, sessionId: sid,
+      packet, chars: packet.length, understood: true, noAddition: !packet,
+      englishMode: !!englishToken, outgoingText: translation?.text || text,
+      translation: translation ? { ...translation, originalText: text } : null,
+      understanding: produced?.understanding || null, support: null, ms: Date.now() - startedAt,
+      route: route.source || null, gate: gate?.code || null, unsourced: null }
+    if (!adapter.optimizationRuns.finish(run, result)) return { ok: false, runId: messageId, reason: 'superseded-input' }
+    if (translation) { adapter.english.record(englishToken, translation.text, translation); adapter.capability.bindTranslation(sid, translation.text) }
+    progress({ stage: packet ? 'done' : 'noop' })
+    return result
+  } catch (error) {
+    const reason = String(error?.message || error)
+    const englishAttempts = Array.isArray(error?.attempts) ? error.attempts : null
+    const result = { ok: false, status: signal.aborted ? 'aborted' : 'failed', runId: messageId, reason, packet: '', chars: 0, ms: Date.now() - startedAt, ...(englishAttempts ? { englishAttempts } : {}) }
+    if (live()) { adapter.optimizationRuns.finish(run, result); progress({ stage: 'failed', reason }) }
+    appendWireLog({ sessionId: sid, runId: messageId, trigger: 'intercept-result', ok: false, reason, ...(englishAttempts ? { englishAttempts } : {}) })
+    return result
   }
 }
 
@@ -1625,12 +1414,9 @@ class DshAdapter {
     // **按会话隔离**：意图包文本是 per-session 的。
     // 早期版本用一个全局字符串，会让 A 会话的意图泄漏进 B 会话（违反隔离不变量）。
     // `systemPrompt.context` 的 text(context) 能拿到 `context.agent`，据此取会话 id。
-    this.intentBySession = new Map()
-    this.intentEpochBySession = new Map()
-    this.reviewedPackets = new Set()
+    this.optimizationRuns = createOptimizationRuns()
     this.capability = createCapability({ home: DSH_HOME, namespace: process.env.DSH_PROFILE_DIR || process.env.DSH_PROFILE || 'default' })
     /** P11 包级回退：每会话最近 10 版**非空**包（旧到新）。 */
-    this.packetHistory = new Map()
     // 第 5 项之后的新增（2026-10-18 用户要求）：顾问不该只是个摆设。
     // 最近一次 consult_task 的 directive 会随注入文一起进上下文（有 TTL），
     // 于是它对模型的分量从"工具结果里的一段话"变成"系统上下文里的一条要求"。
@@ -1703,9 +1489,8 @@ class DshAdapter {
    * @returns 清掉的会话数
    */
   clearIntentTexts(reason) {
-    const n = this.intentBySession.size
-    if (n > 0) this.intentBySession.clear()
-    this.intentEpochBySession.clear(); this.reviewedPackets.clear(); this.capability.clear()
+    const n = this.optimizationRuns.clear()
+    this.capability.clear()
     if (n > 0) {
       try { appendWireLog({ trigger: 'packet-cleared', ok: true, cleared: n, reason: String(reason || '') }) } catch { /* 记账失败不影响清理 */ }
     }
@@ -1849,31 +1634,25 @@ class DshAdapter {
   }
 
   /**
-   * 产品入口：处理一次用户输入（解释 → 提交 → 编译 → 写入动态上下文）。
+   * 计算本轮结果；只有仍然拥有会话的运行能够保存结果。
    * `interpret` 是**注入**的解释函数；真实实现接 LLM，测试/自检传桩。
    */
   async handleInput(session, input) {
-    const agents = this.services.agents
-    if (!agents || typeof agents.get !== 'function') return { outcome: 'no-agents-service', trace: [] }
-    const sid=String(session.id)
+    const sid = String(session.id)
+    const previous = this.optimizationRuns.get(sid)
+    const run = input.run || this.optimizationRuns.begin(sid, input.messageId, { signal: input.signal, generation: input.generation })
+    if (!input.run && (run === previous || !this.optimizationRuns.isCurrent(run))) return { ok: false, status: 'aborted', outcome: 'superseded-input', reason: 'duplicate-or-stale-run', packet: null }
+    const ownsRun = !input.run
     this.capability.seed(session)
-    const token=this.capability.beginInput(sid,String(input.messageId),String(input.text || ''))
-    this.intentBySession.delete(sid); this.reviewedPackets.delete(sid)
-    // Per-invocation policy and cancellation; parallel sessions must not share compilation settings.
-    const scoped=Object.create(this)
-    scoped.packetBudget=input.budget ?? this.packetBudget
-    scoped.checkItems=[]
-    scoped.framing=input.policy?.framing || 'neutral'
-    scoped.language=input.policy?.englishMode?'en':null
-    scoped.framingNote=null; scoped.framingNoteRaw=null; scoped.collaboration=null
-    const current=()=>this.capability.isCurrent(sid,token)
-    scoped.commit=(s,p)=>current()?this.commit(s,p):{ok:false,code:'STALE_INPUT',reason:'superseded-input'}
-    scoped.commitUserInput=(s,p)=>current()?this.commitUserInput(s,p):{ok:false,code:'STALE_INPUT'}
-    scoped.setIntentText=(id,text)=>{if(current())this.setIntentText(id,text)}
-    const out=await handleUserInput(scoped,session,input)
-    if(!current())return {...out,outcome:'superseded-input'}
-    if(input.signal?.aborted){this.capability.clear(sid);this.intentBySession.delete(sid);return {...out,outcome:'aborted'}}
-    if(['committed','understood','noop'].includes(out.outcome))this.capability.settle(sid,token,out)
+    const token = this.capability.beginInput(sid, String(input.messageId), String(input.text || ''))
+    const out = await handleUserInput(this, session, { ...input, signal: run.controller.signal })
+    if (!this.optimizationRuns.isCurrent(run)) {
+      this.capability.abandonInput(sid, run.runId)
+      return { ...out, ok: false, status: 'aborted', outcome: run.controller.signal.aborted && this.optimizationRuns.get(sid) === run ? 'aborted' : 'superseded-input', reason: 'superseded-input', packet: null }
+    }
+    if (out.ok) this.capability.settle(sid, token, out)
+    else this.capability.abandonInput(sid, run.runId)
+    if (ownsRun) this.optimizationRuns.finish(run, { ...out, packet: out.packet?.text || '' })
     return out
   }
 
@@ -1893,65 +1672,47 @@ class DshAdapter {
    * 原来 `/rollback` 的包级分支只能如实回 501（"需要状态历史"）——现在这条历史就在这里，
    * 于是"回退到上一版包"是真能做的动作，而不是一句托辞。
    */
-  setIntentText(sessionId, text, { reviewed = false } = {}) {
-    const sid = String(sessionId == null ? '' : sessionId)
+  setIntentText(sessionId, text) {
+    const sid = String(sessionId || '')
     if (!sid) return
-    const t = String(text == null ? '' : text)
-    const prev = this.intentBySession.get(sid) || ''
-    if (t && prev && prev !== t) {
-      const hist = this.packetHistory.get(sid) || []
-      hist.push(prev)
-      while (hist.length > 10) hist.shift()
-      this.packetHistory.set(sid, hist)
-    }
-    if (t) this.intentBySession.set(sid, t)
-    else this.intentBySession.delete(sid)
-    this.intentEpochBySession.set(sid,this.capability.token(sid)?.epoch || 0)
-    if(reviewed)this.reviewedPackets.add(sid);else this.reviewedPackets.delete(sid)
+    const value = String(text || '')
+    if (value) this.optimizationRuns.store(sid, value)
+    else this.optimizationRuns.cancel(sid)
   }
 
   /** 包级回退：把上一版非空包放回去。没有历史就**如实说没有**（不假装成功）。 */
-  rollbackPacket(sessionId) {
+  rollbackPacket(sessionId, runId = null) {
     const sid = String(sessionId == null ? '' : sessionId)
     if (!sid) return { ok: false, reason: 'session-required' }
-    const hist = this.packetHistory.get(sid) || []
+    const hist = this.optimizationRuns.get(sid)?.history || []
     if (!hist.length) return { ok: false, reason: 'no-history', note: '这个会话还没有可回退的上一版包' }
-    const text = hist.pop()
-    this.packetHistory.set(sid, hist)
-    // ⚠ 这里**不能**走 setIntentText：它会再把当前包压回历史（回退会变成"来回横跳"）。
-    this.intentBySession.set(sid, text)
-    return { ok: true, chars: text.length, remaining: hist.length, packet: text }
+    const text = hist.at(-1)
+    const currentId = runId || this.optimizationRuns.get(sid)?.runId
+    const accepted = this.optimizationRuns.revise(sid, currentId, text)
+    if (!accepted.ok) return accepted
+    hist.pop()
+    return { ...accepted, remaining: hist.length }
   }
 
   /** 某会话还剩几版可回退（诊断/界面用）。 */
   packetHistoryDepth(sessionId) {
-    return (this.packetHistory.get(String(sessionId == null ? '' : sessionId)) || []).length
+    return this.optimizationRuns.get(sessionId)?.history?.length || 0
   }
 
   /** 取某会话当前的意图包文本（诊断/测试用）。 */
-  getIntentText(sessionId) {
-    const sid=String(sessionId == null ? '' : sessionId)
-    const epoch=this.capability.token(sid)?.epoch || 0
-    if(this.intentEpochBySession.has(sid) && this.intentEpochBySession.get(sid)!==epoch)return ''
-    return this.intentBySession.get(sid) || ''
+  getIntentText(sessionId) { return this.optimizationRuns.packet(sessionId) }
+
+  getWorkingText(sessionId) {
+    return this.optimizationRuns.bypass(sessionId) ? '' : this.getIntentText(sessionId)
   }
 
-  getWorkingText(sessionId, feedback = '') {
-    const packet = this.getIntentText(sessionId)
-    const pol = this.policyNow(sessionId) || {}
-    const advisorOn = pol.advisor !== false
-    // 关掉即清账（设置是全局的，账也不该留着）：下一次打开从零开始记。
-    if (!advisorOn) { try { this.advisorLedger?.clear(String(sessionId || '')) } catch { /* 清不掉不影响注入 */ } }
-    const directive = advisorOn ? this.activeAdvisorDirective(sessionId) : ''
-    // 注入的**唯一来源是包**（2026-10-25 用户定稿：“就不应该有壳”）。
-    // 编译器按状态渲染的那一段（包头 + 基调块）不再出现在注入文里——
-    // 它曾经让“优化还没算完”的一轮注入出 250 字纯壳。没有条目行 ⇒ 什么都不注入。
-    // 注入源=包（唯一）。包本身是否“像列表”不重要——它已经是渲染好的成品；
-    // 会出壳的是**编译器按状态渲染的头部**，那条路已经不再参与注入。
-    const styled = String(packet || '').trim() ? applyFramingToPacket(packet, pol.framing, pol.englishMode ? 'en' : 'zh') : ''
-    if (!styled) return [feedback, directive].filter(Boolean).join('\n\n') || ''
-    return [styled, directive].filter(Boolean).join('\n\n')
+  getAdvisorText(sessionId, feedback = '') {
+    if (this.optimizationRuns.bypass(sessionId)) return ''
+    const enabled = this.policyNow(sessionId)?.advisor !== false
+    if (!enabled) this.advisorLedger?.clear(String(sessionId || ''))
+    return enabled ? [feedback, this.activeAdvisorDirective(sessionId)].filter(Boolean).join('\n\n') : ''
   }
+
   /** 会话当前预设（含中途切换）：只用来判断要不要提示，不直接进界面。 */
   notePreset(sessionId, preset) {
     const sid = String(sessionId == null ? '' : sessionId)
@@ -2132,7 +1893,7 @@ class DshAdapter {
 
   /** 当前有意图包的会话数（诊断用）。 */
   intentSessionCount() {
-    return this.intentBySession.size
+    return this.optimizationRuns.size()
   }
 
   registerContext(ctx) {
@@ -2149,7 +1910,7 @@ class DshAdapter {
                 const agent = assemblyCtx && assemblyCtx.agent
                 const session = agent && (agent.session || (typeof agent.getSession === 'function' ? agent.getSession() : null))
                 const sid = session?.id !== undefined ? String(session.id) : agent && agent.id !== undefined ? String(agent.id) : ''
-                if (!sid) return ''
+                if (!sid || this.optimizationRuns.bypass(sid)) return ''
                 // ── 启用闸门（A10/A12）──────────────────────────────
                 // 灰度 + 设置 + 双重拦截守卫**在这里**生效，而不是只在自检里生效。
                 // 未判定时 statusFor 返回 PENDING（=不启用）⇒ 贡献空字符串 ⇒ 等同于没拦截。
@@ -2178,7 +1939,7 @@ class DshAdapter {
                 this.capability.seed(session)
                 const taskContext=this.capability.taskContext(session)
                 const feedback = this.reviewFeedback ? this.reviewFeedback(agent, pol, { root: sessionHistory.getCwd(sid), taskContext }) : ''
-                return withAdvisorWorkflow('', pol, '', this.getWorkingText(sid, feedback))
+                return withAdvisorWorkflow(this.getWorkingText(sid), pol, this.getAdvisorText(sid, feedback))
               } catch (e) {
                 // ⚠ **不得静默**（EV-0102）：这条路径若抛错，意图包会在**毫无痕迹**的情况下消失——
                 // 正是 EV-0078 那一类事故（产品安静地不做事，用户以为它开着）。
@@ -2265,6 +2026,7 @@ class DshAdapter {
   }
 
   dispose() {
+    this.optimizationRuns.clear()
     try { if (typeof this.contextDisposer === 'function') this.contextDisposer() } catch { /* best effort */ }
     try { if (typeof this.projectionDisposer === 'function') this.projectionDisposer() } catch { /* best effort */ }
     // 控制 API 的路由也必须在卸载时摘掉：热重载后留着旧路由 = 同一前缀注册两次
@@ -2567,7 +2329,7 @@ let syncAdvisorToolsRef=null
       try {
         adapter.controlApiDisposer = registerControlApi({ webServer: scope.webServer }, {
           home: DSH_HOME, version: PKG_VERSION, now: () => Date.now(),
-           capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url}),
+           capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url,pipelineRevision:'single-run-1',optimization:sid ? (()=>{const run=adapter.optimizationRuns.get(sid);return run?{runId:run.runId,generation:run.generation,status:run.status,packetChars:adapter.optimizationRuns.packet(sid).length}:null})() : null}),
            optimizerStatus: sid => sid ? optimizerRequests.get(String(sid)) || null : null,
           // P11：前置拦截的按需解释（客户端拦下发送后调它；失败即由客户端按原文放行）
           interpret: (p) => runInterceptInput(ctx, p),
@@ -2581,25 +2343,10 @@ let syncAdvisorToolsRef=null
            englishGet:sid=>adapter.english.get(sid),
            inferenceList:sid=>inferenceTrace.list(sid),
            inferenceGet:(sid,run,call,offsets)=>inferenceTrace.get(sid,run,call,offsets),
-           inferenceCancel:(sid,run)=>{
-  const r=inferenceEngine?.cancel(sid,run) || {ok:false,reason:'not-ready'}
-  // 取消 = **本轮彻底作废**：除了停掉在途推理，还要把这一轮的残留全部清掉，
-  // 否则下一次优化会接着上次的产物/思考走（用户 2026-10-23 实测）。
-  // 清的是**本轮未完成的东西**：待显示卡片、已拦截标记、模型加码、顾问 directive；
-  // 已经发出去的注入文属于既成事实，不回改。
-  if(r&&r.ok){
-    const key=String(sid)
-    try{pendingCardBySession.delete(key)}catch{}
-    try{interceptedText.delete(key)}catch{}
-    try{if(typeof adapter.setIntentText==='function')adapter.setIntentText(key,'',{reviewed:true})}catch{}
-    try{adapter.advisorLedger?.clear?.(key)}catch{}
-    try{adapter.framingNote=null;adapter.framingNoteRaw=null}catch{}
-  }
-  return r
-},
+           inferenceCancel:(sid,run)=>inferenceEngine?.cancel(sid,run) || {ok:false,reason:'not-ready'},
           advisorStageStatus: sid => {
             const pol=sid ? readPolicy({home:DSH_HOME,sessionId:sid}) : null
-            // GitHub #32：原先写死 readEnabled:false ⇒ 面板永远显示「顾问只读未开」，与真实设置无关，
+           // GitHub #32：原先写死 readEnabled:false ⇒ 面板永远显示「顾问只读未开」，与真实设置无关，
             // 排查时据此判断会得到错误结论。现在按本会话真实策略取值；verification 如实标出是否重读了文件。
             const readEnabled=pol?.readTools===true
             const stage=sid ? advisorStages.status({sessionId:String(sid),readEnabled}) : null
@@ -2703,29 +2450,35 @@ let syncAdvisorToolsRef=null
     clearNotices: () => adapter.clearAllPresetNotices(),
           // P11：包级回退（宿主侧保存了每会话最近 10 版非空包）
           rollbackPacket: (p) => {
-            const r = adapter.rollbackPacket(p && p.sessionId)
+            const r = adapter.rollbackPacket(p && p.sessionId, p && p.runId)
             appendWireLog({ sessionId: String((p && p.sessionId) || ''), trigger: 'packet-rollback', ok: r.ok === true, reason: r.reason || null, chars: r.chars || 0 })
             return r
           },
           // P11：审查态里用户改过的正文 = 本轮注入的包（空串 = 清掉这一轮的包）
           setPacket: async (p) => {
-            const sid = String((p && p.sessionId) || '')
+            const sid = String(p?.sessionId || '')
             if (!sid) return { ok: false, reason: 'session-required' }
-            let text = String((p && p.text) == null ? '' : p.text)
+            if (!p.runId) return { ok: false, reason: 'run-required' }
+            const disposition = p.disposition || (p.text ? 'send' : 'cancel')
+            if (!['send', 'skip', 'cancel'].includes(disposition)) return { ok: false, reason: 'invalid-disposition' }
+            const before = adapter.optimizationRuns.get(sid), acceptedResult = before?.result
+            if (disposition === 'send' && before && before.runId !== p.runId) return { ok: false, reason: 'superseded-input' }
+            let text = String(p.text || '')
             try {
-              const pol=readPolicy({home:DSH_HOME,sessionId:sid})
-              // 清包（跳过 / 取消 / 按原文发出）⇒ 本轮**没有注入**：
-            // 待显示卡片也必须一起作废，否则它会在下一次发送时冒出一张属于旧包的卡。
-            if(!text){try{pendingCardBySession.delete(sid)}catch{}}
-            if(!text)adapter.english?.abandon(sid)
-              if(text&&pol.englishMode){const cfg=resolveInterpreterCfg({config:pol.model?{interpreter:pol.model}:pluginConfig,observed:modelFor(sid),effortByModel:pol.effortByModel});if(!cfg.ok)throw new Error('english-model-unavailable');text=(await adapter.english.translate(text,{llm:ctx.get('llm'),cfg,kind:'edited-assistance'})).text}
-              adapter.setIntentText(sid, text, { reviewed: true })
-              appendWireLog({ sessionId: sid, trigger: 'packet-override', ok: true, chars: text.length })
-              return { ok: true, chars: text.length,packet:text }
-            } catch (e) {
-              appendWireLog({ sessionId: sid, trigger: 'packet-override', ok: false, reason: String((e && e.message) || e) })
-              return { ok: false, reason: 'set-failed:' + String((e && e.message) || e) }
-            }
+              if (disposition === 'send' && text !== (before?.result?.packet || '') && before?.policy?.englishMode) {
+                const cfg = resolveInterpreterCfg({ config: before.policy.model ? { interpreter: before.policy.model } : pluginConfig, observed: modelFor(sid), effortByModel: before.policy.effortByModel })
+                if (!cfg.ok) throw new Error('english-model-unavailable')
+                text = (await adapter.english.translate(text, { llm: ctx.get('llm'), cfg, signal: before.controller.signal, kind: 'edited-assistance' })).text
+                if (adapter.optimizationRuns.get(sid) !== before || before.controller.signal.aborted || before.result !== acceptedResult) return { ok: false, reason: 'superseded-input' }
+              }
+              const result = adapter.optimizationRuns.submit(sid, { ...p, text, disposition })
+              if (result.ok && disposition !== 'send') {
+                adapter.english?.abandon(sid)
+                adapter.capability.abandonInput?.(sid, before?.runId)
+              }
+              appendWireLog({ sessionId: sid, runId: result.runId || p.runId || null, trigger: 'packet-submission', disposition, ok: result.ok, chars: result.chars || 0, reason: result.reason || null })
+              return { ...result, runId: result.runId || p.runId || before?.runId || null, packet: result.packet || '', chars: result.chars || 0 }
+            } catch (error) { return { ok: false, reason: String(error?.message || error) } }
           },
           /**
            * 诊断用（2026-09-24）：**当前 agent 的工具表里有哪些工具**。
@@ -2765,7 +2518,7 @@ let syncAdvisorToolsRef=null
           // 只读诊断口：把采集器**实际看见**的能力原样返回，便于核对“为什么脚手架没提某个工具”
           capabilityProbe: async (sid) => capabilitiesFor(String(sid || ''), ctx),
           workingText: async (sid) => adapter.getWorkingText(String(sid || '')),
-          workingTextInfo: async (sid) => { const key = String(sid || ''); const pol = adapter.policyNow(key) || {}; return { hasPacket: !!String(adapter.getIntentText(key) || '').trim(), framing: pol.framing || 'neutral', englishMode: pol.englishMode === true, advisor: pol.advisor !== false, reviewed: adapter.reviewedPackets ? adapter.reviewedPackets.has(key) : null } },
+          workingTextInfo: async (sid) => { const key = String(sid || ''); const pol = adapter.policyNow(key) || {}; return { hasPacket: !!String(adapter.getIntentText(key) || '').trim(), framing: pol.framing || 'neutral', englishMode: pol.englishMode === true, advisor: pol.advisor !== false, status: adapter.optimizationRuns.get(key)?.status || null } },
           resolveEfforts: async (provider, model) => {
             const llm = ctx.get('llm')
             if (!llm) return { ok: false, reason: 'no-llm-service', efforts: [], defaultEffort: null }
@@ -2920,7 +2673,7 @@ let syncAdvisorToolsRef=null
     ctx.effect(() => () => { try { if (typeof off === 'function') off() } catch { /* best effort */ } }, 'dsh-po06: delivery gate trigger')
   } catch { /* 注册失败不影响插件本体 */ }
 
-  // ── 生产触发（A15）：真实用户输入 → 解释 → 编译 → 上下文 ─────────────
+  // ── 会话观测：消费已提交结果，记录本次注入卡片 ─────────────────────
   // 这是 EV-0078 缺失的那一环：此前没有任何**生产**代码路径会调用 handleInput，
   // 于是整条链在真实会话里不可达（346 项测试全绿而产品贡献 0 字符）。
   report.steps.productionTrigger = (() => {
@@ -2928,6 +2681,7 @@ let syncAdvisorToolsRef=null
       const off = ctx.on('session/event', (session, event) => {
         try {
           const sid = session && session.id !== undefined ? String(session.id) : ''
+          const submitted = isRealUserInput(event) ? adapter.optimizationRuns.consume(sid, extractUserText(event)) : null
           // 子代理默认不解释（2026-10-19）：父代理派下来的任务再来一轮「解释 → 注入」通常只是白花 token。
           // 判定用会话头（宿主写的字段），并在同一个位置短路，避免它的 user/message 还去触发一次解释。
           // 预设切换（2026-10-19）：会话头的 agentPreset 是**创建时**写死的；中途切预设只会发事件。
@@ -2952,8 +2706,9 @@ let syncAdvisorToolsRef=null
           try {
             if (sid) {
               if(isRealUserInput(event)){adapter.english?.bind(sid,extractMessageId(event),extractUserText(event));void adapter.refreshSessionPreset(sid)}
+               if (submitted) adapter.capability.bindSubmitted(sid, submitted.runId, extractMessageId(event), event.seq)
                const changed=adapter.capability.observe(session,event)
-              if(changed==='new-input'){adapter.intentBySession.delete(sid);adapter.reviewedPackets.delete(sid)}
+              if (changed === 'new-input' && !submitted) adapter.optimizationRuns.cancel(sid)
               sessionHistory.observe(sid, event)
             }
             if (sid) {
@@ -2965,34 +2720,13 @@ let syncAdvisorToolsRef=null
           const obs = extractObservedModel(event)
           if (obs) {
             observeModel(sid, obs)
-            // 模型刚出现 ⇒ 若有待办输入，立刻补跑（包落在同一轮的第 2 步）
-            const p = pendingInput.get(sid)
-            if (p) {
-              pendingInput.delete(sid)
-              defer(() => runProductionInput(ctx, session, p, { trigger: 'model-observed-catchup' }))
-            }
+            // Observation does not start production.
             return
           }
           if (!isRealUserInput(event)) return
           const text = extractUserText(event)
-          // P11：这条消息如果是**刚刚被前置拦截解释过**的（拦下 → 解释 → 放行之后宿主照常追加它），
-          // 就不要再解释第二遍：同一句话跑两次模型是白花钱，而且第二次的包会把刚定下的那份覆盖掉。
-          const hit = interceptedText.get(sid)
-          const hitAge = hit ? (Date.now() - hit.at) : Infinity
-          const hitFresh = hit && hitAge < 5 * 60 * 1000
-          const sameText = hitFresh && String(hit.text).trim() === String(text).trim()
-          // ⚠ 2026-09-26 修（用户报：调 skill 时漏拦截 + 旧包迟到、新包随后才到）。
-          // 判据原先只认文本逐字相等，而前置拦截记的是客户端原文、这里取的是宿主事件里的文本。
-          // 调用 skill 时这两者形态不一致（skill 内容与包装会进入事件）⇒ 去重失配 ⇒ 同一句话被解释两遍；
-          // 而第二遍是 defer 出去的并发执行（见下方注释），两遍基于同一个旧状态各写一次，
-          // 后完成的覆盖先完成的 ⇒ 台账里 revision 倒退（实测 309 → 307），
-          // 界面上就是先到一份旧的、随后才到一份新的。
-          // 修法：同一会话在刚放行的极短窗口内，无论文本是否变形都认定为同一条。
-          // 窗口取 15 秒：拦下 → 解释（20–60s）→ 放行 → 宿主追加消息，这个间隔通常在秒级；
-          // 而真正独立的下一轮输入不可能在 15 秒内紧接在同一条拦截之后。
-          const nearInTime = hitFresh && hitAge < 15000
-          if (sameText || nearInTime) {
-            interceptedText.delete(sid)
+          // Only an explicit pre-send commit can produce an injection card.
+          if (submitted) {
             // 「本次注入」：正文进**插件自己的内存**（客户端用 /po06/api/injection 取），
             // 对话流里的那张卡则用**宿主已知的事件类型**（command/run + command/done）作锚。
             //
@@ -3002,10 +2736,7 @@ let syncAdvisorToolsRef=null
             // **只能写宿主已注册的类型**；命令事件就是宿主自己的行类型（/vmake 那种卡就是这么来的），
             // 客户端再用 conversation.chat.commandview 按命令名注册自己的卡片视图。
             try {
-              // 优先用**本轮记录**（pendingCardBySession）；实时上下文只是兜底。
-              const stored = pendingCardBySession.get(sid) || ''
-              pendingCardBySession.delete(sid)
-              const working = stored || adapter.getWorkingText(sid) || ''
+              const working = submitted.packet
               if (working.trim() && typeof adapter.noteInjection === 'function') {
                 const anchorSeq = Number(event.seq)
                 const id = adapter.noteInjection(sid, {
@@ -3036,12 +2767,11 @@ let syncAdvisorToolsRef=null
                 }
               }
             } catch { /* 记录是旁路，绝不打断会话 */ }
-            appendWireLog({ sessionId: sid, trigger: 'user-message', ok: true, skipped: sameText ? 'intercepted-already' : 'intercepted-recently', chars: text.length })
+            appendWireLog({ sessionId: sid, runId: submitted.runId, trigger: 'user-message', ok: true, skipped: submitted.skip ? 'explicit-skip' : 'prepared-submission', chars: text.length })
             return
           }
-          // **不 await**：零延迟。包从第 2 步起生效（**仅在没被前置拦截时**走这条路）。
-          defer(() => runProductionInput(ctx, session,
-            { text, messageId: extractMessageId(event) }))
+          // Unintercepted input is observed only; never optimize after it was sent.
+          appendWireLog({ sessionId: sid, trigger: 'user-message', ok: true, skipped: 'not-intercepted', chars: text.length })
         } catch { /* 生产触发是旁路，绝不打断会话 */ }
       })
       ctx.effect(() => () => { try { if (typeof off === 'function') off() } catch { /* best effort */ } }, 'dsh-po06: production input trigger')
@@ -3050,7 +2780,7 @@ let syncAdvisorToolsRef=null
         hook: 'session/event → user/message(source.kind=user)',
         awaited: false,
         log: WIRE_LOG_PATH,
-        note: '零延迟：不 await 解释层，故意图包从**第 2 步**起生效；单步任务无包（明知的取舍，非缺陷）',
+        note: '只观测并消费前置运行的提交；不在消息发送后启动优化',
       }
     } catch (e) {
       return { ok: false, reason: String((e && e.message) || e) }
@@ -3828,7 +3558,7 @@ function runP8Check(ctx) {
 // 用真机去试既慢又不可重复 ⇒ 把这两个内部函数导出，让测试用假闸门/假 llm 服务把时序钉死。
 // ⚠ **只给测试**：生产路径不许绕过 apply 里的接线直接调它们；放在文件末尾是因为
 // 这里引用的进度表/已解释原话表都是 `const`（放前面会落进 TDZ，实测直接 ReferenceError）。
-export const __test = { awaitGateDecision, ensureModelRoute, observeModel, modelFor, observedModelBySession, progressGet, progressSet, interceptedText }
+export const __test = { awaitGateDecision, ensureModelRoute, observeModel, modelFor, observedModelBySession, progressGet, progressSet, runInterceptInput }
 
 /** 只给测试：清掉"已观测模型"（含那个粘性的全局兜底），否则用例之间会互相污染。 */
 export function __resetObservedModelsForTest() { observedModelBySession.clear(); observedModel = null }

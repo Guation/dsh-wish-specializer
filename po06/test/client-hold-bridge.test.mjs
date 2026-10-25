@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { loadHoldClient } from './fixtures/client-hold-harness.mjs'
 const source = readFileSync(fileURLToPath(new URL('../lib/client.js', import.meta.url)), 'utf8')
 function load() {
   const regs = []
@@ -59,12 +60,24 @@ test('桥不可用时静默降级，不影响本轮（不抛）', () => {
   assert.doesNotThrow(() => d.holdBridgeWrite('', { phase: 'review' }), '空 sessionId 直接返回')
 })
 
-test('切换会话不再中止宿主的解释请求（issue #19 的原始成因已被移除）', () => {
-  // 0.7.8 的成因是**组件卸载的 cleanup 里 abort**；现在 abort 只应出现在三处用户/去重动作里：
-  //   beginHold（新一轮先断上一轮）、cancelHold（用户点取消）、skipHold（用户点跳过）。
-  const aborts = source.match(/abortRef\.current\.abort\(\)/g) || []
-  assert.equal(aborts.length, 3, 'abort 应恰好 3 处（去重/取消/跳过）；多出来很可能又是在卸载里中止：' + aborts.length)
-  const clears = source.match(/abortRef\.current = null/g) || []
-  assert.equal(clears.length, 2, 'abortRef 置空应恰好 2 处（取消/跳过）')
-  assert.ok(!/return \(\) => \{[^}]*abortRef/.test(source), 'effect cleanup 里不该出现 abortRef（那正是切会话被取消的成因）')
+test('切会话不取消解释，重挂后的控件认领完成结果并在写包确认后放行', async t => {
+  const ui = loadHoldClient()
+  t.after(() => ui.close())
+  const first = ui.mount('s-1', '原话')
+  await ui.flush()
+  first.enter(); await ui.flush()
+  const request = ui.pending('/interpret')[0]
+  first.unmount()
+  assert.equal(request.signal.aborted, false, '卸载不应取消这一轮解释')
+  const restored = ui.mount('s-1', '尚未发送的原话')
+  await ui.flush()
+  ui.completeInterpret(request, { packet: '完整结果', chars: 4 })
+  await ui.flush()
+  assert.equal(ui.hold('s-1').packet, '完整结果')
+  assert.equal(ui.pending('/packet').length, 1, '新挂载只认领一次写包')
+  assert.equal(ui.submissions.length, 0, '结果出现不等于获准发送')
+  ui.completePacket(); await ui.flush()
+  assert.equal(ui.submissions.length, 1)
+  assert.equal(ui.submissions[0].mountId, restored.id, '必须由当前挂载调用宿主 submit')
+  assert.equal(ui.submissions[0].text, '原话')
 })

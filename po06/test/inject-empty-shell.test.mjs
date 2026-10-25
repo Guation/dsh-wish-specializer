@@ -1,12 +1,15 @@
-// 2026-10-25 用户定稿：“就不应该有壳”。
-// 注入的唯一来源是**包**；编译器按状态渲染的头部（包头 + 基调块）不再参与注入。
-// （旧守卫钉的是“占位提示当空”，那段逻辑已随编译器路径一起退出注入链，故一并删除。）
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { adapter as productionAdapter } from '../lib/index.js'
 
-test('注入源只有包（不再经过编译器渲染）', () => {
-  const src = readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8')
-  assert.ok(src.includes('注入源=包'), '要有明确的口径注释')
-  assert.ok(src.includes('applyFramingToPacket(packet'), '换装作用在包上')
+test('only the completed packet reaches working context; empty and failed runs remain empty', async () => {
+  const adapter = new productionAdapter.constructor()
+  adapter.services.agents = { get: () => ({}) }; adapter.policyNow = () => ({ advisor: false })
+  const session = { id: 'no-shell' }
+  const ready = await adapter.handleInput(session, { messageId: 'm1', text: 'A task', interpret: async () => ({ intent: { text: 'A task', relation: 'new' }, add: ['A useful direction.'] }) })
+  assert.equal(ready.ok, true); assert.equal(adapter.getWorkingText(session.id), ready.packet.text)
+  const empty = await adapter.handleInput(session, { messageId: 'm2', text: 'Thanks', interpret: async () => ({ intent: { text: 'Acknowledgment', relation: 'continue' } }) })
+  assert.equal(empty.status, 'empty'); assert.equal(adapter.getWorkingText(session.id), '')
+  const failed = await adapter.handleInput(session, { messageId: 'm3', text: 'Continue', interpret: async () => 'broken response' })
+  assert.equal(failed.ok, false); assert.equal(adapter.getWorkingText(session.id), '')
 })

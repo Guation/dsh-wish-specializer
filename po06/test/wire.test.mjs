@@ -1,13 +1,12 @@
-// P8 · **生产接线**（A15）的单测。
-//
-// 这个文件要守住的是 EV-0078 那类事故：**代码全对，但生产路径上没人调用它**。
-// 所以这里不只是测纯函数——最后一组测试**走真实的 apply() 路径**：
-// 造一个假 ctx、触发一条真实形状的 user/message 事件，看意图包有没有真的被写进上下文。
-// 谁把生产订阅删掉，这组测试就会红。
+// Production wiring: the real apply() registers the pre-send API, dynamic context and event observer.
+// Fake model streams are the only generation boundary; parser, renderer, run ownership,
+// HTTP handlers, context composition and injection-card consumption all execute for real.
+// Independent wire parsing, model routing, store and gate regression tests remain below.
 import { readFileSync, mkdtempSync, existsSync, writeFileSync, mkdirSync, rmSync, readdirSync, utimesSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createHostContext as fakeCtx, fakeLlm, controlledLlm, fakeSession, emit, headerEvent, finishChunk, flushHostEvents, deferred } from './host-wire-harness.mjs'
 import {
   isRealUserInput, extractUserText, extractMessageId, extractObservedModel,
   resolveInterpreterCfg, decideInterpret, resolveProfileName,
@@ -33,6 +32,7 @@ const TEST_HOME = tempHome()
 process.env.DSH_HOME = TEST_HOME
 
 const HERE = dirname(fileURLToPath(import.meta.url))
+process.env.DSH_PO06_LLM_LIB = join(HERE, 'fixtures', 'llm-lib-017.mjs')
 
 let pass = 0
 const failures = []
@@ -42,10 +42,6 @@ function t(name, fn) { try { fn(); pass += 1 } catch (e) { failures.push({ name,
 const ta = async (name, fn) => { try { await fn(); pass += 1 } catch (e) { failures.push({ name, error: String(e.message || e) }) } }
 
 const USER_TEXT = '帮我写一个把秒数格式化的函数，用 Python，不要解释。'
-// 夹具里的 sourceRefs 必须指向**这一次**的消息（否则 reducer 会拒），
-// 所以每个用例先把 SID/MID 设成自己那一次的值，再造假 LLM。
-let SID = 'session-a15'
-let MID = 'm-1'
 const userEvent = (text = USER_TEXT, id = 'm-1') => ({
   type: 'user/message',
   data: { id, role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text }] },
@@ -210,369 +206,463 @@ t('profile 解析：**不存在的名字不当成 profile**；flag 的取值不�
     'flag 取值被跳过')
 })
 
-// ── 4. A15 验收：走真实 apply()，包必须真的落进上下文 ────────────────
-/**
- * 最小但**忠实**的假宿主投影服务：注册 + 按事件 fold 出状态。
- * 为什么不能省：`intentStateOf` 在投影未注册时返回 `undefined`（不是 `null`），
- * 而流水线只在 `=== null` 时才初始化状态 ⇒ 没有投影服务，整条链会静默什么都不做。
- * 这正是"生产可达性"要求连**宿主依赖**一起验的原因。
- */
-function fakeProjections() {
-  const defs = new Map()
-  const states = new Map()
-  return {
-    register(def) { defs.set(def.key, def); return () => {} },
-    stateOf(session, key) {
-      const def = defs.get(key)
-      if (!def) return undefined
-      const sid = String(session.id)
-      return states.has(sid) ? states.get(sid) : def.init()
-    },
-    /** 模拟宿主：append 出来的事件会被投影 fold 进该会话的状态。 */
-    fold(session, event) {
-      const sid = String(session.id)
-      for (const def of defs.values()) {
-        const cur = states.has(sid) ? states.get(sid) : def.init()
-        states.set(sid, def.apply(cur, event))
-      }
-    },
-  }
-}
-
-/**
- * 假 session：`append(type, data)` 与宿主同形（见 projection.js 的调用点），
- * 并且**复刻宿主的重入禁令**：事件正在发布期间不得再 append。
- *
- * 为什么要复刻这条：真实宿主会抛
- * `session append cannot reenter while another append is being published`（EV-0080）。
- * 第一版假宿主没有这条约束，于是"在 session/event 处理器里同步 append"这种写法
- * **测试全绿、真机全败**。假宿主比真宿主宽松，就等于把最危险的一类缺陷挡在测试之外。
- */
-function fakeSession(sid, projections) {
-  const s = {
-    id: sid,
-    publishing: false,
-    append(type, data) {
-      if (s.publishing) throw new Error('session append cannot reenter while another append is being published')
-      projections.fold({ id: sid }, { type, data })
-    },
-  }
-  return s
-}
-
-/**
- * 造一个假 ctx：只提供插件真正用到的那几个面（on/effect/get/inject）。
- * `agents` 必须给：`handleInput` 有一道入口守卫（缺它就返回 `no-agents-service` 而什么都不做）——
- * 那也是一条**静默无事发生**的路径，所以它会照样被记进台账，测试里也就能看见。
- */
-function fakeCtx({ llm }) {
-  const handlers = []
-  const agents = { get: (id) => ({ id }) }
-  const projections = fakeProjections()
-  /** 被注入进来的服务引用（测试要直接驱动 context 提供者，见下面的 EV-0102 用例）。 */
-  const ctxRefs = {}
-  return {
-    handlers,
-    projections,
-    ctxRefs,
-    on(name, fn) { handlers.push({ name, fn }); return () => {} },
-    effect() { return () => {} },
-    get(name) {
-      if (name === 'llm') return llm
-      if (name === 'agents') return agents
-      return undefined
-    },
-    inject(deps, fn) {
-      // 只满足本插件真正声明的注入；其余原样忽略（自检里才需要更多）
-      const scope = {}
-      if (Array.isArray(deps) && deps.includes('sessionProjections')) scope.sessionProjections = projections
-      // systemPrompt：注册的 context 定义要被**抓住**，这样测试能直接调用它的 text 提供者。
-      // 为什么要抓：投递链路的最后一环就在这里，而它内部有 try/catch——
-      // 若那段吞掉错误而没人测，就正是 EV-0078 那类"安静地什么都不做"。
-      if (Array.isArray(deps) && deps.includes('systemPrompt')) {
-        scope.systemPrompt = {
-          contextDefs: [],
-          context(def) { this.contextDefs.push(def); return () => {} },
-          assemble: async () => ({ contexts: [], sections: [], tools: [], variables: {} }),
-        }
-        ctxRefs.systemPrompt = scope.systemPrompt
-      }
-      try { fn(scope) } catch { /* 缺服务时插件自己会降级 */ }
-    },
-  }
-}
-
-/**
- * 假 LLM：按块吐出一段合法的解释器 JSON。**不花任何钱**。
- * `reply` 可以是字符串，也可以是**惰性求值**的函数——夹具里的 sid/messageId
- * 必须在**真正被调用的那一刻**才确定，否则会与本次事件对不上。
- */
-function fakeLlm(reply) {
-  const calls = []
-  return {
-    calls,
-    stream(opts) {
-      calls.push(opts)
-      const json = typeof reply === 'function' ? reply() : reply
-      const chunks = [
-        { type: 'text-delta', text: json },
-        { type: 'usage', usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 } },
-        { type: 'finish', finish: 'stop' },
-      ]
-      return (async function* () { for (const c of chunks) yield c })()
-    },
-  }
-}
-
-/**
- * 一份**合法**的解释器输出（形状照抄 reducer/项目既有夹具）：
- * `id` 与 `sourceRefs` 都是必需的——缺了就只会在 dryRun 被 reducer 拒掉，
- * 于是"解释成功了但没写进任何东西"，看起来像接线没通，其实是夹具不合格。
- */
-const interpreterReply = ({ sid, mid, quote = '不要解释' }) => JSON.stringify({
-  ops: [{
-    op: 'add_item',
-    item: {
-      id: 'req-seconds',
-      kind: 'user_requirement',
-      text: '用 Python 写一个秒数格式化函数',
-      quote,
-      sourceRefs: [{ kind: 'human', sessionId: sid, messageId: mid }],
-    },
-  }],
+// Production coverage follows the pre-send transaction: interpret once, accept once, then observe.
+const OBJECT_RESPONSE = readFileSync(join(HERE, 'fixtures', 'optimizer-object-response.json'), 'utf8')
+const OBJECT_VALUE = JSON.parse(OBJECT_RESPONSE)
+const optimizerReply = (text = '保持输出纯函数，覆盖零值与跨小时边界。') => JSON.stringify({
+  intent: { text: USER_TEXT, relation: 'new' }, add: [{ id: 'add-1', text }], scaffold: [], ask: [],
 })
 
-/**
- * 触发一条会话事件。
- * **必须喂给所有订阅者**——宿主就是这么派发的，而且本插件自己就有多个
- * `session/event` 订阅（交付门 + 生产触发）。只挑第一个会让测试看着通过、
- * 实际测的是另一个处理器（第一次写这个测试时就踩了，包因此一直是空的）。
- */
-function emit(ctx, session, event) {
-  const hs = ctx.handlers.filter((x) => x.name === 'session/event')
-  if (session) session.publishing = true
+async function within(promise, label) {
+  let timer
   try {
-    for (const h of hs) h.fn(session, event)
-  } finally {
-    if (session) session.publishing = false
-  }
-  return hs.length
+    return await Promise.race([promise, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('host harness timed out: ' + label)), 2000)
+    })])
+  } finally { clearTimeout(timer) }
 }
 
-/** 让 fire-and-forget 的生产链路跑完（调用方**故意不 await**，所以测试自己等）。 */
-async function settle(ms = 400) { await new Promise((r) => setTimeout(r, ms)) }
-
-/** 宿主真实发过的形状（EV-0078 的会话日志里逐字核对过）。 */
-const headerEvent = (provider = 'deepseek-official', model = 'deepseek-flash') => ({
-  type: 'request/header',
-  data: { header: { config: { provider, model, maxTokens: 256000, reasoningEffort: 'high' } } },
-})
-
-// ⚠ **顺序有意义**：模型观测在进程内是共享的（本会话优先、全局兜底）。
-// 这一条必须在**任何**观测发生之前跑，否则它会继承别的用例的观测值。
-// 它同时守两件事：① 没有模型就不解释（不编造路由）；② 模型一出现立刻**补跑**待办输入。
-await ta('A15：模型未知时记下待办；模型一出现立刻补跑（包落在同一轮第 2 步）', async () => {
+async function wireHost({ sid, llm = fakeLlm(optimizerReply()), policy = {}, observed = true, enabled = true, cwd } = {}) {
+  writeFileSync(join(TEST_HOME, 'po06.json'), JSON.stringify({
+    settingsVersion: 1, enabled: true, rollout: { mode: 'all' },
+    advisor: false, readTools: false, englishMode: false, framing: 'neutral', ...policy,
+  }), 'utf8')
   const mod = await import('../lib/index.js')
-  const llm = fakeLlm(() => interpreterReply({ sid: SID, mid: MID }))
+  mod.__resetObservedModelsForTest()
   const ctx = fakeCtx({ llm })
   mod.apply(ctx, {})
-  const sid = 'session-a15-nomodel'
-  SID = sid; MID = 'm-nomodel'
-  mod.adapter.enableGate.set(sid, { enabled: true, code: 'test-forced-enabled', reason: '单测放行' })
-  const sess = fakeSession(sid, ctx.projections)
+  mod.adapter.invalidatePolicy()
+  const session = ctx.addSession(sid, { cwd })
+  mod.adapter.enableGate.set(sid, { enabled, code: enabled ? 'test-enabled' : 'test-disabled', reason: 'host harness' })
+  if (observed) emit(ctx, session, headerEvent())
+  const interpret = (messageId, text = USER_TEXT) => within(ctx.post('/interpret', { sessionId: sid, messageId, text }), 'interpret ' + messageId)
+  const submit = (runId, text, disposition = 'send', originalText = USER_TEXT) =>
+    ctx.post('/packet', { sessionId: sid, runId, text, disposition, originalText, outgoingText: originalText })
+  return { mod, ctx, session, llm, interpret, submit, context: () => ctx.context(session) }
+}
 
-  // ① 没有任何 request/header 观测值、配置也是空的 ⇒ **跳过**而不是瞎猜
-  emit(ctx, sess, userEvent(USER_TEXT, 'm-nomodel'))
-  await settle(150)
-  eq(llm.calls.length, 0, '没有模型路由时不得调用模型')
-  eq(mod.adapter.getIntentText(sid), '', '也不得写入任何包')
-
-  // ② 宿主随后发出请求头（真实顺序：**先**用户消息、**后** request/header）
-  //    ⇒ 待办必须被补跑，包落在**同一轮**后续步骤，而不是白等一整轮
-  emit(ctx, sess, headerEvent())
-  await settle()
-  eq(llm.calls.length, 1, '模型出现后必须补跑一次解释')
-  eq(llm.calls[0].model, 'deepseek-flash', '补跑用的是观测到的模型')
-  ok((mod.adapter.getIntentText(sid) || '').length > 0, '补跑必须真的把包写进上下文')
+await ta('observer never starts or catches up optimization after user/message or a later model header', async () => {
+  const h = await wireHost({ sid: 'wire-observer-only', observed: false })
+  emit(h.ctx, h.session, userEvent(USER_TEXT, 'already-sent'))
+  emit(h.ctx, h.session, headerEvent())
+  emit(h.ctx, h.session, pluginEvent('plugin notice'))
+  await flushHostEvents()
+  eq(h.llm.calls.length, 0, 'observation must not create a model call')
+  eq(h.mod.adapter.getIntentText(h.session.id), '', 'no post-send packet or catch-up')
+  eq(h.session.appended, [], 'unprepared events do not create injection cards')
 })
 
-await ta('A15：真实 apply() 路径下，用户输入会经解释编译成包并写进上下文', async () => {
-  const mod = await import('../lib/index.js')
-  const llm = fakeLlm(() => interpreterReply({ sid: SID, mid: MID }))
-  const ctx = fakeCtx({ llm })
-  mod.apply(ctx, {})
+await ta('real object-array response completes once; HTTP preview, accepted packet, context and full card agree exactly', async () => {
+  const llm = controlledLlm()
+  const h = await wireHost({ sid: 'wire-object-response', llm })
+  const request = h.ctx.start('POST', '/interpret', { sessionId: h.session.id, messageId: 'object-run', text: OBJECT_VALUE.intent.text })
+  const call = await within(llm.waitForCall(), 'object stream')
+  const completion = deferred()
+  call.complete(OBJECT_RESPONSE, { blockOnly: true, finishGate: completion.promise })
+  await within(call.textSeen, 'object text arrived')
+  await flushHostEvents()
+  eq(request.settled, false, 'complete-looking JSON alone cannot finish the HTTP request')
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).status, 'running', 'finish still belongs to the active run')
+  eq(h.mod.adapter.getIntentText(h.session.id), '', 'do not expose an unfinished packet')
+  completion.resolve()
+  const response = await within(request.promise, 'object completion')
+  eq(response.status, 200, 'valid object arrays succeed: ' + JSON.stringify(response.body))
+  eq(response.body.ok, true)
+  eq(response.body.status, 'ready')
+  eq(response.body.runId, 'object-run', 'messageId is the stable run identity')
+  const preview = response.body.packet
+  ok(preview.length > 0, 'positive fixture must produce real directions')
+  for (const section of ['add', 'scaffold', 'ask']) for (const item of OBJECT_VALUE[section]) {
+    ok(preview.includes(item.text), section + ' object text survives parsing and rendering: ' + item.id)
+  }
+  eq(llm.calls.length, 1, 'accept the recorded response without retry or alternate compiler call')
+  eq(response.body.usageTotal, 15, 'usage reaches the completed response')
+  eq(call.options.provider, 'wire-provider', 'use the observed provider')
+  eq(call.options.model, 'wire-model', 'use the observed model')
+  for (const key of ['maxTokens', 'max_tokens', 'maxOutputTokens']) ok(!(key in call.options), 'model output is not capped: ' + key)
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).result.packet, preview, 'store before resolving the response')
+  eq((await h.ctx.getApi('/packet?session=' + h.session.id)).body.packet, preview, 'GET preview reads the same sealed result')
+  eq(h.context(), preview, 'actual context provider reads the exact preview when advisor is off')
+  eq(h.session.appended, [], 'interpret must not append session state or synthetic user messages')
+  eq(h.mod.adapter.intentStateOf(h.session), null, 'v3 production does not create legacy reducer state')
+  eq(existsSync(statePath(TEST_HOME, h.session.id)), false, 'v3 production does not write reducer state to disk')
 
-  ok(ctx.handlers.filter((x) => x.name === 'session/event').length >= 1,
-    '**必须**注册 session/event 处理器（A15：这就是 EV-0078 缺失的那一环）')
-
-  // 闸门默认未判定 ⇒ 保守不启用。显式放行这个会话（等价于配置 enabled:true + 无双重拦截）。
-  const sid = 'session-a15'
-  mod.adapter.enableGate.set(sid, { enabled: true, code: 'test-forced-enabled', reason: '单测放行' })
-  SID = sid; MID = 'm-1'
-  // 宿主会先发一条 request/header（解释层据此知道该用哪个模型）
-  const sess = fakeSession(sid, ctx.projections)
-  emit(ctx, sess, headerEvent())
-
-  emit(ctx, sess, userEvent())
-  await settle()
-
-  const text = mod.adapter.getIntentText(sid)
-  ok(text && text.length > 0,
-    '意图包必须真的写进该会话的上下文（写不进去 = 生产路径仍然不通）。实际：' + JSON.stringify(text))
-  eq(llm.calls.length, 1, '应当恰好调用一次解释层')
-  // 用的是宿主的 system 槽（一次性调用者路径），而不是评估台那条硬编码 import
-  ok(typeof llm.calls[0].system === 'string' && llm.calls[0].system.length > 0, '必须带系统提示词')
-  eq(llm.calls[0].messages.length, 1, '只带一条用户消息')
-  eq(llm.calls[0].provider, 'deepseek-official', '用宿主观测到的 provider')
-  eq(llm.calls[0].model, 'deepseek-flash', '用宿主观测到的 model')
+  const accepted = preview + '\n\n' + '用户审查后保留的完整细节。'.repeat(430)
+  const submitted = await h.submit('object-run', accepted, 'send', OBJECT_VALUE.intent.text)
+  eq(submitted.status, 200)
+  eq(submitted.body.runId, 'object-run')
+  eq(submitted.body.packet, accepted, 'return the final accepted text')
+  eq(h.context(), accepted, 'actual context uses final accepted text')
+  eq(h.mod.adapter.getWorkingText(h.session.id), accepted, 'working packet does not gain a second renderer')
+  eq((await h.ctx.getApi('/packet?session=' + h.session.id)).body.packet, accepted)
+  emit(h.ctx, h.session, { ...userEvent(OBJECT_VALUE.intent.text, 'host-message-id'), seq: 71 })
+  await flushHostEvents()
+  eq(h.session.appended.map(event => event.type), ['command/run', 'command/done'], 'only known host command anchors are appended after publication')
+  const anchor = h.session.appended[0]
+  eq(anchor.data.name, 'po06-inject')
+  const { id } = JSON.parse(anchor.data.args)
+  const byId = (await h.ctx.getApi('/injection?id=' + id)).body.injection
+  const bySession = (await h.ctx.getApi('/injection?session=' + h.session.id)).body.injection
+  eq(byId.injected, accepted, 'card is byte-for-byte final accepted text, including its tail beyond 4000 characters')
+  eq(bySession.injected, accepted, 'session lookup returns that same card')
+  eq(byId.chars, accepted.length)
+  eq(byId.anchorSeq, 71)
+  eq(byId.truncated, false)
+  const run = h.mod.adapter.optimizationRuns.get(h.session.id)
+  eq(run.submission, null, 'observer consumes explicit submission once')
+  eq(run.applied.runId, 'object-run')
+  emit(h.ctx, h.session, { ...userEvent(OBJECT_VALUE.intent.text, 'host-message-id'), seq: 71 })
+  emit(h.ctx, h.session, pluginEvent(accepted))
+  emit(h.ctx, h.session, headerEvent())
+  await flushHostEvents()
+  eq(llm.calls.length, 1, 'card and model observation never rerun the optimizer')
+  eq(h.session.appended.length, 2, 'consumed submission yields only one card')
+  eq(h.context(), accepted)
 })
 
-await ta('A15：插件自己的投递**不得**触发第二次解释（防自激循环）', async () => {
-  const mod = await import('../lib/index.js')
-  const llm = fakeLlm(() => interpreterReply({ sid: SID, mid: MID }))
-  const ctx = fakeCtx({ llm })
-  mod.apply(ctx, {})
-  const sid = 'session-a15-loop'
-  mod.adapter.enableGate.set(sid, { enabled: true, code: 'test-forced-enabled', reason: '单测放行' })
-  SID = sid; MID = 'm-real'
-  const sess = fakeSession(sid, ctx.projections)
-  emit(ctx, sess, headerEvent())
+await ta('client run id binds to the actual sent message without losing understanding or duplicating task sources', async () => {
+  const h = await wireHost({ sid: 'wire-submitted-capability', llm: fakeLlm(OBJECT_RESPONSE) })
+  const runId = 'dsh-po06-client-run-identity'
+  const actualMessageId = 'actual-host-human-message'
+  const text = OBJECT_VALUE.intent.text
+  const ready = await h.interpret(runId, text)
+  eq(ready.status, 200)
+  const before = structuredClone(h.mod.adapter.capability.status(h.session.id).current)
+  eq(before.inputId, runId, 'pre-send interpretation owns the client run id')
+  eq(before.sourceMessages, 1, 'one human draft is represented before sending')
+  ok(before.optimizer?.add?.length > 0, 'positive control: optimizer directions have settled')
+  ok(before.understanding?.summary, 'positive control: machine understanding has settled')
+  eq((await h.submit(runId, ready.body.packet, 'send', text)).status, 200)
 
-  emit(ctx, sess, userEvent(USER_TEXT, 'm-real'))
-  await settle()
-  const after1 = llm.calls.length
-  ok(after1 >= 1, '真人输入必须先触发一次解释，否则这条测试没有意义')
+  const sent = { ...userEvent(text, actualMessageId), seq: 113 }
+  emit(h.ctx, h.session, sent)
+  await flushHostEvents()
+  const task = h.mod.adapter.capability.taskContext(h.session)
+  const after = h.mod.adapter.capability.status(h.session.id).current
+  eq(task.currentInputId, actualMessageId, 'advisor task identity uses the actual host message id')
+  eq(task.sourceRequestId, actualMessageId, 'task origin is rebound to that same human message')
+  eq(task.inputs.map(input => ({ id: input.id, text: input.text, seq: input.seq })),
+    [{ id: actualMessageId, text, seq: 113 }], 'submission replaces the draft source rather than adding another source')
+  eq(after.inputId, actualMessageId)
+  eq(after.sourceMessages, 1, 'observing the accepted send cannot duplicate taskInputs')
+  eq(after.optimizer, before.optimizer, 'binding preserves the settled optimizer output')
+  eq(after.understanding, before.understanding, 'binding preserves the settled machine understanding')
+  eq(task.understanding, before.understanding, 'the advisor receives the preserved understanding')
+  eq(h.context(), ready.body.packet, 'identity binding does not alter the accepted packet')
 
-  emit(ctx, sess, pluginEvent(mod.adapter.getIntentText(sid)))
-  await settle()
-  eq(llm.calls.length, after1, '插件投递不得触发解释（否则自激循环）')
+  emit(h.ctx, h.session, sent)
+  emit(h.ctx, h.session, headerEvent())
+  await flushHostEvents()
+  const repeatedTask = h.mod.adapter.capability.taskContext(h.session)
+  const repeated = h.mod.adapter.capability.status(h.session.id).current
+  eq(repeatedTask.currentInputId, actualMessageId)
+  eq(repeatedTask.inputs.length, 1, 'seeding or repeated observation never recreates the draft source')
+  eq(repeated.sourceMessages, 1)
+  eq(repeated.optimizer, before.optimizer)
+  eq(repeated.understanding, before.understanding)
+  eq(h.llm.calls.length, 1, 'identity binding cannot rerun the optimizer')
 })
 
-await ta('A15：闸门未放行时，绝不调用模型（保守方向）', async () => {
-  const mod = await import('../lib/index.js')
-  const llm = fakeLlm(() => interpreterReply({ sid: SID, mid: MID }))
-  const ctx = fakeCtx({ llm })
-  mod.apply(ctx, {})
-  // 不设闸门 ⇒ 未判定 ⇒ 不启用
-  const gated = fakeSession('session-a15-gated', ctx.projections)
-  emit(ctx, gated, headerEvent())
-  emit(ctx, gated, userEvent(USER_TEXT, 'm-gate'))
-  await settle()
-  eq(llm.calls.length, 0, '未放行时一次模型调用都不能发生')
-  eq(mod.adapter.getIntentText('session-a15-gated'), '', '也不得写入任何包')
-})
+await ta('unmatched API or slash human input cannot claim a prepared packet or rearm it for a late original event', async () => {
+  for (const [name, unrelatedText] of [
+    ['api', 'A separate API client sent this unrelated human request.'],
+    ['slash', '/help show the available commands'],
+  ]) {
+    const h = await wireHost({ sid: 'wire-unmatched-' + name })
+    const runId = 'dsh-po06-prepared-' + name
+    const unrelatedId = 'actual-unrelated-' + name
+    const ready = await h.interpret(runId)
+    eq(ready.status, 200)
+    ok(ready.body.packet.length > 0, 'positive control: packet is ready before the unrelated event')
+    eq((await h.submit(runId, ready.body.packet, 'send', USER_TEXT)).status, 200)
+    const prepared = h.mod.adapter.optimizationRuns.get(h.session.id)
+    eq(prepared.status, 'submitted')
+    eq(prepared.submission.outgoingText, USER_TEXT, 'an explicit original/outgoing message owns the prepared packet')
+    eq(h.mod.adapter.capability.status(h.session.id).current.inputId, runId)
 
-// ── 4a2. EV-0143：控制面板上的"只记录、不补充"必须真的不解释、不调用模型 ──
-// 为什么值得一条测试：界面上的开关如果不改变行为，就是装饰品——用户点成"只记录"，
-// 插件却照样每次调模型、照样注入，而他无从发现。
-await ta('EV-0143：assist=off ⇒ 不调用模型、不写包，台账记 assist-off', async () => {
-  const mod = await import('../lib/index.js')
-  const llm = fakeLlm(() => interpreterReply({ sid: SID, mid: MID }))
-  const ctx = fakeCtx({ llm })
-  mod.apply(ctx, {})
-  const cfgPath = join(TEST_HOME, 'po06.json')
-  const before = existsSync(cfgPath) ? readFileSync(cfgPath, 'utf8') : null
-  // 启用闸门：直接喂一份"我们自己写的"启用配置（闸门读的就是这个文件）
-  writeFileSync(cfgPath, JSON.stringify({ settingsVersion: 1, enabled: true, rollout: { mode: 'all' }, assist: 'off' }), 'utf8')
-  const ledgerPath = join(TEST_HOME, 'po06-wire.jsonl')
-  const ledgerBefore = existsSync(ledgerPath) ? readFileSync(ledgerPath, 'utf8').trim().split('\n').length : 0
-  try {
-    const s = fakeSession('session-ev0143-off', ctx.projections)
-    emit(ctx, s, headerEvent())
-    emit(ctx, s, userEvent(USER_TEXT, 'm-off'))
-    await settle()
-    eq(llm.calls.length, 0, 'assist=off 时**一次模型调用都不能发生**')
-    eq(mod.adapter.getIntentText('session-ev0143-off'), '', '也不得写入任何包')
-    const lines = existsSync(ledgerPath) ? readFileSync(ledgerPath, 'utf8').trim().split('\n').filter(Boolean).map((x) => JSON.parse(x)) : []
-    const fresh = lines.slice(ledgerBefore)
-    const hit = fresh.find((r) => r.reason === 'assist-off')
-    ok(hit, '台账要能归因（否则用户只看到"什么都没发生"）：' + JSON.stringify(fresh.slice(-2)))
-    eq(hit.policy && hit.policy.assist, 'off', '台账里带上生效的政策')
-  } finally {
-    if (before === null) { try { rmSync(cfgPath, { force: true }) } catch { /* best effort */ } } else writeFileSync(cfgPath, before, 'utf8')
+    emit(h.ctx, h.session, { ...userEvent(unrelatedText, unrelatedId), seq: 201 })
+    await flushHostEvents()
+    const cancelled = h.mod.adapter.optimizationRuns.get(h.session.id)
+    eq(cancelled.status, 'cancelled', 'unmatched real input invalidates the pending optimization')
+    eq(cancelled.controller.signal.aborted, true)
+    eq(cancelled.submission, null, 'unmatched input cannot leave a consumable pending packet')
+    eq(cancelled.applied, null, 'unmatched input never claims the prepared submission')
+    eq(cancelled.result, null, 'the rejected packet is invalidated')
+    eq(h.session.appended, [], 'unrelated human input gets no injection-card anchors')
+    eq(h.mod.adapter.getInjection(h.session.id), null, 'unrelated human input gets no injection record')
+    eq(h.context(), '', 'the prepared packet cannot leak into unrelated input context')
+    const unrelatedTask = h.mod.adapter.capability.taskContext(h.session)
+    const unrelatedState = h.mod.adapter.capability.status(h.session.id).current
+    eq(unrelatedTask.currentInputId, unrelatedId, 'unrelated input keeps its actual host identity')
+    eq(unrelatedTask.inputs.filter(input => input.id === unrelatedId).map(input => ({ id: input.id, text: input.text, seq: input.seq })),
+      [{ id: unrelatedId, text: unrelatedText, seq: 201 }], 'the actual unrelated human text remains its task source')
+    eq(unrelatedState.optimizer, null, 'optimizer output is not bound to the unrelated message')
+    eq(unrelatedState.understanding, null, 'the original draft understanding is not assigned to unrelated input')
+
+    const lateId = 'actual-late-original-' + name
+    emit(h.ctx, h.session, { ...userEvent(USER_TEXT, lateId), seq: 202 })
+    emit(h.ctx, h.session, headerEvent())
+    await flushHostEvents()
+    const lateTask = h.mod.adapter.capability.taskContext(h.session)
+    const lateState = h.mod.adapter.capability.status(h.session.id).current
+    eq(lateTask.currentInputId, lateId, 'a late original event is observed as its own actual human input')
+    eq(lateState.optimizer, null, 'matching text arriving late cannot restore cancelled optimizer output')
+    eq(lateState.understanding, null)
+    eq(h.mod.adapter.optimizationRuns.get(h.session.id).status, 'cancelled')
+    eq(h.mod.adapter.optimizationRuns.get(h.session.id).submission, null)
+    eq(h.mod.adapter.optimizationRuns.get(h.session.id).applied, null)
+    eq(h.session.appended, [], 'the late original event cannot claim the cancelled result or create a card')
+    eq((await h.ctx.getApi('/injection?session=' + h.session.id)).body.injection, null)
+    eq((await h.ctx.getApi('/packet?session=' + h.session.id)).body.packet, '')
+    eq(h.context(), '')
+    eq((await h.submit(runId, ready.body.packet, 'send', USER_TEXT)).body.reason, 'optimization-not-ready', 'late acknowledgement cannot rearm the cancelled result')
+    eq(h.llm.calls.length, 1, 'neither unrelated nor late observation reruns the optimizer')
   }
 })
 
-// ── 4a3. EV-0143：控制面板里保存的解释层提示词必须**真的被用上** ──────────
-// 判据：写 `<home>/po06-prompt.md` 之后，下一次解释调用传给模型的 `system` 就是它。
-// 只"能读写文件"不算接通——那正是"看起来生效"的另一种形态。
-await ta('EV-0143：po06-prompt.md 覆盖生效（解释层 system 用它，不是内置常量）', async () => {
-  const mod = await import('../lib/index.js')
-  const llm = fakeLlm(() => interpreterReply({ sid: SID, mid: MID }))
-  const ctx = fakeCtx({ llm })
-  mod.apply(ctx, {})
-  const cfgPath = join(TEST_HOME, 'po06.json')
+await ta('adapter-owned direct runs publish once and reject superseded late computations', async () => {
+  const h = await wireHost({ sid: 'wire-adapter-owner' })
+  const oldResult = deferred()
+  let oldSignal
+  const old = h.mod.adapter.handleInput(h.session, {
+    messageId: 'direct-old', text: USER_TEXT,
+    interpret: async ({ signal }) => { oldSignal = signal; return oldResult.promise },
+  })
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).runId, 'direct-old')
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).status, 'running')
+  eq(h.context(), '', 'direct computation is unpublished until it completes')
+  const fresh = await h.mod.adapter.handleInput(h.session, {
+    messageId: 'direct-new', text: USER_TEXT,
+    interpret: async () => optimizerReply('当前直接调用的唯一方向。'),
+  })
+  eq(oldSignal.aborted, true, 'adapter invalidates the previous owned controller')
+  eq(fresh.ok, true)
+  eq(fresh.status, 'ready')
+  eq(fresh.optimizer.add, ['当前直接调用的唯一方向。'], 'return canonical normalized optimizer result')
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).runId, 'direct-new')
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).result.packet, fresh.packet.text)
+  eq(h.context(), fresh.packet.text, 'direct owner commits the exact computed packet')
+  oldResult.resolve(optimizerReply('旧直接调用的方向。'))
+  const late = await within(old, 'direct late result')
+  eq(late.ok, false)
+  eq(late.packet, null, 'superseded computation cannot return a publishable packet')
+  eq(h.context(), fresh.packet.text)
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).result.packet, fresh.packet.text)
+  eq(h.llm.calls.length, 0, 'injected direct interpreters do not invoke the external model')
+})
+
+await ta('packet submission requires the current run id and rejects stale preview writes', async () => {
+  const h = await wireHost({ sid: 'wire-packet-identity' })
+  const ready = await h.interpret('identity-run')
+  eq(ready.status, 200)
+  const missing = await h.ctx.post('/packet', { sessionId: h.session.id, disposition: 'send', text: 'unowned edit' })
+  eq(missing.status, 400)
+  eq(missing.body.reason, 'run-required')
+  const stale = await h.submit('older-run', 'stale edit')
+  eq(stale.status, 400)
+  eq(stale.body.reason, 'superseded-input')
+  eq(h.mod.adapter.getIntentText(h.session.id), ready.body.packet, 'rejected writes preserve the current packet')
+  eq((await h.submit('identity-run', ready.body.packet)).status, 200, 'correct identity remains usable')
+  eq(h.llm.calls.length, 1)
+})
+
+await ta('newer pre-send run aborts the old owner; late completion cannot overwrite packet, progress or card', async () => {
+  const llm = controlledLlm()
+  const h = await wireHost({ sid: 'wire-superseded', llm })
+  const oldRequest = h.ctx.start('POST', '/interpret', { sessionId: h.session.id, messageId: 'old-run', text: USER_TEXT })
+  const oldCall = await within(llm.waitForCall(0), 'old stream')
+  const newRequest = h.ctx.start('POST', '/interpret', { sessionId: h.session.id, messageId: 'new-run', text: USER_TEXT + '加新边界。' })
+  const newCall = await within(llm.waitForCall(1), 'new stream')
+  eq(oldCall.options.signal.aborted, true, 'superseding aborts the real old stream signal')
+  newCall.complete(optimizerReply('本轮唯一方向：覆盖新边界。'), { usage: 30 })
+  const current = await within(newRequest.promise, 'new completion')
+  eq(current.status, 200)
+  eq(current.body.runId, 'new-run')
+  const progress = (await h.ctx.getApi('/interpret-progress?session=' + h.session.id)).body
+  eq((await h.submit('new-run', current.body.packet, 'send', USER_TEXT + '加新边界。')).status, 200)
+  emit(h.ctx, h.session, { ...userEvent(USER_TEXT + '加新边界。', 'sent-new-run'), seq: 81 })
+  await flushHostEvents()
+  oldCall.complete(optimizerReply('旧方向绝不覆盖当前结果。'), { usage: 99 })
+  const old = await within(oldRequest.promise, 'late old completion')
+  eq(old.body.ok, false, 'late response cannot claim completion')
+  eq(old.body.packet, '')
+  eq(h.mod.adapter.getIntentText(h.session.id), current.body.packet)
+  eq(h.context(), current.body.packet)
+  const after = (await h.ctx.getApi('/interpret-progress?session=' + h.session.id)).body
+  eq(after.runId, progress.runId, 'old progress cannot acquire the new run id')
+  eq(after.usage, progress.usage, 'late old usage cannot overwrite the active run usage')
+  eq((await h.ctx.getApi('/injection?session=' + h.session.id)).body.injection.injected, current.body.packet)
+  eq((await h.submit('old-run', 'late edit')).body.reason, 'superseded-input')
+  eq(llm.calls.length, 2)
+})
+
+await ta('explicit cancel aborts in-flight stream and rejects late result and subsequent submit', async () => {
+  const llm = controlledLlm()
+  const h = await wireHost({ sid: 'wire-cancel', llm })
+  const request = h.ctx.start('POST', '/interpret', { sessionId: h.session.id, messageId: 'cancel-run', text: USER_TEXT })
+  const call = await within(llm.waitForCall(), 'cancel stream')
+  const cancelled = await h.submit('cancel-run', '', 'cancel')
+  eq(cancelled.status, 200)
+  eq(call.options.signal.aborted, true, 'cancel invalidates live AbortController')
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).status, 'cancelled')
+  call.complete(optimizerReply('取消后的方向不得发布。'))
+  const result = await within(request.promise, 'cancel late completion')
+  eq(result.body.ok, false)
+  eq(result.body.packet, '')
+  eq(h.context(), '')
+  eq(h.mod.adapter.getIntentText(h.session.id), '')
+  eq((await h.submit('cancel-run', 'late cancelled packet')).body.reason, 'optimization-not-ready')
+  eq(h.mod.adapter.getInjection(h.session.id), null)
+  eq(llm.calls.length, 1)
+})
+
+await ta('aborted HTTP connection cancels the owner and cannot publish a complete-looking late response', async () => {
+  const llm = controlledLlm()
+  const h = await wireHost({ sid: 'wire-http-abort', llm })
+  const request = h.ctx.start('POST', '/interpret', { sessionId: h.session.id, messageId: 'connection-run', text: USER_TEXT })
+  const call = await within(llm.waitForCall(), 'connection stream')
+  request.req.emit('aborted')
+  eq(call.options.signal.aborted, true)
+  call.complete(optimizerReply())
+  const result = await within(request.promise, 'connection completion')
+  eq(result.status, 499)
+  eq(result.body.reason, 'aborted')
+  eq(h.mod.adapter.getIntentText(h.session.id), '')
+  eq(h.context(), '')
+})
+
+await ta('skip suppresses the entire advisor context without starting an optimizer or creating a card', async () => {
+  const h = await wireHost({ sid: 'wire-skip', policy: { advisor: true } })
+  h.mod.adapter.setIntentText(h.session.id, 'stale packet')
+  h.mod.adapter.noteAdvisorDirective(h.session.id, '既有顾问方向也必须跳过。')
+  ok(h.context().length > 0, 'positive control: packet and advisor workflow are visible before skip')
+  // The skip owns the same id as the preview being rejected.
+  const runId = h.mod.adapter.optimizationRuns.get(h.session.id).runId
+  const skipped = await h.submit(runId, '', 'skip')
+  eq(skipped.status, 200)
+  eq(h.context(), '', 'skip hides packet, advisor workflow, feedback and directives together')
+  emit(h.ctx, h.session, { ...userEvent(USER_TEXT, 'skip-sent'), seq: 91 })
+  emit(h.ctx, h.session, headerEvent())
+  await flushHostEvents()
+  eq(h.context(), '', 'consumed skip remains in force for the current submission')
+  eq(h.llm.calls.length, 0, 'skip and observer cause no model calls')
+  eq(h.session.appended, [], 'no nonempty packet means no card')
+  eq(h.mod.adapter.getInjection(h.session.id), null)
+})
+
+await ta('skip while optimizing aborts the live owner and blocks its late packet', async () => {
+  const llm = controlledLlm()
+  const h = await wireHost({ sid: 'wire-skip-live', llm, policy: { advisor: true } })
+  const request = h.ctx.start('POST', '/interpret', { sessionId: h.session.id, messageId: 'skip-live-run', text: USER_TEXT })
+  const call = await within(llm.waitForCall(), 'skip live stream')
+  eq((await h.submit('skip-live-run', '', 'skip')).status, 200)
+  eq(call.options.signal.aborted, true)
+  emit(h.ctx, h.session, userEvent(USER_TEXT, 'skip-live-sent'))
+  call.complete(optimizerReply())
+  eq((await within(request.promise, 'skip late completion')).body.ok, false)
+  await flushHostEvents()
+  eq(h.context(), '', 'neither late packet nor advisor workflow leaks through skip')
+  eq(h.mod.adapter.getInjection(h.session.id), null)
+  eq(h.session.appended, [])
+  eq(llm.calls.length, 1, 'no extra call after the explicitly skipped in-flight call')
+})
+
+await ta('valid empty v3 result completes and can be submitted once without a card or observer retry', async () => {
+  const llm = fakeLlm(JSON.stringify({ intent: { text: USER_TEXT, relation: 'new' }, add: [], scaffold: [], ask: [] }))
+  const h = await wireHost({ sid: 'wire-empty', llm })
+  const result = await h.interpret('empty-run')
+  eq(result.status, 200)
+  eq(result.body.status, 'empty')
+  eq(result.body.understood, true)
+  eq(result.body.noAddition, true)
+  eq(result.body.runId, 'empty-run')
+  eq(result.body.packet, '')
+  eq(h.mod.adapter.optimizationRuns.get(h.session.id).status, 'empty', 'empty completion is stored before responding')
+  eq((await h.submit('empty-run', '', 'send')).status, 200, 'explicit send of a successful empty result is allowed')
+  emit(h.ctx, h.session, userEvent(USER_TEXT, 'empty-sent'))
+  await flushHostEvents()
+  eq(llm.calls.length, 1)
+  eq(h.context(), '')
+  eq(h.session.appended, [])
+})
+
+await ta('legacy ops and malformed JSON fail visibly with one model call and no compiler packet', async () => {
+  for (const [name, raw] of [['legacy', '{"ops":[]}'], ['malformed', '{"intent": nope']]) {
+    const h = await wireHost({ sid: 'wire-reject-' + name, llm: fakeLlm(raw) })
+    const result = await h.interpret(name + '-run')
+    eq(result.status, 400)
+    eq(result.body.status, 'failed')
+    ok(result.body.reason, 'schema/parser reason remains visible')
+    eq(result.body.packet, '')
+    eq(result.body.usageTotal, 15, 'failed completion still reports real usage')
+    eq(h.llm.calls.length, 1, 'rejection cannot start an alternate interpretation')
+    eq(h.context(), '')
+    eq(h.mod.adapter.optimizationRuns.get(h.session.id).status, 'failed')
+  }
+})
+
+await ta('HTTP completion requires successful finish on both plain and read-tool paths', async () => {
+  for (const toolsEnabled of [false, true]) for (const kind of [null, 'max-tokens', 'error']) {
+    const chunks = [{ type: 'text-delta', text: optimizerReply() }, { type: 'usage', usage: { totalTokens: 17 } }]
+    if (kind) chunks.push(finishChunk(kind))
+    const h = await wireHost({ sid: 'wire-incomplete-' + toolsEnabled + '-' + kind, llm: fakeLlm(chunks), cwd: TEST_HOME, policy: { readTools: toolsEnabled } })
+    const result = await h.interpret('unfinished-run')
+    eq(result.status, 400, 'finish=' + kind + ' tools=' + toolsEnabled + ': ' + JSON.stringify(result.body))
+    eq(result.body.ok, false)
+    eq(result.body.status, 'failed')
+    eq(result.body.packet, '')
+    eq(result.body.usageTotal, 17, 'incomplete stream usage remains accounted')
+    ok(/incomplete|error/.test(result.body.reason), 'concrete unfinished/error reason: ' + result.body.reason)
+    eq(h.llm.calls.length, 1, 'no tool-free retry for unfinished output')
+    eq(!!h.llm.calls[0].tools, toolsEnabled, 'exercise the intended production path')
+    eq(h.context(), '')
+  }
+})
+
+await ta('pre-send gate and assist=off refuse model calls and packet publication', async () => {
+  for (const [name, options] of [['gate', { enabled: false }], ['off', { policy: { assist: 'off' } }]]) {
+    const h = await wireHost({ sid: 'wire-policy-' + name, ...options })
+    const result = await h.interpret('blocked-' + name)
+    eq(result.status, 400)
+    eq(result.body.ok, false)
+    eq(h.llm.calls.length, 0)
+    eq(h.context(), '')
+    eq(h.mod.adapter.getIntentText(h.session.id), '')
+    ok(result.body.reason, 'policy/gate failure remains attributable')
+  }
+})
+
+await ta('saved custom prompt and prior history reach the actual pre-send model request', async () => {
+  const h = await wireHost({ sid: 'wire-custom-prompt' })
   const promptPath = join(TEST_HOME, 'po06-prompt.md')
-  const beforeCfg = existsSync(cfgPath) ? readFileSync(cfgPath, 'utf8') : null
-  const beforePrompt = existsSync(promptPath) ? readFileSync(promptPath, 'utf8') : null
-  writeFileSync(cfgPath, JSON.stringify({ settingsVersion: 1, enabled: true, rollout: { mode: 'all' } }), 'utf8')
-  const MY_PROMPT = '【我的自定义解释层提示词】只输出 JSON，别的都不要。'
-  writeFileSync(promptPath, MY_PROMPT, 'utf8')
+  const prompt = '【自定义优化核心】给出本次任务的制作与自反馈方向。'
+  writeFileSync(promptPath, prompt, 'utf8')
   try {
-    const s = fakeSession('session-ev0143-prompt', ctx.projections)
-    // 闸门放行（与本用例无关；夹具里首次判定会停在 decision-pending，见 4a 那条）
-    mod.adapter.enableGate.set('session-ev0143-prompt', { enabled: true, code: 'test-forced-enabled', reason: '单测放行' })
-    // Supply real prior history; v3 no longer repeats the current message as its own context.
-    emit(ctx, s, { type: 'assistant/message', data: { message: { role: 'assistant', content: [{ type: 'text', text: '此前已讨论 Python 的输出格式。' }] } } })
-    emit(ctx, s, headerEvent())
-    await settle()
-    emit(ctx, s, userEvent(USER_TEXT, 'm-prompt'))
-    await settle()
-    const lp = join(TEST_HOME, 'po06-wire.jsonl')
-    const tail = existsSync(lp) ? readFileSync(lp, 'utf8').trim().split('\n').slice(-3).join(' || ') : '(无台账)'
-    ok(llm.calls.length >= 1, '这次应当真的调用模型（assist 默认 auto）；台账尾部=' + tail)
-    // ⚠ 判据更新（2026-09-22，0.6 的**有意变更**）：0.6 在覆盖提示词之后**追加"会话上下文"段**
-    //   （旁观者视角的那一大段），所以 system 不再**等于**覆盖文件，而是**以覆盖文件开头 + 追加本轮上下文**。
-    //   仍然要钉住原来那条底线：覆盖**真的生效**（system 用的是覆盖文件，而不是内置常量）。
-    ok(llm.calls[0].system.startsWith(MY_PROMPT), '传给模型的 system 必须以覆盖文件里的内容开头')
-    // ⚠ 判据第二次更新（2026-10-06）：会话上下文**不再拼进 system**，而是走**用户消息**
-    //   （buildUserMessage 的 context 参数）。底线不变——**上下文必须真的到达模型**，
-    //   所以这里断言"system 或用户消息里必须有会话上下文段"，而不是钉死它住在哪一侧。
-    //   为什么不能只删掉这条：context 曾经被传进 buildInterpreterSystem 却从未被使用
-    //   （死参数），只靠"函数收到了"是看不出来的，必须查真正发出去的那份请求。
-    const call = llm.calls[0]
-    const payload = JSON.stringify(call.messages || call.user || '')
-    ok(payload.includes('此前已讨论 Python 的输出格式。'), 'actual prior history reaches the model')
-    const input = JSON.parse(call.messages[0].content[0].text)
-    eq(input.originalText, USER_TEXT, 'current source remains complete and separate from history')
-    ok(!llm.calls[0].system.startsWith('你是"意图补全器"'), '不能拿内置常量顶替覆盖文件（那是"看起来生效"）')
-  } finally {
-    if (beforeCfg === null) { try { rmSync(cfgPath, { force: true }) } catch { /* best effort */ } } else writeFileSync(cfgPath, beforeCfg, 'utf8')
-    if (beforePrompt === null) { try { rmSync(promptPath, { force: true }) } catch { /* best effort */ } } else writeFileSync(promptPath, beforePrompt, 'utf8')
-  }
+    emit(h.ctx, h.session, { type: 'assistant/message', data: { message: { role: 'assistant', content: [{ type: 'text', text: '此前已讨论 Python 的输出格式。' }] } } })
+    const result = await h.interpret('prompt-run')
+    eq(result.status, 200)
+    eq(h.llm.calls.length, 1)
+    const actual = h.llm.calls[0]
+    ok(actual.system.startsWith(prompt), 'saved prompt is the actual system core')
+    ok(JSON.stringify(actual.messages).includes('此前已讨论 Python 的输出格式。'), 'real prior history reaches the request')
+    eq(JSON.parse(actual.messages[0].content[0].text).originalText, USER_TEXT, 'source is complete and separate from history')
+  } finally { rmSync(promptPath, { force: true }) }
 })
 
-// ── 4b. EV-0081 反回归：生产路径**不得**往会话日志写任何东西 ──────────
-// 这条是 P0 守卫：宿主遇到不认识的事件类型会**拒绝重建整个会话**，
-// 而插件置不上 `ignorable` 标记。所以"不写日志"必须是可断言的事实，不是靠记得。
-await ta('EV-0081：生产提交**不写会话日志**，状态落在插件自己的存储里（A6）', async () => {
-  const mod = await import('../lib/index.js')
-  const llm = fakeLlm(() => interpreterReply({ sid: SID, mid: MID }))
-  const ctx = fakeCtx({ llm })
-  mod.apply(ctx, {})
-  const sid = 'session-ev0081'
-  SID = sid; MID = 'm-1'
-  mod.adapter.enableGate.set(sid, { enabled: true, code: 'test-forced-enabled', reason: '单测放行' })
-  const sess = fakeSession(sid, ctx.projections)
-  sess.appended = []
-  const origAppend = sess.append
-  sess.append = (type, data) => { sess.appended.push(type); return origAppend(type, data) }
-
-  emit(ctx, sess, headerEvent())
-  emit(ctx, sess, userEvent())
-  await settle()
-
-  eq(sess.appended, [], '**不得**向会话日志追加任何事件（否则宿主会拒绝重建该会话）')
-  const saved = mod.adapter.intentStateOf(sess)
-  ok(saved && saved.revision > 0, '状态必须已经建立')
-
-  // A6：模拟重启——清掉内存后必须能从**磁盘上的插件存储**载回来
-  const before = { revision: saved.revision, items: saved.items.length }
-  mod.adapter.stateBySession.clear()
-  const reloaded = mod.adapter.intentStateOf(sess)
-  ok(reloaded, '重启后必须能从插件自己的存储里载回状态（A6）')
-  eq({ revision: reloaded.revision, items: reloaded.items.length }, before, '载回的状态必须与落盘的一致')
-  ok(existsSync(mod.adapter.stateStore.dir), '存储目录必须存在：' + mod.adapter.stateStore.dir)
+await ta('settings API disable hook clears prepared packet and prevents stale revival on re-enable', async () => {
+  const h = await wireHost({ sid: 'wire-settings-off' })
+  const result = await h.interpret('settings-run')
+  eq(result.status, 200)
+  ok(h.context().length > 0, 'positive control: prepared packet injects')
+  const disabled = await h.ctx.post('/settings', { assist: 'off' })
+  eq(disabled.status, 200)
+  eq(disabled.body.hookError, null, 'actual settings hook succeeds')
+  eq(h.context(), '')
+  eq(h.mod.adapter.getIntentText(h.session.id), '', 'settings hook invalidates the cached packet')
+  eq((await h.ctx.post('/settings', { assist: 'auto' })).status, 200)
+  h.mod.adapter.enableGate.set(h.session.id, { enabled: true, code: 'test-enabled', reason: 'restored' })
+  eq(h.context(), '', 'old prepared packet does not revive after restoring policy')
+  eq(h.llm.calls.length, 1, 'policy changes cannot trigger model work')
 })
 
 // 会话 id 来自宿主，按**不可信输入**处理：白名单字符，杜绝路径穿越。
@@ -701,7 +791,7 @@ t('quarantine 把坏文件改名留证据，而不是让它被覆盖', () => {
 // 否则下游会新建空状态并把坏文件**覆盖掉**——用户的长期约束静默消失、连残骸都没有。
 await ta('状态文件读不出来：隔离留证据 + 记台账，不静默覆盖（EV-0122）', async () => {
   const mod = await import('../lib/index.js')
-  const ctx = fakeCtx({ llm: fakeLlm(() => interpreterReply({ sid: SID, mid: MID })) })
+  const ctx = fakeCtx({ llm: fakeLlm(optimizerReply()) })
   mod.apply(ctx, {})
   const sid = 'session-ev0122'
   const storeDir = join(TEST_HOME, 'po06-state')
@@ -844,10 +934,7 @@ t('lib 里不得写死绝对路径（只允许从 DSH_HOME / 宿主入口派生�
 // 它同时区分两种 `return ''`：**决定**（没有 agent / 闸门未放行）不该记噪声，
 // **意外**（抛错）必须记。
 await ta('EV-0102：context 提供者抛错要留痕；正常放行要返回包；闸门拒绝不记噪声', async () => {
-  const mod = await import('../lib/index.js')
-  const llm = fakeLlm(() => interpreterReply({ sid: SID, mid: MID }))
-  const ctx = fakeCtx({ llm })
-  mod.apply(ctx, {})
+  const { mod, ctx } = await wireHost({ sid: 'wire-provider-setup', policy: { advisor: true } })
   const sp = ctx.ctxRefs.systemPrompt
   ok(sp && sp.contextDefs.length === 1, '必须注册恰好一个 context 定义')
   const provider = sp.contextDefs[0].text
@@ -898,7 +985,7 @@ await ta('EV-0102：context 提供者抛错要留痕；正常放行要返回包�
 // 这条用例把 ① 钉死（② 在下面 setIntentText/清理那条路径上由 clearIntentTexts + 设置钩子覆盖）。
 await ta('档位关闭（assist:off）⇒ context 提供者必须返回空，哪怕闸门放行、缓存里有旧包', async () => {
   const mod = await import('../lib/index.js')
-  const ctx = fakeCtx({ llm: fakeLlm(() => interpreterReply({ sid: SID, mid: MID })) })
+  const ctx = fakeCtx({ llm: fakeLlm(optimizerReply()) })
   mod.apply(ctx, {})
   const sp = ctx.ctxRefs.systemPrompt
   const provider = sp.contextDefs[0].text
@@ -928,32 +1015,6 @@ await ta('档位关闭（assist:off）⇒ context 提供者必须返回空，哪
   ok(provider({ agent: { id: sid } }).includes('旧包'), '档位恢复后照常注入')
 })
 
-t('静态守卫：注入门禁必须同时查 ① 启用闸门 与 ② 档位政策（缺一个就是这次的 bug）', () => {
-  const src = readFileSync(join(HERE, '..', 'lib', 'index.js'), 'utf8')
-  const i = src.indexOf('const pol = adapter.policyNow ? adapter.policyNow(sid) : null')
-  ok(i > 0, 'context 提供者里必须查政策（policyNow）')
-  const around = src.slice(Math.max(0, i - 900), i + 200)
-  ok(/enableGate\.ensure\(sid\)/.test(around), '① 启用闸门仍要在（别把原来的守卫删了）')
-  ok(/injectPacket !== true\) return ''/.test(around), '② 读到"不注入"必须硬短路返回空')
-  ok(/clearIntentTexts\(/.test(src), '关档时要能清掉缓存里的包（clearIntentTexts）')
-  ok(/onSettingsWritten/.test(src), '设置写盘后要有钩子（否则宿主不知道政策变了）')
-})
-
-// ── 3b. ADR-0085：**不给解释层设输出上限**（用户 2026-09-22 原话："不必限制优化 ai 的发挥"）──
-// 用户当时问的是"B 臂是不是限制单次 token"（B 臂其实是**冻结的 0.4.4 对照**，见 ADR-0086）。
-// 核对结果：解释调用本来就没传 `maxTokens`；这条守卫把它钉住——以后谁想"顺手加个上限省点钱"，
-// 必须先过 ADR-0085，而不是悄悄加一行。
-t('ADR-0085：解释调用里不许出现输出上限（maxTokens 一类）', () => {
-  for (const f of ['index.js', 'read-tools.js']) {
-    const s = readFileSync(join(HERE, '..', 'lib', f), 'utf8')
-    const hit = /maxTokens|max_tokens|maxOutputTokens/.exec(s)
-    ok(!hit, f + ' 里出现了输出上限字段「' + (hit ? hit[0] : '') + '」：用户明确要求不限制优化 AI 的发挥（ADR-0085）')
-  }
-  // 反向确认：调用形状确实只传 provider/model/system/messages（工具路径另传 tools/signal）
-  const idx = readFileSync(join(HERE, '..', 'lib', 'index.js'), 'utf8')
-  ok(/llm\.stream\(withSignal\(\{/.test(idx), '解释调用仍走 llm.stream（形状可核）')
-})
-
 // ── 3c. ADR-0087：投递消息**不得**再用被会话格式 v4 拒收的 `kind:'plugin'` ──────────
 // 依据（读的是宿主源码，不是猜）：0.1.7 的 `dsh-session-format-v3-to-v4` 在准入时
 // `if (… || value["kind"] === "plugin") throw new SessionFormatError(
@@ -976,23 +1037,6 @@ t('ADR-0087：投递来源必须是生产者自报的 kind（0.1.7 的 v4 准入
   ok(/form: 'notice'/.test(idx), '`notice` 形态要保留（summary 上限 120 与宿主一致）')
 })
 
-// ── 5. 静态守卫：生产调用点必须在（防"注释与代码一起过期"）────────────
-t('index.js 里存在生产调用点（A15 反回归的静态检查）', () => {
-  const src = readFileSync(join(HERE, '..', 'lib', 'index.js'), 'utf8')
-  ok(/ctx\.on\('session\/event'/.test(src), '必须有 session/event 订阅')
-  ok(/defer\(\(\) => runProductionInput\(/.test(src),
-    '订阅里必须调用 runProductionInput，且**必须经 defer 推迟**')
-  ok(/adapter\.handleInput\(/.test(src), 'runProductionInput 必须调用 adapter.handleInput')
-  ok(/isRealUserInput\(/.test(src), '必须先过滤来源（防自激循环）')
-  // 重入禁令：在 session/event 派发窗口里同步 append 会被宿主拒绝（EV-0080）
-  ok(/function defer\(/.test(src), '必须有 defer 帮助函数')
-  const selfcheckIdx = src.indexOf('if (SELF_CHECK)')
-  const callIdx = src.indexOf('defer(() => runProductionInput(')
-  ok(callIdx > 0, '生产调用点必须存在')
-  ok(selfcheckIdx === -1 || callIdx < selfcheckIdx,
-    '生产调用点必须在自检分支**之外/之前**（否则又变成只有自检才会跑）')
-})
-
 // ── 未接线的完整性校验：**保留但必须显式** ─────────────────────────────
 // 这个用例守的是"看起来有保护、其实没接线"（与 EV-0078 同源）。
 // `lib/bash/runtime-integrity.mjs` 当前没有任何生产调用点：热路径只做 `--version` 探测。
@@ -1011,7 +1055,7 @@ await ta('未接线的完整性校验：保留、写明、并在接线时变红'
 })
 
 console.log(JSON.stringify({
-  suite: 'po06-wire', phase: 'P8-A15',
+  suite: 'po06-wire', phase: 'v3-pre-send',
   total: pass + failures.length, pass, fail: failures.length, failures,
 }, null, 2))
 if (failures.length > 0) process.exit(1)

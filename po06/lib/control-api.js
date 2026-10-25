@@ -575,7 +575,7 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
             }
           } catch { /* 同上 */ }
         }
-        const r = await interpret({ sessionId: String(v.sessionId || ''), text: String(v.text || ''), messageId: v.messageId || null, signal: ac ? ac.signal : null })
+        const r = await interpret({ sessionId: String(v.sessionId || ''), text: String(v.text || ''), messageId: v.messageId || null, generation: Number.isSafeInteger(v.generation) ? v.generation : null, signal: ac ? ac.signal : null })
         if (ac && ac.signal.aborted) {
           // 已经断开 ⇒ 不写、不回包（客户端那边世代号也已作废）
           return send(499, { ok: false, reason: 'aborted', note: '客户端已取消（跳过/取消），这一轮不产出' })
@@ -588,7 +588,7 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
         const progForUsage = (typeof progress === 'function') ? progress(String(v.sessionId || '')) : null
         const usageOut = (progForUsage && progForUsage.usage && typeof progForUsage.usage === 'object') ? progForUsage.usage : null
         return send(out.ok === true ? 200 : 400, {
-          ok: out.ok === true, reason: out.reason || null,
+          ok: out.ok === true, reason: out.reason || null, runId: out.runId || null, status: out.status || null,
           packet: typeof out.packet === 'string' ? out.packet : '',
           // 2026-10-18：第 5 项（注入折叠卡片）的数据出口。真实注入文由 interpret 提供，缺省为 null。
           injected: typeof out.injected === 'string' ? out.injected.slice(0, 4000) : null,
@@ -616,9 +616,9 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
         if (typeof setPacket !== 'function') {
           return send(501, { ok: false, reason: 'not-implemented', note: '本 profile 未接上 pipeline，改包无法生效' })
         }
-        const r = await setPacket({ sessionId: String(v.sessionId || ''), text: String(v.text == null ? '' : v.text) })
+        const r = await setPacket({ sessionId: String(v.sessionId || ''), runId: v.runId || null, generation: Number.isSafeInteger(v.generation) ? v.generation : null, disposition: v.disposition || null, originalText: String(v.originalText || ''), outgoingText: String(v.outgoingText || ''), text: String(v.text == null ? '' : v.text) })
         const out = (r && typeof r === 'object') ? r : { ok: false, reason: 'bad-hook-result' }
-        return send(out.ok === true ? 200 : 400, { ok: out.ok === true, reason: out.reason || null, chars: typeof out.chars === 'number' ? out.chars : 0,packet:typeof out.packet==='string'?out.packet:null })
+        return send(out.ok === true ? 200 : 400, { ok: out.ok === true, reason: out.reason || null, runId: out.runId || null, chars: typeof out.chars === 'number' ? out.chars : 0,packet:typeof out.packet==='string'?out.packet:null })
       }
       if(method==='GET'&&path===API_PREFIX+'/english-input'){const sid=String(query.get('session')||'').trim();if(!sid)return send(400,{ok:false,reason:'session-required'});return send(200,{ok:true,value:typeof englishGet==='function'?englishGet(sid):null})}
       if(method==='GET' && path===API_PREFIX+'/inference-runs'){
@@ -838,9 +838,9 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
           if (typeof rollbackPacket !== 'function') {
             return send(501, { ok: false, reason: 'not-implemented', kind, note: '本 profile 未接上 pipeline，包级回退无法生效' })
           }
-          const r = await rollbackPacket({ sessionId: String((body.value || {}).sessionId || '') })
+          const r = await rollbackPacket({ sessionId: String((body.value || {}).sessionId || ''), runId: (body.value || {}).runId || null })
           const out = (r && typeof r === 'object') ? r : { ok: false, reason: 'bad-hook-result' }
-          return send(out.ok === true ? 200 : 400, { ok: out.ok === true, reason: out.reason || null, chars: out.chars || 0, remaining: out.remaining == null ? null : out.remaining })
+          return send(out.ok === true ? 200 : 400, { ok: out.ok === true, reason: out.reason || null, runId: out.runId || null, packet: typeof out.packet === 'string' ? out.packet : null, chars: out.chars || 0, remaining: out.remaining == null ? null : out.remaining })
         }
         // 条目级回退需要"每条意图的历史版本"，目前没有 —— **如实说没做**，不假装成功
         return send(501, { ok: false, reason: 'not-implemented', kind, note: '条目级回退需要条目级历史（当前只有包级历史），计划在 P9.4 之后（见 po06/P9-UI-PLAN.md）' })

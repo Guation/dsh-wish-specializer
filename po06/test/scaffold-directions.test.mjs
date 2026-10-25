@@ -6,8 +6,6 @@ import { join } from 'node:path'
 import * as protocol from '../lib/optimizer-protocol.js'
 import { adapter as productionAdapter, buildInterpreterProtocol } from '../lib/index.js'
 import { createCapability } from '../lib/capability.js'
-import { createState } from '../lib/schema.js'
-import { reduce, recordUserInput } from '../lib/reducer.js'
 import { policyFor } from '../lib/policy.js'
 import { prepareEnglishInterpretation } from '../lib/english-mode.js'
 
@@ -17,13 +15,8 @@ const question = '更偏向优雅GT还是激进超跑？'
 const value = (over={}) => ({intent:{text:'做一台可预览和驾驶的精细跑车',relation:'new'},add:[production],scaffold:[scaffold],ask:[question],...over})
 const parse = value => protocol.parseOptimizerValue(value,{sessionId:'s',messageId:'m1',baseInputRevision:1,causeId:'interpret:m1'})
 function fixture(capability=createCapability()) {
-  const a=new productionAdapter.constructor();a.capability=capability;a.services.agents={get:()=>({})};a.policyNow=()=>({advisor:false})
-  const states=new Map()
-  a.intentStateOf=s=>states.get(s.id)||null
-  a.initIntent=(s,{taskId})=>{const state=createState({sessionId:s.id,taskId});states.set(s.id,state);return {ok:true,state}}
-  a.commitUserInput=(s,p)=>{const state=recordUserInput(states.get(s.id),p);states.set(s.id,state);return {ok:true,state}}
-  a.commit=(s,p)=>{const r=reduce(states.get(s.id),p);if(r.ok)states.set(s.id,r.state);return r}
-  return a
+   const a=new productionAdapter.constructor();a.capability=capability;a.services.agents={get:()=>({})};a.policyNow=()=>({advisor:false})
+   return a
 }
 
 test('three model-authored lists reach the exact requested sections in the requested order',()=>{
@@ -34,9 +27,9 @@ test('three model-authored lists reach the exact requested sections in the reque
  for(const text of [production,scaffold,question])assert.ok(packet.includes(text))
  assert.match(packet,/请优先考虑/);assert.match(packet,/不自动成为逐条必做的硬性要求/)
  assert.doesNotMatch(packet,/必须先做|临时工具箱|工具信封|stopWhen|inspect|未定时假设/)
- const items=parsed.patch.ops.filter(op=>op.item).map(op=>op.item)
- assert.ok(items.some(item=>item.optimizerSection==='scaffold'&&item.text===scaffold))
- assert.ok(items.every(item=>item.provenance==='machine'&&item.kind!=='user_requirement'))
+ assert.deepEqual(parsed.optimizer.scaffold,[scaffold])
+ assert.equal(parsed.patch,undefined)
+ assert.deepEqual(parsed.support,{mode:'none'})
 })
 
 test('scaffolding is only the model’s explicit list: no keyword-triggered fallback or invented tool',()=>{
@@ -49,27 +42,27 @@ test('scaffolding is only the model’s explicit list: no keyword-triggered fall
  assert.equal(protocol.renderOptimizerPacket(withOldToolbox.optimizer).includes('do everything'),false)
 })
 
-test('only scaffold directions create a real packet and remain model proposals in state',async()=>{
+test('only scaffold directions create a real packet and remain canonical advice',async()=>{
  const a=fixture(),s={id:'scaffold-only'};let calls=0
  const out=await a.handleInput(s,{messageId:'m1',text:'需要改善制作反馈',interpret:async()=>{calls++;return JSON.stringify(value({add:[],scaffold:[scaffold],ask:[]}))}})
  assert.equal(calls,1);assert.equal(out.outcome,'committed');assert.equal(out.zeroAddition,false)
  assert.match(out.packet.text,/【临时脚手架建议】/);assert.doesNotMatch(out.packet.text,/【制作建议】|【Ask用户/)
  assert.equal(out.packet.text,a.getWorkingText(s.id))
- assert.equal(a.intentStateOf(s).items[0].kind,'proposal')
- assert.equal(a.intentStateOf(s).items[0].text,scaffold)
+  assert.equal(out.ok,true);assert.equal(out.status,'ready')
+  assert.deepEqual(out.optimizer.scaffold,[scaffold])
  assert.deepEqual(a.capability.status(s.id).current.optimizer.scaffold,[scaffold])
 })
 
 test('optional malformed scaffold does not destroy production directions or user questions',()=>{
- for(const bad of ['not a list',{command:'run'},['good',{code:'bad'}]]){
-  const p=parse(value({scaffold:bad}));assert.equal(p.ok,true);assert.deepEqual(p.optimizer.scaffold,[])
+ for(const [supplied,expected] of [['single direction',['single direction']],[{command:'run'},[]],[['good',{code:'bad'}],['good']]]){
+  const p=parse(value({scaffold:supplied}));assert.equal(p.ok,true);assert.deepEqual(p.optimizer.scaffold,expected)
   assert.ok(p.warnings.some(x=>x.startsWith('scaffold')))
   const text=protocol.renderOptimizerPacket(p.optimizer);assert.ok(text.includes(production));assert.ok(text.includes(question))
  }
 })
 
 test('questions are sufficient without options; old choices never appear as answers',()=>{
- const text=protocol.renderOptimizerPacket(parse(value({add:[],scaffold:[],ask:['车型气质？'],decide:['场景？｜赛道 / 公路｜未定时假设：赛道']})).optimizer)
+ const text=protocol.renderOptimizerPacket(parse(value({add:[],scaffold:[],ask:['车型气质？'],decide:[{question:'场景？',options:['赛道','公路'],assumption:'赛道'}]})).optimizer)
  assert.match(text,/请调用 ask_user_question，自行组织合适的选项/)
  assert.ok(text.includes('车型气质？'));assert.ok(text.includes('场景？'))
  assert.doesNotMatch(text,/选项：|赛道 \/ 公路|未定时假设|已选：/)
@@ -139,7 +132,8 @@ test('English normalization restores literals in scaffold and questions independ
  assert.deepEqual(normalized.value.scaffold,['Comparable local feedback'])
  assert.equal(normalized.translation.text,request)
  const mixed=prepareEnglishInterpretation({intent:{text:request,relation:'new'},scaffold:['重复中文建议'],englishTask:request},request)
- assert.deepEqual(mixed.value.scaffold,[]);assert.equal(mixed.translation.text,request)
+ assert.deepEqual(mixed.value.scaffold,['重复中文建议']);assert.equal(mixed.translation.text,request)
+ assert.ok(mixed.warnings.some(w=>w.reason==='untranslated-optional-assistance-preserved'))
 })
 
 test('a mismatched closer is repaired structurally and the recovery is recorded',async()=>{

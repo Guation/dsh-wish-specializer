@@ -52,11 +52,14 @@ test('translation uses no tools or new output cap, caches separately, and refuse
  const restored=createEnglishMode({home});assert.equal(restored.get('s').translatedText,'new task')
  }finally{rmSync(home,{recursive:true,force:true})}
 })
-test('submitted English binds the same source task rather than resetting it',()=>{
+test('explicit English submission binds the same source task rather than resetting it',()=>{
  const c=createCapability(),token=c.beginInput('s','po06-intercept-m','不要读取其它文件')
  c.settle('s',token,{understanding:{summary:'Do not read other files',relation:'new',action:'execute'}})
  c.bindTranslation('s','Do not read other files')
- assert.equal(c.observe({id:'s'},{type:'user/message',seq:2,data:{id:'real-m',source:{kind:'user'},content:[{type:'text',text:'Do not read other files'}]}}),'submitted')
+ assert.equal(c.bindSubmitted('s','po06-intercept-m','real-m',2),true)
+ assert.equal(c.observe({id:'s'},{type:'user/message',seq:2,data:{id:'real-m',source:{kind:'user'},content:[{type:'text',text:'Do not read other files'}]}}),'same-input')
+ assert.equal(c.taskContext({id:'s'}).inputs.length,1)
+ assert.equal(c.taskContext({id:'s'}).inputs[0].id,'real-m')
  assert.equal(c.taskContext({id:'s'}).inputs[0].text,'不要读取其它文件')
  assert.match(c.render('s','','','en'),/Current task understanding/)
 })
@@ -374,12 +377,57 @@ test('a pre-flight config failure still exposes attempts instead of a bare TypeE
 
 
 
-test('宿主接线守卫：#33B 的 attempts 台账必须真的写进日志与返回值（只改 english-mode = 台账仍然查不到）',async()=>{
-  const {readFileSync}=await import('node:fs')
-  const source=readFileSync(new URL('../lib/index.js',import.meta.url),'utf8')
-  assert.ok(/const thrownAttempts = Array\.isArray\(e && e\.attempts\)/.test(source),'catch 分支要取 error.attempts')
-  assert.ok(/englishAttempts: thrownAttempts/.test(source),'intercept-threw 要把它写进台账')
-  assert.ok(/const tries=Array\.isArray\(result\.attempts\)/.test(source),'english 失败分支要取 result.attempts')
-  assert.ok(/englishAttempts:tries/.test(source),'english 失败要把它写进台账')
-  assert.ok(/englishAttempts:tries\}:\{\}\)\}\s*\n\s*return \{ok:false,reason:result\.reason/.test(source)||/return \{ok:false,reason:result\.reason[^}]*englishAttempts/.test(source),'返回值里也要带上，否则调用方看不到试了几次')
+test('all-invalid optimizer advice fails before English processing can erase its malformed shape',async()=>{
+ const raw={intent:{text:'A valid intent',relation:'continue'},add:[17,{bogus:1}]};let calls=0
+ const result=await resolveEnglishInterpretation({value:raw,originalText:'A valid intent',service:{translateInterpretation:async()=>{calls++;throw new Error('not needed')}}})
+ assert.equal(result.ok,false);assert.equal(result.status,'failed');assert.equal(result.code,'BAD_OPTIMIZER_SHAPE')
+ assert.equal(result.dropped.length,2);assert.equal(result.warnings.length,2);assert.deepEqual(result.sourceValue,raw)
+ assert.equal(result.postProcessed,false);assert.equal(result.repair,null);assert.equal(calls,0)
+})
+
+test('structured optimizer advice normalizes before English processing and keeps source IDs',()=>{
+ const original='Create a result.'
+ const raw={intent:{text:original,relation:'new'},add:[{id:'a1',text:'Keep comparable feedback.'}],scaffold:[{id:'s1',text:'保留有价值的局部反馈。'}],ask:[{id:'q1',question:'Which setting?'}],hardNote:'贴题的加码。',hardOn:['a1']}
+ const before=structuredClone(raw),result=prepareEnglishInterpretation(raw,original)
+ assert.deepEqual(result.value.add,['Keep comparable feedback.'])
+ assert.deepEqual(result.value.scaffold,['保留有价值的局部反馈。'])
+ assert.deepEqual(result.value.ask,['Which setting?'])
+ assert.deepEqual(result.value.sourceIds,{add:['a1'],scaffold:['s1'],ask:['q1']})
+ assert.deepEqual(result.value.hardOn,['a1']);assert.equal(result.value.hardNote,raw.hardNote)
+ assert.ok(result.warnings.some(w=>w.reason==='untranslated-optional-assistance-preserved'))
+ assert.deepEqual(raw,before)
+})
+
+test('failed optional English repair preserves valid task, useful advice and attempt evidence',async()=>{
+ const raw={intent:{text:'Build an object.',relation:'continue'},add:[{id:'a1',text:'仍然有用的制作方向。'}],scaffold:[{id:'s1',text:'仍然有用的反馈方向。'}],ask:[{id:'q1',question:'Which setting?'}]}
+ const before=structuredClone(raw);let calls=0
+ const attempts=[{attempt:1,ok:false,reason:'unavailable'}]
+ const service={translateInterpretation:async value=>{
+  calls++;assert.deepEqual(value.add,['仍然有用的制作方向。']);assert.deepEqual(value.sourceIds.add,['a1'])
+  throw Object.assign(new Error('english-translation-incomplete'),{attempts})
+ }}
+ const result=await resolveEnglishInterpretation({value:raw,originalText:'Build an object.',service})
+ assert.equal(calls,1);assert.equal(result.translation.text,'Build an object.')
+ assert.equal(result.ok,false);assert.equal(result.status,'failed');assert.equal(result.reason,'english-postprocess-failed')
+ assert.equal(result.postProcessed,false);assert.ok(result.warnings.some(w=>w.reason==='english-postprocess-failed'))
+ assert.deepEqual(result.sourceValue.add,['仍然有用的制作方向。'])
+ assert.deepEqual(result.value.add,['仍然有用的制作方向。']);assert.deepEqual(result.value.scaffold,['仍然有用的反馈方向。'])
+ assert.deepEqual(result.value.sourceIds,{add:['a1'],scaffold:['s1'],ask:['q1']})
+ assert.equal(result.repair.ok,false);assert.deepEqual(result.repair.attempts,attempts);assert.deepEqual(raw,before)
+})
+
+test('batch English repair translates every normalized object field once and retains citations',async()=>{
+ const raw={intent:{text:'Build an object.',relation:'new'},add:[{id:'a1',text:'制作方向。'}],scaffold:[{id:'s1',text:'反馈方向。'}],ask:[{id:'q1',question:'哪种场景？'}],hardNote:'贴题打气。',hardOn:['a1']}
+ const translations={'add[0]':'A coherent result.','scaffold[0]':'Comparable feedback.','ask[0]':'Which setting?','hardNote':'Big energy, same scope.'}
+ let calls=0,fields
+ const llm={stream:options=>{
+  calls++;fields=JSON.parse(options.messages[0].content[0].text).texts.map(row=>row.id)
+  return textThenFinish(JSON.stringify({translations}))
+ }}
+ const result=await resolveEnglishInterpretation({value:raw,originalText:'Build an object.',service:createEnglishMode(),llm,cfg})
+ assert.equal(result.ok,true);assert.equal(result.status,'ready');assert.equal(result.postProcessed,true)
+ assert.equal(calls,1);assert.deepEqual(fields,Object.keys(translations))
+ assert.deepEqual(result.value.add,['A coherent result.']);assert.deepEqual(result.value.scaffold,['Comparable feedback.'])
+ assert.deepEqual(result.value.ask,['Which setting?']);assert.equal(result.value.hardNote,translations.hardNote)
+ assert.deepEqual(result.value.sourceIds,{add:['a1'],scaffold:['s1'],ask:['q1']});assert.deepEqual(result.value.hardOn,['a1'])
 })

@@ -1,8 +1,9 @@
 import {createHash,randomUUID} from 'node:crypto'
 import {mkdirSync,readFileSync,writeFileSync,renameSync,existsSync} from 'node:fs'
 import {join} from 'node:path'
+import {normalizeOptimizerValue,hasOptimizerContent} from './optimizer-protocol.js'
 export const ENGLISH_VERSION='2'
-export const ENGLISH_ASSISTANCE_REVISION='english-multiturn-1'
+export const ENGLISH_ASSISTANCE_REVISION='english-multiturn-2-object-advice'
 /** 英文翻译调用的**总尝试次数上界**（1 = 不重试）。见 englishCompletion。 */
 export const ENGLISH_TRANSLATE_MAX_ATTEMPTS=3
 /** 配平扫描的候选上界：超过即返回 null（响亮降级），病态输入不会退化成无界重扫。 */
@@ -49,10 +50,12 @@ export function validateEnglishExcerpt(source,translation){
  let text=translation;for(const l of p.literals){if(!text.includes(l.value))return false;text=text.replace(l.value,'')}
  return !needsEnglishTranslation(text)
 }
+const normalizeAdvice=value=>value?.intent&&typeof value.intent==='object'?normalizeOptimizerValue(value).value:value
+const assistanceNeedsTranslation=warnings=>warnings.some(w=>w.reason.includes('omitted')||w.reason==='untranslated-optional-assistance-preserved')
 const comparable=v=>String(v).toLowerCase().replace(/\s+/g,' ').trim().replace(/[.!?。]+$/,'')
 /** Validate the outgoing task independently of optional model-generated assistance. */
 export function prepareEnglishInterpretation(value,originalText,prepared=protectEnglishLiterals(originalText),{allowMissingTask=false}={}){
- const output=clone(value),warnings=[]
+ const output=clone(normalizeAdvice(value)),warnings=[],optimizerAdvice=!!output?.intent
  let task=null,translationError=null
  try{task=needsEnglishTranslation(prepared.masked)?restoreEnglishTranslation(prepared,value?.englishTask):{text:String(originalText),protectedCount:prepared.literals.length}}
  catch(e){if(!allowMissingTask)throw e;translationError=String(e.message);warnings.push({field:'englishTask',reason:translationError})}
@@ -66,7 +69,7 @@ export function prepareEnglishInterpretation(value,originalText,prepared=protect
   const protectedText=protectEnglishLiterals(text);let masked=protectedText.masked
   for(const p of pairs)if(p.source&&needsEnglishTranslation(p.source))masked=masked.split(p.source).join(p.english)
   try{const restored=restoreEnglishTranslation(protectedText,masked).text;if(restored!==text)warnings.push({field:path,reason:'source-reference-rendered-in-english'});return restored}
-  catch{warnings.push({field:path,reason:'untranslated-optional-assistance-omitted'});return ''}
+  catch{warnings.push({field:path,reason:optimizerAdvice?'untranslated-optional-assistance-preserved':'untranslated-optional-assistance-omitted'});return optimizerAdvice?text:''}
  }
  // v3 optional assistance is independent from the validated faithful task translation.
  if(output.intent && typeof output.intent === 'object') output.intent.text=prose(output.intent.text,'intent.text')||'The current user input is supplied in English.'
@@ -101,23 +104,35 @@ export function prepareEnglishInterpretation(value,originalText,prepared=protect
 export async function resolveEnglishInterpretation({value,originalText,prepared=protectEnglishLiterals(originalText),service,llm,cfg,signal,onDelta}){
  // ⚠ 后处理**抛错不许拖垮整轮**（GitHub #33 B 段）：解释层的产出已经在手上，后处理只是把它英文化；
  //   处理不动就退回**未经后处理的模型输出**并如实记降级，而不是让 pipeline 记 interpret-threw。
+ const normalization=value?.intent&&typeof value.intent==='object'?normalizeOptimizerValue(value):null
+ const source=normalization?normalization.value:value
+ if(normalization?.dropped.length&&!hasOptimizerContent(source))return {
+  ok:false,status:'failed',code:'BAD_OPTIMIZER_SHAPE',reason:'BAD_OPTIMIZER_SHAPE',value:source,sourceValue:value,
+  warnings:normalization.warnings.map(reason=>({field:'optimizer',reason})),dropped:normalization.dropped,
+  translation:null,repair:null,postProcessed:false,
+ }
  let normalized=null,skipDetail=null
- try{normalized=prepareEnglishInterpretation(value,originalText,prepared,{allowMissingTask:true})}
+ try{normalized=prepareEnglishInterpretation(source,originalText,prepared,{allowMissingTask:true})}
  catch(e){skipDetail=String((e&&e.message)||e).slice(0,200)}
  let repair=null
- if(normalized&&(!normalized.translation||normalized.warnings.some(w=>w.reason.includes('omitted')))){
+ if(normalized&&(!normalized.translation||assistanceNeedsTranslation(normalized.warnings))){
   try{
-   normalized=await service.translateInterpretation(value,originalText,{llm,cfg,signal,onDelta})
+   normalized=await service.translateInterpretation(source,originalText,{llm,cfg,signal,onDelta})
    repair={attempted:true,ok:true,fields:normalized.repairedFields,ms:normalized.ms,usage:normalized.usage||null}
   }catch(e){repair={attempted:true,ok:false,error:String(e.message).slice(0,200),...(Array.isArray(e?.attempts)?{attempts:e.attempts}:{})}}
+ }
+ if(source?.intent&&(!normalized?.translation||assistanceNeedsTranslation(normalized.warnings))){
+  const warnings=[...(normalized?.warnings||[]),{reason:'english-postprocess-failed',...(skipDetail?{detail:skipDetail}:{})}]
+  return {...(normalized||{}),ok:false,status:'failed',reason:'english-postprocess-failed',
+   value:normalized?.value||source,sourceValue:source,translation:normalized?.translation||null,warnings,repair,postProcessed:false}
  }
  if(!normalized||!normalized.translation){
   // englishTask 空/不可用（连修复也没救回保真译文）⇒ 不把「半空字段」当成品发出去：
   // 解释层原样产出的 value 直接交给后续管线，降级如实记成 english-postprocess-skipped。
   const warnings=[...(normalized?.warnings||[]),{reason:'english-postprocess-skipped',field:'englishTask',...(skipDetail?{detail:skipDetail}:{})}]
-  return {value,translation:null,warnings,repair,postProcessed:false}
+  return {value:source,translation:null,warnings,repair,postProcessed:false}
  }
- return {...normalized,repair,postProcessed:true}
+ return {...normalized,ok:true,status:'ready',repair,postProcessed:true}
 }
 
 /** 这一轮**辅助**（优化结果）是否真的生成了：看 pipeline 交付的 packet，而不是看译文有没有回退。 */
@@ -131,7 +146,7 @@ export async function finishEnglishInput({service,token,enabled,produced,transla
  let translation=produced?.englishTranslation
  if(translation?.text)return {ok:true,translation,fallback:false,assistanceAvailable:assistancePresent(produced)}
  // ⚠ 走到这里**不等于辅助没有生成**（2026-10-12 真机）：模型给的 englishTask 可能没过逐字校验
- //   （占位符数量、中文残留都会判失败），而优化结果本身完全有效——pipeline 已经 committed 并写好了辅助。
+ //   （占位符数量、中文残留都会判失败），而优化结果本身仍可能有效，独立保留其 packet。
  //   旧实现两种情形不分，调用方于是把**已经生成好的辅助一起清掉**：界面显示 0 字，提示却说"辅助未生成"。
  const assistanceAvailable=assistancePresent(produced)
  const step=produced?.trace?.find(s=>s.ok===false&&s.step==='interpret')
@@ -335,11 +350,11 @@ export function createEnglishMode({home,namespace='default'}={}){
    if(signal?.aborted||disposed)throw withTranslationAttempts(translationError('english-aborted'),[])
    if(!cfg||!cfg.provider||!cfg.model)throw withTranslationAttempts(translationError('english-model-route-unavailable'),[])
    const original=String(originalText),prepared=protectEnglishLiterals(original)
-   let output;try{output=clone(value)}catch(e){throw withTranslationAttempts(e,[])}
+   let output;try{output=clone(normalizeAdvice(value))}catch(e){throw withTranslationAttempts(e,[])}
    const source=JSON.stringify({original,value}),key=hash(ENGLISH_ASSISTANCE_REVISION+'|'+cfg.provider+'/'+cfg.model+'|'+source),file=directory?join(directory,key+'.json'):null
    let saved=cache.get(key);if(!saved&&file&&existsSync(file))try{saved=JSON.parse(readFileSync(file,'utf8'))}catch{}
    if(saved?.sourceHash===hash(source)){
-    try{const checked=prepareEnglishInterpretation(saved.value,original,prepared);if(!checked.warnings.some(w=>w.reason.includes('omitted')))return {...clone(saved),...checked,cached:true,attempts:[],ms:0,usage:null}}catch{}
+    try{const checked=prepareEnglishInterpretation(saved.value,original,prepared);if(!assistanceNeedsTranslation(checked.warnings))return {...clone(saved),...checked,cached:true,attempts:[],ms:0,usage:null}}catch{}
    }
    const fields=englishAssistanceFields(output).map(field=>({...field,prepared:protectEnglishLiterals(field.source)})).filter(field=>needsEnglishTranslation(field.prepared.masked))
    if(needsEnglishTranslation(prepared.masked)){
@@ -355,7 +370,7 @@ export function createEnglishMode({home,namespace='default'}={}){
      if(!translations||typeof translations!=='object'||Array.isArray(translations)||Object.keys(translations).length!==fields.length||Object.keys(translations).some(id=>!fields.some(field=>field.id===id)))throw new Error('english-assistance-field-mismatch')
      for(const field of fields){const masked=translations[field.id];const restored=restoreEnglishTranslation(field.prepared,masked);field.set(restored.text,masked)}
      const checked=prepareEnglishInterpretation(output,original,prepared)
-     if(checked.warnings.some(w=>w.reason.includes('omitted')))throw new Error('english-assistance-untranslated')
+     if(assistanceNeedsTranslation(checked.warnings))throw new Error('english-assistance-untranslated')
      return checked
     }})
    if(signal?.aborted||disposed)throw withTranslationAttempts(translationError('english-aborted'),completed.attempts)

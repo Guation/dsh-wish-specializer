@@ -24,5 +24,5 @@ test('hard 的骨架文案表与口吻提示存在，neutral 为空', () => {
   assert.equal(framingLabels('neutral'), null)
   assert.ok(framingLabels('hard').header)
   assert.equal(framingToneHint('neutral'), '')
-  assert.ok(framingToneHint('hard').includes('命令式'))
+  assert.ok(framingToneHint('hard').includes('用户选定'))
 })

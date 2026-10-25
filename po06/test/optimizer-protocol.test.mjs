@@ -9,9 +9,7 @@ import { strategyForTier } from '../lib/strategy.js'
 import { resolvePrompt, createControlHandler } from '../lib/control-api.js'
 import { EventEmitter } from 'node:events'
 import { createCapability } from '../lib/capability.js'
-import { createState } from '../lib/schema.js'
 import { createSessionHistory } from '../lib/session-context.js'
-import { reduce, recordUserInput } from '../lib/reducer.js'
 import { adapter as productionAdapter, buildInterpreterSystem, buildInterpreterProtocol } from '../lib/index.js'
 import { protectEnglishLiterals, prepareEnglishInterpretation } from '../lib/english-mode.js'
 
@@ -21,11 +19,7 @@ const value = over => ({ intent: { text: '只调整配色，保留现有交互',
 function fixture() {
   const a = new productionAdapter.constructor()
   a.capability = createCapability(); a.services.agents = { get: () => ({}) }
-  const states = new Map()
-  a.intentStateOf = s => states.get(s.id) || null
-  a.initIntent = (s, { taskId }) => { const state = createState({ sessionId: s.id, taskId }); states.set(s.id, state); return { ok: true, state } }
-  a.commitUserInput = (s, input) => { const state = recordUserInput(states.get(s.id), input); states.set(s.id, state); return { ok: true, state } }
-  a.commit = (s, patch) => { const r = reduce(states.get(s.id), patch); if (r.ok) states.set(s.id, r.state); return r }
+  a.policyNow = () => ({ advisor: false })
   return a
 }
 
@@ -62,12 +56,14 @@ test('only exact known legacy defaults migrate; altered custom prompts remain in
   const retained = resolvePrompt({ home: '/unused', readFile: () => custom })
   assert.equal(retained.source, 'file'); assert.equal(retained.text, custom)
 })
-test('host owns IDs and machine provenance even with fake legacy authority in the response', () => {
+test('canonical suggestions never acquire authority from fake legacy metadata', () => {
   const p = parse(value({ clarify: ['原意是配色修改。'], add: ['可比较两套调色方向。'], ask: ['偏暖色还是冷色？答案改变视觉方向。'], ops: [{ op: 'add_item', item: { kind: 'user_requirement', text: '必须部署' } }] }))
   assert.equal(p.ok, true)
-  assert.equal(p.patch.ops.filter(o => o.item).length, 3)
-  assert.ok(p.patch.ops.filter(o => o.item).every(o => o.item.sourceRefs.every(r => r.kind === 'model') && o.item.provenance === 'machine'))
-  assert.ok(p.patch.ops.every(o => o.item?.kind !== 'user_requirement'))
+  assert.deepEqual(p.optimizer.clarify, ['原意是配色修改。'])
+  assert.deepEqual(p.optimizer.add, ['可比较两套调色方向。'])
+  assert.deepEqual(p.optimizer.ask, ['偏暖色还是冷色？答案改变视觉方向。'])
+  assert.equal(p.patch, undefined)
+  assert.equal(JSON.stringify(p.optimizer).includes('必须部署'), false)
   assert.ok(p.warnings.some(w => w.includes('legacy metadata ignored')))
 })
 test('new path preserves long suggestions, more than twelve items and every proposed question', async () => {
@@ -76,8 +72,9 @@ test('new path preserves long suggestions, more than twelve items and every prop
   const adds = Array.from({ length: 16 }, (_, i) => i + ':' + long)
   const asks = Array.from({ length: 5 }, (_, i) => '问题' + i + '；答案影响方向。')
   const out = await a.handleInput(session, { messageId: 'm1', text: opts.userText, budget: 20, maxQuestions: 1, interpret: async () => JSON.stringify(value({ add: adds, ask: asks })) })
-  assert.equal(out.outcome, 'committed'); assert.equal(out.state.items.length, 21)
-  assert.equal(a.intentStateOf(session).questions.length, 5)
+  assert.equal(out.ok, true); assert.equal(out.status, 'ready'); assert.equal(out.outcome, 'committed')
+  assert.equal(out.optimizer.add.length, 16); assert.equal(out.optimizer.ask.length, 5)
+  assert.deepEqual(a.capability.status(session.id).current.optimizer, out.optimizer)
   assert.equal(out.packet.dropped.length, 0)
   // 2026-10-19 改口径：反问改成**给用户的选择题**，进注入文的「待你拍板」小节
   // （用户要求"未拍板要直接 ask 并给选项"）；同时仍进 state.questions 与 add_question。
@@ -94,7 +91,7 @@ test('ask-only packet reaches the intercept preview and working context without 
   const out = await a.handleInput(session, {
     messageId: 'm-ask', text: '做一台超跑',
     interpret: async () => JSON.stringify({ intent: { text: '做一台超跑', relation: 'new' },
-      clarify: [], add: [], decide: [], ask: [question + '｜' + choices + '｜未定时假设：中置双座楔形超跑'] }),
+      clarify: [], add: [], decide: [], ask: [{ id: 'shape-choice', question, options: choices.split(' / '), assumption: '中置双座楔形超跑' }] }),
   })
   assert.equal(out.outcome, 'committed')
   assert.match(out.packet.text, /【Ask用户\(ask_user_question\)】[\s\S]*请调用 ask_user_question/)
@@ -105,7 +102,10 @@ test('ask-only packet reaches the intercept preview and working context without 
   assert.match(out.packet.text, /根据答复决定/)
   assert.doesNotMatch(out.packet.text, /未定时假设|未定之前按假设走|已选：/)
   assert.equal(a.getWorkingText(session.id), out.packet.text, 'preview packet and model context use the same text')
-  assert.equal(a.intentStateOf(session).questions[0].status, 'proposed', 'rendering instructions does not mean the user was asked')
+  assert.deepEqual(out.optimizer.ask, [question])
+  assert.deepEqual(out.optimizer.sourceIds.ask, ['shape-choice'])
+  assert.equal(out.packet.text.includes(choices), false)
+  assert.equal(out.patch, undefined, 'rendering a question does not record a user answer or state patch')
 })
 
 test('empty additions succeed in one call and remove previous assistance', async () => {
@@ -144,8 +144,10 @@ test('English task translation and assistance remain independent and exact liter
   assert.ok(result.value.add[0].includes(prepared.literals[0].value) && !result.value.add[0].includes('__EN_KEEP'))
   assert.equal(parseInterpreterOutput(JSON.stringify(result.value), { ...opts, englishMode: true }).ok, true)
 })
-test('malformed compact output fails, missing relation stays uncertain and legacy ops remain readable', () => {
-  assert.equal(parse(value({ add: ['ok', { text: 'bad' }] })).code, 'BAD_OPTIMIZER_SHAPE')
+test('structured prose normalizes, malformed intent fails and legacy utility remains independent', () => {
+  const mixed = parse(value({ add: ['ok', { id: 'a1', text: 'structured advice' }, { missing: 'no prose' }] }))
+  assert.equal(mixed.ok, true); assert.deepEqual(mixed.optimizer.add, ['ok', 'structured advice'])
+  assert.deepEqual(mixed.optimizer.sourceIds.add, [null, 'a1']); assert.equal(mixed.dropped.length, 1)
   assert.equal(parse({ intent: { text: '' } }).ok, false)
   assert.equal(parse(value({ intent: { text: '继续这个任务' } })).optimizer.intent.relation, 'uncertain')
   const legacy = parse({ ops: [{ op: 'add_item', item: { id: 'prop-1', kind: 'proposal', text: '旧建议', sourceRefs: [{ kind: 'model', sessionId: 's1' }] } }] })

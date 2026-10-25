@@ -22,7 +22,8 @@ test('en + hard：包头与节标题也是英文', () => {
   assert.equal(/[\u4e00-\u9fff]/.test(Object.values(labels).join(' ')), false, '骨架文案不能夹中文')
 })
 
-test("英文模式下条目全被丢掉 ⇒ 返回空包（不再只剩前言）", () => {
-  const allChinese = { intent: { text: "x", relation: "new" }, add: ["先把着色器锁定"], scaffold: ["固定机位"], ask: [] }
-  assert.equal(renderOptimizerPacket(allChinese, "en", { userText: "x" }), "", "没有条目就不该有壳")
+test('renderer selects English labels without deleting source diagnostics; publication is gated by the English helper', () => {
+  const source = { intent: { text: 'x', relation: 'new' }, add: ['先把着色器锁定'], scaffold: ['固定机位'], ask: [] }
+  const text = renderOptimizerPacket(source, 'en', { framing: 'hard' })
+  assert.ok(text.includes('[What to build]')); assert.ok(text.includes(source.add[0])); assert.ok(text.includes(source.scaffold[0]))
 })

@@ -344,7 +344,7 @@ t('P11 前置拦截：捕获阶段接管、没有放行通道就不拦、失败�
   // 0.8：斜杠命令**默认仍交还官方**，只有名单内且宿主确认已注册的才放行（判定见纯函数那条用例）。
   ok(/if \(t\.startsWith\('\/'\) && !slashAllowedDraft\(t\)\) return 'slash-command'/.test(src), '斜杠命令默认交还官方，名单内已注册的才拦')
   ok(/slashActive/.test(src) && /data\.slashReview/.test(src), '放行名单必须来自宿主 /status.slashReview（不能自己猜命令表）')
-  ok(/if \(!draftNow\(\)\) return 'empty-draft'/.test(src), '空草稿不拦（那时主按钮是"停止生成"）')
+  ok(/if \(!draftNow\(\)\.trim\(\)\) return 'empty-draft'/.test(src), '空草稿不拦（那时主按钮是"停止生成"）')
   // ⑥ 诊断可见：真机上要能分辨"监听器没挂上"与"判定放行了"（两者修法完全不同）
   ok(/data-po06-seen/.test(src) && /data-po06-lastpass/.test(src), '必须暴露"看见几个事件/最后一次为什么放行"')
 })

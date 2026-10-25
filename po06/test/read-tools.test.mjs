@@ -1,20 +1,13 @@
-// P10 · **只读工具路径**的定点核对（`lib/read-tools.js` + `interpretViaLlm` 的工具分支）。
-//
-// 为什么必须新建这个套件（真机 bug，2026-09-24，用户原话："只读工具开启的情况下,拦截UI不会显示思考.
-// 并且no-packet问题,之前似乎只修复了无只读工具模式"）：
-//   ① 工具循环里写了一句 `...(signal ? { signal } : {})`，而 `signal` **从来没在这个作用域里定义过**
-//      ⇒ 建流当场 ReferenceError ⇒ 工具循环**一轮都没跑**（台账 `rounds:0 calls:0
-//      stream-threw:signal is not defined`），全靠无工具回落兜着；
-//   ② 回落那次调用 `plainDrain` 漏了思维流的 sink ⇒ 开着工具时界面**一个字都看不到**。
-//   两处都在"开着工具才走的那条分支"里，而**这条分支此前没有任何测试**——所以它们安静地活了下来。
-// 本套件把这条分支钉住：**一轮真的跑过、信号真的传下去、思维真的到得了界面、回落也不吞思维**。
-//
-// 做法：**桩 llm**（不花钱、不联网）+ 临时目录里的真文件（工具是真执行的，不打桩）。
+// Read-only interpretation uses the real read/glob/grep tools with a fake, network-free LLM.
+// Guard the original failures: the stream signal must reach the host and reasoning must
+// reach the UI. One optimization run owns all tool continuations; invalid output never
+// starts a separate tool-free retry. Both successful and rejected output retain actual usage.
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { runReadOnlyToolLoop, drainWithTools, executeReadOnlyTool, toolResultMessages, assistantToolCallMessage } from '../lib/read-tools.js'
 import { interpretViaLlm } from '../lib/index.js'
+import { handleUserInput } from '../lib/pipeline.js'
 import { loadLlmLib, toolResultShape } from '../lib/llm-lib.js'
 import { fileURLToPath } from 'node:url'
 
@@ -111,40 +104,57 @@ t('工具的思维增量进 sink（开工具时界面才有"思考"可显示）'
   ok(seen.some((d) => typeof d.reasoningChars === 'number'), '每条都要带累计字数（界面按它判断有没有新内容）')
 })
 
-// ── ④ 回落那次调用**也要喂 sink**（真机 bug：开着工具时主路就是回落）──
-t('工具回落（无工具那次）不吞思维：sink 必须一路传下去', async () => {
+// A failed interpretation stays in the same run; the streamed reasoning and usage are retained.
+t('tool prose is rejected by the production parser without a tool-free retry', async () => {
   const root = tmpRoot()
-  // 第一段：工具循环给的是**散文**（不是那份 JSON）⇒ 必然回落；第二段：回落给的也是散文但带思维
   const llm = stubLlm([
-    [textDelta('我看了 note.txt，内容是 hello。'), finish()],
-    [reasonDelta('回落这次也要能被看见'), textDelta('{"ops":[]}'), finish()],
+    [reasonDelta('先检查当前文件的内容'), textDelta('我看了 note.txt，内容是 hello。'), usageChunk(11), finish()],
+    [textDelta('{"intent":{"text":"unused retry"},"add":[],"scaffold":[],"ask":[]}'), usageChunk(99), finish()],
   ])
   const seen = []
   const r = await interpretViaLlm({
     llm, cfg: { provider: 'p', model: 'm' }, userPrompt: 'x',
-    system: 'S+TOOLS', systemNoTools: 'S', tools: { enabled: true, root, count: 2, reason: 'enabled' },
-    onDelta: (d) => seen.push(d),
+    system: 'S+TOOLS', tools: { enabled: true, root, count: 2, reason: 'enabled' },
+    onDelta: delta => seen.push(delta),
   })
-  eq(r.via, 'tools-fallback', '工具产出不是 JSON ⇒ 必须走回落（这条就是开着工具时的主路）')
-  ok(seen.some((d) => String(d.reasoning || '').includes('回落这次也要能被看见')),
-    '回落那次调用的思维必须到 sink，否则界面只有"已用 N 秒"：' + JSON.stringify(seen))
-  ok(llm.calls.length >= 2, '回落确实又调了一次模型（代价要真实发生，不能假装）')
+  eq(r.via, 'tools', 'retain the actual tool-path result')
+  eq(llm.calls.length, 1, 'no alternate no-tools model call is authorized')
+  ok(seen.some(delta => String(delta.reasoning || '').includes('先检查当前文件的内容')), 'reasoning reaches the UI even when parsing fails')
+  eq(r.usage.totalTokens, 11, 'account for the rejected call without invented retry usage')
+  const parsed = await handleUserInput({}, { id: 'tool-prose' }, {
+    messageId: 'prose-run', text: 'x', interpret: async () => { if (r.error) throw new Error(r.error); return r.text },
+  })
+  eq(parsed.ok, false, 'prose cannot become an optimizer packet')
+  eq(parsed.status, 'failed')
+  eq(parsed.packet.text, '')
+  ok(parsed.reason, 'parser failure remains attributable')
 })
 
-// ── ⑤ 工具给的**真是那份 JSON** 时，直接认工具路径（不白跑一次回落）──
-t('工具产出是 JSON ⇒ 走 tools 路径，且带得回工具代价', async () => {
+// Valid v3 JSON after a real read is accepted by the same production parser.
+t('tool JSON produces v3 directions with complete tool usage accounting', async () => {
   const root = tmpRoot()
+  const raw = JSON.stringify({ intent: { text: 'read note.txt', relation: 'new' },
+    add: [{ id: 'add-1', text: '保留 note.txt 的 hello 内容。' }], scaffold: [], ask: [] })
   const llm = stubLlm([
-    [...toolCall('c1', 'read', { path: 'note.txt' }), finish()],
-    [textDelta('{"ops":[{"op":"noop"}]}'), finish()],
+    [...toolCall('c1', 'read', { path: 'note.txt' }), usageChunk(7), finish()],
+    [textDelta(raw), usageChunk(13), finish()],
   ])
   const r = await interpretViaLlm({
     llm, cfg: { provider: 'p', model: 'm' }, userPrompt: 'x',
-    system: 'S+TOOLS', systemNoTools: 'S', tools: { enabled: true, root, count: 2, reason: 'enabled' },
+    system: 'S+TOOLS', tools: { enabled: true, root, count: 2, reason: 'enabled' },
   })
-  eq(r.via, 'tools', '是 JSON 就该认工具路径：' + JSON.stringify({ via: r.via, err: r.error }))
-  eq(r.context.toolCalls, 1, '工具代价要如实带回（真花掉了）')
-  eq(r.context.toolsEnabled, true, '要标明这次开了工具')
+  eq(r.via, 'tools')
+  eq(r.error, null)
+  eq(r.context.toolCalls, 1, 'one real read is recorded')
+  eq(r.context.toolsEnabled, true)
+  eq(r.usage.totalTokens, 20, 'both model rounds count toward real usage')
+  eq(llm.calls.length, 2, 'tool continuation is not a new optimization attempt')
+  const parsed = await handleUserInput({}, { id: 'tool-v3' }, {
+    messageId: 'read-run', text: 'read note.txt', interpret: async () => r.text,
+  })
+  eq(parsed.ok, true)
+  eq(parsed.status, 'ready')
+  ok(parsed.packet.text.includes('保留 note.txt 的 hello 内容。'), 'real direction reaches the packet')
 })
 
 // ── ⑥ 不给 root / 关掉工具时**不许**走工具路径（三重与条件回归）──
@@ -221,26 +231,51 @@ t('只认旧形状的宿主 ⇒ 退回 user + tool-result 块（代次差异只�
 })
 
 
-// ── ⑩ issue #22：工具产出是「JSON + 中间散文 + JSON 尾巴」的混合体时**必须回落** ──
-// 修前判据是 /"ops"\s*:/ 子串命中即接受 ⇒ 接受工具路径产出 ⇒ **跳过回落** ⇒
-// pipeline 取首个 { 到末个 } 去 parse、撞上中间散文 ⇒ BAD_JSON ⇒ 空包 ⇒ 界面「失败：no-packet」。
-// 下面的 mixed 就是那条 issue 里贴的实机形态（合法 JSON 头 + 散文 + JSON 尾巴）。
-t('JSON+散文混合体不得被判为可用 JSON（issue #22：必须回落重跑）', async () => {
-  const NL = String.fromCharCode(10)
+// A recoverable first object is accepted with an explicit warning, without another model call.
+t('mixed output recovers the complete v3 object with a visible warning in the same run', async () => {
   const root = tmpRoot()
-  const mixed = '{"ops":[{"op":"noop"}]}' + NL + NL + '等一下 —— 上面这个 ops 我自查出了问题：中间这段是散文。' + NL + '{"hardNote":"x"}'
+  const head = JSON.stringify({ intent: { text: 'read note.txt', relation: 'new' },
+    add: [{ text: '使用读取到的 hello 内容。' }], scaffold: [], ask: [] })
+  const mixed = head + '\n\n等一下，中间这段是散文。\n' + '{"hardNote":"x"}'
   const llm = stubLlm([
-    [...toolCall('c1', 'read', { path: 'note.txt' }), finish()],
-    [textDelta(mixed), finish()],
-    [textDelta('{"ops":[]}'), finish()],
+    [...toolCall('c1', 'read', { path: 'note.txt' }), usageChunk(5), finish()],
+    [textDelta(mixed), usageChunk(9), finish()],
+    [textDelta('{"intent":{"text":"unused retry"},"add":[],"scaffold":[],"ask":[]}'), usageChunk(99), finish()],
   ])
   const r = await interpretViaLlm({
     llm, cfg: { provider: 'p', model: 'm' }, userPrompt: 'x',
-    system: 'S+TOOLS', systemNoTools: 'S', tools: { enabled: true, root, count: 2, reason: 'enabled' },
+    system: 'S+TOOLS', tools: { enabled: true, root, count: 2, reason: 'enabled' },
   })
-  eq(r.via, 'tools-fallback', '混合体必须回落（修前会被误判成 tools 并跳过回落）：' + JSON.stringify({ via: r.via, err: r.error }))
-  ok(llm.calls.length >= 3, '回落确实又调了一次模型（代价要真实发生）：' + llm.calls.length)
-  ok(String(r.context && r.context.toolLoopError).includes('bad-json'), '错因要能归因到 BAD_JSON：' + JSON.stringify(r.context && r.context.toolLoopError))
+  eq(r.via, 'tools')
+  eq(llm.calls.length, 2, 'read plus final output consume exactly two calls, with no tool-free retry')
+  eq(r.context.toolCalls, 1)
+  eq(r.usage.totalTokens, 14, 'invalid final JSON does not erase usage from either call')
+  const parsed = await handleUserInput({}, { id: 'mixed-tool-output' }, {
+    messageId: 'mixed-run', text: 'x', interpret: async () => { if (r.error) throw new Error(r.error); return r.text },
+  })
+  eq(parsed.ok, true)
+  eq(parsed.status, 'ready')
+  ok(parsed.packet.text.includes('使用读取到的 hello 内容。'), 'recover the real direction from the complete v3 object')
+  ok(parsed.warnings.includes('json-balanced-scan'), 'recovery is explicitly recorded')
+})
+
+t('malformed mixed objects still fail the production parser without retry and retain usage', async () => {
+  const root = tmpRoot()
+  const raw = '{"intent": nope,"add": bad}\n中间散文\n{"hardNote": invalid}'
+  const llm = stubLlm([[textDelta(raw), usageChunk(19), finish()]])
+  const r = await interpretViaLlm({
+    llm, cfg: { provider: 'p', model: 'm' }, userPrompt: 'x', system: 'S+TOOLS',
+    tools: { enabled: true, root, count: 2, reason: 'enabled' },
+  })
+  const parsed = await handleUserInput({}, { id: 'invalid-tool-output' }, {
+    messageId: 'invalid-run', text: 'x', interpret: async () => { if (r.error) throw new Error(r.error); return r.text },
+  })
+  eq(parsed.ok, false)
+  eq(parsed.status, 'failed')
+  eq(parsed.code, 'BAD_JSON')
+  eq(parsed.packet.text, '')
+  eq(llm.calls.length, 1, 'invalid output cannot trigger an alternate model call')
+  eq(r.usage.totalTokens, 19, 'rejected output still has real token cost')
 })
 await Promise.all(pending)
 console.log(JSON.stringify({
