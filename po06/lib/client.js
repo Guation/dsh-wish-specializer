@@ -180,7 +180,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'studio-01'
+    const CLIENT_BUILD = 'ring-02'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -784,7 +784,11 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         boxSizing:'border-box',padding:'7px 0',borderRadius:0,border:'none',borderBottom:'1px solid '+OVS.lineSoft,
         background:'transparent',boxShadow:'none',color:OVS.fg,font:'inherit',fontSize:'12px',cursor:'pointer',
         textAlign:'left',minHeight:'32px',transition:'border-color .15s ease'},
-      pickerText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+      pickerChip: {display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',
+        boxSizing:'border-box',padding:'6px 10px',borderRadius:'9px',border:'1px solid '+OVS.line,
+        background:OVS.bg1,color:OVS.fg,font:'inherit',fontSize:'12.5px',cursor:'pointer',textAlign:'left',
+        minHeight:'34px',transition:'border-color .16s ease,background .16s ease'},
+      pickerText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
       pickerCaret: { flex: '0 0 auto', color: OVS.fg3, fontSize: '9px' },
       // 内联展开（2026-10-19）：菜单跟在触发器下面，不依赖定位/测量，不会被裁掉也不会错位
       pickerMenu: { maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '3px',
@@ -1026,13 +1030,174 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 @keyframes po06-studio-body{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
 @media(max-width:420px){[data-po06="options-pop"].po06-studio{padding:18px 16px 14px}.po06-studio .po06-current-tier{font-size:32px}.po06-studio .po06-feature-grid{gap:12px}.po06-studio .po06-group-body{padding-left:0}}
 @media(prefers-reduced-motion:reduce){[data-po06="options-pop"].po06-studio,[data-po06="options-pop"].po06-studio *{animation:none!important;transition:none!important}}
+/* ===== 优化选项 · 环面板（2026-10-25 移植自 ui-lab/dials/final-07） ===== */
+[data-po06="options-pop"].po06-studio{--t:var(--po06-acc);--ta:34%;--tg:color-mix(in srgb,var(--t) var(--ta),transparent);
+  box-sizing:border-box;padding:0;overflow:hidden;border-radius:18px;container-type:inline-size;
+  font-size:13px;line-height:1.55}
+[data-po06="options-pop"][data-po06-tier=off]{--t:#8b8f98;--ta:20%}
+[data-po06="options-pop"][data-po06-tier=light]{--t:#43c9a4;--ta:32%}
+[data-po06="options-pop"][data-po06-tier=standard]{--t:#5b9bff;--ta:42%}
+[data-po06="options-pop"][data-po06-tier=heavy]{--t:#a970ff;--ta:52%}
+[data-po06="options-pop"][data-po06-theme=light][data-po06-tier=off]{--t:#787d85}
+[data-po06="options-pop"][data-po06-theme=light][data-po06-tier=light]{--t:#13997a;--ta:26%}
+[data-po06="options-pop"][data-po06-theme=light][data-po06-tier=standard]{--t:#2f6fed;--ta:30%}
+[data-po06="options-pop"][data-po06-theme=light][data-po06-tier=heavy]{--t:#7b45e0;--ta:34%}
+
+/* 头部 */
+[data-po06="options-pop"] .po06-studio-header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--po06-line2)}
+[data-po06="options-pop"] .po06-studio-header h2{margin:0;font-size:13.5px;font-weight:650;letter-spacing:0;text-transform:none;color:var(--po06-fg)}
+[data-po06="options-pop"] .po06-save-chip{margin-left:auto;font-size:11px;color:var(--po06-fg3);transition:color .3s;white-space:nowrap}
+[data-po06="options-pop"] .po06-save-chip[data-s=saving]{color:var(--t)}
+[data-po06="options-pop"] .po06-save-chip[data-s=err]{color:#f2545b}
+[data-po06="options-pop"] .po06-close{display:grid;place-items:center;width:26px;height:26px;flex:0 0 26px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--po06-fg3);font:400 18px/1 system-ui;cursor:pointer;transform:none;transition:background .15s,color .15s,transform .18s}
+[data-po06="options-pop"] .po06-close:hover{background:var(--po06-chip);color:var(--po06-fg);transform:rotate(90deg)}
+
+/* 两栏 */
+[data-po06="options-pop"] .po06-body{display:grid;grid-template-columns:330px minmax(0,1fr);flex:1 1 auto;min-height:0;align-content:start;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+[data-po06="options-pop"] .po06-left{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-self:start;gap:16px;padding:22px 18px 18px;border-right:1px solid var(--po06-line2);overflow:hidden}
+[data-po06="options-pop"] .po06-left:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 62% at 50% 0%,var(--t),transparent 72%);opacity:.14}
+[data-po06="options-pop"] .po06-right{display:flex;flex-direction:column;align-self:stretch;gap:15px;padding:18px 20px 16px;min-width:0}
+
+/* 环 */
+[data-po06="options-pop"] .po06-ringbox{position:relative;display:grid;place-items:center;height:250px}
+[data-po06="options-pop"] .po06-ringwrap{position:relative;width:224px;height:224px;touch-action:none;cursor:grab;border-radius:50%;outline:none}
+[data-po06="options-pop"] .po06-ringwrap:active{cursor:grabbing}
+[data-po06="options-pop"] .po06-ringwrap:focus-visible{outline:2px solid var(--t);outline-offset:9px}
+[data-po06="options-pop"] .po06-ringwrap svg{display:block;overflow:visible}
+[data-po06="options-pop"] .po06-arc-bg{fill:none;stroke:var(--po06-line);stroke-width:5;stroke-linecap:round}
+[data-po06="options-pop"] .po06-arc-glow{fill:none;stroke:var(--t);stroke-width:9;stroke-linecap:round;filter:blur(7px);opacity:.42;transition:stroke .5s ease}
+[data-po06="options-pop"] .po06-arc-fg{fill:none;stroke:var(--t);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--tg));transition:stroke .5s ease,stroke-dasharray .4s cubic-bezier(.2,.9,.25,1.06)}
+[data-po06="options-pop"] .po06-arc-hi{fill:none;stroke:color-mix(in srgb,var(--t) 42%,#fff);stroke-width:1.3;stroke-linecap:round;opacity:.32;transition:stroke-dasharray .4s cubic-bezier(.2,.9,.25,1.06),stroke .5s ease}
+[data-po06="options-pop"] .po06-tick{stroke:color-mix(in srgb,var(--t) 26%,var(--po06-line));stroke-width:1.1;stroke-linecap:round;transition:stroke .3s,stroke-width .3s}
+[data-po06="options-pop"] .po06-tick[data-on="1"]{stroke:color-mix(in srgb,var(--t) 85%,#fff);stroke-width:1.7}
+[data-po06="options-pop"] .po06-needle{stroke:var(--t);stroke-width:2;stroke-linecap:round;filter:drop-shadow(0 0 4px var(--tg))}
+[data-po06="options-pop"] .po06-needle-g{transition:transform .1s linear}
+[data-po06="options-pop"] .po06-ringwrap[data-snap="1"] .po06-needle-g{transition:transform .36s cubic-bezier(.2,.9,.25,1.06)}
+[data-po06="options-pop"] .po06-hub{fill:var(--po06-fg);stroke:color-mix(in srgb,var(--t) 70%,transparent);stroke-width:1}
+[data-po06="options-pop"][data-po06-theme=light] .po06-hub{fill:#fff}
+[data-po06="options-pop"] .po06-tip{fill:var(--t)}
+[data-po06="options-pop"] .po06-halo{position:absolute;inset:-10px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,var(--tg),transparent 64%);opacity:.55;animation:po06-halo 3.6s ease-in-out infinite}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-halo,.po06-studio[data-po06-tier=heavy] .po06-halo{animation-duration:2.6s;opacity:.8}
+@keyframes po06-halo{0%,100%{transform:scale(.97);opacity:.45}50%{transform:scale(1.05);opacity:.85}}
+[data-po06="options-pop"] .po06-tlabel{position:absolute;font-size:9.5px;letter-spacing:.04em;color:var(--po06-fg3);white-space:nowrap;pointer-events:none;padding:1px 4px;border-radius:5px;background:color-mix(in srgb,var(--po06-surface) 82%,transparent);transition:color .25s,background .25s}
+[data-po06="options-pop"] .po06-tlabel[data-on="1"]{color:var(--t);font-weight:600;background:color-mix(in srgb,var(--t) 15%,var(--po06-surface))}
+[data-po06="options-pop"] .po06-gapword{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);text-align:center;pointer-events:none}
+[data-po06="options-pop"] .po06-gapword b{display:block;font-size:21px;line-height:1.1;font-weight:650;letter-spacing:-.02em;color:var(--t);text-shadow:0 0 22px var(--tg);transition:color .35s}
+[data-po06="options-pop"] .po06-gapword small{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--po06-fg3)}
+[data-po06="options-pop"] .po06-tier-note{margin:0;font-size:12px;line-height:1.6;color:var(--po06-fg3);text-align:center;min-height:38px}
+
+/* 左栏两个即时开关 */
+[data-po06="options-pop"] .po06-mini{display:flex;flex-direction:column;gap:11px;padding-top:16px;border-top:1px solid var(--po06-line2)}
+[data-po06="options-pop"] .po06-mini-label{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--po06-fg3)}
+[data-po06="options-pop"] .po06-mini-label svg{width:15px;height:15px;opacity:.8}
+
+/* 分段 = 可拖的胶囊 */
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill]{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border:1px solid var(--po06-line2);border-radius:10px;background:var(--po06-chip);isolation:isolate;cursor:grab}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06-dragging="1"]{cursor:grabbing}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill] .po06-pill{position:absolute;top:3px;bottom:3px;z-index:0;border-radius:8px;background:color-mix(in srgb,var(--t) 20%,var(--po06-surface));border:1px solid color-mix(in srgb,var(--t) 44%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--t) 12%,transparent);pointer-events:none;transition:transform .32s cubic-bezier(.2,.9,.25,1.06),background .25s,border-color .25s,box-shadow .3s}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06-dragging="1"] .po06-pill{transition:background .2s,border-color .2s,box-shadow .2s}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill]>button{position:relative;z-index:1;min-height:30px;padding:0 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--po06-fg3);font:inherit;font-size:12.5px;cursor:inherit;transition:color .2s}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill]>button[aria-checked=true]{background:transparent;border-color:transparent;box-shadow:none;color:var(--t);font-weight:600}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06-name=model-state]>button[data-po06=model-state-extreme][aria-checked=true]{color:#ff858b}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06-name=perm]>button[data-po06=perm-auto][aria-checked=true]{color:#ffbe74}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06-value=extreme] .po06-pill{background:color-mix(in srgb,#f2545b 20%,var(--po06-surface));border-color:#f2545b66;box-shadow:0 0 0 3px #f2545b22}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06-name=perm][data-po06-value=auto] .po06-pill{background:color-mix(in srgb,#f2a03c 20%,var(--po06-surface));border-color:#f2a03c66;box-shadow:0 0 0 3px #f2a03c22}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill]>button:disabled{cursor:not-allowed}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06-disabled="1"]{opacity:.4;cursor:not-allowed}
+
+/* 右栏：字段与分组 */
+[data-po06="options-pop"] .po06-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+[data-po06="options-pop"] .po06-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+[data-po06="options-pop"] .po06-field-label{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--po06-fg3)}
+[data-po06="options-pop"] .po06-field-label svg{width:15px;height:15px;opacity:.8}
+[data-po06="options-pop"] .po06-group{display:flex;flex-direction:column;gap:11px;padding-bottom:14px;border-bottom:1px solid var(--po06-line2)}
+[data-po06="options-pop"] .po06-group:last-child{border-bottom:0;padding-bottom:0}
+[data-po06="options-pop"] .po06-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+[data-po06="options-pop"] .po06-row .po06-choices{width:176px;flex:0 0 176px}
+[data-po06="options-pop"] .po06-swgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+
+/* 开关行（StudioToggle / switchRow） */
+[data-po06="options-pop"] .po06-feature-toggle{display:flex;flex-direction:column;gap:2px;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--po06-line2);background:transparent;color:var(--po06-fg);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;transition:color .18s}
+[data-po06="options-pop"] .po06-feature-toggle:hover{color:var(--t)}
+[data-po06="options-pop"] .po06-feature-toggle:disabled{opacity:.45;cursor:not-allowed}
+[data-po06="options-pop"] .po06-feature-top{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+[data-po06="options-pop"] .po06-feature-caption{font-size:10.5px;color:var(--po06-fg3);line-height:1.4}
+[data-po06="options-pop"] .po06-setting-switch{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:32px;padding:9px 0;border:0;border-bottom:1px solid var(--po06-line2);background:transparent;color:var(--po06-fg);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;transition:color .18s}
+[data-po06="options-pop"] .po06-setting-switch:hover{color:var(--t)}
+[data-po06="options-pop"] .po06-setting-switch:disabled{opacity:.45;cursor:not-allowed}
+[data-po06="options-pop"] .po06-switch-mark{position:relative;display:block;flex:0 0 30px;width:30px;height:17px;border:1px solid var(--po06-line);border-radius:10px;background:transparent;transition:background-color .18s,border-color .18s,transform .16s}
+[data-po06="options-pop"] .po06-switch-mark>span{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--po06-fg3);transition:transform .2s cubic-bezier(.2,.9,.25,1.1),background-color .2s}
+[data-po06="options-pop"] [aria-checked=true] .po06-switch-mark{background:var(--t);border-color:var(--t);box-shadow:0 0 12px var(--tg)}
+[data-po06="options-pop"] [aria-checked=true] .po06-switch-mark>span{transform:translateX(13px);background:var(--po06-surface)}
+[data-po06="options-pop"] .po06-feature-toggle:hover .po06-switch-mark,[data-po06="options-pop"] .po06-setting-switch:hover .po06-switch-mark{transform:scale(1.07)}
+
+/* 详情行 */
+[data-po06="options-pop"] .po06-detailrow{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 0 2px;border:0;border-top:1px solid var(--po06-line2);background:transparent;color:var(--po06-fg2);font:inherit;font-size:12.5px;cursor:pointer;transition:color .2s}
+[data-po06="options-pop"] .po06-detailrow:hover{color:var(--t)}
+[data-po06="options-pop"] .po06-detailrow .po06-chev{color:var(--po06-fg3);transition:transform .22s,color .22s}
+[data-po06="options-pop"] .po06-detailrow:hover .po06-chev{transform:translateX(3px);color:var(--t)}
+[data-po06="options-pop"] .po06-state-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:7px}
+
+/* 窄容器：改单列，环缩小 */
+[data-po06="options-pop"] .po06-left-side{display:flex;flex-direction:column;gap:16px;justify-content:space-between;min-width:0}
+
+[data-po06="options-pop"][data-po06-compact="1"] .po06-left{flex-direction:row;align-items:center;justify-content:center;align-self:stretch;gap:14px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-left-side{flex:1 1 auto;gap:10px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-ringbox{height:162px;flex:0 0 146px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-ringwrap{width:138px;height:138px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-ringwrap svg{width:138px;height:138px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-mini{border-top:0;padding-top:0;gap:9px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-mini-label{font-size:11.5px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-tlabel{display:none}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-gapword b{font-size:18px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-tier-note{display:none}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-left{gap:10px;padding:14px 16px 12px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-right{gap:9px;padding:10px 16px 10px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-field{gap:5px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-feature-toggle,[data-po06="options-pop"][data-po06-compact="1"] .po06-setting-switch{padding:6px 0}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-group{padding-bottom:8px;gap:8px}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-gapword small{display:none}
+[data-po06="options-pop"][data-po06-compact="1"] .po06-feature-caption{display:none}
+@container (max-width:620px){
+  [data-po06="options-pop"] .po06-body{grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content}
+  [data-po06="options-pop"] .po06-left{flex-direction:row;align-items:center;justify-content:flex-start;gap:16px;padding:14px 16px;border-right:0;border-bottom:1px solid var(--po06-line2)}
+  [data-po06="options-pop"] .po06-ringbox{height:178px;flex:0 0 168px}
+  [data-po06="options-pop"] .po06-ringwrap{width:156px;height:156px}
+  [data-po06="options-pop"] .po06-ringwrap svg{width:156px;height:156px}
+  [data-po06="options-pop"] .po06-gapword b{font-size:17px}
+  [data-po06="options-pop"] .po06-tlabel{display:none}
+  [data-po06="options-pop"] .po06-left-side{flex:1 1 auto;gap:12px}
+  [data-po06="options-pop"] .po06-tier-note{text-align:left;min-height:0;font-size:11.5px}
+  [data-po06="options-pop"] .po06-mini{border-top:0;padding-top:0}
+  [data-po06="options-pop"] .po06-right{padding:14px 16px 14px}
+}
+@container (max-width:470px){
+  [data-po06="options-pop"] .po06-grid2{grid-template-columns:minmax(0,1fr)}
+  [data-po06="options-pop"] .po06-swgrid{grid-template-columns:minmax(0,1fr)}
+  [data-po06="options-pop"] .po06-row .po06-choices{width:152px;flex:0 0 152px}
+}
+@media (max-height:660px){
+  [data-po06="options-pop"] .po06-left{padding-top:14px;gap:12px}
+  [data-po06="options-pop"] .po06-right{gap:12px;padding-top:14px}
+  [data-po06="options-pop"] .po06-ringbox{height:200px}
+  [data-po06="options-pop"] .po06-ringwrap{width:180px;height:180px}
+  [data-po06="options-pop"] .po06-ringwrap svg{width:180px;height:180px}
+}
+
+[data-po06="options-pop"] .po06-control-row{display:flex;flex-direction:column;gap:7px;min-width:0}
+[data-po06="options-pop"] .po06-control-row>span:first-child{font-size:12px;color:var(--po06-fg3);display:inline-flex;align-items:center;gap:7px}
+[data-po06="options-pop"] [data-po06="effort-state"]{font-size:11px;line-height:1.45;color:var(--po06-fg3);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+@media (prefers-reduced-motion:reduce){
+  [data-po06="options-pop"] *{animation:none!important;transition:none!important}
+}
+
 `
 
     // 下拉改成**独立小滑窗**（2026-10-22 用户要求）：
     // 之前两版都不对——累在面板里会把面板撑长并被面板裁掉；做成 body 浮层又没人管"只能有一个"。
     // 现在：挂在 body 上的一层 fixed 小窗，自己滚动、按视口夹紧、任何时刻只有一个。
     const PICKER_HOSTS = new Set()
-    function Options({ value, onChange, options, labels, disabled, anchor }) {
+    function Options({ value, onChange, options, labels, disabled, anchor, variant }) {
       const [open, setOpen] = React.useState(false)
       const btnRef = React.useRef(null)
       const layerRef = React.useRef(null)
@@ -1150,7 +1315,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           ref: btnRef, type: 'button', 'data-po06': anchor || 'picker-btn',
           'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
           disabled: disabled === true,
-          style: { ...S.picker, ...(open ? { borderColor: OVS.acc } : null), ...(disabled ? S.dis : null) },
+          style: { ...(variant === 'chip' ? S.pickerChip : S.picker), ...(open ? { borderColor: OVS.acc } : null), ...(disabled ? S.dis : null) },
           onClick: () => { if (!disabled) setOpen((v) => !v) },
           onKeyDown,
         },
@@ -1159,10 +1324,118 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     }
 
     // One semantic choice control. Selection never depends on element measurements.
+    const TIER_ARC = { off: 198, light: 66, standard: 132, heavy: 198 }
+    /**
+     * 档位环（2026-10-25 移植自 ui-lab/dials/final-07）。
+     * 拖动时指针线性跟随、松手吸附到最近档位；键盘方向键 / Home / End。
+     * 视觉全部交给 `[data-po06="options-pop"]` 下的样式，颜色取该面板的 `--t`（随档位变）。
+     */
+    function TierRing({ value, disabled, onPick, label, failTick }) {
+      const wrapRef = React.useRef(null)
+      const needleRef = React.useRef(null)
+      const dragRef = React.useRef(null)
+      const [snap, setSnap] = React.useState(true)
+      const [pending, setPending] = React.useState(null)
+      React.useEffect(() => { setPending(null) }, [value, failTick])
+      const shown = pending || value
+      const idx = Math.max(0, TIER_KEYS.indexOf(shown))
+      const angleOf = (i) => -135 + 90 * Math.max(0, Math.min(TIER_KEYS.length - 1, i))
+      const point = (deg, radius) => ({
+        x: +(50 + radius * Math.sin((deg * Math.PI) / 180)).toFixed(2),
+        y: +(50 - radius * Math.cos((deg * Math.PI) / 180)).toFixed(2),
+      })
+      const setNeedle = (deg) => {
+        const g = needleRef.current
+        if (g) g.setAttribute('transform', 'rotate(' + deg + ' 50 50)')
+      }
+      React.useEffect(() => { setNeedle(angleOf(idx)) }, [idx])
+      const angleAt = (e) => {
+        const el = wrapRef.current
+        if (!el || !el.getBoundingClientRect) return angleOf(idx)
+        const r = el.getBoundingClientRect()
+        const cx = r.left + r.width / 2
+        const cy = r.top + r.height / 2
+        return Math.max(-135, Math.min(135, (Math.atan2(e.clientX - cx, cy - e.clientY) * 180) / Math.PI))
+      }
+      const tierAt = (deg) => TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, Math.round((deg + 135) / 90)))]
+      const pick = (key) => { if (key !== shown && !disabled) { setPending(key); onPick(key) } }
+      const onDown = (e) => {
+        if (disabled || (e.button != null && e.button !== 0)) return
+        dragRef.current = e.pointerId
+        setSnap(false)
+        try { e.currentTarget.setPointerCapture?.(e.pointerId) } catch { /* 忽略 */ }
+        const deg = angleAt(e)
+        setNeedle(deg)
+        pick(tierAt(deg))
+      }
+      const onMove = (e) => {
+        if (dragRef.current == null) return
+        const deg = angleAt(e)
+        setNeedle(deg)
+        pick(tierAt(deg))
+      }
+      const onUp = () => { if (dragRef.current == null) return; dragRef.current = null; setSnap(true) }
+      const onKeyDown = (e) => {
+        if (disabled) return
+        let next = null
+        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = idx + 1
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = idx - 1
+        else if (e.key === 'Home') next = 0
+        else if (e.key === 'End') next = TIER_KEYS.length - 1
+        if (next == null) return
+        e.preventDefault()
+        setSnap(true)
+        pick(TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, next))])
+      }
+      const dash = (TIER_ARC[shown] || 198) + ' 264'
+      return h('div', { className: 'po06-ringbox' },
+        h('div', {
+          ref: wrapRef, className: 'po06-ringwrap', role: 'slider', tabIndex: disabled ? -1 : 0,
+          'data-po06': 'tier-ring', 'data-po06-value': shown, 'data-po06-snap': snap ? '1' : '0',
+          'data-po06-name': 'tier',
+          'aria-label': label ? label(shown) : shown, 'aria-valuemin': 0, 'aria-valuemax': TIER_KEYS.length - 1,
+          'aria-valuenow': idx, 'aria-valuetext': label ? label(shown) : shown, 'aria-disabled': disabled ? 'true' : 'false',
+          onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onUp, onKeyDown,
+        },
+          h('div', { className: 'po06-halo', 'aria-hidden': 'true' }),
+          h('svg', { viewBox: '0 0 100 100', width: 224, height: 224, 'aria-hidden': 'true' },
+            h('circle', { className: 'po06-arc-bg', cx: 50, cy: 50, r: 42, 'stroke-dasharray': '198 264', transform: 'rotate(135 50 50)' }),
+            h('circle', { className: 'po06-arc-glow', cx: 50, cy: 50, r: 42, 'stroke-dasharray': dash, transform: 'rotate(135 50 50)' }),
+            h('circle', { className: 'po06-arc-fg', cx: 50, cy: 50, r: 42, 'stroke-dasharray': dash, transform: 'rotate(135 50 50)' }),
+            h('circle', { className: 'po06-arc-hi', cx: 50, cy: 50, r: 42, 'stroke-dasharray': dash, transform: 'rotate(135 50 50)' }),
+            h('g', null, TIER_KEYS.map((key, i) => {
+              const a = point(angleOf(i), 31), b = point(angleOf(i), 27)
+              return h('line', { key, className: 'po06-tick', 'data-on': key === shown ? '1' : '0', x1: a.x, y1: a.y, x2: b.x, y2: b.y })
+            })),
+            h('g', { className: 'po06-needle-g', ref: needleRef },
+              h('line', { className: 'po06-needle', x1: 50, y1: 50, x2: 50, y2: 20 }),
+              h('circle', { className: 'po06-tip', cx: 50, cy: 20, r: 2.6 })),
+            h('circle', { className: 'po06-hub', cx: 50, cy: 50, r: 3.6 })),
+          h('div', { className: 'po06-gapword', 'aria-hidden': 'true' },
+            h('b', null, label ? label(shown) : shown),
+            h('small', null, L('强度', 'Intensity')))),
+        TIER_KEYS.map((key, i) => {
+          const corner = [
+            { left: '2%', bottom: '12%' },
+            { left: '2%', top: '10%' },
+            { right: '2%', top: '10%' },
+            { right: '2%', bottom: '12%' }
+          ][i] || {}
+          return h('span', { key, className: 'po06-tlabel', 'data-on': key === shown ? '1' : '0', style: corner },
+            label ? label(key) : key)
+        }))
+    }
+
     function Segmented({ name, value, options, label, disabled, title, onPick, failTick, variant }) {
       const [pending, setPending] = React.useState(null)
+      // 胶囊变体：滑块位置（0..n-1，拖动时是小数）+ 是否正在拖
+      const [dragPct, setDragPct] = React.useState(null)
+      const groupRef = React.useRef(null)
+      const dragRef = React.useRef(null)
       const shown = pending == null ? value : pending
       React.useEffect(() => { setPending(null) }, [value, failTick])
+      const isPill = variant === 'pill'
+      const shownIndex = Math.max(0, options.indexOf(shown))
       const commit = key => {
         if (disabled || key === shown) return
         setPending(key)
@@ -1179,12 +1452,51 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         commit(options[next])
         event.currentTarget?.querySelectorAll?.('[role="radio"]')[next]?.focus()
       }
+      // 拖动：跟手；跨过中线才翻转（和档位环同一条纪律）
+      const onPointerDown = (event) => {
+        if (disabled || !isPill) return
+        if (event.button != null && event.button !== 0) return
+        dragRef.current = { x: event.clientX, moved: false, id: event.pointerId }
+        try { event.currentTarget.setPointerCapture?.(event.pointerId) } catch { /* 忽略 */ }
+      }
+      const onPointerMove = (event) => {
+        const drag = dragRef.current
+        if (!drag || disabled) return
+        if (!drag.moved) {
+          if (Math.abs(event.clientX - drag.x) < 4) return
+          drag.moved = true
+        }
+        const el = groupRef.current
+        if (!el || !el.getBoundingClientRect) return
+        const r = el.getBoundingClientRect()
+        const inner = Math.max(1, r.width - 6)
+        const t = Math.max(0, Math.min(1, (event.clientX - r.left - 3) / inner))
+        setDragPct(t * (options.length - 1))
+        const next = options[Math.round(t * (options.length - 1))]
+        if (next && next !== shown) commit(next)
+      }
+      const onPointerUp = () => {
+        if (!dragRef.current) return
+        dragRef.current = null
+        setDragPct(null)
+      }
+      const pill = isPill ? h('i', {
+        key: 'pill', className: 'po06-pill', 'aria-hidden': 'true',
+        style: {
+          left: '3px',
+          width: 'calc((100% - 6px - ' + 3 * (options.length - 1) + 'px) / ' + options.length + ')',
+          transform: 'translateX(calc(' + (dragPct == null ? shownIndex : dragPct) + ' * (100% + 3px)))',
+        },
+      }) : null
       return h('div', {
+        ref: groupRef,
         role: 'radiogroup', 'aria-label': title || name, 'aria-disabled': disabled ? 'true' : 'false',
         'data-po06': name, 'data-po06-control': 'choices', 'data-po06-value': shown || 'none',
         'data-po06-variant': variant || 'compact', 'data-po06-disabled': disabled ? '1' : '0',
-        className: 'po06-choices', title, onKeyDown,
-      }, options.map((key, index) => h('button', {
+        'data-po06-dragging': dragPct == null ? '0' : '1',
+        className: 'po06-choices', title,
+        onKeyDown, onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp,
+      }, pill, options.map((key, index) => h('button', {
         key, type: 'button', role: 'radio', 'aria-checked': key === shown,
         tabIndex: disabled ? -1 : key === shown || !options.includes(shown) && index === 0 ? 0 : -1,
         disabled: !!disabled, 'data-po06': name + '-' + key, 'data-po06-on': key === shown ? '1' : '0',
@@ -1298,8 +1610,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           borderRadius: '999px', background: OVS.lineSoft, boxShadow: 'inset 0 1px 2px rgba(0,0,0,.28)' } }),
         h('span', { 'aria-hidden': 'true', 'data-po06': 'ctx-fill', style: { position: 'absolute', left: 0,
           width: (pct * 100) + '%', height: '6px', borderRadius: '999px',
-          background: disabled ? OVS.fg3 : 'linear-gradient(90deg, ' + OVS.acc22 + ', ' + OVS.acc + ')',
-          boxShadow: dragging ? '0 0 10px ' + OVS.acc22 : 'none',
+          background: disabled ? OVS.fg3 : 'linear-gradient(90deg, var(--tg, ' + OVS.acc22 + '), var(--t, ' + OVS.acc + '))',
+          boxShadow: dragging ? '0 0 10px var(--tg, ' + OVS.acc22 + ')' : 'none',
           transition: dragging ? 'none' : 'width .26s cubic-bezier(.22,.8,.24,1)' } }),
         ...[0, 0.5, 1].map((t) => h('span', { key: 'tick' + t, 'aria-hidden': 'true',
           style: { position: 'absolute', left: 'calc(' + (t * 100) + '% - 1px)', top: '50%', marginTop: '-1px',
@@ -1307,7 +1619,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         // 滑块：16px，主题色实心 + surface 描边（压在轨道上边缘才清楚），拖动时放大一点
         h('span', { 'aria-hidden': 'true', 'data-po06': 'ctx-thumb', style: { position: 'absolute',
           left: 'calc(' + (pct * 100) + '% - 8px)', width: '16px', height: '16px', borderRadius: '50%',
-          background: disabled ? OVS.fg3 : OVS.acc, border: '2px solid ' + OVS.surface,
+          background: disabled ? OVS.fg3 : 'var(--t, ' + OVS.acc + ')', border: '2px solid ' + OVS.surface,
           boxShadow: '0 2px 6px rgba(0,0,0,.35)',
           transform: dragging ? 'scale(1.12)' : 'scale(1)',
           transition: dragging ? 'transform .12s ease' : 'left .26s cubic-bezier(.22,.8,.24,1), transform .12s ease' } }))
@@ -3650,6 +3962,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const noEfforts = efforts.length === 0
         const sel = h(Options, {
           anchor: 'effort',
+          variant: 'chip',
           value: curEffort,
           options: ['', ...efforts.map((e) => e.id)],
           labels: effortLabels,
@@ -3709,11 +4022,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (!rect) return
         const vw = window.innerWidth || 800, vh = window.innerHeight || 600
         const region = composerRegion(optBtnRef.current)
-        const width = Math.min(460, Math.max(180, region.w - 16), vw - 24)
+        const width = Math.min(720, Math.max(180, region.w - 16), vw - 24)
         const above = Math.round(rect.top - 16), below = Math.round(vh - rect.bottom - 16)
         const place = above >= below ? 'above' : 'below'
+        const maxH = Math.max(100, Math.min(680, place === 'above' ? above : below))
         setOptPos({left:Math.max(8,Math.min(Math.max(region.left+8,Math.round(rect.left)),region.right-width-8,vw-width-8)),
-          place,width,maxH:Math.max(100,Math.min(720,place==='above'?above:below)),
+          place,width,maxH,compact:maxH<560||width<520,
           ...(place==='above'?{bottom:Math.max(8,Math.round(vh-rect.top+6))}:{top:Math.round(rect.bottom+6)})})
       }, [sessionId])
       React.useEffect(() => {
@@ -3755,7 +4069,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             title:L('审查：确认后发送；自动：优化完成即发送','Review: confirm before sending. Auto: send when optimization completes.'),
             onPick:v=>save({permission:v})})),
         h('div',{className:'po06-pane-row'},h('span',null,L('模型','Model')),
-          h(Options,{anchor:'model',value:curKey,options:['inherit',...routes.map(mkey)],
+          h(Options,{anchor:'model',variant:'chip',value:curKey,options:['inherit',...routes.map(mkey)],
             labels:(()=>{const labels={inherit:L('跟随会话模型','Follow session model')};routes.forEach(route=>{labels[mkey(route)]=route.label||(route.provider+' / '+route.model)});return labels})(),
             onChange:value=>{if(value==='inherit'){save({model:null});return}const route=routes.find(item=>mkey(item)===value);if(route)save({model:{provider:route.provider,model:route.model}})}})),
         effortRow)
@@ -3849,7 +4163,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           // ── 第二行 = **弹出面板**（点「优化选项」才展开）：设定类 + 范围类都收在这里 ──────
           //    只有打开时才渲染 ⇒ 关闭时控件栏就是**一行**（用户要的"更简洁"）。
           optExit.mounted ? h('div', { 'data-po06': 'bar-row-2', style: { position: 'relative' } },
-            h('div', { ...themeAttrs(), 'data-po06': 'options-pop', 'data-po06-build': CLIENT_BUILD, 'data-po06-closing': optExit.closing ? '1' : '0',
+            h('div', { ...themeAttrs(), 'data-po06': 'options-pop', 'data-po06-tier': tier, 'data-po06-compact': optPos && optPos.compact ? '1' : '0', 'data-po06-build': CLIENT_BUILD, 'data-po06-closing': optExit.closing ? '1' : '0',
               // ⚠ 坐标**必须真的用上**：`S.optPop` 是 `position: fixed`，而 fixed 元素在没给
               //   `left/top/bottom` 时会退回到"流里的位置"——实测就是**看不见任何弹窗**
               //   （用户 2026-09-22："点击优化选项没有任何弹窗出现"）。
@@ -3862,37 +4176,68 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                     ...(optPos.place === 'below' ? { top: optPos.top + 'px' } : { bottom: optPos.bottom + 'px' }),
                     ...(optPos.width ? { width: optPos.width + 'px' } : null),
                     ...(optPos.maxH ? { maxHeight: optPos.maxH + 'px' } : null) }
-                : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(460, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
+                : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(720, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
               h('header',{className:'po06-studio-header'},
-                h('div',null,h('h2',{id:'po06-options-title-'+sessionId},L('优化选项','Options'))),
+                h('h2',{id:'po06-options-title-'+sessionId},L('优化选项','Options')),
+                h('span',{className:'po06-save-chip',role:'status','aria-live':'polite',
+                  'data-s':busy?'saving':msg?.kind==='err'?'err':'idle'},
+                  busy?L('保存中…','Saving…'):msg?.kind==='err'?L('保存失败','Save failed'):L('自动保存','Autosaved')),
                 h('button',{type:'button','data-po06':'options-close',className:'po06-close',
                   'aria-label':L('关闭优化选项','Close options'),
                   onClick:()=>{setOptOpen(false);optBtnRef.current?.focus?.()}},'×')),
-              h('div',{className:'po06-desk'},
-                h('nav',{className:'po06-desk-nav',role:'tablist','aria-label':L('设置分区','Sections')},
-                  SECTION_IDS.map((id,index)=>h('button',{key:id,type:'button',role:'tab',
-                    'aria-selected':activeSection===id,'data-po06':'nav-'+id,'data-po06-active':activeSection===id?'1':'0',
-                    className:'po06-desk-tab',onClick:()=>setOptSection(id),
-                    onKeyDown:event=>{const step=event.key==='ArrowDown'||event.key==='ArrowRight'?1:event.key==='ArrowUp'||event.key==='ArrowLeft'?-1:0
-                      if(!step)return;event.preventDefault()
-                      const next=SECTION_IDS[(index+step+SECTION_IDS.length)%SECTION_IDS.length]
-                      setOptSection(next);event.currentTarget.parentElement?.querySelector('[data-po06=nav-'+next+']')?.focus()}},
-                    h('span',{className:'po06-desk-tab-label'},SECTION_LABELS[index][0]),
-                    h('span',{className:'po06-desk-tab-meta'},SECTION_LABELS[index][1])))),
-                h('div',{className:'po06-desk-pane',role:'tabpanel'},
-                  activeSection==='intensity'?intensityPane:null,
-                  activeSection==='model'?modelPane:null,
-                  activeSection==='context'?contextPane:null,
-                  activeSection==='tools'?toolsPane:null)),
-
-              h('footer',{className:'po06-options-footer'},
-                h('button',{type:'button','data-po06':'detail','data-po06-open':open?'1':'0',className:'po06-details-link',
-                  title:L('详情：状态与解释层提示词','Details: status and optimizer prompt'),
-                  onClick:()=>{setOpen(value=>!value);setOptOpen(false)}},
-                  h('span',{'data-po06':'state-dot','data-po06-value':statusLabel,style:S.dot(on)}),
-                  h('span', {}, L('详情', 'Details')),h('span',{'aria-hidden':'true'},'↗')),
-                h('span',{className:'po06-save-status',role:'status','aria-live':'polite'},
-                  busy?L('保存中…','Saving…'):msg?.kind==='err'?L('保存失败','Save failed'):L('自动保存','Autosaved'))),
+              h('div',{className:'po06-body'},
+                h('div',{className:'po06-left'},
+                  h(TierRing,{value:tier,disabled:false,failTick,label:tierLabel,
+                    onPick:v=>save({bySession:replaceTier(v)})}),
+                  h('div',{className:'po06-left-side'},
+                  h('p',{className:'po06-tier-note'},tierNote),
+                  h('div',{className:'po06-mini'},
+                    h('span',{className:'po06-mini-label'},...withIcon('◐',L('模型状态','Model state'))),
+                    h(Segmented,{name:'model-state',variant:'pill',value:modelState,options:['normal','extreme'],failTick,
+                      label:k=>k==='extreme'?L('极限','Extreme'):L('正常','Normal'),
+                      title:L('正常：不添加压力测试说明；极限：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
+                      onPick:v=>save({bySession:withSession({modelState:v})})}),
+                    h('span',{className:'po06-mini-label'},...withIcon('⛨',L('权限','Permission'))),
+                    h(Segmented,{name:'perm',variant:'pill',value:permission,options:['review','auto'],failTick,disabled:tierOff&&!englishOn,
+                      label:k=>k==='review'?L('审查','Review'):L('自动','Auto'),
+                      title:L('审查：确认后发送；自动：优化完成即发送','Review: confirm before sending. Auto: send when optimization completes.'),
+                      onPick:v=>save({permission:v})})))),
+                h('div',{className:'po06-right'},
+                  h('div',{className:'po06-grid2'},
+                    h('div',{className:'po06-field'},
+                      h('span',{className:'po06-field-label'},...withIcon('▤',L('模型','Model'))),
+                      h(Options,{anchor:'model',variant:'chip',value:curKey,options:['inherit',...routes.map(mkey)],
+                        labels:(()=>{const labels={inherit:L('跟随会话模型','Follow session model')};routes.forEach(route=>{labels[mkey(route)]=route.label||(route.provider+' / '+route.model)});return labels})(),
+                        onChange:value=>{if(value==='inherit'){save({model:null});return}const route=routes.find(item=>mkey(item)===value);if(route)save({model:{provider:route.provider,model:route.model}})}})),
+                    effortRow),
+                  h('div',{className:'po06-group'},
+                    h('div',{className:'po06-row'},
+                      h('span',{className:'po06-field-label'},...withIcon('≡',L('上下文','Context'))),
+                      h(Segmented,{name:'ctx-mode',variant:'pill',value:historyMode,options:['turns','full'],disabled:tierOff,failTick,
+                        label:k=>k==='full'?L('全文','Full'):L('回合','Turns'),
+                        title:L('回合：最近几轮；全文：当前保留的所有回合','Turns: recent turns. Full: all currently retained turns.'),
+                        onPick:value=>{if(!tierOff)save({historyMode:value})}})),
+                    historyMode==='full'
+                      ? h('p',{'data-po06':'ctx-hint',className:'po06-feature-caption'},L('读入当前保留的全部回合。','Read all turns currently retained.'))
+                      : h('div',{className:'po06-turns-editor'},
+                        h('div',{className:'po06-turns-heading'},h('span',null,L('回合数','Turns')),h('span',{'data-po06':'ctx-num'},String(turns))),
+                        h(TurnsRange,{value:turns,disabled:tierOff,failTick,disabledTip:L('档位已关闭','Optimizer is off'),
+                          title:L('上下文：0–10 回合，方向键调整','Context: 0–10 turns; adjust with arrow keys'),onCommit:n=>save({turns:n})}))),
+                  h('div',{className:'po06-group'},
+                    h('div',{className:'po06-swgrid'},
+                      h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick,compact:true}),
+                      h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick,compact:true}),
+                      switchRow('readtools',readTools,rtKnown,L('只读工具','Read-only tools'),L('读取项目文件后再补充建议','Read project files before preparing advice'),()=>save({readTools:!readTools})),
+                      switchRow('bash',bashOn,bashKnown,L('内置 Bash','Built-in Bash'),L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),()=>save({bash:!bashOn})),
+                      switchRow('double-enter',doubleEnterSkip,desKnown,L('双击 Enter 跳过','Double Enter to skip'),L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),()=>save({doubleEnterSkip:!doubleEnterSkip})))),
+                  h('button',{type:'button','data-po06':'detail','data-po06-open':open?'1':'0',className:'po06-detailrow',
+                    title:L('详情：状态与解释层提示词','Details: status and optimizer prompt'),
+                    onClick:()=>{setOpen(value=>!value);setOptOpen(false)}},
+                    h('span',null,
+                      h('span',{'data-po06':'state-dot','data-po06-value':statusLabel,className:'po06-state-dot',style:S.dot(on)}),
+                      L('详情','Details'),
+                      h('span',{style:{color:'var(--po06-fg3)',fontSize:'11px',marginLeft:'6px'}},L('状态与提示词','Status & prompt'))),
+                    h('span',{'aria-hidden':'true',className:'po06-chev'},'›'))))
             ),
           ) : null,
         ),
@@ -5097,7 +5442,7 @@ const react = require("react")
         locale: () => LOCALE,
         detectLocale,
         // 主题调色板（单测拿它算对比度：浅色模式"看不清"这类问题要能被机器挡住，不能只靠肉眼）
-        AdvisorControls,EnglishControls,outgoingUserText,injectionCardModel, InjectIcon, Segmented, InferenceControls, InferenceMonitor, InferenceEvidenceDetails, InferenceRecordedPlan, inferenceStageLabel, inferencePaceLabel, InterceptPanel, InterceptDraftBody, interceptDraftOutput, advisorValueOf, advisorArgsOf, advisorDraftReply, advisorProgressPct, AdvisorToolRow, AdvisorMaterials, useAdvisorRun, slashReviewAllowed, usageText, normalizeUsage,
+        AdvisorControls,EnglishControls,outgoingUserText,injectionCardModel, InjectIcon, Segmented, TierRing, InferenceControls, InferenceMonitor, InferenceEvidenceDetails, InferenceRecordedPlan, inferenceStageLabel, inferencePaceLabel, InterceptPanel, InterceptDraftBody, interceptDraftOutput, advisorValueOf, advisorArgsOf, advisorDraftReply, advisorProgressPct, AdvisorToolRow, AdvisorMaterials, useAdvisorRun, slashReviewAllowed, usageText, normalizeUsage,
         overlayZIndex: OV_Z,
         composerRegion, clampOvPos, clampOvSize, defaultOvPos, defaultBallPos,
         ovReflowWatch, ovReflowAll, EDITABLE_SEL,

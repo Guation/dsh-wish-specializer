@@ -9,7 +9,8 @@ function radio() {
   const win={__ModuleLoader__:{load(def){win.registration=def}}}
   const react={createElement:(type,props,...children)=>({type,props:props||{},children}),
     useState(initial){const i=cursor++;hooks[i]??={value:initial};return [hooks[i].value,value=>{hooks[i].value=value}]},
-    useEffect(fn,deps){const i=cursor++;if(!hooks[i]||deps.some((d,n)=>d!==hooks[i].deps[n])){hooks[i]={deps};effects.push(fn)}}}
+    useEffect(fn,deps){const i=cursor++;if(!hooks[i]||deps.some((d,n)=>d!==hooks[i].deps[n])){hooks[i]={deps};effects.push(fn)}},
+    useRef(initial){const i=cursor++;hooks[i]??={ref:{current:initial}};return hooks[i].ref}}
   runInNewContext(readFileSync(new URL('../lib/client.js',import.meta.url),'utf8'),{window:win,document:{},console,URL})
   const client=win.registration.factory(()=>react)
   client.apply({slots:{register:()=>()=>{},inject:(_,fn)=>fn()}})

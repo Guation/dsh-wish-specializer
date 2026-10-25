@@ -29,10 +29,9 @@ test('界面：快捷键收在工具组，保存只改快捷键设置', async t 
   const ui=loadHoldClient();t.after(()=>ui.close());const bar=ui.mount('shortcut-session')
   await ui.flush()
   bar.find(node=>node.props?.['data-po06']==='options-btn').props.onClick();await ui.flush()
-  assert.equal(bar.find(node=>node.props?.['data-po06']==='double-enter'),null,'低频开关默认收起')
-  bar.find(node=>node.props?.['data-po06']==='nav-tools').props.onClick();await ui.flush()
+  // 2026-10-25：面板不再分页，所有开关同屏可见（低频开关不再单独收起）。
   const control=bar.find(node=>node.props?.['data-po06']==='double-enter')
-  assert.ok(control);assert.equal(control.props.role,'switch')
+  assert.ok(control,'双击跳过与其他开关同屏');assert.equal(control.props.role,'switch')
   assert.ok(bar.find(node=>node.props?.['data-po06']==='bash'))
   assert.ok(bar.find(node=>node.props?.['data-po06']==='detail'))
   assert.equal(control.props['aria-checked'],false)

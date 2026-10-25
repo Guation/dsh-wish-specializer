@@ -22,7 +22,6 @@ test('options omit the removed tone selector while English and advisor remain ex
     sessionEffective: { advisor: true, englishMode: true, framing: 'hard' }, english: { ready: true } })
   await ui.flush()
   await options(ui, bar)
-  bar.find(node => node.props?.['data-po06'] === 'nav-tools').props.onClick(); await ui.flush()
   assert.equal(bar.find(node => node.props?.name === 'framing' || node.props?.['data-po06'] === 'framing'), null)
   assert.equal(bar.find(node => node.children?.some(child => typeof child === 'string' && /^(Tone|协作基调|硬邦邦|Hard|Plain)$/.test(child))), null)
   for (const [name, component] of [['advisor', ui.mod.__debug.AdvisorControls], ['english-mode', ui.mod.__debug.EnglishControls]]) {
@@ -52,7 +51,7 @@ test('changing a session tier drops legacy tone and stale expanded tier values b
     } }, sessionEffective: { advisor: false, ...independent }, sessionDescribed: { tier: 'light' }, english: { ready: true } })
   await ui.flush()
   await options(ui, bar)
-  const tier = bar.find(node => node.props?.name === 'tier')
+  const tier = bar.find(node => node.type === ui.mod.__debug.TierRing)
   assert.ok(tier)
   await tier.props.onPick('heavy')
   await ui.flush()
@@ -81,22 +80,14 @@ test('control plane unavailable still sends the original text (real fail-open)',
   assert.equal(ui.submissions[0].commit, undefined, 'no packet is claimed when the backend is down')
 })
 
-test('the section desk shows one group at a time without writing settings', async t => {
+test('the panel shows every section on one view without writing settings', async t => {
   const ui=loadHoldClient();t.after(()=>ui.close());const bar=ui.mount('a')
   await ui.flush();await options(ui,bar)
-  const tab=id=>bar.find(n=>n.props?.['data-po06']==='nav-'+id)
-  const pane=()=>bar.find(n=>n.props?.className==='po06-desk-pane')
-  assert.equal(tab('intensity').props['aria-selected'],true,'opens on intensity')
-  assert.equal(bar.find(n=>n.props?.anchor==='model'),null,'other sections stay out of the tree')
-  tab('model').props.onClick();await ui.flush()
-  assert.equal(tab('model').props['aria-selected'],true)
-  assert.equal(tab('intensity').props['aria-selected'],false)
-  assert.ok(bar.find(n=>n.props?.anchor==='model'),'only the chosen pane renders')
-  assert.equal(bar.find(n=>n.props?.['data-po06']==='tier'),null)
-  tab('tools').props.onClick();await ui.flush()
-  assert.ok(bar.find(n=>n.props?.['data-po06']==='readtools'))
-  assert.equal(bar.find(n=>n.props?.anchor==='model'),null)
-  assert.ok(pane())
+  assert.ok(bar.find(n=>n.type===ui.mod.__debug.TierRing),'tier ring renders')
+  assert.ok(bar.find(n=>n.props?.anchor==='model'),'model picker shares the same view')
+  assert.ok(bar.find(n=>n.props?.['data-po06']==='readtools'),'switches share the same view')
+  assert.ok(bar.find(n=>n.props?.name==='ctx-mode'),'context mode shares the same view')
+  assert.equal(bar.find(n=>n.props?.['data-po06']==='nav-tools'),null,'no section tabs remain')
   assert.equal(ui.pending('/settings').length,0)
   assert.equal(ui.submissions.length,0)
 })
@@ -106,7 +97,6 @@ test('compact toggles retain global advisor and per-session English save scopes'
   ui.completeStatus(undefined,{settings:{permission:'auto',advisor:true,presetNoticeDismissed:true,bySession:{a:{tier:'heavy',modelState:'extreme'}}},
     sessionEffective:{advisor:true,englishMode:false,modelState:'extreme'},sessionDescribed:{tier:'heavy'},english:{ready:true}})
   await ui.flush();await options(ui,bar)
-  bar.find(n=>n.props?.['data-po06']==='nav-tools').props.onClick();await ui.flush()
   for(const [component,expected]of [[ui.mod.__debug.AdvisorControls,{advisor:false}],[ui.mod.__debug.EnglishControls,{bySession:{a:{tier:'heavy',modelState:'extreme',englishMode:true}}}]]){
     const node=bar.find(n=>n.type===component),compact=component(node.props),toggle=compact.type(compact.props)
     toggle.props.onClick();await ui.flush()

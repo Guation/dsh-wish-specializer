@@ -147,7 +147,7 @@ t('界面锚点：关键节点带 data-po06 标记（真机验证靠它，不靠
   // （判据钉"有没有这个板块/组件"，不钉字面量——注释里提它的来历是允许的。）
   ok(!/S\.h \}, '它在替我做什么'/.test(src), '详情面板里不得再有"它在替我做什么"板块')
   ok(!/h\(ItemsList/.test(src), 'ItemsList 已删（不留死代码）')
-  ok(/h\('span', \{\}, L\('详情', 'Details'\)\)/.test(src), '入口按钮文字必须是「详情」')
+  ok(/'data-po06':'detail'/.test(src) && /L\('详情',\s*'Details'\)/.test(src), '入口按钮文字必须是「详情」')
   ok(hasAnchor('state-dot'), '「详情」必须保留灰绿状态灯（state-dot）')
   // 2026-10-19：上下文重做——模式用分段控件（ctx-mode），回合数用自绘滑杆（ctx）。
   // 旧断言钉的是"一个 range 伪装两种模式"，那正是这次要拆掉的东西。
@@ -159,7 +159,7 @@ t('界面锚点：关键节点带 data-po06 标记（真机验证靠它，不靠
   ok(/flexDirection: 'column'/.test(src), '控件栏外层必须竖排两层（否则会被发送按钮顶上去）')
   // 分段控件的标记是**拼出来的**：静态源码里是 `name`，运行期 DOM 上是
   // tier / tier-off / tier-light / tier-standard / tier-heavy 与 perm / perm-review / perm-auto。
-  ok(/name:\s*'tier'/.test(src), '档位分段控件必须叫 tier（DOM 上是 tier / tier-<值>）')
+  ok(/data-po06': 'tier-ring'/.test(src), '档位控件必须是可拖的环（DOM 上是 tier-ring）')
   ok(/name:\s*'perm'/.test(src), '优化权限分段控件必须叫 perm（DOM 上是 perm / perm-<值>）')
   ok(/'data-po06':\s*name\s*\+\s*'-'\s*\+\s*k/.test(src), '分段项必须是 name + "-" + 值（tier-off 这类）')
 })
