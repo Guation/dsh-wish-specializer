@@ -948,8 +948,24 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         const requestRecord = { capabilityCount: Array.isArray(caps) ? caps.length : 0, capabilitySample: Array.isArray(caps) ? caps.slice(0, 8) : [], protocolVersion: protocol.version, promptRevision: protocol.revision, source: protocol.source, tier: protocol.tier, language: protocol.language, parts: protocol.parts, systemText: sys, systemChars: sys.length, userPromptChars: um.length, outputBudgetTokens: budgetTokens, inputId: mid, at: Date.now(), toolsEnabled: tools.enabled, effort: cfg.reasoningEffort || null, provider: cfg.provider, model: cfg.model }
         optimizerRequests.set(sessionId, requestRecord)
         while (optimizerRequests.size > 200) optimizerRequests.delete(optimizerRequests.keys().next().value)
-        const r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null, englishMode: pol.englishMode, sessionId })
-        timings.modelMs = r.ms
+        // 生成边界上的**唯一**重试：传输层中断（连接被对端掐断，未产出可用内容）。
+        // 这不是语义重试——不重放解析、不补占位，只是把同一次请求在断线后重发一次；
+        // 最多一次，且用户已取消或运行已作废时绝不重试。
+        const attempts = []
+        let r = null
+        for (let attempt = 1; ; attempt += 1) {
+          const startedAt = Date.now()
+          r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null, englishMode: pol.englishMode, sessionId })
+          attempts.push({ attempt, ms: Date.now() - startedAt, error: r.error || null })
+          const transport = /TRANSPORT|transport failed/i.test(String(r.error || ''))
+          const live = !message.signal?.aborted && (!message.run || adapter.optimizationRuns.isCurrent(message.run))
+          if (!transport || attempt >= 2 || !live) break
+          timings.transportRetries = attempt
+          progressSet(sid, { stage: 'interpret', startedAt: t0, retrying: true })
+          appendWireLog({ sessionId: String(sessionId), trigger: 'optimizer-transport-retry', ok: false, attempt, ms: attempts.at(-1).ms })
+        }
+        timings.modelMs = attempts.reduce((sum, row) => sum + row.ms, 0)
+        timings.modelAttempts = attempts
         if (message.run && !adapter.optimizationRuns.isCurrent(message.run)) throw new Error('aborted')
         if (optimizerRequests.get(sessionId) === requestRecord) {
           requestRecord.ms = r.ms
@@ -2345,7 +2361,7 @@ let syncAdvisorToolsRef=null
       try {
         adapter.controlApiDisposer = registerControlApi({ webServer: scope.webServer }, {
           home: DSH_HOME, version: PKG_VERSION, now: () => Date.now(),
-           capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url,pipelineRevision:'single-run-1',optimization:sid ? (()=>{const run=adapter.optimizationRuns.get(sid);return run?{runId:run.runId,generation:run.generation,status:run.status,packetChars:adapter.optimizationRuns.packet(sid).length}:null})() : null}),
+           capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url,pipelineRevision:'single-run-1',features:['transport-retry'],optimization:sid ? (()=>{const run=adapter.optimizationRuns.get(sid);return run?{runId:run.runId,generation:run.generation,status:run.status,packetChars:adapter.optimizationRuns.packet(sid).length}:null})() : null}),
            optimizerStatus: sid => sid ? optimizerRequests.get(String(sid)) || null : null,
           // P11：前置拦截的按需解释（客户端拦下发送后调它；失败即由客户端按原文放行）
           interpret: (p) => runInterceptInput(ctx, p),

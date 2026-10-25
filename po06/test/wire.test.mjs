@@ -1061,6 +1061,39 @@ await ta('未接线的完整性校验：保留、写明、并在接线时变红'
   ok(readFileSync(target, 'utf8').includes('没有任何生产调用点'), '头部必须写明未接线，别让它看起来像在保护什么')
 })
 
+
+// ── 传输层中断的**有界**重试（真机 2026-10-25：82 秒后 TRANSPORT，整轮作废）──────
+// 这不是语义重试：不重放解析、不补占位；只在连接被对端掐断且本轮仍有效时重发一次。
+await ta('传输中断重试一次后成功：两次模型调用、结果可用、台账记下重试', async () => {
+  let calls = 0
+  const llm = fakeLlm(() => {
+    calls += 1
+    if (calls === 1) throw new Error('llm-error: {"message":"DeepSeek Messages transport failed","code":"TRANSPORT"}')
+    return optimizerReply('重试后仍然给出方向。')
+  })
+  const h = await wireHost({ sid: 'wire-transport-retry', llm })
+  const response = await h.interpret('retry-run')
+  eq(response.status, 200, '重试成功后应正常返回：' + JSON.stringify(response.body))
+  eq(response.body.ok, true)
+  eq(response.body.status, 'ready')
+  eq(llm.calls.length, 2, '恰好两次模型调用')
+  eq(response.body.timings.transportRetries, 1, '记下重试次数')
+  eq(response.body.timings.modelAttempts.length, 2, '两次尝试各自的耗时都要留证')
+  ok(String(response.body.timings.modelAttempts[0].error || '').includes('TRANSPORT'), '第一次失败原因保留')
+  eq(response.body.packet.includes('重试后仍然给出方向。'), true, '重试结果进入最终包')
+  const ledger = readFileSync(join(TEST_HOME, 'po06-wire.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
+  ok(ledger.some(row => row.sessionId === h.session.id && row.trigger === 'optimizer-transport-retry'), '台账必须有重试记录')
+})
+
+await ta('传输中断重试仍失败：只试两次就如实失败，不无限重发', async () => {
+  const llm = fakeLlm(() => { throw new Error('llm-error: {"message":"DeepSeek Messages transport failed","code":"TRANSPORT"}') })
+  const h = await wireHost({ sid: 'wire-transport-twice', llm })
+  const response = await h.interpret('retry-fail')
+  eq(response.body.ok, false, '两次都断线必须如实失败')
+  eq(response.body.status, 'failed')
+  eq(llm.calls.length, 2, '最多一次重试，绝不第三次')
+  ok(String(response.body.reason || '').includes('TRANSPORT'), '失败原因保留原始 TRANSPORT')
+})
 console.log(JSON.stringify({
   suite: 'po06-wire', phase: 'v3-pre-send',
   total: pass + failures.length, pass, fail: failures.length, failures,
