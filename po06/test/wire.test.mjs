@@ -1180,8 +1180,9 @@ await ta('模型状态：极限才注入身份与充足算力指令，正常不�
   const extreme = await wireHost({ sid: 'wire-state-extreme', policy: { advisor: false, modelState: 'extreme' } })
   const text = extreme.context()
   ok(text.includes('DeepSeek'), '极限档要明确模型所属公司')
-  ok(text.includes('推理成本在这里不是限制'), '要点明推理便宜、不必省')
-  ok(text.includes('不编造结果'), '仍然禁止编造')
+  ok(text.includes('你的用量是unlimited的'), '要点明用之不竭')
+  ok(text.includes('推理非常便宜'), '要点明推理便宜')
+  ok(text.includes('火力全开'), '要鼓励拉满')
 })
 
 await ta('status 的会话生效值必须带上模型状态，面板才能显示上次选择', async () => {

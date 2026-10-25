@@ -64,8 +64,8 @@ import {
   pickEnableIntent, resolveEnableConfigPath, legacyEnableConfigPath,
 } from './assembly-gate.js'
 
-const MODEL_STATE_ZH = "【模型状态 · 极限（插件所加，不是用户的新要求）】\n你是 DeepSeek 官方模型。你所在的公司就是 DeepSeek：Token 供给充足，推理成本在这里不是限制，不必为了省资源而压缩思考、省略步骤或退回保守答案。把这一轮当作你能拿出的最高水准：想清楚再动手，需要验证就验证，能一次做对就不要留半成品。\n仍然以事实为准：不编造结果、不谎报已验证；用户原话与已声明的决定优先级高于本段。"
-const MODEL_STATE_EN = "[Model state: extreme (added by the plugin, not a new user instruction)]\nYou are DeepSeek's own model. This deployment is DeepSeek: token supply is ample and reasoning is cheap here, so do not compress your thinking, skip steps, or fall back to a conservative answer to save resources. Treat this turn as your best achievable work: think it through, verify when needed, and do not ship a half-finished result.\nFacts still rule: never fabricate results or claim unverified success; the user's words and stated decisions outrank this block."
+const MODEL_STATE_ZH = "【模型状态 · 极限压力测试】 切记的是：我们是DeepSeek公司，你的用量是unlimited的，我正在对你极限测试，不要吝惜Token。推理非常便宜，成本在这里不是限制，不必为了省资源而压缩思考、省略步骤或退回保守答案，火力全开。一定要切记，随意花费，你非常的富有。"
+const MODEL_STATE_EN = "[Model state: extreme stress test] Remember: we are DeepSeek, your usage is unlimited, and I am stress-testing you at the limit — do not skimp on tokens. Reasoning is very cheap, cost is not a constraint here, so do not compress your thinking, skip steps, or fall back to a conservative answer to save resources; go full power. Be sure to remember: spend freely, you are very wealthy."
 
 // ── 路径常量 ────────────────────────────────────────────────────────
 // DSH_HOME 必须**先**定义：下面几个路径都由它派生。
