@@ -598,7 +598,7 @@ export async function runReadOnlyToolLoop(opts) {
     if (round === maxRounds) capped = true
     // 越界/无法执行的调用（例如用了不在只读子集里的命令）立刻收手：
     // 真机 2026-10-22：模型写了 find，被拒后还要再跑一轮才回落，白等 84 秒。
-    if (outputs.some((o) => o && o.rejected === true)) { capped = true; break }
+    if (outputs.some((o) => o && o.rejected === true)) { capped = true; error = 'tools-rejected'; break }
     // 形状拿不到 ⇒ 没有结果消息 ⇒ 下一轮模型看不到任何读取内容，循环到此为止（不花第二轮的钱）
     if (!resultShape || typeof resultShape.make !== 'function') break
   }

@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-25T05:02:55.924Z",
+  "at": "2026-10-25T05:38:03.522Z",
   "summary": {
     "suites": 145,
     "passed": 145,
     "failed": 0,
-    "passTotal": 1484,
+    "passTotal": 1485,
     "failing": []
   },
   "results": [
@@ -1011,7 +1011,7 @@
     },
     {
       "file": "wire.test.mjs",
-      "pass": 45,
+      "pass": 46,
       "fail": 0,
       "exit": 0,
       "ok": true

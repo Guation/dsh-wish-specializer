@@ -1094,6 +1094,40 @@ await ta('传输中断重试仍失败：只试两次就如实失败，不无限�
   eq(llm.calls.length, 2, '最多一次重试，绝不第三次')
   ok(String(response.body.reason || '').includes('TRANSPORT'), '失败原因保留原始 TRANSPORT')
 })
+
+// ── 工具轮次收不了尾 ⇒ 退回无工具一次（真机 2026-10-25：两次 optimizer-incomplete:tool-calls）
+await ta('模型只要工具时退回无工具一次，最终仍产出可用包', async () => {
+  let calls = 0
+  const llm = {
+    calls: [],
+    stream(options) {
+      calls += 1; this.calls.push(options)
+      const index = calls
+      return (async function* () {
+        if (index === 1) {
+          yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: 'c1', name: 'bash', arguments: JSON.stringify({ command: 'find .' }) } }
+          yield { type: 'finish', finish: { kind: 'tool-calls' } }
+          return
+        }
+        yield { type: 'text-delta', text: optimizerReply('退回无工具后仍然给出方向。') }
+        yield { type: 'usage', usage: { totalTokens: 12 } }
+        yield finishChunk('stop')
+      })()
+    },
+  }
+  const root = join(TEST_HOME, 'empty-root'); mkdirSync(root, { recursive: true })
+  const h = await wireHost({ sid: 'wire-tools-fallback', llm, policy: { readTools: true }, cwd: root })
+  const response = await within(h.interpret('tools-fallback-run'), 'tools fallback')
+  eq(response.body.ok, true, '工具轮次收不了尾必须退回无工具，而不是判失败：' + JSON.stringify(response.body))
+  eq(response.body.status, 'ready')
+  eq(llm.calls.length, 2, '恰好两次模型调用')
+  eq(response.body.timings.toolsFallback, true, '记下工具退回')
+  eq(response.body.timings.modelAttempts[0].tools, true)
+  eq(response.body.timings.modelAttempts[1].tools, false, '第二次必须不带工具')
+  eq(String(response.body.packet || '').includes('退回无工具后仍然给出方向。'), true)
+  const ledger = readFileSync(join(TEST_HOME, 'po06-wire.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
+  ok(ledger.some(row => row.sessionId === h.session.id && row.trigger === 'optimizer-tools-fallback'), '台账记录工具退回')
+})
 console.log(JSON.stringify({
   suite: 'po06-wire', phase: 'v3-pre-send',
   total: pass + failures.length, pass, fail: failures.length, failures,

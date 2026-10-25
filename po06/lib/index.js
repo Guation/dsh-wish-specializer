@@ -951,12 +951,28 @@ async function runProductionInput(ctx, session, message, { trigger = 'user-messa
         // 最多一次，且用户已取消或运行已作废时绝不重试。
         const attempts = []
         let r = null
+        let toolsNow = tools
         for (let attempt = 1; ; attempt += 1) {
           const startedAt = Date.now()
-          r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools, onDelta, signal: message.signal || null, englishMode: pol.englishMode, sessionId })
-          attempts.push({ attempt, ms: Date.now() - startedAt, error: r.error || null })
+          r = await interpretViaLlm({ llm, cfg, userPrompt: um, system: sys, systemNoTools: sysNoTools, tools: toolsNow, onDelta, signal: message.signal || null, englishMode: pol.englishMode, sessionId })
+          attempts.push({ attempt, ms: Date.now() - startedAt, error: r.error || null, tools: toolsNow.enabled === true })
           const transport = /TRANSPORT|transport failed/i.test(String(r.error || ''))
           const live = !message.signal?.aborted && (!message.run || adapter.optimizationRuns.isCurrent(message.run))
+          // 工具轮次没产出可用正文（模型只要工具、loop 收不了尾）⇒ 本轮**退回无工具**再生成一次。
+          // 这不是语义重试：只去掉可选工具，让同一轮拿到可解析的最终 JSON；最多一次。
+          const finishKind = typeof r.finish === 'object' ? r.finish?.kind : r.finish
+          // 两种"工具轮次收不了尾"：显式错误（拒绝/解析），或流以 tool-calls 结束但没有可用正文。
+          const toolStall = toolsNow.enabled === true && attempt < 2 && !transport && (
+            /optimizer-incomplete:tool-calls|tools-rejected/.test(String(r.error || '')) ||
+            (!r.error && ['tool-calls', 'tool_calls'].includes(String(finishKind || '')))
+          )
+          if (toolStall && live) {
+            timings.toolsFallback = true
+            progressSet(sid, { stage: 'interpret', startedAt: t0, retrying: true })
+            appendWireLog({ sessionId: String(sessionId), trigger: 'optimizer-tools-fallback', ok: false, attempt, ms: attempts.at(-1).ms, reason: String(r.error) })
+            toolsNow = { ...toolsNow, enabled: false }
+            continue
+          }
           if (!transport || attempt >= 2 || !live) break
           timings.transportRetries = attempt
           progressSet(sid, { stage: 'interpret', startedAt: t0, retrying: true })
@@ -2359,7 +2375,7 @@ let syncAdvisorToolsRef=null
       try {
         adapter.controlApiDisposer = registerControlApi({ webServer: scope.webServer }, {
           home: DSH_HOME, version: PKG_VERSION, now: () => Date.now(),
-           capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url,pipelineRevision:'single-run-1',features:['transport-retry'],optimization:sid ? (()=>{const run=adapter.optimizationRuns.get(sid);return run?{runId:run.runId,generation:run.generation,status:run.status,packetChars:adapter.optimizationRuns.packet(sid).length}:null})() : null}),
+           capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url,pipelineRevision:'single-run-1',features:['transport-retry','tools-fallback'],optimization:sid ? (()=>{const run=adapter.optimizationRuns.get(sid);return run?{runId:run.runId,generation:run.generation,status:run.status,packetChars:adapter.optimizationRuns.packet(sid).length}:null})() : null}),
            optimizerStatus: sid => sid ? optimizerRequests.get(String(sid)) || null : null,
           // P11：前置拦截的按需解释（客户端拦下发送后调它；失败即由客户端按原文放行）
           interpret: (p) => runInterceptInput(ctx, p),
