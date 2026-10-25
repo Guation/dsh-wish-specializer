@@ -201,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-03'
+    const CLIENT_BUILD = 'ring-05'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1087,6 +1087,37 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06-tier=standard]{--fx:.58}
 [data-po06-tier=light]{--fx:.28}
 [data-po06-tier=off]{--fx:0}
+/* ---- 外圈短弧闪电 ---- */
+[data-po06="options-pop"] .po06-fil{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 0 4px var(--t))}
+[data-po06="options-pop"] .po06-fil path{fill:none;stroke:var(--t);stroke-width:1.1;stroke-linecap:round;opacity:0;animation:po06-flick var(--beat) steps(1,end) infinite}
+[data-po06="options-pop"] .po06-fil path:nth-child(2){animation-delay:calc(var(--beat) * .03)}
+[data-po06="options-pop"] .po06-fil path:nth-child(3){animation-delay:calc(var(--beat) * .07)}
+[data-po06="options-pop"] .po06-fil path:nth-child(4){animation-delay:calc(var(--beat) * .1)}
+@keyframes po06-flick{0%,56%{opacity:0}58%{opacity:calc(.95 * var(--fx))}62%{opacity:calc(.2 * var(--fx))}66%{opacity:calc(.85 * var(--fx))}72%{opacity:calc(.25 * var(--fx))}78%{opacity:calc(.6 * var(--fx))}100%{opacity:0}}
+[data-po06="options-pop"][data-po06-tier=off] .po06-fil{display:none}
+/* ---- 贴弧光晕：不要那团凸起 ---- */
+[data-po06="options-pop"] .po06-halo{display:none}
+[data-po06="options-pop"] .po06-arc-glow{stroke-width:10;filter:blur(6px)}
+/* ---- 换挡爆闪 ---- */
+[data-po06="options-pop"] .po06-kickwrap{position:absolute;inset:0;pointer-events:none}
+[data-po06="options-pop"] .po06-kickwrap i{position:absolute;inset:0;border-radius:50%;border:1.4px solid color-mix(in srgb,var(--t) 78%,#fff);opacity:0}
+[data-po06="options-pop"][data-kick="1"] .po06-kickwrap i{animation:po06-kick .82s cubic-bezier(.08,.72,.16,1) 1}
+[data-po06="options-pop"][data-kick="1"] .po06-kickwrap i:nth-child(2){animation-delay:.09s}
+@keyframes po06-kick{0%{transform:scale(.52);opacity:.95;border-width:2.4px}100%{transform:scale(1.52);opacity:0;border-width:.5px}}
+[data-po06="options-pop"] .po06-kickflash{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,255,255,0) 32%,rgba(255,255,255,.85) 43%,rgba(255,255,255,0) 56%);mix-blend-mode:screen}
+[data-po06="options-pop"][data-kick="1"] .po06-kickflash{animation:po06-kickflash .5s cubic-bezier(.1,.7,.2,1) 1}
+@keyframes po06-kickflash{0%{opacity:0;transform:scale(.95)}16%{opacity:.6}100%{opacity:0;transform:scale(1.14)}}
+/* ---- 描述与环对齐 ---- */
+[data-po06="options-pop"] .po06-tier-note{text-align:center;margin:0 auto;width:100%}
+
+
+/* ---- 环绕光影：一道绕圈的光带 ---- */
+[data-po06="options-pop"] .po06-sweep{opacity:0;background:conic-gradient(from 0deg,transparent 0 62%,color-mix(in srgb,var(--t) 70%,transparent) 78%,#fff 88%,color-mix(in srgb,var(--t) 60%,transparent) 93%,transparent 100%);mask:radial-gradient(circle,transparent 58%,#000 61%,#000 92%,transparent 96%)}
+[data-po06="options-pop"][data-po06-tier=standard] .po06-sweep{opacity:.5}
+[data-po06="options-pop"][data-po06-tier=heavy] .po06-sweep{opacity:.85}
+[data-po06="options-pop"] .po06-sweep:after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 84%,var(--t) 90%,transparent 94%)}
+/* ---- 爆闪再亮一点 ---- */
+[data-po06="options-pop"][data-kick="1"] .po06-kickwrap i{animation-duration:.9s}
 [data-po06="options-pop"] .po06-fx{position:absolute;inset:0;pointer-events:none}
 [data-po06="options-pop"] .po06-vast{position:absolute;inset:-44px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--t) 38%,transparent);opacity:calc(.5 * var(--fx));animation:po06-spin 44s linear infinite}
 [data-po06="options-pop"] .po06-rays{position:absolute;left:50%;top:50%;width:216px;height:216px;margin:-108px 0 0 -108px;border-radius:50%;pointer-events:none;opacity:calc(.22 * var(--fx));background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--t) 60%,transparent) 0deg .6deg,transparent .6deg 7.5deg);mask:radial-gradient(circle,transparent 0 44%,#000 52%,#000 58%,transparent 64%);animation:po06-spin 90s linear infinite}
@@ -1412,7 +1443,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      * 拖动时指针线性跟随、松手吸附到最近档位；键盘方向键 / Home / End。
      * 视觉全部交给 `[data-po06="options-pop"]` 下的样式，颜色取该面板的 `--t`（随档位变）。
      */
-    function TierRing({ value, disabled, onPick, label, failTick }) {
+    function TierRing({ value, disabled, onPick, onPreview, label, failTick }) {
       const wrapRef = React.useRef(null)
       const needleRef = React.useRef(null)
       const dragRef = React.useRef(null)
@@ -1426,6 +1457,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       valueRef.current = value
       const onPickRef = React.useRef(onPick)
       onPickRef.current = onPick
+      const onPreviewRef = React.useRef(onPreview)
+      onPreviewRef.current = onPreview
       const idx = Math.max(0, TIER_KEYS.indexOf(shown))
       const angleOf = (i) => -135 + 90 * Math.max(0, Math.min(TIER_KEYS.length - 1, i))
       const point = (deg, radius) => ({
@@ -1447,7 +1480,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       }
       const tierAt = (deg) => TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, Math.round((deg + 135) / 90)))]
       // 拖动中只改本地（即时换色换弧），松手才写设置：每移动一次都 POST 会把交互拖垮
-      const pick = (key, commit) => { if (key === shown || disabled) return; setPending(key); if (commit) onPick(key) }
+      const pick = (key, commit) => { if (key === shown || disabled) return; setPending(key); if (onPreview) onPreview(commit ? null : key); if (commit) onPick(key) }
       React.useEffect(() => {
         if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
         const move = (e) => {
@@ -1461,6 +1494,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           dragRef.current = null
           setSnap(true)
           const key = shownRef.current
+          if (onPreviewRef.current) onPreviewRef.current(null)
           setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(key))))
           if (key !== valueRef.current) onPickRef.current(key)
         }
@@ -1495,6 +1529,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         dragRef.current = null
         setSnap(true)
         setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(shown))))
+        if (onPreview) onPreview(null)
         if (pending && pending !== value) onPick(pending)
       }
       const onKeyDown = (e) => {
@@ -1509,6 +1544,15 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         setSnap(true)
         pick(TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, next))], true)
       }
+      const [kick, setKick] = React.useState(0)
+      const prevValue = React.useRef(value)
+      React.useEffect(() => {
+        if (prevValue.current === value) return undefined
+        prevValue.current = value
+        setKick((n) => n + 1)
+        const timer = setTimeout(() => setKick((n) => (n >= 0 ? 0 : 0)), 900)
+        return () => clearTimeout(timer)
+      }, [value])
       const dash = (TIER_ARC[shown] || 198) + ' 264'
       const fxLayer = React.useMemo(() => h('div', { className: 'po06-fx', 'aria-hidden': 'true' },
         h('div', { className: 'po06-vast' }),
@@ -1527,7 +1571,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       return h('div', { className: 'po06-ringbox' },
         h('div', {
           ref: wrapRef, className: 'po06-ringwrap', role: 'slider', tabIndex: disabled ? -1 : 0,
-          'data-po06': 'tier-ring', 'data-po06-value': shown, 'data-po06-snap': snap ? '1' : '0',
+          'data-po06': 'tier-ring', 'data-po06-value': shown, 'data-po06-snap': snap ? '1' : '0', 'data-kick': kick > 0 ? '1' : '0',
           'data-po06-name': 'tier',
           'aria-label': label ? label(shown) : shown, 'aria-valuemin': 0, 'aria-valuemax': TIER_KEYS.length - 1,
           'aria-valuenow': idx, 'aria-valuetext': label ? label(shown) : shown, 'aria-disabled': disabled ? 'true' : 'false',
@@ -1535,6 +1579,13 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         },
           h('div', { className: 'po06-halo', 'aria-hidden': 'true' }),
           fxLayer,
+          h('div', { className: 'po06-kickwrap', 'aria-hidden': 'true' }, h('i'), h('i')),
+          h('div', { className: 'po06-kickflash', 'aria-hidden': 'true' }),
+          h('svg', { className: 'po06-fil', viewBox: '0 0 100 100', 'aria-hidden': 'true' },
+            [[-128, -104], [-62, -36], [16, 42], [90, 118]].map(([a1, a2], i) => {
+              const p1 = point(a1, 47.5), p2 = point(a2, 47.5)
+              return h('path', { key: i, d: 'M' + p1.x + ' ' + p1.y + 'A47.5 47.5 0 0 1 ' + p2.x + ' ' + p2.y })
+            })),
           h('svg', { viewBox: '0 0 100 100', width: 224, height: 224, 'aria-hidden': 'true' },
             h('circle', { className: 'po06-arc-bg', cx: 50, cy: 50, r: 42, 'stroke-dasharray': '198 264', transform: 'rotate(135 50 50)' }),
             h('circle', { className: 'po06-arc-glow', cx: 50, cy: 50, r: 42, 'stroke-dasharray': dash, transform: 'rotate(135 50 50)' }),
@@ -4300,6 +4351,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           switchRow('readtools',readTools,rtKnown,L('只读工具','Read-only tools'),L('读取项目文件后再补充建议','Read project files before preparing advice'),()=>save({readTools:!readTools})),
           switchRow('bash',bashOn,bashKnown,L('内置 Bash','Built-in Bash'),L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),()=>save({bash:!bashOn})),
           switchRow('double-enter',doubleEnterSkip,desKnown,L('双击 Enter 跳过','Double Enter to skip'),L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),()=>save({doubleEnterSkip:!doubleEnterSkip}))))
+      const [previewTier, setPreviewTier] = React.useState(null)
+      React.useEffect(() => { setPreviewTier(null) }, [tier])
       const optExit = useExit(optOpen, 160)
       const helpExit = useExit(helpOpen, 140)
       const noticeExit = useExit(!!notice, 170)
@@ -4366,7 +4419,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           // ── 第二行 = **弹出面板**（点「优化选项」才展开）：设定类 + 范围类都收在这里 ──────
           //    只有打开时才渲染 ⇒ 关闭时控件栏就是**一行**（用户要的"更简洁"）。
           optExit.mounted ? h('div', { 'data-po06': 'bar-row-2', style: { position: 'relative' } },
-            h('div', { ...themeAttrs(), 'data-po06': 'options-pop', 'data-po06-tier': tier, 'data-po06-compact': optPos && optPos.compact ? '1' : '0', 'data-po06-build': CLIENT_BUILD, 'data-po06-closing': optExit.closing ? '1' : '0',
+            h('div', { ...themeAttrs(), 'data-po06': 'options-pop', 'data-po06-tier': previewTier || tier, 'data-po06-compact': optPos && optPos.compact ? '1' : '0', 'data-po06-build': CLIENT_BUILD, 'data-po06-closing': optExit.closing ? '1' : '0',
               // ⚠ 坐标**必须真的用上**：`S.optPop` 是 `position: fixed`，而 fixed 元素在没给
               //   `left/top/bottom` 时会退回到"流里的位置"——实测就是**看不见任何弹窗**
               //   （用户 2026-09-22："点击优化选项没有任何弹窗出现"）。
@@ -4390,7 +4443,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   onClick:()=>{setOptOpen(false);optBtnRef.current?.focus?.()}},'×')),
               h('div',{className:'po06-body'},
                 h('div',{className:'po06-left'},
-                  h(TierRing,{value:tier,disabled:false,failTick,label:tierLabel,
+                  h(TierRing,{value:tier,disabled:false,failTick,label:tierLabel,onPreview:setPreviewTier,
                     onPick:v=>save({bySession:replaceTier(v)})}),
                   h('div',{className:'po06-left-side'},
                   h('p',{className:'po06-tier-note'},tierNote),
