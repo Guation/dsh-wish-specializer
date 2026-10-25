@@ -201,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-10'
+    const CLIENT_BUILD = 'ring-11'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1148,6 +1148,25 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-kick="1"] .po06-arc-hi{animation:po06-hiWhite .66s cubic-bezier(.22,.8,.3,1) 1}
 [data-kick="1"] .po06-gapword b{text-shadow:0 0 26px color-mix(in srgb,var(--t) 40%,rgba(255,255,255,.75));opacity:calc(.7 + .3 * var(--kickA))}
 .po06-kickwrap i{border-width:2px;box-shadow:0 0 22px color-mix(in srgb,var(--t) 45%,#fff)}
+
+/* ---- 超频：选中的胶囊轻微颤抖 ---- */
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06=model-state][data-po06-value=extreme] .po06-pill{
+  animation:po06-shiver .34s linear infinite,po06-autoGlowRed 2.2s ease-in-out infinite}
+[data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06=model-state][data-po06-value=extreme]>button[aria-checked=true]{
+  animation:po06-shiverText .34s linear infinite}
+@keyframes po06-shiver{
+  0%{transform:translate(0,0) rotate(0)}
+  20%{transform:translate(-.6px,.4px) rotate(-.5deg)}
+  40%{transform:translate(.5px,-.5px) rotate(.4deg)}
+  60%{transform:translate(-.4px,-.3px) rotate(-.3deg)}
+  80%{transform:translate(.6px,.3px) rotate(.35deg)}
+  100%{transform:translate(0,0) rotate(0)}}
+@keyframes po06-shiverText{
+  0%,100%{transform:translate(0,0)}
+  25%{transform:translate(-.4px,.3px)}
+  50%{transform:translate(.4px,-.3px)}
+  75%{transform:translate(-.3px,-.2px)}}
+@keyframes po06-autoGlowRed{0%,100%{box-shadow:0 0 0 3px #f2545b22}50%{box-shadow:0 0 0 5px #f2545b44,0 0 22px #f2545b66}}
 [data-po06="options-pop"] .po06-fx{position:absolute;inset:0;pointer-events:none}
 [data-po06="options-pop"] .po06-vast{position:absolute;inset:-44px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--t) 38%,transparent);opacity:calc(.5 * var(--fx));animation:po06-spin 44s linear infinite}
 [data-po06="options-pop"] .po06-rays{position:absolute;left:50%;top:50%;width:216px;height:216px;margin:-108px 0 0 -108px;border-radius:50%;pointer-events:none;opacity:calc(.22 * var(--fx));background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--t) 60%,transparent) 0deg .6deg,transparent .6deg 7.5deg);mask:radial-gradient(circle,transparent 0 44%,#000 52%,#000 58%,transparent 64%);animation:po06-spin 90s linear infinite}
@@ -1473,109 +1492,105 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
      * 拖动时指针线性跟随、松手吸附到最近档位；键盘方向键 / Home / End。
      * 视觉全部交给 `[data-po06="options-pop"]` 下的样式，颜色取该面板的 `--t`（随档位变）。
      */
+    /**
+     * 档位旋钮。
+     *
+     * 只有两份状态：`value`（已保存的真值）与 `pending`（拖动中的预览）。
+     * 显示值 = pending ?? value。规则只有三条：
+     *   ① 拖动只改 pending，不写盘；
+     *   ② 松手才提交一次；
+     *   ③ 爆闪由"显示值变化"这一个 effect 触发。
+     * 指针监听在 pointerdown 时注册（闭包就是当下这次渲染），所以不存在过期的 shown。
+     */
     function TierRing({ value, disabled, onPick, onPreview, label, failTick }) {
       const wrapRef = React.useRef(null)
       const needleRef = React.useRef(null)
-      const dragRef = React.useRef(null)
-      const [snap, setSnap] = React.useState(true)
       const [pending, setPending] = React.useState(null)
-      React.useEffect(() => { setPending(null) }, [value, failTick])
-      const shown = pending || value
-      const shownRef = React.useRef(shown)
-      shownRef.current = shown
-      const valueRef = React.useRef(value)
-      valueRef.current = value
-      const onPickRef = React.useRef(onPick)
-      onPickRef.current = onPick
-      const onPreviewRef = React.useRef(onPreview)
-      onPreviewRef.current = onPreview
+      const [snap, setSnap] = React.useState(true)
+      const [kick, setKick] = React.useState(0)
+      const shown = pending == null ? value : pending
       const idx = Math.max(0, TIER_KEYS.indexOf(shown))
-      const angleOf = (i) => -135 + 90 * Math.max(0, Math.min(TIER_KEYS.length - 1, i))
-      const point = (deg, radius) => ({
-        x: +(50 + radius * Math.sin((deg * Math.PI) / 180)).toFixed(2),
-        y: +(50 - radius * Math.cos((deg * Math.PI) / 180)).toFixed(2),
-      })
-      const setNeedle = (deg) => {
-        const g = needleRef.current
-        if (g) g.setAttribute('transform', 'rotate(' + deg + ' 50 50)')
+      const dash = (TIER_ARC[shown] || 198) + ' 264'
+      const angleOf = (i) => -135 + i * 90
+      const point = (deg, radius) => {
+        const a = (deg * Math.PI) / 180
+        return { x: 50 + Math.sin(a) * radius, y: 50 - Math.cos(a) * radius }
       }
-      React.useEffect(() => { setNeedle(angleOf(idx)) }, [idx])
+
+      const setNeedle = (deg) => {
+        if (needleRef.current) needleRef.current.setAttribute('transform', 'rotate(' + deg.toFixed(1) + ' 50 50)')
+      }
+      const angleOfDeg = (deg) => Math.max(-135, Math.min(135, deg))
       const angleAt = (e) => {
         const el = wrapRef.current
         if (!el || !el.getBoundingClientRect) return angleOf(idx)
         const r = el.getBoundingClientRect()
         const cx = r.left + r.width / 2
         const cy = r.top + r.height / 2
-        return Math.max(-135, Math.min(135, (Math.atan2(e.clientX - cx, cy - e.clientY) * 180) / Math.PI))
+        return angleOfDeg((Math.atan2(e.clientX - cx, cy - e.clientY) * 180) / Math.PI)
       }
-      const tierAt = (deg) => {
+      const keyAt = (deg) => {
         const pos = (deg + 135) / 90
-        const cur = Math.max(0, Math.min(TIER_KEYS.length - 1, Math.round(pos)))
-        const last = Math.max(0, Math.min(TIER_KEYS.length - 1, lastIdxRef.current))
-        if (cur !== last && Math.abs(pos - cur) > 0.39) return null
-        lastIdxRef.current = cur
-        return TIER_KEYS[cur]
+        const cand = Math.max(0, Math.min(TIER_KEYS.length - 1, Math.round(pos)))
+        // clear = 明确落在扇区内（离分界线至少 8% 档位宽），避免指针贴着边界来回抖
+        return { key: TIER_KEYS[cand], cand, clear: Math.abs(pos - cand) <= 0.42 }
       }
-      // 拖动中只改本地（即时换色换弧），松手才写设置：每移动一次都 POST 会把交互拖垮
-      // 判定：只有真的从一档换到另一档才闪一次。边界留 11% 档位的死区，
-      // 避免指针停在分界线附近来回抖导致连闪。
-      const pick = (key, commit) => {
-        if (!key || key === shown || disabled) return
-        setPending(key)
-        fireKick()
-        if (onPreview) onPreview(commit ? null : key)
-        if (commit) onPick(key)
-      }
+
+      // 保存成功 ⇒ 真值追上预览，预览退场；真值没追上就一直保持（失败由宿主 refresh 回真值）
       React.useEffect(() => {
-        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
-        const move = (e) => {
-          if (dragRef.current == null) return
-          const deg = angleAt(e)
-          setNeedle(deg)
-          pick(tierAt(deg), false)
-        }
-        const up = () => {
-          if (dragRef.current == null) return
-          dragRef.current = null
-          setSnap(true)
-          const key = shownRef.current
-          if (onPreviewRef.current) onPreviewRef.current(null)
-          setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(key))))
-          if (key !== valueRef.current) onPickRef.current(key)
-        }
-        window.addEventListener('pointermove', move, true)
-        window.addEventListener('pointerup', up, true)
-        window.addEventListener('pointercancel', up, true)
-        window.addEventListener('blur', up)
-        return () => {
-          window.removeEventListener('pointermove', move, true)
-          window.removeEventListener('pointerup', up, true)
-          window.removeEventListener('pointercancel', up, true)
-          window.removeEventListener('blur', up)
-        }
-      }, [])
+        if (pending != null && value === pending) setPending(null)
+      }, [value, pending])
+      const lastFail = React.useRef(failTick)
+      React.useEffect(() => {
+        if (failTick === lastFail.current) return
+        lastFail.current = failTick
+        setPending(null)
+      }, [failTick])
+      // 唯一爆闪入口
+      const prevShown = React.useRef(shown)
+      React.useEffect(() => {
+        if (prevShown.current === shown) return
+        prevShown.current = shown
+        setKick((n) => n + 1)
+      }, [shown])
+      // 一次换挡一次光过渡：属性切 0→1 并强制回流，动画才会重播
+      React.useEffect(() => {
+        const el = wrapRef.current
+        if (!el || !el.setAttribute || kick === 0) return undefined
+        el.setAttribute('data-kick', '0')
+        void el.offsetWidth
+        el.setAttribute('data-kick', '1')
+        const timer = setTimeout(() => el.setAttribute('data-kick', '0'), 720)
+        return () => clearTimeout(timer)
+      }, [kick])
+
       const onDown = (e) => {
         if (disabled || (e.button != null && e.button !== 0)) return
-        dragRef.current = e.pointerId
         setSnap(false)
+        let cur = shown
+        const paint = (ev) => {
+          const deg = angleAt(ev)
+          setNeedle(deg)
+          const hit = keyAt(deg)
+          if (!hit.clear || hit.key === cur) return
+          cur = hit.key
+          setPending(cur)
+          if (onPreview) onPreview(cur)
+        }
+        const finish = () => {
+          window.removeEventListener('pointermove', paint, true)
+          window.removeEventListener('pointerup', finish, true)
+          window.removeEventListener('pointercancel', finish, true)
+          setSnap(true)
+          setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(cur))))
+          if (onPreview) onPreview(null)
+          if (cur !== value) onPick(cur)
+        }
+        window.addEventListener('pointermove', paint, true)
+        window.addEventListener('pointerup', finish, true)
+        window.addEventListener('pointercancel', finish, true)
         try { e.currentTarget.setPointerCapture?.(e.pointerId) } catch { /* 忽略 */ }
-        const deg = angleAt(e)
-        setNeedle(deg)
-        pick(tierAt(deg), false)
-      }
-      const onMove = (e) => {
-        if (dragRef.current == null) return
-        const deg = angleAt(e)
-        setNeedle(deg)
-        pick(tierAt(deg), false)
-      }
-      const onUp = () => {
-        if (dragRef.current == null) return
-        dragRef.current = null
-        setSnap(true)
-        setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(shown))))
-        if (onPreview) onPreview(null)
-        if (pending && pending !== value) onPick(pending)
+        paint(e)
       }
       const onKeyDown = (e) => {
         if (disabled) return
@@ -1587,29 +1602,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (next == null) return
         e.preventDefault()
         setSnap(true)
-        pick(TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, next))], true)
+        const key = TIER_KEYS[Math.max(0, Math.min(TIER_KEYS.length - 1, next))]
+        if (key === shown) return
+        setPending(key)
+        onPick(key)
       }
-      const [kickSeq, setKickSeq] = React.useState(0)
-      const kickTimer = React.useRef(null)
-      const lastIdxRef = React.useRef(TIER_KEYS.indexOf(shown))
-      const fireKick = () => {
-        setKickSeq((n) => n + 1)
-        const wrap = wrapRef.current
-        if (wrap && wrap.setAttribute) {
-          wrap.setAttribute('data-kick', '0')
-          void wrap.offsetWidth
-          wrap.setAttribute('data-kick', '1')
-          clearTimeout(kickTimer.current)
-          kickTimer.current = setTimeout(() => wrap.setAttribute('data-kick', '0'), 720)
-        }
-      }
-      const prevValue = React.useRef(value)
-      React.useEffect(() => {
-        if (prevValue.current === value) return
-        prevValue.current = value
-        fireKick()
-      }, [value])
-      const dash = (TIER_ARC[shown] || 198) + ' 264'
+
       const fxLayer = React.useMemo(() => h('div', { className: 'po06-fx', 'aria-hidden': 'true' },
         h('div', { className: 'po06-vast' }),
         h('div', { className: 'po06-rays' }),
@@ -1620,24 +1618,25 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         h('div', { className: 'po06-orbit' }, h('i'), h('i'), h('i')),
         h('div', { className: 'po06-shock' }, h('i'), h('i'), h('i')),
         h('div', { className: 'po06-spark' }, Array.from({ length: 22 }, (_, i) => {
-          const dx = ((i * 29) % 46) - 23, dy = ((i * 17) % 40) - 20
-          return h('i', { key: i, style: { left: (12 + (i * 37) % 76) + '%', top: (10 + (i * 53) % 80) + '%',
-            '--dx': dx + 'px', '--dy': dy + 'px', animationDelay: '-' + (((i * 37) % 90) / 34).toFixed(2) + 's' } })
+          const dx = ((i * 29) % 46) - 23
+          const dy = ((i * 17) % 40) - 20
+          return h('i', { key: i, style: { left: (12 + (i * 37) % 76) + '%', top: (10 + (i * 53) % 80) + '%', '--dx': dx + 'px', '--dy': dy + 'px', animationDelay: '-' + (((i * 37) % 90) / 34).toFixed(2) + 's' } })
         })),
         h('div', { className: 'po06-flash' })), [])
+
       return h('div', { className: 'po06-ringbox' },
         h('div', {
           ref: wrapRef, className: 'po06-ringwrap', role: 'slider', tabIndex: disabled ? -1 : 0,
-          'data-po06': 'tier-ring', 'data-po06-value': shown, 'data-po06-snap': snap ? '1' : '0', 'data-kick': '0',
+          'data-po06': 'tier-ring', 'data-po06-value': shown, 'data-po06-snap': snap ? '1' : '0',
           'data-po06-name': 'tier',
           'aria-label': label ? label(shown) : shown, 'aria-valuemin': 0, 'aria-valuemax': TIER_KEYS.length - 1,
           'aria-valuenow': idx, 'aria-valuetext': label ? label(shown) : shown, 'aria-disabled': disabled ? 'true' : 'false',
-          onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onUp, onKeyDown,
+          onPointerDown: onDown, onKeyDown,
         },
           h('div', { className: 'po06-halo', 'aria-hidden': 'true' }),
           fxLayer,
-          kickSeq > 0 ? h('div', { key: 'kw' + kickSeq, className: 'po06-kickwrap', 'aria-hidden': 'true' }, h('i'), h('i')) : null,
-          kickSeq > 0 ? h('div', { key: 'kf' + kickSeq, className: 'po06-kickflash', 'aria-hidden': 'true' }) : null,
+          kick > 0 ? h('div', { key: 'kw' + kick, className: 'po06-kickwrap', 'aria-hidden': 'true' }, h('i'), h('i')) : null,
+          kick > 0 ? h('div', { key: 'kf' + kick, className: 'po06-kickflash', 'aria-hidden': 'true' }) : null,
           h('svg', { className: 'po06-fil', viewBox: '0 0 100 100', 'aria-hidden': 'true' },
             [[-128, -104], [-62, -36], [16, 42], [90, 118]].map(([a1, a2], i) => {
               const p1 = point(a1, 47.5), p2 = point(a2, 47.5)
@@ -1670,95 +1669,93 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           return h('span', { key, className: 'po06-tlabel', 'data-on': key === shown ? '1' : '0', style: corner },
             label ? label(key) : key)
         }))
-
     }
 
+    /**
+     * 分段开关（二选一 / 三选一）。
+     *
+     * 与旋钮同一套规矩：`pending` 是唯一预览，松手/点击才提交；
+     * 拖动时按指针位置取档，越过 4px 阈值才算拖动，否则按点击处理。
+     */
     function Segmented({ name, value, options, label, disabled, title, onPick, failTick, variant }) {
-      const [pending, setPending] = React.useState(null)
-      // 胶囊变体：滑块位置（0..n-1，拖动时是小数）+ 是否正在拖
-      const [dragPct, setDragPct] = React.useState(null)
       const groupRef = React.useRef(null)
-      const dragRef = React.useRef(null)
-      const shown = pending == null ? value : pending
-      React.useEffect(() => { setPending(null) }, [value, failTick])
+      const [pending, setPending] = React.useState(null)
+      const [dragPct, setDragPct] = React.useState(null)
+      const lastDrag = React.useRef(0)
       const isPill = variant === 'pill'
+      const shown = pending == null ? value : pending
       const shownIndex = Math.max(0, options.indexOf(shown))
-      const commit = key => {
+
+      // 成功：真值追上预览 → 预览退场。失败：failTick 一变就退回真值（不许显示没写进去的值）。
+      React.useEffect(() => {
+        if (pending != null && value === pending) setPending(null)
+      }, [value, pending])
+      const lastFail = React.useRef(failTick)
+      React.useEffect(() => {
+        if (failTick === lastFail.current) return
+        lastFail.current = failTick
+        setPending(null)
+      }, [failTick])
+
+      const commit = (key) => {
         if (disabled || key === shown) return
         setPending(key)
         onPick(key)
       }
-      const onKeyDown = event => {
+      const onPointerDown = (e) => {
+        if (disabled || !isPill) return
+        if (e.button != null && e.button !== 0) return
+        const el = groupRef.current
+        if (!el || !el.getBoundingClientRect) return
+        const rect = el.getBoundingClientRect()
+        const startX = e.clientX
+        let moved = false
+        let cur = shown
+        const pickAt = (x) => {
+          const inner = Math.max(1, rect.width - 6)
+          const t = Math.max(0, Math.min(1, (x - rect.left - 3) / inner))
+          setDragPct(t * (options.length - 1))
+          const key = options[Math.max(0, Math.min(options.length - 1, Math.round(t * (options.length - 1))))]
+          if (key == null || key === cur) return
+          cur = key
+          setPending(key)
+          onPick(key)
+        }
+        const move = (ev) => {
+          if (!moved) {
+            if (Math.abs(ev.clientX - startX) < 4) return
+            moved = true
+            lastDrag.current = Date.now()
+          }
+          pickAt(ev.clientX)
+        }
+        const finish = () => {
+          window.removeEventListener('pointermove', move, true)
+          window.removeEventListener('pointerup', finish, true)
+          window.removeEventListener('pointercancel', finish, true)
+          if (moved) lastDrag.current = Date.now()
+          setDragPct(null)
+        }
+        window.addEventListener('pointermove', move, true)
+        window.addEventListener('pointerup', finish, true)
+        window.addEventListener('pointercancel', finish, true)
+      }
+      const onClickOption = (key) => {
+        if (Date.now() - lastDrag.current < 260) return
+        commit(key)
+      }
+      const onKeyDown = (event) => {
         if (disabled) return
         const index = Math.max(0, options.indexOf(shown))
         const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
           : ['ArrowRight', 'ArrowDown'].includes(event.key) ? (index + 1) % options.length
-          : ['ArrowLeft', 'ArrowUp'].includes(event.key) ? (index + options.length - 1) % options.length : null
+            : ['ArrowLeft', 'ArrowUp'].includes(event.key) ? (index + options.length - 1) % options.length : null
         if (next == null) return
         event.preventDefault()
         commit(options[next])
         event.currentTarget?.querySelectorAll?.('[role="radio"]')[next]?.focus()
       }
-      // 拖动：跟手；跨过中线才翻转（和档位环同一条纪律）
-      const onPointerDown = (event) => {
-        if (disabled || !isPill) return
-        if (event.button != null && event.button !== 0) return
-        dragRef.current = { x: event.clientX, moved: false, id: event.pointerId }
-        try { event.currentTarget.setPointerCapture?.(event.pointerId) } catch { /* 忽略 */ }
-      }
-      const onPointerMove = (event) => {
-        const drag = dragRef.current
-        if (!drag || disabled) return
-        if (!drag.moved) {
-          if (Math.abs(event.clientX - drag.x) < 4) return
-          drag.moved = true
-        }
-        const el = groupRef.current
-        if (!el || !el.getBoundingClientRect) return
-        const r = el.getBoundingClientRect()
-        const inner = Math.max(1, r.width - 6)
-        const t = Math.max(0, Math.min(1, (event.clientX - r.left - 3) / inner))
-        setDragPct(t * (options.length - 1))
-        const next = options[Math.round(t * (options.length - 1))]
-        if (next && next !== shown) commit(next)
-      }
-      const onPointerUp = () => {
-        if (!dragRef.current) return
-        dragRef.current = null
-        setDragPct(null)
-      }
-      React.useEffect(() => {
-        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
-        const move = (event) => {
-          const drag = dragRef.current
-          if (!drag || disabled) return
-          if (!drag.moved) {
-            if (Math.abs(event.clientX - drag.x) < 4) return
-            drag.moved = true
-          }
-          const el = groupRef.current
-          if (!el || !el.getBoundingClientRect) return
-          const r = el.getBoundingClientRect()
-          const inner = Math.max(1, r.width - 6)
-          const t = Math.max(0, Math.min(1, (event.clientX - r.left - 3) / inner))
-          setDragPct(t * (options.length - 1))
-          const next = options[Math.round(t * (options.length - 1))]
-          if (next && next !== shown) commit(next)
-        }
-        const up = () => {
-          if (!dragRef.current) return
-          dragRef.current = null
-          setDragPct(null)
-        }
-        window.addEventListener('pointermove', move, true)
-        window.addEventListener('pointerup', up, true)
-        window.addEventListener('pointercancel', up, true)
-        return () => {
-          window.removeEventListener('pointermove', move, true)
-          window.removeEventListener('pointerup', up, true)
-          window.removeEventListener('pointercancel', up, true)
-        }
-      }, [disabled, options, shown])
+
       const pill = isPill ? h('i', {
         key: 'pill', className: 'po06-pill', 'aria-hidden': 'true',
         style: {
@@ -1774,32 +1771,16 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         'data-po06-variant': variant || 'compact', 'data-po06-disabled': disabled ? '1' : '0',
         'data-po06-dragging': dragPct == null ? '0' : '1',
         className: 'po06-choices', title,
-        onKeyDown, onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp,
+        onKeyDown, onPointerDown,
       }, pill, options.map((key, index) => h('button', {
         key, type: 'button', role: 'radio', 'aria-checked': key === shown,
         tabIndex: disabled ? -1 : key === shown || !options.includes(shown) && index === 0 ? 0 : -1,
         disabled: !!disabled, 'data-po06': name + '-' + key, 'data-po06-on': key === shown ? '1' : '0',
-        onClick: () => commit(key),
+        onClick: () => onClickOption(key),
       }, variant === 'intensity' ? h('span', { className: 'po06-tier-index', 'aria-hidden': 'true' }, '0' + index) : null,
         h('span', null, label ? label(key) : key))))
     }
 
-
-    /**
-     * 上下文回合数（0–10，契约见 settings.js 的 TURNS_MIN/TURNS_MAX）。
-     *
-     * **不**在每次 onChange 都写盘：原生 range 拖动时会连发几十次 input 事件，而每次写盘都是
-     * "备份 + 临时文件 + rename + 读回校验"——那会留下几十个备份文件和一串无谓 IO。
-     * 做法：本地先跟手（乐观显示），松手/失焦/停 400ms 才提交；**保存失败就退回真值**
-     * （`failTick` 变化 ⇒ 丢掉草稿），不许让界面继续显示一个没写进去的数字。
-     */
-    /**
-     * 上下文「回合数」滑杆（2026-10-19 重做）：原生 input[type=range] 的轨道/滑块由系统绘制，
-     * 和自绘的分段控件完全不是一套语言。这里做成：
-     *   · 4px 轨道 + 主题色已选段 + 14px 圆形滑块（带一圈 surface 描边，压在轨道上才不糊）；
-     *   · 拖动只改本地预览，**松手才提交**（和分段控件同一条性能纪律）；
-     *   · 拖动期间缓存轨道矩形，不在 pointermove 里反复 getBoundingClientRect。
-     */
     function TurnsRange({ value, disabled, disabledTip, title, onCommit, failTick }) {
       const trackRef = React.useRef(null)
       const rectRef = React.useRef(null)
@@ -4369,8 +4350,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           onPick:v=>save({bySession:replaceTier(v)})}),
         h('div',{className:'po06-pane-row'},h('span',null,L('模型状态','Model state')),
           h(Segmented,{name:'model-state',value:modelState,options:['normal','extreme'],failTick,
-            label:k=>k==='extreme'?L('极限','Extreme'):L('正常','Normal'),
-            title:L('正常：不添加压力测试说明；极限：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
+            label:k=>k==='extreme'?L('超频','Overdrive'):L('正常','Normal'),
+            title:L('正常：不添加压力测试说明；超频：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
             onPick:v=>save({bySession:withSession({modelState:v})})})))
       const modelPane = h(React.Fragment,null,
         paneHead(L('模型与执行','Model & delivery'),L('这一轮由谁来解释，以及结果是否要你确认。','Who interprets this round, and whether you confirm the result.')),
@@ -4507,8 +4488,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                   h('div',{className:'po06-mini'},
                     h('span',{className:'po06-mini-label'},po06Icon('state'),L('模型状态','Model state')),
                     h(Segmented,{name:'model-state',variant:'pill',value:modelState,options:['normal','extreme'],failTick,
-                      label:k=>k==='extreme'?L('极限','Extreme'):L('正常','Normal'),
-                      title:L('正常：不添加压力测试说明；极限：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
+                      label:k=>k==='extreme'?L('超频','Overdrive'):L('正常','Normal'),
+                      title:L('正常：不添加压力测试说明；超频：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
                       onPick:v=>save({bySession:withSession({modelState:v})})}),
                     h('span',{className:'po06-mini-label'},po06Icon('perm'),L('权限','Permission')),
                     h(Segmented,{name:'perm',variant:'pill',value:permission,options:['review','auto'],failTick,disabled:tierOff&&!englishOn,
