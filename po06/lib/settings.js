@@ -55,6 +55,8 @@ export const TIER_PRESETS = Object.freeze({
 export const PERMISSIONS = Object.freeze(['review', 'auto'])
 /** 上下文模式（0.5 的"回合/全文"）：`turns` = 只读最近 N 回合；`full` = 与工作 AI 看到的一致。 */
 export const HISTORY_MODES = Object.freeze(['turns', 'full'])
+/** 模型状态：normal = 常规；extreme = 明确告知模型其身份与充足算力，鼓励拉满 (用户 2026-10-25)。 */
+export const MODEL_STATES = Object.freeze(['normal', 'extreme'])
 /** 回合数上限（0.5 是 0~10：再多容易把优化模型的上下文撑爆）。 */
 export const TURNS_MIN = 0
 export const TURNS_MAX = 10
@@ -106,6 +108,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // 0.7.1：内置 Bash（随本插件装配即提供）。默认 **开**——它是"内置功能"，
   // 关掉＝不把 bash 工具注册给模型（模型看不到它），不是在工具内部做软拦截。
   bash: true,
+  modelState: 'normal',
   // 2026-10-19 用户要求：**双击 Enter 跳过本轮优化**；当天稍后改成**默认开**。
   // 开着时：第一次 Enter 正常拦截并开始解释；600ms 内再按一次 Enter ⇒ 放弃本轮解释、
   // 按原文立即发出（与面板上的「跳过」同一语义：不发包、不出注入卡片）。
@@ -125,7 +128,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
 })
 
 /** 允许按会话覆盖的键（档位四件套；其余设置保持全局）。 */
-export const SESSION_KEYS = Object.freeze(['assist', 'detail', 'budget', 'tier', 'englishMode', ...REASONING_KEYS])
+export const SESSION_KEYS = Object.freeze(['assist', 'detail', 'budget', 'tier', 'englishMode', 'modelState', ...REASONING_KEYS])
 
 /** 斜杠命令名单上限（32 个字符/条，最多 16 条）。 */
 export const SLASH_REVIEW_MAX = 16
@@ -135,6 +138,7 @@ export const SETTINGS_KEYS = Object.freeze([
   'assist', 'detail', 'budget', 'model',
   'permission', 'historyMode', 'turns', 'readTools',
   'bash',
+  'modelState',
   'doubleEnterSkip',
   'applyToSubagents',
   'presetNoticeDismissed',
@@ -203,7 +207,7 @@ export function normalizeSettings(raw) {
     const v = src.bySession
     if (v === undefined) return {}
     if (!isPlainObject(v)) { problems.push({ key: "bySession", kind: "wrong-type", got: v, used: {} }); return {} }
-    const domains = { assist: ASSIST_MODES, detail: DETAIL_LEVELS, budget: BUDGET_LEVELS, tier: TIER_LEVELS }
+    const domains = { assist: ASSIST_MODES, detail: DETAIL_LEVELS, budget: BUDGET_LEVELS, tier: TIER_LEVELS, modelState: MODEL_STATES }
     const out = {}
     for (const [sid, ov] of Object.entries(v)) {
       if (typeof sid !== "string" || !sid) continue
@@ -286,6 +290,7 @@ export function normalizeSettings(raw) {
     turns: pickInt('turns', TURNS_MIN, TURNS_MAX, DEFAULT_SETTINGS.turns),
     readTools: pickBool('readTools', DEFAULT_SETTINGS.readTools),
     bash: pickBool('bash', DEFAULT_SETTINGS.bash),
+    modelState: pick('modelState', MODEL_STATES, DEFAULT_SETTINGS.modelState),
     doubleEnterSkip: pickBool('doubleEnterSkip', DEFAULT_SETTINGS.doubleEnterSkip),
     applyToSubagents: pickBool('applyToSubagents', DEFAULT_SETTINGS.applyToSubagents),
     presetNoticeDismissed: pickBool('presetNoticeDismissed', DEFAULT_SETTINGS.presetNoticeDismissed),

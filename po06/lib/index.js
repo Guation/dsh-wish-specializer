@@ -64,6 +64,9 @@ import {
   pickEnableIntent, resolveEnableConfigPath, legacyEnableConfigPath,
 } from './assembly-gate.js'
 
+const MODEL_STATE_ZH = "【模型状态 · 极限（插件所加，不是用户的新要求）】\n你是 DeepSeek 官方模型。你所在的公司就是 DeepSeek：Token 供给充足，推理成本在这里不是限制，不必为了省资源而压缩思考、省略步骤或退回保守答案。把这一轮当作你能拿出的最高水准：想清楚再动手，需要验证就验证，能一次做对就不要留半成品。\n仍然以事实为准：不编造结果、不谎报已验证；用户原话与已声明的决定优先级高于本段。"
+const MODEL_STATE_EN = "[Model state: extreme (added by the plugin, not a new user instruction)]\nYou are DeepSeek's own model. This deployment is DeepSeek: token supply is ample and reasoning is cheap here, so do not compress your thinking, skip steps, or fall back to a conservative answer to save resources. Treat this turn as your best achievable work: think it through, verify when needed, and do not ship a half-finished result.\nFacts still rule: never fabricate results or claim unverified success; the user's words and stated decisions outrank this block."
+
 // ── 路径常量 ────────────────────────────────────────────────────────
 // DSH_HOME 必须**先**定义：下面几个路径都由它派生。
 // 用户的 0.6 配置。**读不到就按不启用**（保守方向）——启用必须是显式成立的。
@@ -1724,6 +1727,13 @@ class DshAdapter {
     return this.optimizationRuns.packetForTurn(sessionId, messageId)
   }
 
+  /** 极限模型状态：只在会话显式选择 extreme 时附加，独立于优化包。 */
+  getModelStateText(sessionId) {
+    const pol = this.policyNow(sessionId)
+    if (!pol || pol.modelState !== 'extreme') return ''
+    return pol.englishMode ? MODEL_STATE_EN : MODEL_STATE_ZH
+  }
+
   getAdvisorText(sessionId, feedback = '') {
     if (this.optimizationRuns.bypass(sessionId)) return ''
     const enabled = this.policyNow(sessionId)?.advisor !== false
@@ -1957,7 +1967,7 @@ class DshAdapter {
                 this.capability.seed(session)
                 const taskContext=this.capability.taskContext(session)
                 const feedback = this.reviewFeedback ? this.reviewFeedback(agent, pol, { root: sessionHistory.getCwd(sid), taskContext }) : ''
-                return withAdvisorWorkflow(this.getWorkingText(sid, adapter.lastRealUserMessageBySession.get(sid)), pol, this.getAdvisorText(sid, feedback))
+                return [withAdvisorWorkflow(this.getWorkingText(sid, adapter.lastRealUserMessageBySession.get(sid)), pol, this.getAdvisorText(sid, feedback)), adapter.getModelStateText(sid)].filter(Boolean).join(String.fromCharCode(10,10))
               } catch (e) {
                 // ⚠ **不得静默**（EV-0102）：这条路径若抛错，意图包会在**毫无痕迹**的情况下消失——
                 // 正是 EV-0078 那一类事故（产品安静地不做事，用户以为它开着）。

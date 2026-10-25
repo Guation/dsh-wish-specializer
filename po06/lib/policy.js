@@ -71,6 +71,7 @@ export function policyFor(settings, sessionId) {
     detail: s.detail,
     budget: s.budget,
     englishMode:s.englishMode,
+    modelState: s.modelState === 'extreme' ? 'extreme' : 'normal',
     reasoningBoost: s.reasoningBoost, reasoningMode: s.reasoningMode,
     reasoningCandidates: s.reasoningCandidates, reasoningRounds: s.reasoningRounds, reasoningPace:s.reasoningPace,
     injectPacket: s.assist !== 'off',

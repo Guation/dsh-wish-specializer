@@ -3075,6 +3075,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         setOvOpen(false)
       }, [tierOff, englishOn,sessionId])
       const permission = s.permission === 'review' ? 'review' : 'auto'
+      const modelState = eff.modelState === 'extreme' ? 'extreme' : 'normal'
       const historyMode = s.historyMode === 'full' ? 'full' : 'turns'
       const turns = Number.isInteger(s.turns) ? s.turns : DEFAULT_TURNS
       const rtKnown = !!(data && (hasOwn(s, 'readTools') || hasOwn(d, 'readTools')))
@@ -3958,6 +3959,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             },
               h('span', {}, L('内置 Bash', 'Built-in Bash')),
               h('span', { style: S.optVal(bashKnown && bashOn) }, bashKnown ? (bashOn ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
+                        // 模型状态（2026-10-25 用户要求）：正常 / 极限。极限会把“你即 DeepSeek、算力充足”的指令加进本轮上下文。
+            h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('★', L('模型状态', 'Model state'))),
+              h(Segmented, {
+                name: 'model-state', value: modelState, options: ['normal', 'extreme'], failTick,
+                tones: { normal: '#4a9eff', extreme: '#e0b23c' },
+                label: (k) => (k === 'extreme' ? L('极限', 'Extreme') : L('正常', 'Normal')),
+                title: L('模型状态：极限 = 明确告诉模型它属于 DeepSeek、算力充足，鼓励拉满思考与验证；正常 = 不加任何这类指令。',
+                  'Model state: Extreme tells the model it is DeepSeek with ample compute and should not hold back; Normal adds no such instruction.'),
+                onPick: (v) => save({ bySession: withSession({ modelState: v }) }),
+              })),
+            h('div', { style: S.divider }),
             // ⑤c 双击 Enter 跳过本轮优化（2026-10-19 用户要求，放在 Bash 与详情之间）。
             // 语义与面板上的「跳过」一致：不发包、直接按原文发出；只是省掉一次点击。
             h('button', {

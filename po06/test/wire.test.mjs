@@ -1173,6 +1173,16 @@ await ta('turn/end 之后上一轮包不再注入，即使仍处于 ready', asyn
   await flushHostEvents()
   eq(h.context().includes(response.body.packet), false, '轮次结束即失效')
 })
+
+await ta('模型状态：极限才注入身份与充足算力指令，正常不注入', async () => {
+  const normal = await wireHost({ sid: 'wire-state-normal', policy: { advisor: false, modelState: 'normal' } })
+  ok(!normal.context().includes('模型状态'), '正常档不得出现任何模型状态指令')
+  const extreme = await wireHost({ sid: 'wire-state-extreme', policy: { advisor: false, modelState: 'extreme' } })
+  const text = extreme.context()
+  ok(text.includes('DeepSeek'), '极限档要明确模型所属公司')
+  ok(text.includes('推理成本在这里不是限制'), '要点明推理便宜、不必省')
+  ok(text.includes('不编造结果'), '仍然禁止编造')
+})
 console.log(JSON.stringify({
   suite: 'po06-wire', phase: 'v3-pre-send',
   total: pass + failures.length, pass, fail: failures.length, failures,
