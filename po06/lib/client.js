@@ -201,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-11'
+    const CLIENT_BUILD = 'ring-12'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1564,11 +1564,25 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         return () => clearTimeout(timer)
       }, [kick])
 
+      // 点击与拖动是两条时序，不是一个 if：
+      //   拖动：指针走到哪一档就换到哪一档（连续预览，越线即换）；
+      //   点击：先把指针"甩"到那一档，等它到位（NEEDLE_MS）之后再换色+爆闪。
+      // 这样爆闪永远发生在指针落定之后，而不是先闪再动。
+      const NEEDLE_MS = 300
+      const commitTimer = React.useRef(null)
+      React.useEffect(() => () => clearTimeout(commitTimer.current), [])
+
       const onDown = (e) => {
         if (disabled || (e.button != null && e.button !== 0)) return
+        clearTimeout(commitTimer.current)
         setSnap(false)
         let cur = shown
+        let moved = false
+        const startX = e.clientX
+        const startY = e.clientY
         const paint = (ev) => {
+          if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 4) return
+          moved = true
           const deg = angleAt(ev)
           setNeedle(deg)
           const hit = keyAt(deg)
@@ -1577,20 +1591,35 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           setPending(cur)
           if (onPreview) onPreview(cur)
         }
-        const finish = () => {
+        const finish = (ev) => {
           window.removeEventListener('pointermove', paint, true)
           window.removeEventListener('pointerup', finish, true)
           window.removeEventListener('pointercancel', finish, true)
           setSnap(true)
-          setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(cur))))
-          if (onPreview) onPreview(null)
-          if (cur !== value) onPick(cur)
+          if (moved) {
+            setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(cur))))
+            if (onPreview) onPreview(null)
+            if (cur !== value) onPick(cur)
+            return
+          }
+          // 点击：目标档位由落点决定，指针先到位，再提交
+          const hit = keyAt(angleAt(ev && ev.clientX != null ? ev : e))
+          const target = hit.clear ? hit.key : cur
+          const targetIdx = Math.max(0, TIER_KEYS.indexOf(target))
+          setNeedle(angleOf(targetIdx))
+          if (target === value) { if (onPreview) onPreview(null); return }
+          if (onPreview) onPreview(target)
+          commitTimer.current = setTimeout(() => {
+            setPending(target)
+            if (onPreview) onPreview(null)
+            onPick(target)
+          }, NEEDLE_MS)
         }
         window.addEventListener('pointermove', paint, true)
         window.addEventListener('pointerup', finish, true)
         window.addEventListener('pointercancel', finish, true)
         try { e.currentTarget.setPointerCapture?.(e.pointerId) } catch { /* 忽略 */ }
-        paint(e)
+        setNeedle(angleAt(e))
       }
       const onKeyDown = (e) => {
         if (disabled) return
@@ -1744,6 +1773,19 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (Date.now() - lastDrag.current < 260) return
         commit(key)
       }
+      // 同一个坐标函数服务拖动与点击：点在按钮上交给按钮，点在按钮外（内边距/胶囊边）按坐标取档
+      const onClickGroup = (e) => {
+        if (disabled) return
+        const el = groupRef.current
+        if (!el || !el.getBoundingClientRect) return
+        if (e.target && e.target.closest && e.target.closest('button')) return
+        if (Date.now() - lastDrag.current < 260) return
+        const rect = el.getBoundingClientRect()
+        const inner = Math.max(1, rect.width - 6)
+        const t = Math.max(0, Math.min(1, (e.clientX - rect.left - 3) / inner))
+        const key = options[Math.max(0, Math.min(options.length - 1, Math.round(t * (options.length - 1))))]
+        if (key != null) commit(key)
+      }
       const onKeyDown = (event) => {
         if (disabled) return
         const index = Math.max(0, options.indexOf(shown))
@@ -1771,7 +1813,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         'data-po06-variant': variant || 'compact', 'data-po06-disabled': disabled ? '1' : '0',
         'data-po06-dragging': dragPct == null ? '0' : '1',
         className: 'po06-choices', title,
-        onKeyDown, onPointerDown,
+        onKeyDown, onPointerDown, onClick: onClickGroup,
       }, pill, options.map((key, index) => h('button', {
         key, type: 'button', role: 'radio', 'aria-checked': key === shown,
         tabIndex: disabled ? -1 : key === shown || !options.includes(shown) && index === 0 ? 0 : -1,
