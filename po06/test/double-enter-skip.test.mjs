@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DEFAULT_SETTINGS, SETTINGS_KEYS, normalizeSettings } from '../lib/settings.js'
+import { loadHoldClient } from './fixtures/client-hold-harness.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(HERE, '..')
@@ -24,16 +25,20 @@ test('设置：默认**开**、在白名单里、非布尔值回落为默认', (
   assert.ok(bad.problems.some((p) => p.key === 'doubleEnterSkip'), '要如实报告这一项被回落')
 })
 
-test('界面：开关在「内置 Bash」与「详情」之间', () => {
-  const bashAt = CLIENT_SRC.indexOf("'data-po06': 'bash'")
-  const desAt = CLIENT_SRC.indexOf("'data-po06': 'double-enter'")
-  const detailAt = CLIENT_SRC.indexOf("'data-po06': 'detail'")
-  assert.ok(bashAt > 0 && desAt > 0 && detailAt > 0, '三个控件都要在')
-  assert.ok(bashAt < desAt && desAt < detailAt, '顺序必须是 bash → 双击 Enter → 详情')
-  // 2026-10-19：设置行改成「左标签 + 右状态值」两段式（设计感），冒号没了
-  assert.ok(CLIENT_SRC.includes("L('双击 Enter 跳过', 'Double Enter skip')"), '按钮文案')
-  assert.ok(CLIENT_SRC.includes('optVal(desKnown && doubleEnterSkip)'), '状态值用主题色')
-  assert.ok(CLIENT_SRC.includes("save({ doubleEnterSkip: !doubleEnterSkip })"), '点击要保存设置')
+test('界面：快捷键收在工具组，保存只改快捷键设置', async t => {
+  const ui=loadHoldClient();t.after(()=>ui.close());const bar=ui.mount('shortcut-session')
+  await ui.flush()
+  bar.find(node=>node.props?.['data-po06']==='options-btn').props.onClick();await ui.flush()
+  assert.equal(bar.find(node=>node.props?.['data-po06']==='double-enter'),null,'低频开关默认收起')
+  bar.find(node=>node.props?.['data-po06']==='group-tools').props.onClick();await ui.flush()
+  const control=bar.find(node=>node.props?.['data-po06']==='double-enter')
+  assert.ok(control);assert.equal(control.props.role,'switch')
+  assert.ok(bar.find(node=>node.props?.['data-po06']==='bash'))
+  assert.ok(bar.find(node=>node.props?.['data-po06']==='detail'))
+  assert.equal(control.props['aria-checked'],false)
+  control.props.onClick();await ui.flush()
+  assert.deepEqual(JSON.parse(JSON.stringify(ui.pending('/settings').at(-1).body)),{doubleEnterSkip:true})
+  assert.equal(ui.submissions.length,0)
 })
 
 test('行为：600ms 内的第二次 Enter 放弃本轮优化、按原文发出', () => {

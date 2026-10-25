@@ -132,11 +132,12 @@ t('界面锚点：关键节点带 data-po06 标记（真机验证靠它，不靠
   //    "无出处"这条诚实信号挪到拦截审查面板（intercept-unsourced），下面的诚实性断言仍然钉着它。
   // 2026-10-19：自绘控件把锚点写在 name 上（Segmented/Options 运行时拼出 data-po06=<name>），
   // 所以"有这个锚点"现在有两条成立方式：字面量，或某个控件的 name 就是它。
-  const hasAnchor = (a) => src.includes("'data-po06': '" + a + "'")
-    || src.includes('"data-po06": "' + a + '"')
-    || src.includes("name: '" + a + "'")
-    || src.includes('anchor: "' + a + '"')
-    || src.includes("anchor: '" + a + "'")
+  const compact = src.replace(/\s*:\s*/g, ':')
+  const hasAnchor = (a) => compact.includes("'data-po06':'" + a + "'")
+    || compact.includes('"data-po06":"' + a + '"')
+    || compact.includes("name:'" + a + "'")
+    || compact.includes('anchor:"' + a + '"')
+    || compact.includes("anchor:'" + a + "'")
   for (const anchor of ['bar', 'ctx', 'ctx-mode', 'readtools', 'model', 'help-btn', 'help-pop', 'help-close',
     'panel', 'controls', 'turns', 'prompt', 'settings']) {
     ok(hasAnchor(anchor), '缺少界面锚点 data-po06=' + anchor)
@@ -146,7 +147,7 @@ t('界面锚点：关键节点带 data-po06 标记（真机验证靠它，不靠
   ok(!/S\.h \}, '它在替我做什么'/.test(src), '详情面板里不得再有"它在替我做什么"板块')
   ok(!/h\(ItemsList/.test(src), 'ItemsList 已删（不留死代码）')
   ok(/h\('span', \{\}, L\('详情', 'Details'\)\)/.test(src), '入口按钮文字必须是「详情」')
-  ok(/'data-po06': 'state-dot'/.test(src), '「详情」必须保留灰绿状态灯（state-dot）')
+  ok(hasAnchor('state-dot'), '「详情」必须保留灰绿状态灯（state-dot）')
   // 2026-10-19：上下文重做——模式用分段控件（ctx-mode），回合数用自绘滑杆（ctx）。
   // 旧断言钉的是"一个 range 伪装两种模式"，那正是这次要拆掉的东西。
   ok(/name: 'ctx-mode'/.test(src), '上下文模式必须是分段控件（data-po06=ctx-mode）')

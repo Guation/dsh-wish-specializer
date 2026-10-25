@@ -180,7 +180,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = '10-19 21:56'
+    const CLIENT_BUILD = 'studio-01'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -745,15 +745,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       optBtnOn: { background: T('hover'), borderColor: OVS.acc, boxShadow: '0 0 0 3px ' + OVS.acc12 },
       optBtnText: { fontWeight: 600, letterSpacing: '.2px' },
       // ② 弹出面板：288 宽、12/14 内距，紧凑但不挤
-      // 液态玻璃 + 扁平（2026-10-25 重设计）：面板是一块有厚度的玻璃——顶面高光、边缘冷光、深投影。
-      optPop: { position: 'fixed', zIndex: OV_Z.pop, width: '336px', maxHeight: 'min(78vh, 640px)', overflowY: 'auto',
-        display: 'flex', flexDirection: 'column', gap: '9px', padding: '14px 16px 12px',
-        color: OVS.fg, borderRadius: '20px',
-        background: 'linear-gradient(158deg, rgba(255,255,255,.13), rgba(255,255,255,.045) 42%, rgba(255,255,255,.02))', backgroundColor: 'color-mix(in srgb, var(--po06-surface) 62%, transparent)',
-        backdropFilter: 'blur(28px) saturate(185%)', WebkitBackdropFilter: 'blur(28px) saturate(185%)',
-        border: '1px solid rgba(255,255,255,.16)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.30), inset 0 -1px 0 rgba(0,0,0,.22), ' + SHADOW.float },
-      optHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
+      // The panel geometry stays inline; all appearance belongs to OPTIONS_STUDIO_CSS.
+      optPop: {position:'fixed',zIndex:OV_Z.pop,width:'408px',maxHeight:'min(86vh,720px)',overflowY:'auto',boxSizing:'border-box'},
       optPopHead: { display: 'flex', alignItems: 'center', gap: '8px', ...TYPE.title, paddingBottom: '0',
         letterSpacing: '.3px', textShadow: '0 1px 0 rgba(255,255,255,.10)' },
       optRow: { display: 'grid', gridTemplateColumns: '92px 1fr', alignItems: 'center', gap: '10px', minHeight: '34px',
@@ -787,12 +780,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         border: '1px solid ' + OVS.lineSoft, background: OVS.bg1, color: OVS.fg,
         font: 'inherit', fontSize: '12px', cursor: 'pointer' },
       // ③b 下拉选择（自绘，替掉原生 select）：触发器 + 浮层菜单
-      picker: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%',
-        boxSizing: 'border-box', padding: '7px 12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,.10)',
-        background: 'linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025))',
-        color: OVS.fg, font: 'inherit', fontSize: '12px', cursor: 'pointer',
-        textAlign: 'left', minHeight: '32px', transition: 'border-color .18s ease, box-shadow .18s ease' },
-      pickerOpen: { borderColor: OVS.acc, boxShadow: '0 0 0 3px ' + OVS.acc12 },
+      picker: {display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',
+        boxSizing:'border-box',padding:'7px 0',borderRadius:0,border:'none',borderBottom:'1px solid '+OVS.lineSoft,
+        background:'transparent',boxShadow:'none',color:OVS.fg,font:'inherit',fontSize:'12px',cursor:'pointer',
+        textAlign:'left',minHeight:'32px',transition:'border-color .15s ease'},
       pickerText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
       pickerCaret: { flex: '0 0 auto', color: OVS.fg3, fontSize: '9px' },
       // 内联展开（2026-10-19）：菜单跟在触发器下面，不依赖定位/测量，不会被裁掉也不会错位
@@ -940,7 +931,76 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       return ref.current
     }
 
-    const PROV_TEXT = { user: L('你说过','you said'), machine: L('机器补充','machine-added'), unsourced: L('无出处','unsourced') }
+    // Scoped visual system: editorial hierarchy first, no runtime design dependencies.
+    // Matches the host shell: DSH surface/text/border tokens, one accent, host radii.
+    const OPTIONS_STUDIO_CSS = `
+.po06-choices{display:flex;gap:2px;min-width:0;padding:2px;border:1px solid var(--po06-line2);border-radius:8px;background:var(--po06-chip);font:inherit}
+.po06-choices>button{flex:1 1 0;min-width:0;min-height:26px;padding:3px 8px;border:0;border-radius:6px;background:transparent;color:var(--po06-fg3);font:inherit;font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer;transition:background-color .13s ease,color .13s ease}
+.po06-choices>button[aria-checked=true]{background:var(--po06-surface);color:var(--po06-fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.po06-choices>button:focus-visible{outline:2px solid var(--po06-acc);outline-offset:1px}
+[data-po06="options-pop"].po06-studio{box-sizing:border-box;display:flex;flex-direction:column;gap:0;padding:18px 18px 14px;color:var(--po06-fg);background:var(--po06-surface);border:1px solid var(--po06-line);border-radius:12px;box-shadow:var(--po06-shadow);font-family:inherit;font-size:12.5px;line-height:1.5;overscroll-behavior:contain;scrollbar-width:thin;isolation:isolate;animation:po06-studio-in .16s ease-out both}
+.po06-studio *{box-sizing:border-box}
+.po06-studio h2,.po06-studio p{margin:0}
+.po06-studio .po06-studio-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--po06-line2)}
+.po06-studio .po06-eyebrow{display:block;font-size:10.5px;font-weight:600;letter-spacing:.02em;color:var(--po06-fg3)}
+.po06-studio .po06-studio-header h2{margin:3px 0 0;font-size:14px;line-height:1.35;font-weight:650;letter-spacing:0;color:var(--po06-fg)}
+.po06-studio .po06-close{display:grid;place-items:center;width:26px;height:26px;padding:0;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--po06-fg3);font:400 18px/1 system-ui;cursor:pointer}
+.po06-studio .po06-intensity{margin-top:14px}
+.po06-studio .po06-intensity-top{display:flex;justify-content:space-between;align-items:baseline}
+.po06-studio .po06-edition{font-size:10.5px;color:var(--po06-fg3);font-variant-numeric:tabular-nums}
+.po06-studio .po06-current-tier{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px;font-size:19px;line-height:1.35;font-weight:650;letter-spacing:-.01em;color:var(--po06-fg)}
+.po06-studio .po06-current-tier>span{font-size:14px;color:var(--po06-fg3)}
+.po06-studio .po06-tier-note{margin-top:2px;color:var(--po06-fg3);font-size:11.5px;line-height:1.5}
+.po06-studio .po06-choices[data-po06-variant=intensity]{margin-top:10px;padding:0;gap:0;border:0;background:transparent}
+.po06-studio .po06-choices[data-po06-variant=intensity]>button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:44px;padding:6px 0 7px;border:0;border-bottom:1px solid var(--po06-line2);border-radius:0;background:transparent;color:var(--po06-fg3);font-size:11.5px;text-align:left}
+.po06-studio .po06-choices[data-po06-variant=intensity]>button[aria-checked=true]{border-bottom:2px solid var(--po06-acc);color:var(--po06-acc);background:transparent;font-weight:600}
+.po06-studio .po06-tier-index{font-size:9.5px;color:var(--po06-fg3);font-variant-numeric:tabular-nums}
+.po06-studio .po06-state-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;font-size:12px;color:var(--po06-fg2)}
+.po06-studio .po06-state-row>.po06-choices{flex:0 1 148px}
+.po06-studio .po06-feature-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:12px 0 10px;padding:10px 0;border-top:1px solid var(--po06-line2);border-bottom:1px solid var(--po06-line2)}
+.po06-studio .po06-feature-toggle{display:flex;flex-direction:column;gap:3px;min-width:0;padding:0;border:0;border-radius:6px;background:transparent;color:var(--po06-fg);text-align:left;font:inherit;cursor:pointer}
+.po06-studio .po06-feature-top{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font-size:12px;font-weight:500}
+.po06-studio .po06-feature-caption{display:block;font-size:10.5px;line-height:1.45;color:var(--po06-fg3)}
+.po06-studio .po06-switch-mark{position:relative;display:block;flex:0 0 26px;width:26px;height:15px;border:1px solid var(--po06-line);border-radius:9px;background:transparent;transition:background-color .13s ease,border-color .13s ease}
+.po06-studio .po06-switch-mark>span{position:absolute;top:2px;left:2px;width:9px;height:9px;border-radius:50%;background:var(--po06-fg3);transition:transform .13s ease,background-color .13s ease}
+.po06-studio [aria-checked=true] .po06-switch-mark{background:var(--po06-acc);border-color:var(--po06-acc)}
+.po06-studio [aria-checked=true] .po06-switch-mark>span{transform:translateX(11px);background:var(--po06-surface)}
+.po06-studio .po06-options-index{display:flex;flex-direction:column}
+.po06-studio .po06-option-group{border-bottom:1px solid var(--po06-line2)}
+.po06-studio .po06-group-trigger{display:grid;grid-template-columns:20px max-content minmax(0,1fr) 12px;align-items:center;gap:8px;width:100%;min-height:40px;padding:8px 2px;background:transparent;border:0;border-radius:6px;color:var(--po06-fg);font:inherit;text-align:left;cursor:pointer}
+.po06-studio .po06-group-index{font-size:10px;color:var(--po06-fg3);font-variant-numeric:tabular-nums}
+.po06-studio .po06-group-title{font-size:12px;font-weight:500}
+.po06-studio .po06-group-summary{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:11px;color:var(--po06-fg3)}
+.po06-studio .po06-group-sign{font-size:13px;text-align:right;color:var(--po06-fg3)}
+.po06-studio .po06-option-group[data-expanded="1"] .po06-group-summary{opacity:0}
+.po06-studio .po06-group-body{padding:2px 0 12px 28px;animation:po06-studio-body .13s ease-out both}
+.po06-studio .po06-control-row{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:10px;min-height:36px;font-size:11.5px;color:var(--po06-fg3)}
+.po06-studio .po06-control-row .po06-choices{width:100%}
+.po06-studio [data-po06=picker]>button{min-height:30px;padding:5px 8px;border:1px solid var(--po06-line2);border-radius:8px;background:var(--po06-chip);box-shadow:none;color:var(--po06-fg2);font-size:11.5px}
+.po06-studio [data-po06=picker]>button[aria-expanded=true]{border-color:var(--po06-acc)}
+.po06-studio .po06-setting-note{color:var(--po06-fg3);font-size:11px;line-height:1.5;padding-top:6px}
+.po06-studio .po06-turns-editor{padding-top:8px}
+.po06-studio .po06-turns-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11.5px;color:var(--po06-fg3)}
+.po06-studio [data-po06=ctx-num]{font-size:12px;font-weight:600;color:var(--po06-fg)}
+.po06-studio .po06-range-labels{display:flex;justify-content:space-between;margin-top:3px;font-size:10px;color:var(--po06-fg3)}
+.po06-studio .po06-setting-switch{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:34px;padding:6px 2px;background:transparent;border:0;border-radius:6px;color:var(--po06-fg2);font:inherit;font-size:12px;text-align:left;cursor:pointer}
+.po06-studio .po06-options-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.po06-studio .po06-details-link{display:flex;align-items:center;gap:7px;min-height:26px;padding:0 2px;border:0;border-radius:6px;background:transparent;color:var(--po06-fg2);font:inherit;font-size:11.5px;cursor:pointer}
+.po06-studio .po06-save-status{font-size:10.5px;color:var(--po06-fg3)}
+[data-po06="options-pop"].po06-studio button:hover{background:var(--po06-hover);box-shadow:none}
+[data-po06="options-pop"].po06-studio .po06-choices>button[aria-checked=true]:hover{background:var(--po06-surface)}
+[data-po06="options-pop"].po06-studio .po06-choices[data-po06-variant=intensity]>button:hover{background:var(--po06-hover)}
+[data-po06="options-pop"].po06-studio .po06-choices[data-po06-variant=intensity]>button[aria-checked=true]:hover{background:transparent;color:var(--po06-acc)}
+[data-po06="options-pop"].po06-studio button:active{transform:none}
+[data-po06="options-pop"].po06-studio button:focus-visible{outline:2px solid var(--po06-acc);outline-offset:2px;box-shadow:none}
+[data-po06="options-pop"].po06-studio button:disabled{opacity:.45;cursor:not-allowed}
+[data-po06="options-btn"]:hover{color:var(--po06-acc)}
+@keyframes po06-studio-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes po06-studio-body{from{opacity:0}to{opacity:1}}
+@media(max-width:420px){[data-po06="options-pop"].po06-studio{padding:14px}.po06-studio .po06-feature-grid{gap:10px}.po06-studio .po06-group-body{padding-left:0}.po06-studio .po06-group-summary{max-width:38vw}}
+@media(prefers-reduced-motion:reduce){[data-po06="options-pop"].po06-studio,[data-po06="options-pop"].po06-studio *{animation:none!important;transition:none!important}}
+`
+
 
     /**
      * 下拉选择（2026-10-19 重做）：原生 <select> 的展开面板由系统绘制，跟插件的设计语言完全不搭
@@ -982,9 +1042,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         layer.style.cssText = [
           'position:fixed', 'z-index:2147483000', 'box-sizing:border-box',
           'display:flex', 'flex-direction:column', 'gap:2px', 'padding:4px',
-          'overflow-y:auto', 'overscroll-behavior:contain', 'border-radius:10px',
+          'overflow-y:auto', 'overscroll-behavior:contain', 'border-radius:4px',
           'background:' + OVS.surface, 'border:1px solid ' + OVS.line,
-          'box-shadow:inset 0 -2px 0 ' + OVS.lineSoft + ',0 14px 34px rgba(0,0,0,.45)',
+          'box-shadow:0 12px 32px -12px rgba(0,0,0,.35)',
           'font-size:12px', 'line-height:18px', 'opacity:0', 'transform:translateY(-4px)',
           'transition:opacity .12s ease, transform .12s ease',
           'left:' + left + 'px', 'width:' + w + 'px', 'max-height:' + maxH + 'px',
@@ -997,6 +1057,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const b = document.createElement('button')
           b.type = 'button'
           b.setAttribute('data-po06', 'picker-item')
+          b.setAttribute('role', 'option')
+          b.setAttribute('aria-selected', k === cur ? 'true' : 'false')
+          b.tabIndex = k === cur ? 0 : -1
           b.setAttribute('data-on', k === cur ? '1' : '0')
           b.textContent = (latest.current ? latest.current.label : label)(k)
           const on = k === cur
@@ -1008,19 +1071,27 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             'font:inherit', 'font-size:12px', 'line-height:18px', 'flex:0 0 auto',
             'white-space:nowrap', 'overflow:hidden', 'text-overflow:ellipsis', 'cursor:pointer',
           ].join(';')
-          b.onclick = () => { setOpen(false); if (latest.current && k !== latest.current.value) latest.current.onChange(k) }
+          b.onclick = () => { setOpen(false); btnRef.current?.focus?.(); if (latest.current && k !== latest.current.value) latest.current.onChange(k) }
           layer.appendChild(b)
         }
         document.body.appendChild(layer)
         layerRef.current = layer
         const closeSelf = () => setOpen(false)
         PICKER_HOSTS.add(closeSelf)
-        requestAnimationFrame(() => { try { layer.style.opacity = '1'; layer.style.transform = 'translateY(0)' } catch { /* 忽略 */ } })
+        requestAnimationFrame(() => { try { layer.style.opacity = '1'; layer.style.transform = 'translateY(0)'; layer.querySelector('[aria-selected="true"]')?.focus() } catch { /* 忽略 */ } })
         const onDoc = (e) => {
           if (layer.contains(e.target) || (btnRef.current && btnRef.current.contains(e.target))) return
           closeSelf()
         }
-        const onKey = (e) => { if (e && e.key === 'Escape') closeSelf() }
+        const onKey = e => {
+          if (e.key === 'Escape') { e.preventDefault(); closeSelf(); btnRef.current?.focus?.(); return }
+          const items=Array.from(layer.querySelectorAll('[role="option"]'))
+          const current=Math.max(0,items.indexOf(document.activeElement))
+          const next=e.key==='Home'?0:e.key==='End'?items.length-1
+            :e.key==='ArrowDown'?(current+1)%items.length:e.key==='ArrowUp'?(current+items.length-1)%items.length:null
+          if (next != null && items[next]) { e.preventDefault(); items[next].focus(); return }
+          if (['Enter',' '].includes(e.key) && items.includes(document.activeElement)) {e.preventDefault();document.activeElement.click()}
+        }
         document.addEventListener('pointerdown', onDoc, true)
         document.addEventListener('keydown', onKey, true)
         // 捕获阶段监听会连**小窗内部**的滚动一起收到（列表本身可滚）⇒ 一滚就关。
@@ -1065,207 +1136,41 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           h('span', { 'aria-hidden': 'true', style: S.pickerCaret }, open ? '\u25B4' : '\u25BE')))
     }
 
-    const TIER_FX = {
-      light:    { color: '#3fbf7f', dots: 0,  motion: 'none' },
-      standard: { color: '#4a8bff', dots: 9,  motion: 'drift' },
-      heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff' },
+    // One semantic choice control. Selection never depends on element measurements.
+    function Segmented({ name, value, options, label, disabled, title, onPick, failTick, variant }) {
+      const [pending, setPending] = React.useState(null)
+      const shown = pending == null ? value : pending
+      React.useEffect(() => { setPending(null) }, [value, failTick])
+      const commit = key => {
+        if (disabled || key === shown) return
+        setPending(key)
+        onPick(key)
+      }
+      const onKeyDown = event => {
+        if (disabled) return
+        const index = Math.max(0, options.indexOf(shown))
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
+          : ['ArrowRight', 'ArrowDown'].includes(event.key) ? (index + 1) % options.length
+          : ['ArrowLeft', 'ArrowUp'].includes(event.key) ? (index + options.length - 1) % options.length : null
+        if (next == null) return
+        event.preventDefault()
+        commit(options[next])
+        event.currentTarget?.querySelectorAll?.('[role="radio"]')[next]?.focus()
+      }
+      return h('div', {
+        role: 'radiogroup', 'aria-label': title || name, 'aria-disabled': disabled ? 'true' : 'false',
+        'data-po06': name, 'data-po06-control': 'choices', 'data-po06-value': shown || 'none',
+        'data-po06-variant': variant || 'compact', 'data-po06-disabled': disabled ? '1' : '0',
+        className: 'po06-choices', title, onKeyDown,
+      }, options.map((key, index) => h('button', {
+        key, type: 'button', role: 'radio', 'aria-checked': key === shown,
+        tabIndex: disabled ? -1 : key === shown || !options.includes(shown) && index === 0 ? 0 : -1,
+        disabled: !!disabled, 'data-po06': name + '-' + key, 'data-po06-on': key === shown ? '1' : '0',
+        onClick: () => commit(key),
+      }, variant === 'intensity' ? h('span', { className: 'po06-tier-index', 'aria-hidden': 'true' }, '0' + index) : null,
+        h('span', null, label ? label(key) : key))))
     }
 
-    function Segmented({ name, value, options, label, disabled, title, onPick, failTick, tones }) {
-      const box = React.useRef(null)
-      const last = React.useRef(null)
-      const itemRefs = React.useRef({})
-      const [ind, setInd] = React.useState(null)
-      const [trackW, setTrackW] = React.useState(0)
-      const [dragging, setDragging] = React.useState(false)
-      // 拖动只是**预览**：按住移动只改这个本地值，松手才真正 onPick（避免每跨一格就打一次接口）
-      const [dragValue, setDragValue] = React.useState(null)
-      const shown = dragValue != null ? dragValue : value
-      React.useEffect(() => { last.current = null }, [value, failTick])
-      // 真值已经跟上 ⇒ 撤掉乐观预览（否则下次重渲染会被旧预览盖住）
-      React.useEffect(() => { if (dragValue != null && dragValue === value) setDragValue(null) }, [value, dragValue])
-      const measure = () => {
-        const el = itemRefs.current[shown]
-        const track = box.current
-        if (!el || !track || typeof el.offsetLeft !== 'number') return
-        setInd({ left: el.offsetLeft, width: el.offsetWidth })
-        setTrackW(track.offsetWidth || 0)
-      }
-      const useIso = React.useLayoutEffect || React.useEffect
-      useIso(() => {
-        measure()
-        let ro = null
-        try {
-          if (typeof ResizeObserver === 'function' && box.current) {
-            ro = new ResizeObserver(() => measure())
-            ro.observe(box.current)
-          }
-        } catch { /* 旧环境没有 RO */ }
-        return () => { try { if (ro) ro.disconnect() } catch { /* 忽略 */ } }
-      }, [shown, options.length])
-      const commit = (k) => {
-        if (!k || disabled || k === value || k === last.current) return
-        last.current = k
-        setDragValue(k)   // 乐观显示：点下去指示器就滑到目标格，不等接口回来
-        onPick(k)
-      }
-      // 拖动时会以 ~120Hz 触发 pointermove：每次都 getBoundingClientRect 会强制同步布局（卡顿的来源之一）。
-      // 所以按下时量一次、整个拖动期间复用；松手清空。
-      const rectRef = React.useRef(null)
-      const startRef = React.useRef(null)   // pointerdown 的起点：区分"单击"与"拖动"
-      const indexAt = (clientX) => {
-        const el = box.current
-        if (!el || typeof el.getBoundingClientRect !== 'function') return -1
-        const r = rectRef.current || el.getBoundingClientRect()
-        if (!r || !r.width) return -1
-        const i = Math.floor(((clientX - r.left) / r.width) * options.length)
-        return Math.max(0, Math.min(options.length - 1, i))
-      }
-      const valueAt = (clientX) => { const i = indexAt(clientX); return i >= 0 ? options[i] : null }
-      const onKeyDown = (e) => {
-        if (disabled) return
-        const cur = Math.max(0, options.indexOf(value))
-        let next = null
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = cur - 1
-        else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = cur + 1
-        else if (e.key === 'Home') next = 0
-        else if (e.key === 'End') next = options.length - 1
-        if (next === null) return
-        e.preventDefault()
-        commit(options[Math.max(0, Math.min(options.length - 1, next))])
-      }
-      const fx = name === 'tier' && !disabled ? TIER_FX[shown] : null
-      // 每格可以有自己的颜色（权限：审查=绿、自动=橙）；没有就退回主题色。
-      // 单一强调色：整块面板不出现彩虹配色（用户 2026-10-25：彩色药丸显得廉价）。
-      const tone = OVS.acc
-      const dots = fx && fx.dots ? Array.from({ length: fx.dots }, (_, i) => {
-        // 固定伪随机（同一个 i 永远得到同一组参数）：位置/时长/延迟稳定，重渲染不跳
-        const a = (i * 37) % 97, b = (i * 61) % 90 + 5, c = (i * 71) % 100
-        if (fx.motion === 'meteor') {
-          // 流星（2026-10-19 二次调整）：**从右侧轨道外进入**，一路向左，到左边缘前淡出。
-          // 行程按整条轨道宽度算（-0.88~-1.16 倍），长度 5~17px、粗细 1~2.5px、速度 0.9~2.4s 全随机。
-          const len = 5 + (i * 7) % 13
-          const thick = 1 + ((i * 13) % 3) * 0.6
-          const dur = 0.9 + ((i * 37) % 100) / 100 * 1.5      // 0.9s ~ 2.4s
-          const gap = 0.88 + ((i * 23) % 28) / 100            // 行程 0.88~1.16 倍轨道宽
-          if (!trackW) return null                            // 还没量到宽度：先不画，避免行程为 0
-          return h('span', {
-            key: i, 'data-po06': 'tier-dot', 'data-po06-motion': 'meteor', 'aria-hidden': 'true',
-            style: {
-              position: 'absolute', left: '100%', top: b + '%',
-              width: len + 'px', height: thick.toFixed(1) + 'px', borderRadius: '999px',
-              background: 'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.95))',
-              '--dist': '-' + Math.round(trackW * gap) + 'px',
-              animation: 'po06-meteor ' + dur.toFixed(2) + 's linear infinite',
-              // 负延迟：动画从"已经跑了这么久"的位置开始 ⇒ 一出现就在动，不会先停一会儿
-              animationDelay: '-' + (c / 100 * dur).toFixed(2) + 's',
-            },
-          })
-        }
-        // 飘动：每个粒子一个自己的方向向量与时长，来回漂（alternate），整体是无序的
-        const dx = ((i * 43) % 26) - 13
-        const dy = ((i * 67) % 18) - 9
-        const dur = 2.6 + ((i * 31) % 100) / 40   // 2.6s ~ 5.1s
-        return h('span', {
-          key: i, 'data-po06': 'tier-dot', 'data-po06-motion': 'drift', 'aria-hidden': 'true',
-          style: {
-            position: 'absolute', left: a + '%', top: b + '%', width: '2.5px', height: '2.5px',
-            borderRadius: '50%', background: fx.color, opacity: .7,
-            animation: 'po06-drift ' + dur.toFixed(2) + 's linear infinite alternate',
-            animationDelay: '-' + (c / 100 * 0.8).toFixed(2) + 's',
-            '--dx': dx + 'px', '--dy': dy + 'px',
-          },
-        })
-      }) : null
-      return h('div', {
-        ref: box, role: 'slider', tabIndex: disabled ? -1 : 0,
-        'aria-label': name, 'aria-disabled': disabled ? 'true' : 'false',
-        'data-po06': name, 'data-po06-value': shown || 'none',
-        'data-po06-disabled': disabled ? '1' : '0',
-        'data-po06-fx': fx ? shown : 'none',
-        title, style: { ...S.seg, ...(disabled ? S.dis : null), boxShadow: 'inset 0 -2px 0 ' + T('line'), cursor: disabled ? 'not-allowed' : 'pointer',
-          position: 'relative', overflow: 'hidden',
-          ...(fx ? { background: 'color-mix(in srgb, ' + fx.color + ' 16%, ' + OVS.bg1 + ')',
-            borderColor: 'color-mix(in srgb, ' + fx.color + ' 34%, transparent)',
-            ...(shown === 'heavy' ? { animation: 'po06-shake 1.1s ease-in-out infinite', willChange: 'transform' } : null) } : null) },
-        // 点击（键盘/触屏的 click）照旧立即生效；拖动走 pointer 预览、松手才提交
-        onClick: (e) => {
-          if (disabled) return
-          if (!e || e.detail === 0 || typeof e.clientX !== 'number') return
-          const k = valueAt(e.clientX)
-          if (k) commit(k)
-        },
-        onPointerDown: (e) => {
-          if (disabled) return
-          startRef.current = { x: e.clientX }
-          try { rectRef.current = box.current.getBoundingClientRect() } catch { rectRef.current = null }
-          try { if (e.currentTarget && e.currentTarget.setPointerCapture && e.pointerId != null) e.currentTarget.setPointerCapture(e.pointerId) } catch (err) { /* 环境不支持就算了 */ }
-        },
-        onPointerMove: (e) => {
-          if (disabled || !startRef.current) return
-          // 只有真的拖出 3px 才算拖动：单击不该先跳到别处再落回来（用户看到的"来回跳动"）
-          if (!dragging && Math.abs(e.clientX - startRef.current.x) <= 3) return
-          if (!dragging) setDragging(true)
-          const k = valueAt(e.clientX)
-          if (k && k !== dragValue) setDragValue(k)
-        },
-        onPointerUp: (e) => {
-          const k = dragging ? dragValue : (startRef.current ? valueAt(e.clientX) : null)
-          startRef.current = null
-          rectRef.current = null
-          setDragging(false)
-          setDragPos(null)
-          setDragValue(null)
-          if (k) commit(k)
-        },
-        onPointerCancel: () => { startRef.current = null; rectRef.current = null; setDragging(false); setDragValue(null) },
-        onPointerLeave: () => {
-          if (!dragging) return
-          const k = dragValue
-          setDragging(false)
-          setDragValue(null)
-          if (k) commit(k)
-        },
-        onKeyDown,
-      },
-        // 粒度层：档位才有的扰动粒子（在指示器下面，文字上面留出对比）
-        fx ? h('span', { 'data-po06': 'tier-fx', 'aria-hidden': 'true',
-          style: { position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' } }, dots) : null,
-        // 滑动指示器：位置由真实格子量出来，切换/拖动时滑过去
-        h('span', { 'data-po06': 'seg-ind', 'aria-hidden': 'true',
-          style: {
-            position: 'absolute', top: '2px', bottom: '2px',
-            left: (ind ? ind.left : 2) + 'px', width: (ind ? ind.width : 0) + 'px',
-            borderRadius: '999px', pointerEvents: 'none',
-            background: 'linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.10))',
-            border: '1px solid rgba(255,255,255,.30)',
-            backdropFilter: 'blur(8px) saturate(160%)', WebkitBackdropFilter: 'blur(8px) saturate(160%)',
-            // 玻璃药丸：顶部内高光 + 底部投影 + 一线主题色冷光
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.18), 0 8px 22px -10px rgba(0,0,0,.85), 0 0 0 1px ' + tone + '22',
-            transition: 'left .26s cubic-bezier(.22,.8,.24,1), width .26s cubic-bezier(.22,.8,.24,1), background-color .22s ease',
-          } }),
-        options.map((k) => h('span', {
-          key: k, 'data-po06': name + '-' + k, 'data-po06-on': (k === shown ? '1' : '0'),
-          ref: (el) => { if (el) itemRefs.current[k] = el },
-          style: { ...S.segItem, position: 'relative', zIndex: 1,
-            ...(k === shown
-              ? { color: '#fff', fontWeight: 650, textShadow: '0 1px 2px rgba(0,0,0,.45)' }
-              : { color: 'rgba(255,255,255,.58)' }) },
-        }, label ? label(k) : k)),
-        // 重度：流星撞在右边界激起的白色浪（2026-10-19）。
-        // ⚠ 必须画在**最上层**：选中药丸是不透明的，画在下面时浪的亮部正好被"重度"那格盖住，
-        //   真机上看到的就是"没有效果"。这里用 screen 混合压在文字上，只提亮不遮挡。
-        shown === 'heavy' ? h('span', { 'data-po06': 'tier-shock', 'aria-hidden': 'true',
-          style: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '62%', pointerEvents: 'none', zIndex: 2,
-            background: 'linear-gradient(270deg, rgba(255,255,255,.85), rgba(255,255,255,.34) 38%, rgba(255,255,255,0))',
-            filter: 'blur(6px)', mixBlendMode: 'screen',
-            animation: 'po06-shock 1.5s ease-in-out infinite' } }) : null,
-        // 边缘亮线：让"冲击点"在最右缘有一条明确的亮边
-        shown === 'heavy' ? h('span', { 'data-po06': 'tier-shock-rim', 'aria-hidden': 'true',
-          style: { position: 'absolute', right: '1px', top: '3px', bottom: '3px', width: '2px', pointerEvents: 'none', zIndex: 2,
-            borderRadius: '2px', background: 'rgba(255,255,255,.85)', filter: 'blur(1px)',
-            animation: 'po06-shock-rim 1.5s ease-in-out infinite' } }) : null)
-    }
 
     /**
      * 上下文回合数（0–10，契约见 settings.js 的 TURNS_MIN/TURNS_MAX）。
@@ -1505,9 +1410,19 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     }
     const inferenceCallTime=c=>Math.max(0,((c.finishedAt||Date.now())-c.startedAt)/1000).toFixed(1)+'s'
     function outgoingUserText(hold){return hold?.englishMode&&typeof hold.outgoingText==='string'&&hold.outgoingText.trim()?hold.outgoingText:String(hold?.text||'')}
-    function AdvisorControls({settings={},save,ready,busy=false,failTick}){
+    function StudioToggle({name,label,caption,on,disabled,onChange}) {
+      return h('button',{type:'button',role:'switch','aria-checked':!!on,disabled:!!disabled,
+        'aria-label':label,'data-po06':name+'-toggle','data-po06-value':on?'on':'off',
+        className:'po06-feature-toggle',onClick:onChange},
+        h('span',{className:'po06-feature-top'},h('span',null,label),
+          h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span'))),
+        h('span',{className:'po06-feature-caption'},caption))
+    }
+
+    function AdvisorControls({settings={},save,ready,busy=false,failTick,compact=false}){
       const known=typeof settings.advisor==='boolean',on=settings.advisor===true
-      // 2026-10-18 用户指定：顾问开关，放在英文模式上方，两档，默认开。
+      if (compact) return h(StudioToggle,{name:'advisor',label:L('顾问','Advisor'),caption:L('独立思考与复核','A second perspective'),on,disabled:busy||!known||ready===false,onChange:()=>save({advisor:!on})})
+      // Settings-page presentation shares the same saved value.
       return h('div',{style:S.optRow},h('span',{style:S.optLabel},...withIcon('✦',L('顾问','Advisor'))),
         h(Segmented,{ name:'advisor', value:on?'on':'off', options:['off','on'], failTick,
           disabled:busy||!known||ready===false,
@@ -1517,9 +1432,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           tones:{off:'#e05a5a',on:'#3fbf7f'},
           onPick:v=>save({advisor:v==='on'}) }))
     }
-    function EnglishControls({settings={},save,ready,busy=false,failTick}){
+    function EnglishControls({settings={},save,ready,busy=false,failTick,compact=false}){
       const known=typeof settings.englishMode==='boolean',on=settings.englishMode===true
-      // 与「权限」同款两档滑档；默认关闭。读不到设置时禁用并说明，绝不猜测当前值。
+      if (compact) return h(StudioToggle,{name:'english-mode',label:L('英文模式','English mode'),caption:L('使用英文任务与建议','Task & advice in English'),on,disabled:busy||!known||ready===false,onChange:()=>save({englishMode:!on})})
+      // A missing status value is never guessed.
       return h('div',{style:S.optRow},h('span',{style:S.optLabel},...withIcon('A',L('英文模式','English mode'))),
         h(Segmented,{
           name:'english-mode', value:on?'on':'off', options:['off','on'], failTick,
@@ -2769,7 +2685,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const optRef = React.useRef(null)
       // 密度档：0 正常 / 1 紧凑 / 2 极紧。打开后按"内容高度 vs 可用高度"自动升档，
       // 这是"边界自动挤压"：先缩间距与行高，挤不下才允许内部滚动。
-      const [optDensity, setOptDensity] = React.useState(0)
+      const [optSection, setOptSection] = React.useState(null)
       // issue #18（用户澄清）：弹层/面板**不许与右侧栏重合** —— 它们的右边界要收在会话窗内。
       // 会话窗宽度没有现成的常量可读，所以**量输入卡片**：侧栏一开，会话列变窄、卡片跟着变窄。
       // 观察点用 ResizeObserver 而不是只听 window.resize：侧栏开关时窗口尺寸不变，变的是列宽。
@@ -2931,19 +2847,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         reflow()
         return ovReflowWatch(reflow, optBtnRef.current)
       }, [])
-      React.useEffect(() => { if (!optOpen) setOptDensity(0) }, [optOpen])
-      // ⚠ 用 useIso（React.useLayoutEffect || React.useEffect）：管线里的 React 可能是精简替身，
-      // 直接点 useLayoutEffect 会 `is not a function`（真机 + 套件都撞过）。
-      // ⚠ 用 (React.useLayoutEffect || React.useEffect)：管线里的 React 可能是精简替身，
-      // 直接点 useLayoutEffect 会 "is not a function"（真机与套件都撞过）。
-      ;(React.useLayoutEffect || React.useEffect)(() => {
-        if (!optOpen) return
-        const el = optRef.current
-        if (!el || !optPos) return
-        const maxH = optPos.maxH || 600
-        // scrollHeight 反映真实内容高度（即使已被 maxHeight 裁剪），所以能判断"挤不挤得下"
-        if (el.scrollHeight > maxH + 2 && optDensity < 2) setOptDensity((d) => d + 1)
-      }, [optOpen, optPos, optDensity])
+      React.useEffect(() => { if (!optOpen) setOptSection(null) }, [optOpen])
       // 点面板外 / 按 Esc 收起（键盘可达；不抢输入框的回车）
       React.useEffect(() => {
         if (!optOpen) return undefined
@@ -2956,7 +2860,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if (t && typeof t.closest === 'function' && t.closest('[data-po06="picker-layer"]')) return
           setOptOpen(false)
         }
-        const onKey = (e) => { if (e && e.key === 'Escape') setOptOpen(false) }
+        const onKey = (e) => {
+          if (e?.key !== 'Escape' || document.querySelector('[data-po06="picker-layer"]')) return
+          setOptOpen(false); optBtnRef.current?.focus?.()
+        }
         document.addEventListener('pointerdown', onDown, true)
         document.addEventListener('keydown', onKey, true)
         return () => {
@@ -3083,7 +2990,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         const all = (s.bySession && typeof s.bySession === 'object') ? s.bySession : {}
         const prev = all[sessionId] || {}
         const keep = {}
-        for(const key of ['reasoningBoost','reasoningMode','reasoningCandidates','reasoningRounds','reasoningPace','englishMode'])if(prev[key]!==undefined)keep[key]=prev[key]
+        for(const key of ['reasoningBoost','reasoningMode','reasoningCandidates','reasoningRounds','reasoningPace','englishMode','modelState'])if(prev[key]!==undefined)keep[key]=prev[key]
         return { ...all, [sessionId]: { ...keep, tier: t } }
       }
       const tierOff = tier === 'off',englishOn=eff.englishMode===true,reasoningOn=eff.reasoningBoost===true
@@ -3694,7 +3601,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             ? (effortMiss ? L('没读到会话模型（宿主还没观测到）', 'Session model not observed yet')
               : L('正在读取会话模型…', 'Resolving the session model…'))
             : L('该模型不在清单里，档位无从取', 'Model missing from the list; no levels to show')
-          return h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('✳', L('思考档位', 'Thinking effort'))),
+          return h('div', { className: 'po06-control-row' }, h('span', null, L('思考档位', 'Thinking effort')),
             h('span', { 'data-po06': 'effort-state', 'data-po06-value': effortMiss ? 'missing' : 'resolving', style: S.muted }, why))
         }
         const map = (s.effortByModel && typeof s.effortByModel === 'object') ? s.effortByModel : {}
@@ -3726,7 +3633,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           disabled: noEfforts,
           onChange: onPick,
         })
-        return h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('✳', L('思考档位', 'Thinking effort'))),
+        return h('div', { className: 'po06-control-row' }, h('span', null, L('思考档位', 'Thinking effort')),
           noEfforts
             ? h('span', { 'data-po06': 'effort-none', style: S.muted },
               L('该模型没有档位（宿主未登记 reasoning）', 'No levels for this model (host has no reasoning info)'))
@@ -3753,6 +3660,44 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 
       // 退场动效：面板 / 帮助 / 提示弹窗 / 拦截浮层，关闭时先播 160ms 收起动画再卸载
       const panelExit = useExit(open, 160)   // 「详情」面板：关闭也要有收起动画
+      const selectedModel = curKey === 'inherit' ? L('跟随会话', 'Session model')
+        : (routes.find(route => mkey(route) === curKey)?.label || s.model?.model || curKey)
+      const tierNote = {
+        off: L('保留原话，按你的方式继续。', 'Your words. Nothing added.'),
+        light: L('少量补充，让重点更清楚。', 'Just enough to sharpen the idea.'),
+        standard: L('展开关键方向，保留判断空间。', 'More direction. Room for judgment.'),
+        heavy: L('深入展开，让想法走得更远。', 'Push the idea a little further.'),
+      }[tier] || L('按你的偏好，自由组合。', 'A combination of your own.')
+      const renderOptionGroup = (id, index, title, summary, children) => {
+        const expanded = optSection === id
+        const bodyId = 'po06-options-' + sessionId + '-' + id
+        return h('section', {key:id,className:'po06-option-group','data-po06-group':id,'data-expanded':expanded?'1':'0'},
+          h('button',{type:'button',className:'po06-group-trigger','data-po06':'group-'+id,
+            'aria-expanded':expanded,'aria-controls':bodyId,
+            onClick:()=>setOptSection(expanded?null:id)},
+            h('span',{className:'po06-group-index','aria-hidden':'true'},index),
+            h('span',{className:'po06-group-title'},title),
+            h('span',{className:'po06-group-summary',title:summary},summary),
+            h('span',{className:'po06-group-sign','aria-hidden':'true'},expanded?'−':'+')),
+          expanded?h('div',{id:bodyId,className:'po06-group-body'},children):null)
+      }
+      const positionOptions = React.useCallback(() => {
+        const rect = optBtnRef.current?.getBoundingClientRect?.()
+        if (!rect) return
+        const vw = window.innerWidth || 800, vh = window.innerHeight || 600
+        const region = composerRegion(optBtnRef.current)
+        const width = Math.min(408, Math.max(180, region.w - 16), vw - 24)
+        const above = Math.round(rect.top - 16), below = Math.round(vh - rect.bottom - 16)
+        const place = above >= below ? 'above' : 'below'
+        setOptPos({left:Math.max(8,Math.min(Math.max(region.left+8,Math.round(rect.left)),region.right-width-8,vw-width-8)),
+          place,width,maxH:Math.max(100,Math.min(720,place==='above'?above:below)),
+          ...(place==='above'?{bottom:Math.max(8,Math.round(vh-rect.top+6))}:{top:Math.round(rect.bottom+6)})})
+      }, [sessionId])
+      React.useEffect(() => {
+        if (!optOpen) return
+        positionOptions()
+        return ovReflowWatch(positionOptions, optBtnRef.current)
+      }, [optOpen,positionOptions])
       const optExit = useExit(optOpen, 160)
       const helpExit = useExit(helpOpen, 140)
       const noticeExit = useExit(!!notice, 170)
@@ -3785,34 +3730,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               'aria-expanded': optOpen ? 'true' : 'false',
               // ⚠ 面板用 **fixed** 定位并按按钮实测坐标摆位：输入卡片可能有 overflow 裁剪，
               //   用 absolute 会被裁掉（`?` 的弹层当年就是因此改成 fixed 的，见 S.helpPop）。
-              onClick: () => {
-                const r = optBtnRef.current && optBtnRef.current.getBoundingClientRect
-                  ? optBtnRef.current.getBoundingClientRect() : null
-                if (r) {
-                  const vw = (typeof window !== 'undefined' && window.innerWidth) || 800
-                  const rg = composerRegion(optBtnRef.current)
-                  const popW = Math.min(300, Math.max(200, rg.w - 16))
-                  const vh = (typeof window !== 'undefined' && window.innerHeight) || 600
-                  // 边界自适应：上下两侧都量，选空间大的那侧，maxH 取该侧可用高度。
-                  // 面板再配合密度档（见 optDensity）做"自动挤压"：先挤间距/行高，挤不下才内部滚动。
-                  // 两侧各留 64px 呼吸空间（用户 2026-10-19：留多点）：挤压/滚动都以这条边界为准
-                  const spaceAbove = Math.round(r.top - 64)
-                  const spaceBelow = Math.round(vh - r.bottom - 64)
-                  const place = (spaceAbove >= 340 || spaceAbove >= spaceBelow) ? 'above' : 'below'
-                  const side = place === 'above' ? spaceAbove : spaceBelow
-                  setOptPos({
-                    // 右缘收在会话窗内（侧栏打开时弹层跟着会话列一起左移/变窄）
-                    left: Math.min(Math.max(rg.left + 8, Math.round(r.left)), Math.max(rg.left + 8, rg.right - popW - 8)),
-                    place,
-                    ...(place === 'above'
-                      ? { bottom: Math.max(8, Math.round(vh - r.top + 6)) }
-                      : { top: Math.round(r.bottom + 6) }),
-                    width: popW,
-                    maxH: Math.max(140, side),
-                  })
-                }
-                setOptOpen((v) => !v)
-              },
+              onClick: () => { positionOptions(); setOptOpen(value => !value) },
             },
               h(OptIcon),
               h('span', { style: S.optBtnText }, L('优化选项', 'Options')),
@@ -3852,187 +3770,93 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
               //   （用户 2026-09-22："点击优化选项没有任何弹窗出现"）。
               //   所以这里把按钮实测坐标铺上去，并在量不到时退回 `?` 弹层用的那套固定落点。
               // issue #18：宽度按会话窗收（打开侧栏 ⇒ 会话列变窄 ⇒ 弹层跟着窄），右缘不越界。
-              'data-po06-density': String(optDensity),
+              className:'po06-studio',role:'dialog','aria-modal':false,'aria-labelledby':'po06-options-title-'+sessionId,
               ref: optRef,
               style: { ...S.optPop, ...(optPos
                 ? { left: optPos.left + 'px',
                     ...(optPos.place === 'below' ? { top: optPos.top + 'px' } : { bottom: optPos.bottom + 'px' }),
                     ...(optPos.width ? { width: optPos.width + 'px' } : null),
                     ...(optPos.maxH ? { maxHeight: optPos.maxH + 'px' } : null) }
-                : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(300, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
-              h('div', { style: S.optPopHead }, h(OptIcon), h('span', {}, L('优化选项', 'Options'))),
-              // ① 档位（从第一行搬来；分段控件本身没变）
-              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('◈', L('档位', 'Tier'))),
-                h(Segmented, {
-                  name: 'tier', value: tier, options: TIER_KEYS, label: (k) => tierLabel(k), failTick,
-                  title: L('优化档位：关闭 / 轻度 / 标准 / 重度 —— 点击、按住拖动、或按 ←→ 方向键（Home/End 到两端）',
-                    'Optimizer tier: Off / Low / High / Ultra — click, drag, or press the ←→ arrow keys (Home/End for the ends)'),
-                  // ⚠ 点档位 = **整份替换**该会话的覆盖，不能与旧覆盖合并：
-                  //   合并会把上一次的 assist/detail/budget 残留带进来，读取时它们会盖过新预设，
-                  //   表现为"点了档位但档位不变"（用户实测 2026-09-27）。
-                  onPick: (v) => save({ bySession: replaceTier(v) }),
-                })),
-                        // 模型状态（2026-10-25 用户要求）：正常 / 极限。极限会把“你即 DeepSeek、算力充足”的指令加进本轮上下文。
-            h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('★', L('模型状态', 'Model state'))),
-              h(Segmented, {
-                name: 'model-state', value: modelState, options: ['normal', 'extreme'], failTick,
-                tones: { normal: '#4a9eff', extreme: '#e0b23c' },
-                label: (k) => (k === 'extreme' ? L('极限', 'Extreme') : L('正常', 'Normal')),
-                title: L('模型状态：极限 = 明确告诉模型它属于 DeepSeek、算力充足，鼓励拉满思考与验证；正常 = 不加任何这类指令。',
-                  'Model state: Extreme tells the model it is DeepSeek with ample compute and should not hold back; Normal adds no such instruction.'),
-                onPick: (v) => save({ bySession: withSession({ modelState: v }) }),
-              })),
-            h('div', { style: S.divider }),
-            // ⑤c 双击 Enter 跳过本轮优化（2026-10-19 用户要求，放在 Bash 与详情之间）。
-              // advisor 是全局键（不在 SESSION_KEYS 里）⇒ 必须写全局，否则补丁被丢弃、界面看起来"点了没反应"
-              h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick}),
-              h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick}),
-              // ② 优化权限：档位 off 时禁用
-              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('⚖', L('权限', 'Permission'))),
-                h(Segmented, {
-                  name: 'perm', value: permission, options: ['review', 'auto'],
-                  tones: { review: '#3fbf7f', auto: '#e08a3c' },
-                  label: (k) => (k === 'review' ? L('审查', 'Review') : L('自动', 'Auto')),
-                  disabled: tierOff&&!englishOn, failTick,
-                  title: tierOff&&!englishOn
-                    ? L('优化权限：审查 / 自动 —— ' + offTip, 'Permission: Review / Auto — ' + offTip)
-                    : L('优化权限：审查 = 先给出处与依据待你确认；自动 = 直接生效',
-                      'Permission: Review = show sources and rationale for confirmation first; Auto = apply directly'),
-                  onPick: (v) => save({ permission: v }),
-                })),
-              // ③ 模型：下拉（跟随会话模型 = null）
-              h('div', { style: S.optRow }, h('span', { style: S.optLabel }, ...withIcon('▣', L('模型', 'Model'))),
-                // 2026-10-19：原生 select 换成自绘下拉（系统面板和插件设计语言不搭）
-                h(Options, {
-                  anchor: 'model',
-                  value: curKey,
-                  options: ['inherit', ...routes.map(mkey)],
-                  labels: (() => {
-                    const m = { inherit: L('跟随会话模型', 'Follow session model') }
-                    routes.forEach((r) => { m[mkey(r)] = r.label || (r.provider + ' / ' + r.model) })
-                    return m
-                  })(),
-                  onChange: (v) => {
-                    if (v === 'inherit') { save({ model: null }); return }
-                    const r = routes.find((x) => mkey(x) === v)
-                    if (r) save({ model: { provider: r.provider, model: r.model } })
-                  },
-                })),
-              effortRow,            // ④⑤⑥ 范围类：上下文 / 只读工具 / 详情 —— 沿用原来的控件，只是现在住在面板里
-            // ③ 上下文（2026-10-19 重做）：模式用分段控件；回合数用自绘滑杆
-            h('div', { 'data-po06': 'ctx-wrap', style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
-              h('div', { style: S.optRow },
-                h('span', { style: S.optLabel }, ...withIcon('≡', L('上下文', 'Context'))),
-                h(Segmented, {
-                  name: 'ctx-mode', value: historyMode, options: ['turns', 'full'], disabled: tierOff,
-                  label: (k) => (k === 'full' ? L('全文', 'Full') : L('回合', 'Turns')),
-                  title: tierOff
-                    ? L('上下文模式：回合 / 全文 —— ' + offTip, 'Context mode: Turns / Full — ' + offTip)
-                    : L('上下文模式：回合 = 只读最近几回合；全文 = 与工作 AI 看到的一致',
-                      'Context mode: Turns = only the last few turns; Full = the same as the working AI sees'),
-                  onPick: (v) => { if (tierOff) return; save({ historyMode: v }) },
-                })),
-              historyMode === 'full'
-                ? h('div', { 'data-po06': 'ctx-hint', style: { ...S.muted, paddingLeft: '2px' } },
-                  L('读入我手上保留的全部回合', 'Read every turn still held'))
-                : h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '2px' } },
-                  h(TurnsRange, {
-                    value: turns, disabled: tierOff, failTick,
-                    disabledTip: L('上下文：' + offTip, 'Context: ' + offTip),
-                    title: L('上下文：只读最近几回合（0–10），拖动滑杆或按方向键调整',
-                      'Context: read only the last N turns (0–10); drag the slider or use arrow keys'),
-                    onCommit: (n) => save({ turns: n }),
-                  }),
-                  h('span', { 'data-po06': 'ctx-num', style: { flex: '0 0 auto', padding: '1px 8px', borderRadius: '999px',
-                    background: OVS.acc12, border: '1px solid ' + OVS.acc22, color: OVS.acc, fontSize: '11.5px', fontWeight: 650,
-                    fontVariantNumeric: 'tabular-nums' } },
-                    String(turns) + L(' 回合', ' turns')))),
-            h('div', { style: S.divider }),
-            // ⑤ 读项目文件：**永远可用**（不受档位影响）；三态纪律见上面的注释
-            h('button', {
-              type: 'button', 'data-po06': 'readtools',
-              'data-po06-value': rtKnown ? (readTools ? 'on' : 'off') : 'unknown',
-              style: { ...S.optRowBtn, ...(rtKnown ? null : { opacity: .6 }) },
-              title: rtKnown
-                ? L('读项目文件：每轮先看几个项目文件再写要求（会多花时间与 token）',
-                  'Read project files: read a few project files before writing requirements (costs time and tokens)')
-                : L('读项目文件：还没读到当前设置，这次不会发送这个字段',
-                  'Read project files: the current setting has not been read yet, so this field will not be sent'),
-              onClick: () => {
-                if (!rtKnown) {
-                  setMsg({ kind: 'warn', text: L('还没读到当前设置，这次没有发送', 'Current setting not read yet; nothing was sent') })
-                  return
-                }
-                save({ readTools: !readTools })
-              },
-            },
-              h('span', {}, L('只读工具', 'Read-only tools')),
-              h('span', { style: S.optVal(rtKnown && readTools) }, rtKnown ? (readTools ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
-            // ⑤b 内置 Bash（0.7.1）：它随本插件装配即提供（无需另装插件）。
-            // 与"只读工具"的区别：那个决定 po06 自己派不派**只读轮次**，这个决定一台**真正的 shell**
-            // 是否交到模型手里 —— 所以关掉时是**不注册该工具**（模型看不到），而不是注册了再拒绝执行。
-            h('button', {
-              type: 'button', 'data-po06': 'bash',
-              'data-po06-value': bashKnown ? (bashOn ? 'on' : 'off') : 'unknown',
-              style: { ...S.optRowBtn, ...(bashKnown ? null : { opacity: .6 }) },
-              title: bashKnown
-                ? (bashOn
-                  ? L('内置 Bash：已交给模型 —— 它可以直接跑命令（可随时关掉）',
-                    'Built-in Bash: available to the model — it can run commands (turn off anytime)')
-                  : L('内置 Bash：已关闭 —— 模型看不到 bash 工具',
-                    'Built-in Bash: off — the model cannot see the bash tool'))
-                : L('内置 Bash：还没读到当前设置，这次不会发送这个字段',
-                  'Built-in Bash: current setting not read yet; this field will not be sent'),
-              onClick: () => {
-                if (!bashKnown) {
-                  setMsg({ kind: 'warn', text: L('还没读到当前设置，这次没有发送', 'Current setting not read yet; nothing was sent') })
-                  return
-                }
-                save({ bash: !bashOn })
-              },
-            },
-              h('span', {}, L('内置 Bash', 'Built-in Bash')),
-              h('span', { style: S.optVal(bashKnown && bashOn) }, bashKnown ? (bashOn ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
-            // 语义与面板上的「跳过」一致：不发包、直接按原文发出；只是省掉一次点击。
-            h('button', {
-              type: 'button', 'data-po06': 'double-enter',
-              'data-po06-value': desKnown ? (doubleEnterSkip ? 'on' : 'off') : 'unknown',
-              style: { ...S.optRowBtn, ...(desKnown ? null : { opacity: .6 }) },
-              title: desKnown
-                ? (doubleEnterSkip
-                  ? L('双击 Enter 跳过：开着 —— 600ms 内再按一次回车，本轮不再等优化，按原文立即发出',
-                    'Double Enter skip: on — press Enter twice within 600ms to send the original immediately')
-                  : L('双击 Enter 跳过：关 —— 每次发送都会先跑优化',
-                    'Double Enter skip: off — every send runs the optimizer first'))
-                : L('双击 Enter 跳过：还没读到当前设置，这次不会发送这个字段',
-                  'Double Enter skip: current setting not read yet; this field will not be sent'),
-              onClick: () => {
-                if (!desKnown) {
-                  setMsg({ kind: 'warn', text: L('还没读到当前设置，这次没有发送', 'Current setting not read yet; nothing was sent') })
-                  return
-                }
-                save({ doubleEnterSkip: !doubleEnterSkip })
-              },
-            },
-              h('span', {}, L('双击 Enter 跳过', 'Double Enter skip')),
-              h('span', { style: S.optVal(desKnown && doubleEnterSkip) }, desKnown ? (doubleEnterSkip ? L('开', 'On') : L('关', 'Off')) : L('…', '…'))),
-            h('div', { style: S.divider }),
-            // 详情入口（用户 2026-09-21 要求：文字直接叫「详情」，**保留灰绿状态灯**；
-            // 面板里不再重复"它在替我做什么 / 最近几轮"——拦截界面已经让人看见模型替我们做了什么）
-            h('button', {
-              type: 'button', 'data-po06': 'detail', 'data-po06-open': open ? '1' : '0',
-              // 状态灯的颜色语义不变，只是不再靠按钮文字去承载：title 里说清现在是什么状态
-              style: { ...S.optRowBtn },
-              title: L('详情：控制 / 解释层提示词（当前状态：' + statusLabel + '）', 'Details: controls / explainer prompt (state: ' + statusLabel + ')'),
-              onClick: () => setOpen((v) => !v),
-            },
-              h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } },
-                h('span', { 'data-po06': 'state-dot', 'data-po06-value': statusLabel, style: S.dot(on) }),
-                h('span', {}, L('详情', 'Details'))),
-              h('span', { 'aria-hidden': 'true', style: { color: OVS.fg3 } }, open ? '▾' : '›'),
-            ),
-            // 2026-10-18 用户指定：隐藏实验性功能（「快速增强」= 固定 3+3 循环推理/择优）。
-            // 判定不变：它成倍增加调用与等待，且没有可复现的提升证据。代码保留，入口不再渲染。Tick}),
+                : { left: '16px', bottom: '84px', ...(region ? { width: Math.min(408, Math.max(120, region.w - 16)) + 'px' } : null) }) } },
+              h('header',{className:'po06-studio-header'},
+                h('div',null,h('h2',{id:'po06-options-title-'+sessionId},L('优化选项','Options'))),
+                h('button',{type:'button','data-po06':'options-close',className:'po06-close',
+                  'aria-label':L('关闭优化选项','Close options'),
+                  onClick:()=>{setOptOpen(false);optBtnRef.current?.focus?.()}},'×')),
+              h('section',{className:'po06-intensity','data-po06':'options-intensity'},
+                h('div',{className:'po06-intensity-top'},
+                  h('span',{className:'po06-eyebrow'},L('优化强度','Intensity'))),
+                h('div',{className:'po06-current-tier'},tierLabel(tier)),
+                h('p',{className:'po06-tier-note'},tierNote),
+                h(Segmented,{name: 'tier',value:tier,options:TIER_KEYS,label:k=>tierLabel(k),variant:'intensity',failTick,
+                  title:L('档位：选择优化强度；方向键或 Home / End 切换','Tier: choose intensity; arrow keys or Home / End to change'),
+                  onPick:v=>save({bySession:replaceTier(v)})}),
+                h('div',{className:'po06-state-row'},
+                  h('span',null,L('模型状态','Model state')),
+                  h(Segmented,{name: 'model-state',value:modelState,options:['normal','extreme'],failTick,
+                    label:k=>k==='extreme'?L('极限','Extreme'):L('正常','Normal'),
+                    title:L('正常：不添加压力测试说明；极限：添加固定压力测试说明','Normal: no extra prompt. Extreme: append the fixed stress-test prompt.'),
+                    onPick:v=>save({bySession:withSession({modelState:v})})}))),
+              h('div',{className:'po06-feature-grid'},
+                h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick,compact:true}),
+                h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick,compact:true})),
+              h('div',{className:'po06-options-index'},
+                renderOptionGroup('generation','01',L('模型与执行','Model & delivery'),
+                  (permission==='review'?L('审查','Review'):L('自动','Auto'))+' / '+selectedModel,
+                  h(React.Fragment,null,
+                    h('div',{className:'po06-control-row'},h('span',null,L('权限','Permission')),
+                      h(Segmented,{name: 'perm',value:permission,options:['review','auto'],failTick,disabled:tierOff&&!englishOn,
+                        label:k=>k==='review'?L('审查','Review'):L('自动','Auto'),
+                        title:L('审查：确认后发送；自动：优化完成即发送','Review: confirm before sending. Auto: send when optimization completes.'),
+                        onPick:v=>save({permission:v})})),
+                    h('div',{className:'po06-control-row'},h('span',null,L('模型','Model')),
+                      h(Options,{anchor:'model',value:curKey,options:['inherit',...routes.map(mkey)],
+                        labels:(()=>{const labels={inherit:L('跟随会话模型','Follow session model')};routes.forEach(route=>{labels[mkey(route)]=route.label||(route.provider+' / '+route.model)});return labels})(),
+                        onChange:value=>{if(value==='inherit'){save({model:null});return}const route=routes.find(item=>mkey(item)===value);if(route)save({model:{provider:route.provider,model:route.model}})}})),
+                    effortRow)),
+                renderOptionGroup('context','02',L('上下文','Context'),
+                  historyMode==='full'?L('全部回合','All turns'):L('最近 '+turns+' 回合','Last '+turns+' turns'),
+                  h('div',{'data-po06':'ctx-wrap',className:'po06-context-editor'},
+                    h('div',{className:'po06-control-row'},h('span',null,L('读取范围','Read from')),
+                      h(Segmented,{name: 'ctx-mode',value:historyMode,options:['turns','full'],disabled:tierOff,failTick,
+                        label:k=>k==='full'?L('全文','Full'):L('回合','Turns'),
+                        title:L('回合：最近几轮；全文：当前保留的所有回合','Turns: recent turns. Full: all currently retained turns.'),
+                        onPick:value=>{if(!tierOff)save({historyMode:value})}})),
+                    historyMode === 'full'
+                      ? h('p',{'data-po06':'ctx-hint',className:'po06-setting-note'},L('读入当前保留的全部回合。','Read all turns currently retained.'))
+                      : h('div',{className:'po06-turns-editor'},
+                        h('div',{className:'po06-turns-heading'},h('span',null,L('回合数','Turns')),
+                          h('span',{'data-po06':'ctx-num'},String(turns))),
+                        h(TurnsRange,{value:turns,disabled:tierOff,failTick,
+                          disabledTip:L('档位已关闭','Optimizer is off'),
+                          title:L('上下文：0–10 回合，方向键调整','Context: 0–10 turns; adjust with arrow keys'),onCommit:n=>save({turns:n})}),
+                        h('div',{className:'po06-range-labels','aria-hidden':'true'},h('span',null,'0'),h('span',null,'10'))))),
+                renderOptionGroup('tools','03',L('工具与快捷键','Tools & shortcuts'),
+                  [readTools,bashOn,doubleEnterSkip].filter(Boolean).length+L(' 项开启',' enabled'),
+                  h('div',{className:'po06-tools-list'},
+                    h('button',{type:'button','data-po06':'readtools','data-po06-value':rtKnown?(readTools?'on':'off'):'unknown',
+                      role:'switch','aria-checked':rtKnown&&readTools,disabled:busy||!rtKnown,className:'po06-setting-switch',
+                      title:L('读取项目文件后再补充建议','Read project files before preparing advice'),
+                      onClick:()=>{if(!rtKnown){setMsg({kind:'warn',text:L('还没读到当前设置','Setting not loaded yet')});return}save({readTools:!readTools})}},
+                      h('span',null,L('只读工具','Read-only tools')),h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span'))),
+                    h('button',{type:'button','data-po06':'bash','data-po06-value':bashKnown?(bashOn?'on':'off'):'unknown',
+                      role:'switch','aria-checked':bashKnown&&bashOn,disabled:busy||!bashKnown,className:'po06-setting-switch',
+                      title:L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),
+                      onClick:()=>{if(!bashKnown){setMsg({kind:'warn',text:L('还没读到当前设置','Setting not loaded yet')});return}save({bash:!bashOn})}},
+                      h('span',null,L('内置 Bash','Built-in Bash')),h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span'))),
+                    h('button',{type:'button','data-po06':'double-enter','data-po06-value':desKnown?(doubleEnterSkip?'on':'off'):'unknown',
+                      role:'switch','aria-checked':desKnown&&doubleEnterSkip,disabled:busy||!desKnown,className:'po06-setting-switch',
+                      title:L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),
+                      onClick:()=>{if(!desKnown){setMsg({kind:'warn',text:L('还没读到当前设置','Setting not loaded yet')});return}save({doubleEnterSkip:!doubleEnterSkip})}},
+                      h('span',null,L('双击 Enter 跳过','Double Enter to skip')),h('span',{className:'po06-switch-mark','aria-hidden':'true'},h('span')))))),
+              h('footer',{className:'po06-options-footer'},
+                h('button',{type:'button','data-po06':'detail','data-po06-open':open?'1':'0',className:'po06-details-link',
+                  title:L('详情：状态与解释层提示词','Details: status and optimizer prompt'),
+                  onClick:()=>{setOpen(value=>!value);setOptOpen(false)}},
+                  h('span',{'data-po06':'state-dot','data-po06-value':statusLabel,style:S.dot(on)}),
+                  h('span', {}, L('详情', 'Details')),h('span',{'aria-hidden':'true'},'↗')),
+                h('span',{className:'po06-save-status',role:'status','aria-live':'polite'},
+                  busy?L('保存中…','Saving…'):msg?.kind==='err'?L('保存失败','Save failed'):L('自动保存','Autosaved'))),
             ),
           ) : null,
         ),
@@ -4769,8 +4593,8 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // 数值类徽标（字数 / token / 用时）用等宽数字，跳动时不抖
             '[data-po06] [data-po06="inject-card-chars"],[data-po06] [data-po06="injection-row-chars"]{font-variant-numeric:tabular-nums}',
             '[data-po06] button:disabled{opacity:.45;cursor:not-allowed;transform:none}',
-            '[data-po06="bar"] button{background-color:transparent}',
-            '[data-po06="bar"] button:hover{background-color:var(--po06-hover)!important}',
+            '[data-po06="bar-row-1"] button{background-color:transparent}',
+            '[data-po06="bar-row-1"] button:hover{background-color:var(--po06-hover)!important}',
             // ④ 极简动效：面板入场只做**透明度** · 跑起来时状态灯呼吸 · 思维层新内容淡入
             // ⚠⚠ **绝对不要给 `[data-po06="intercept"]` 加带 transform 的动画**：它的位置就是内联的
             //   `transform: translate3d(...)`（拖拽写进去的那一条），而 **CSS 动画的填充会盖过内联样式**
@@ -4837,31 +4661,17 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             '[data-po06="intercept"][data-po06-closing="1"]{animation:po06-out-fade .16s ease-in both}',
             // 档位特效（2026-10-19）：粒子湍流 + 重度档的轻微颤抖
             // 标准档：无序随机线性飘动（方向/时长由每个粒子的内联变量决定，alternate 来回）
-            '@keyframes po06-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--dx,10px),var(--dy,-8px),0)}}',
             // 重度档：白色流星从右向左穿过（顿挫感由 linear + 不同时长制造）
             // 流星：从右侧外面进来（left:100%），行程由每个粒子自己的 --dist 决定，末端淡出
             // 流星撞右边界：亮度与横向拉伸一起起伏，像被冲击推起的浪
-            '@keyframes po06-shock{0%,100%{opacity:.22;transform:scaleX(.9) translateX(6px)}45%{opacity:.95;transform:scaleX(1.12) translateX(0)}70%{opacity:.55;transform:scaleX(.99) translateX(3px)}}',
-            '@keyframes po06-shock-rim{0%,100%{opacity:.25;transform:scaleY(.9)}45%{opacity:.95;transform:scaleY(1.05)}70%{opacity:.5;transform:scaleY(.97)}}',
-            '@keyframes po06-meteor{0%{transform:translate3d(0,0,0);opacity:0}8%{opacity:.95}70%{opacity:.7}100%{transform:translate3d(var(--dist,-320px),0,0);opacity:0}}',
             // 帮助弹层单独用一条更轻的入场（大块文字 + 阴影一起做 scale 会顿）
             '@keyframes po06-help{from{opacity:0;transform:translate3d(0,4px,0)}to{opacity:1;transform:none}}',
-            '@keyframes po06-shake{0%,100%{transform:translate3d(0,0,0)}20%{transform:translate3d(.5px,-.4px,0)}40%{transform:translate3d(-.4px,.5px,0)}60%{transform:translate3d(.4px,.3px,0)}80%{transform:translate3d(-.3px,-.4px,0)}}',
             // 弹层（2026-10-19）：按用途给不同入场——面板从按钮方向浮起、帮助从右下滑入、弹窗带一点回弹
-            '[data-po06="options-pop"],[data-po06="inject-card"]{animation:po06-pop .2s cubic-bezier(.2,.8,.2,1) both}',
             '[data-po06="help-pop"]{animation:po06-help .14s ease-out both;will-change:opacity,transform}',
             '[data-po06="preset-notice-backdrop"]{animation:po06-fade-in .16s ease-out both}',
             '[data-po06="preset-notice"]{animation:po06-pop .26s cubic-bezier(.2,.9,.25,1.04) both}',
             // 面板内容逐行浮现（错开 18ms，最多 10 行）：像"一点点展开"，而不是整块砸下来
             // 密度档（边界自动挤压）：空间不够就缩间距/行高/字号，而不是顶出屏幕或立刻滚动
-            '[data-po06="options-pop"][data-po06-density="1"]{gap:5px !important;padding:10px 12px 6px !important}',
-            '[data-po06="options-pop"][data-po06-density="1"] > div{min-height:24px !important}',
-            '[data-po06="options-pop"][data-po06-density="1"] button{font-size:11.5px}',
-            '[data-po06="options-pop"][data-po06-density="2"]{gap:4px !important;padding:8px 10px 6px !important}',
-            '[data-po06="options-pop"][data-po06-density="2"] > div{min-height:22px !important}',
-            '[data-po06="options-pop"][data-po06-density="2"] button{font-size:11px}',
-            '[data-po06="options-pop"] > *{animation:po06-row .22s ease-out both}',
-            ...Array.from({ length: 10 }, (_, i) => '[data-po06="options-pop"] > *:nth-child(' + (i + 1) + '){animation-delay:' + (i * 18) + 'ms}'),
             '[data-po06="intercept"]{animation:po06-fade-in .16s ease-out both}',
             '[data-po06="intercept"] [data-po06="intercept-head"]{animation:po06-fade-in .22s ease-out both}',
             '[data-po06="intercept"][data-po06-phase="optimizing"] [data-po06="state-dot"],'
@@ -4873,21 +4683,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
             // ⚠ 这一行同时是**整张主题 token 表**的落点：浅色为默认，深色用 DSH 的 `[data-ds-dark-theme]` 覆盖。
             //   （见 THEME_TOKENS 顶部那段说明：题目是"颜色由主题驱动"，不是"给浅色打补丁"。）
             themeTokensCss(),
+            OPTIONS_STUDIO_CSS,
             '[data-po06] button:hover{border-color:color-mix(in srgb, var(--po06-acc) 45%, transparent)}',
             // ── 液态玻璃：悬停 / 按下 / 焦点 三态（2026-10-25）──────────────
-            '[data-po06="options-pop"] button:hover{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05))!important;border-color:rgba(255,255,255,.22)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 6px 18px -8px rgba(0,0,0,.6)!important}',
-            '[data-po06="options-pop"] button:active{transform:translateY(1px) scale(.988)}',
-            '[data-po06="options-pop"] button:focus-visible,[data-po06="options-btn"]:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(255,255,255,.85),0 0 0 4px var(--po06-acc22,rgba(120,160,255,.35))!important}',
-            '[data-po06="options-pop"] [data-seg-item]:hover{background:rgba(255,255,255,.08)}',
             // 玻璃顶部光带：一条很淡的斜向高光，制造“光从上方掠过”的实体感
-            '[data-po06="options-pop"]::before{content:"";position:absolute;inset:0 0 auto 0;height:96px;border-radius:20px 20px 0 0;pointer-events:none;background:linear-gradient(168deg,rgba(255,255,255,.16),rgba(255,255,255,.05) 38%,rgba(255,255,255,0) 72%);mask-image:linear-gradient(180deg,#000,transparent);-webkit-mask-image:linear-gradient(180deg,#000,transparent)}',
-            '[data-po06="options-pop"]{position:fixed}',
-            '[data-po06="options-pop"] > *{position:relative}',
-            '[data-po06="options-pop"] [data-po06="seg-ind"]{will-change:left,width}',
-            '[data-po06="options-pop"]{box-shadow:inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 rgba(0,0,0,.22),0 30px 70px -20px rgba(0,0,0,.75),0 4px 14px rgba(0,0,0,.28)!important}',
-            '@keyframes po06-pop{from{opacity:0;transform:translateY(8px) scale(.965);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}',
-            '@media (prefers-reduced-motion: reduce){[data-po06="options-pop"],[data-po06="options-pop"] *{animation:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}}',
-            '[data-po06="options-pop"] button:hover{background-color:var(--po06-hover)!important;border-color:var(--po06-acc20,rgba(127,127,127,.22))}',
             '[data-po06="options-btn"]:hover{color:var(--po06-acc)}',
             '[data-po06="intercept-scroll"]:focus-visible,[data-po06] [role="slider"]:focus-visible{outline:2px solid var(--po06-acc);outline-offset:1px}',
             // ⑦ 原生下拉的**面板**配色：深色主题下不能白底白字（Chromium 认这几条）

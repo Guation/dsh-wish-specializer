@@ -1,87 +1,53 @@
-// 分段控件的动效与档位特效（2026-10-19 用户要求，同日二次调整）。
-//
-// 目标：
-//   · 点击档位/英文等分段控件时，选中指示器**滑过去**；
-//   · 档位特效：关闭无；轻度只有绿色底（**无粒子**）；标准蓝色 + 无序随机线性飘动；
-//     重度紫色底 + **白色粒子从右向左像流星一样冲** + 轨道轻微颤抖。
+// The studio redesign replaces measured pills/particles with semantic choices.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import {readFileSync} from 'node:fs'
+import {runInNewContext} from 'node:vm'
 
-const HERE = dirname(fileURLToPath(import.meta.url))
-const CLIENT_SRC = readFileSync(join(HERE, '..', 'lib', 'client.js'), 'utf8')
+function radio() {
+  const hooks=[],effects=[];let cursor=0
+  const win={__ModuleLoader__:{load(def){win.registration=def}}}
+  const react={createElement:(type,props,...children)=>({type,props:props||{},children}),
+    useState(initial){const i=cursor++;hooks[i]??={value:initial};return [hooks[i].value,value=>{hooks[i].value=value}]},
+    useEffect(fn,deps){const i=cursor++;if(!hooks[i]||deps.some((d,n)=>d!==hooks[i].deps[n])){hooks[i]={deps};effects.push(fn)}}}
+  runInNewContext(readFileSync(new URL('../lib/client.js',import.meta.url),'utf8'),{window:win,document:{},console,URL})
+  const client=win.registration.factory(()=>react)
+  client.apply({slots:{register:()=>()=>{},inject:(_,fn)=>fn()}})
+  const component=client.__debug.Segmented
+  const picks=[];let props={name:'test',value:'standard',options:['off','light','standard','heavy'],label:k=>k,onPick:k=>picks.push(k),failTick:0}
+  const render=patch=>{props={...props,...patch};cursor=0;const tree=component(props);for(const effect of effects.splice(0))effect();return tree}
+  return {render,picks}
+}
+const buttons=tree=>tree.children.flat().filter(node=>node?.props?.role==='radio')
 
-test('选中指示器是滑动药丸：量真实格子 + left/width 过渡', () => {
-  assert.ok(CLIENT_SRC.includes("'data-po06': 'seg-ind'"), '要有指示器节点')
-  assert.ok(/offsetLeft/.test(CLIENT_SRC) && /offsetWidth/.test(CLIENT_SRC), '位置要量真实格子')
-  assert.ok(/transition: 'left \.26s cubic-bezier/.test(CLIENT_SRC), '滑动过渡')
-  assert.ok(/itemRefs\.current\[k\] = el/.test(CLIENT_SRC), '每个格子要有 ref')
+test('actual choices expose selection, roving focus and original setting values',()=>{
+  const h=radio(),tree=h.render(),items=buttons(tree)
+  assert.equal(tree.props.role,'radiogroup');assert.equal(items.length,4)
+  assert.equal(items[2].props['aria-checked'],true);assert.equal(items[2].props.tabIndex,0)
+  assert.equal(items[0].props.tabIndex,-1);assert.equal(items[3].props.type,'button')
+  assert.equal(items[3].props['data-po06'],'test-heavy')
 })
-
-test('四档：关闭无特效；轻度只有底色；标准飘动；重度白色流星', () => {
-  const at = CLIENT_SRC.indexOf('const TIER_FX = {')
-  const block = CLIENT_SRC.slice(at, at + 500)
-  assert.ok(block.includes("light:    { color: '#3fbf7f', dots: 0"), '轻度不要粒子')
-  assert.ok(block.includes("standard: { color: '#4a8bff', dots: 9,  motion: 'drift'"), '标准=飘动')
-  assert.ok(block.includes("heavy:    { color: '#a06bff', dots: 14, motion: 'meteor', dotColor: '#fff'"), '重度=白色流星')
-  assert.ok(CLIENT_SRC.includes("name === 'tier' && !disabled ? TIER_FX[shown]"), '只有档位控件挂特效（用 shown：拖动时可预览）')
+test('a click commits once; a repeated click on the chosen value is inert',()=>{
+  const h=radio();h.render();let tree=h.render()
+  buttons(tree)[3].props.onClick();tree=h.render();buttons(tree)[3].props.onClick()
+  assert.deepEqual(h.picks,['heavy']);assert.equal(buttons(tree)[3].props['aria-checked'],true)
 })
-
-test('两种粒子运动各有自己的关键帧与参数', () => {
-  assert.ok(CLIENT_SRC.includes('po06-drift'), '飘动关键帧')
-  assert.ok(CLIENT_SRC.includes('po06-meteor'), '流星关键帧')
-  assert.equal(CLIENT_SRC.includes('po06-turb'), false, '旧的湍流关键帧应已退出')
-  assert.ok(/animation: 'po06-meteor ' \+ dur\.toFixed\(2\)/.test(CLIENT_SRC), '流星按各自时长跑')
-  assert.ok(/animation: 'po06-drift ' \+ dur\.toFixed\(2\)/.test(CLIENT_SRC), '飘动按各自时长跑')
-  assert.ok(CLIENT_SRC.includes("'--dx': dx + 'px'") && CLIENT_SRC.includes("'--dy': dy + 'px'"), '飘动方向由每个粒子自己决定')
-  assert.ok(/gradient\(90deg, rgba\(255,255,255,0\)/.test(CLIENT_SRC), '流星是白色拖尾')
-  assert.ok(CLIENT_SRC.includes("left: '100%'"), '流星从右侧轨道外进入')
-  assert.ok(CLIENT_SRC.includes("'--dist'"), '行程由每个粒子自己的 --dist 决定')
-  assert.ok(CLIENT_SRC.includes('Math.round(trackW * gap)'), '行程按轨道宽度算（不同粒子 0.88~1.16 倍）')
-  assert.ok(/const len = 5 \+ \(i \* 7\) % 13/.test(CLIENT_SRC), '长度随机 5~17px')
-  assert.ok(/const dur = 0\.9 \+ /.test(CLIENT_SRC), '速度随机 0.9~2.4s')
-  assert.ok(/opacity:0\}8%\{opacity:\.95\}70%\{opacity:\.7\}100%/.test(CLIENT_SRC), '进入时淡入、到左边缘前淡出')
+test('server value and failed save replace optimistic selection',()=>{
+  const h=radio();h.render();buttons(h.render())[3].props.onClick();h.render()
+  h.render({failTick:1});assert.equal(buttons(h.render())[2].props['aria-checked'],true)
+  h.render({value:'light'});assert.equal(buttons(h.render())[1].props['aria-checked'],true)
 })
-
-test('重度：流星在右边界激起白色浪（2026-10-19 用户要求）', () => {
-  assert.ok(CLIENT_SRC.includes("'data-po06': 'tier-shock'"), '要有激浪层')
-  assert.ok(CLIENT_SRC.includes('@keyframes po06-shock{'), '激浪关键帧')
-  assert.ok(/shown === 'heavy' \? h\('span', \{ 'data-po06': 'tier-shock'/.test(CLIENT_SRC), '只有重度才画')
-  assert.ok(/rgba\(255,255,255,\.85\)/.test(CLIENT_SRC), '白色渐变（够亮才看得见）')
-  // 真机：画在选中药丸**下面**时亮部被盖住 ⇒ 必须 zIndex 更高、且在 items 之后渲染
-  const i = CLIENT_SRC.indexOf("'data-po06': 'tier-shock'")
-  const items = CLIENT_SRC.indexOf('options.map((k) => h(\'span\'')
-  assert.ok(items > 0 && i > items, '激浪要画在选项之后（最上层）')
-  assert.ok(CLIENT_SRC.includes("'data-po06': 'tier-shock-rim'"), '右缘亮线')
-  assert.ok(CLIENT_SRC.includes('@keyframes po06-shock-rim{'), '亮线关键帧')
+test('arrows wrap and Home/End select with keyboard focus following selection',()=>{
+  const h=radio();h.render();let focused=-1,prevented=0
+  const event=key=>({key,preventDefault(){prevented++},currentTarget:{querySelectorAll:()=>[0,1,2,3].map(i=>({focus(){focused=i}}))}})
+  h.render().props.onKeyDown(event('End'));assert.equal(focused,3)
+  h.render().props.onKeyDown(event('ArrowRight'));assert.equal(focused,0)
+  h.render().props.onKeyDown(event('ArrowLeft'));assert.equal(focused,3)
+  h.render().props.onKeyDown(event('Home'));assert.equal(focused,0)
+  assert.deepEqual(h.picks,['heavy','off','heavy','off']);assert.equal(prevented,4)
 })
-
-test('重度才有颤抖；帮助弹层用更轻的入场（避免大块文字重绘卡顿）', () => {
-  assert.ok(CLIENT_SRC.includes("shown === 'heavy' ? { animation: 'po06-shake 1.1s ease-in-out infinite'"), '只有重度档加颤抖')
-  assert.ok(CLIENT_SRC.includes('po06-help'), '帮助弹层单独一条轻动画')
-  assert.ok(CLIENT_SRC.includes('animation:po06-help'), '帮助弹层不再用带缩放的 po06-pop')
-  assert.ok(CLIENT_SRC.includes("contain: 'content'"), '帮助弹层做渲染隔离')
-})
-
-test('拖动只做本地预览、松手才落设置（避免每跨一格打一次接口 ⇒ 拖动卡顿）', () => {
-  assert.ok(CLIENT_SRC.includes('const [dragValue, setDragValue] = React.useState(null)'), '拖动预览状态')
-  assert.ok(CLIENT_SRC.includes('const shown = dragValue != null ? dragValue : value'), '显示值取预览优先')
-  const move = CLIENT_SRC.slice(CLIENT_SRC.indexOf('onPointerMove: (e) =>'), CLIENT_SRC.indexOf('onPointerUp: (e) =>'))
-  assert.equal(move.includes('onPick('), false, '指针移动期间不许提交')
-  assert.ok(/if \(k\) commit\(k\)/.test(CLIENT_SRC.slice(CLIENT_SRC.indexOf('onPointerUp: (e) =>'), CLIENT_SRC.indexOf('onPointerCancel:'))), '松手才 commit')
-})
-
-test('无障碍与降级：区域仍可键盘操作，减少动效时全部停掉', () => {
-  assert.ok(/role: 'slider'/.test(CLIENT_SRC), '仍然是 slider 语义')
-  assert.ok(/ArrowLeft/.test(CLIENT_SRC) && /Home/.test(CLIENT_SRC), '方向键/Home/End 仍在')
-  assert.ok(/prefers-reduced-motion: reduce/.test(CLIENT_SRC), '尊重系统"减少动态效果"')
-})
-
-test('TIER_FX 定义必须存在：只有引用没有定义会在渲染档位时直接 ReferenceError', () => {
-  // 2026-10-21/22 两次事故：替换 Options 区块时把紧邻的 TIER_FX 定义一起删掉，
-  // 静态语法检查与其它守卫都发现不了，只有渲染时才炸。
-  assert.ok(CLIENT_SRC.includes('const TIER_FX = {'), '要有定义')
-  assert.ok(CLIENT_SRC.includes('TIER_FX[shown]'), '要有引用（否则定义是死代码）')
+test('disabled choices cannot issue clicks or keyboard setting writes',()=>{
+  const h=radio();h.render();const tree=h.render({disabled:true})
+  buttons(tree)[3].props.onClick();tree.props.onKeyDown({key:'End'})
+  assert.deepEqual(h.picks,[]);assert.ok(buttons(tree).every(b=>b.props.disabled&&b.props.tabIndex===-1))
 })
