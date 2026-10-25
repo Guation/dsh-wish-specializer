@@ -201,7 +201,7 @@ function holdBridgeRead(sessionId) {
     // ⚠ 改 settings.js 的 TIER_PRESETS / TURNS_MIN / TURNS_MAX 必须同步改这里。
     // 构建标记（2026-10-19）：插件改动必须重启才生效，真机上"改了没反应"有一半是构建没换。
     // 这个常量显示在「优化选项」标题右侧，改客户端时**手动更新**（就是这一行的日期时间）。
-    const CLIENT_BUILD = 'ring-12'
+    const CLIENT_BUILD = 'ring-13'
     // 每个会话已经为哪个预设弹过提示（模块级：组件重挂载不会忘）
     // 一次 DSH 运行进程里**最多提示一次**（用户 2026-10-19 口径）。重启后才会再次提示。
     let PRESET_NOTICE_SHOWN = false
@@ -1154,18 +1154,19 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
   animation:po06-shiver .34s linear infinite,po06-autoGlowRed 2.2s ease-in-out infinite}
 [data-po06="options-pop"] .po06-choices[data-po06-variant=pill][data-po06=model-state][data-po06-value=extreme]>button[aria-checked=true]{
   animation:po06-shiverText .34s linear infinite}
+/* 用独立的 translate/rotate 属性抖，不能碰 transform：
+   transform 已被 inline 的 translateX(位置) 占用，动画会把它覆盖掉 ⇒ 胶囊卡在第一个位置 */
 @keyframes po06-shiver{
-  0%{transform:translate(0,0) rotate(0)}
-  20%{transform:translate(-.6px,.4px) rotate(-.5deg)}
-  40%{transform:translate(.5px,-.5px) rotate(.4deg)}
-  60%{transform:translate(-.4px,-.3px) rotate(-.3deg)}
-  80%{transform:translate(.6px,.3px) rotate(.35deg)}
-  100%{transform:translate(0,0) rotate(0)}}
+  0%,100%{translate:0 0;rotate:0deg}
+  20%{translate:-.6px .4px;rotate:-.5deg}
+  40%{translate:.5px -.5px;rotate:.4deg}
+  60%{translate:-.4px -.3px;rotate:-.3deg}
+  80%{translate:.6px .3px;rotate:.35deg}}
 @keyframes po06-shiverText{
-  0%,100%{transform:translate(0,0)}
-  25%{transform:translate(-.4px,.3px)}
-  50%{transform:translate(.4px,-.3px)}
-  75%{transform:translate(-.3px,-.2px)}}
+  0%,100%{translate:0 0}
+  25%{translate:-.4px .3px}
+  50%{translate:.4px -.3px}
+  75%{translate:-.3px -.2px}}
 @keyframes po06-autoGlowRed{0%,100%{box-shadow:0 0 0 3px #f2545b22}50%{box-shadow:0 0 0 5px #f2545b44,0 0 22px #f2545b66}}
 [data-po06="options-pop"] .po06-fx{position:absolute;inset:0;pointer-events:none}
 [data-po06="options-pop"] .po06-vast{position:absolute;inset:-44px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--t) 38%,transparent);opacity:calc(.5 * var(--fx));animation:po06-spin 44s linear infinite}
@@ -1233,8 +1234,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
 [data-po06="options-pop"] .po06-tick{stroke:color-mix(in srgb,var(--t) 26%,var(--po06-line));stroke-width:1.1;stroke-linecap:round;transition:stroke .3s,stroke-width .3s}
 [data-po06="options-pop"] .po06-tick[data-on="1"]{stroke:color-mix(in srgb,var(--t) 85%,#fff);stroke-width:1.7}
 [data-po06="options-pop"] .po06-needle{stroke:var(--t);stroke-width:2;stroke-linecap:round;filter:drop-shadow(0 0 4px var(--tg))}
-[data-po06="options-pop"] .po06-needle-g{transition:transform .1s linear}
-[data-po06="options-pop"] .po06-ringwrap[data-snap="1"] .po06-needle-g{transition:transform .36s cubic-bezier(.2,.9,.25,1.06)}
+[data-po06="options-pop"] .[data-po06-snap="0"] .po06-needle-g{transition:none;will-change:transform}
+[data-po06-snap="1"] .po06-needle-g{transition:transform .46s cubic-bezier(.12,.86,.18,1.03);will-change:transform}
+[data-po06="options-pop"] .po06-ringwrap[data-snap="1"] .po06-needle-g{transition:transform .46s cubic-bezier(.12,.86,.18,1.03)}
 [data-po06="options-pop"] .po06-hub{fill:var(--po06-fg);stroke:color-mix(in srgb,var(--t) 70%,transparent);stroke-width:1}
 [data-po06="options-pop"][data-po06-theme=light] .po06-hub{fill:#fff}
 [data-po06="options-pop"] .po06-tip{fill:var(--t)}
@@ -1546,12 +1548,22 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         lastFail.current = failTick
         setPending(null)
       }, [failTick])
+      // 指针角度也只有一个来源：shown。打开即在位；外部改值跟着走；拖动时不抢（拖动自己设）
+      React.useEffect(() => {
+        if (pending != null) return
+        setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(shown))))
+      }, [shown, pending])
       // 唯一爆闪入口
       const prevShown = React.useRef(shown)
       React.useEffect(() => {
         if (prevShown.current === shown) return
         prevShown.current = shown
         setKick((n) => n + 1)
+      }, [shown])
+      // 面板配色跟着"显示档位"走，绝不提前回落（之前 onPreview(null) 早于保存落地，
+      // 于是颜色先闪回旧档再跳到新档）
+      React.useEffect(() => {
+        if (onPreview) onPreview(shown)
       }, [shown])
       // 一次换挡一次光过渡：属性切 0→1 并强制回流，动画才会重播
       React.useEffect(() => {
@@ -1589,7 +1601,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           if (!hit.clear || hit.key === cur) return
           cur = hit.key
           setPending(cur)
-          if (onPreview) onPreview(cur)
         }
         const finish = (ev) => {
           window.removeEventListener('pointermove', paint, true)
@@ -1598,7 +1609,6 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           setSnap(true)
           if (moved) {
             setNeedle(angleOf(Math.max(0, TIER_KEYS.indexOf(cur))))
-            if (onPreview) onPreview(null)
             if (cur !== value) onPick(cur)
             return
           }
@@ -1607,11 +1617,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           const target = hit.clear ? hit.key : cur
           const targetIdx = Math.max(0, TIER_KEYS.indexOf(target))
           setNeedle(angleOf(targetIdx))
-          if (target === value) { if (onPreview) onPreview(null); return }
-          if (onPreview) onPreview(target)
+          if (target === value) return
           commitTimer.current = setTimeout(() => {
             setPending(target)
-            if (onPreview) onPreview(null)
             onPick(target)
           }, NEEDLE_MS)
         }
@@ -2076,6 +2084,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
     }
     const inferenceCallTime=c=>Math.max(0,((c.finishedAt||Date.now())-c.startedAt)/1000).toFixed(1)+'s'
     function outgoingUserText(hold){return hold?.englishMode&&typeof hold.outgoingText==='string'&&hold.outgoingText.trim()?hold.outgoingText:String(hold?.text||'')}
+    /**
+     * 乐观开关：点击立刻翻面，写盘回来再对齐。
+     * 宿主 /status 会重新检查会话，往返可达数秒——不能让按钮跟着这个延迟走。
+     */
     function StudioToggle({name,label,caption,on,disabled,onChange,icon}) {
       return h('button',{type:'button',role:'switch','aria-checked':!!on,disabled:!!disabled,
         'aria-label':label,'data-po06':name+'-toggle','data-po06-value':on?'on':'off',
@@ -3684,6 +3696,35 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       // 但**不发**这个字段，免得把"没读到"写成"用户选了关"。
       const desKnown = !!(data && (hasOwn(s, 'doubleEnterSkip') || hasOwn(d, 'doubleEnterSkip')))
       const doubleEnterSkip = desKnown ? !!(hasOwn(s, 'doubleEnterSkip') ? s.doubleEnterSkip : d.doubleEnterSkip) : false
+      // ── 乐观写穿：点下去立刻翻面，真值回来再对齐 ────────────────────────
+      // 宿主 /status 会重新检查会话，往返可能好几百毫秒到数秒；按钮不能跟着这个延迟走。
+      const [optFlags, setOptFlags] = React.useState({})
+      const shownFlag = (key, actual) => (hasOwn(optFlags, key) ? !!optFlags[key] : actual)
+      const rememberOpt = (patch) => {
+        if (!patch || typeof patch !== 'object') return
+        const flat = {}
+        const sess = patch.bySession && sessionId ? patch.bySession[sessionId] : null
+        if (sess && typeof sess === 'object') Object.assign(flat, sess)
+        for (const k of Object.keys(patch)) if (k !== 'bySession' && typeof patch[k] === 'boolean') flat[k] = patch[k]
+        const keys = Object.keys(flat)
+        if (keys.length) setOptFlags((prev) => ({ ...prev, ...flat }))
+      }
+      // 真值追上就退场；追不上（写失败/被忽略）1.6s 后退回真值，绝不长期骗人
+      React.useEffect(() => {
+        if (!Object.keys(optFlags).length) return
+        const actual = { advisor: !!s.advisor, englishMode: !!(eff && eff.englishMode), readTools, bash: bashOn, doubleEnterSkip }
+        const next = { ...optFlags }
+        let changed = false
+        for (const k of Object.keys(next)) {
+          if (hasOwn(actual, k) && actual[k] === next[k]) { delete next[k]; changed = true }
+        }
+        if (changed) setOptFlags(next)
+      }, [s, eff, readTools, bashOn, doubleEnterSkip, optFlags])
+      React.useEffect(() => {
+        if (!Object.keys(optFlags).length) return undefined
+        const timer = setTimeout(() => setOptFlags({}), 1600)
+        return () => clearTimeout(timer)
+      }, [optFlags])
       const desRef = React.useRef(false)
       desRef.current = doubleEnterSkip
       const enterAtRef = React.useRef(0)   // 上一次被拦截的 Enter 时间（双击判定用）
@@ -4425,12 +4466,12 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const toolsPane = h(React.Fragment,null,
         paneHead(L('行为','Behavior'),L('解释层能做哪些事，以及这些开关对模型的直接影响。','What the explainer may do, and how it affects the working model.')),
         h('div',{className:'po06-pane-switches'},
-          h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick,compact:true}),
-          h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick,compact:true})),
+          h(AdvisorControls,{settings:{...eff,advisor:shownFlag('advisor',!!s.advisor)},save:patch=>{rememberOpt(patch);return save(patch)},ready:true,busy,failTick,compact:true}),
+          h(EnglishControls,{settings:{...eff,englishMode:shownFlag('englishMode',!!eff.englishMode)},save:patch=>{const w={bySession:withSession(patch)};rememberOpt(w);return save(w)},ready:data?.english?.ready===true,busy,failTick,compact:true})),
         h('div',{className:'po06-tools-list'},
-          switchRow('readtools',readTools,rtKnown,L('只读工具','Read-only tools'),L('读取项目文件后再补充建议','Read project files before preparing advice'),()=>save({readTools:!readTools})),
-          switchRow('bash',bashOn,bashKnown,L('内置 Bash','Built-in Bash'),L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),()=>save({bash:!bashOn})),
-          switchRow('double-enter',doubleEnterSkip,desKnown,L('双击 Enter 跳过','Double Enter to skip'),L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),()=>save({doubleEnterSkip:!doubleEnterSkip}))))
+          switchRow('readtools',shownFlag('readTools',readTools),rtKnown,L('只读工具','Read-only tools'),L('读取项目文件后再补充建议','Read project files before preparing advice'),()=>{rememberOpt({readTools:!readTools});save({readTools:!readTools})}),
+          switchRow('bash',shownFlag('bash',bashOn),bashKnown,L('内置 Bash','Built-in Bash'),L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),()=>{rememberOpt({bash:!bashOn});save({bash:!bashOn})}),
+          switchRow('double-enter',shownFlag('doubleEnterSkip',doubleEnterSkip),desKnown,L('双击 Enter 跳过','Double Enter to skip'),L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),()=>{rememberOpt({doubleEnterSkip:!doubleEnterSkip});save({doubleEnterSkip:!doubleEnterSkip})})))
       const [previewTier, setPreviewTier] = React.useState(null)
       React.useEffect(() => { setPreviewTier(null) }, [tier])
       const optExit = useExit(optOpen, 160)
@@ -4563,9 +4604,9 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
                     h('div',{className:'po06-swgrid'},
                       h(AdvisorControls,{settings:{...eff,advisor:s.advisor},save:patch=>save(patch),ready:true,busy,failTick,compact:true}),
                       h(EnglishControls,{settings:eff,save:patch=>save({bySession:withSession(patch)}),ready:data?.english?.ready===true,busy,failTick,compact:true}),
-                      switchRow('readtools',readTools,rtKnown,L('只读工具','Read-only tools'),L('读取项目文件后再补充建议','Read project files before preparing advice'),()=>save({readTools:!readTools})),
-                      switchRow('bash',bashOn,bashKnown,L('内置 Bash','Built-in Bash'),L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),()=>save({bash:!bashOn})),
-                      switchRow('double-enter',doubleEnterSkip,desKnown,L('双击 Enter 跳过','Double Enter to skip'),L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),()=>save({doubleEnterSkip:!doubleEnterSkip})))),
+                      switchRow('readtools',shownFlag('readTools',readTools),rtKnown,L('只读工具','Read-only tools'),L('读取项目文件后再补充建议','Read project files before preparing advice'),()=>{rememberOpt({readTools:!readTools});save({readTools:!readTools})}),
+                      switchRow('bash',shownFlag('bash',bashOn),bashKnown,L('内置 Bash','Built-in Bash'),L('向模型提供内置 Bash 工具','Make the built-in Bash tool available'),()=>{rememberOpt({bash:!bashOn});save({bash:!bashOn})}),
+                      switchRow('double-enter',shownFlag('doubleEnterSkip',doubleEnterSkip),desKnown,L('双击 Enter 跳过','Double Enter to skip'),L('600ms 内再按一次 Enter，跳过优化并发送原话','Press Enter again within 600ms to skip optimization and send the original'),()=>{rememberOpt({doubleEnterSkip:!doubleEnterSkip});save({doubleEnterSkip:!doubleEnterSkip})}))),
                   h('button',{type:'button','data-po06':'detail','data-po06-open':open?'1':'0',className:'po06-detailrow',
                     title:L('详情：状态与解释层提示词','Details: status and optimizer prompt'),
                     onClick:()=>{setOpen(value=>!value);setOptOpen(false)}},
