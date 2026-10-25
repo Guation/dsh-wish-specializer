@@ -1183,6 +1183,14 @@ await ta('模型状态：极限才注入身份与充足算力指令，正常不�
   ok(text.includes('推理成本在这里不是限制'), '要点明推理便宜、不必省')
   ok(text.includes('不编造结果'), '仍然禁止编造')
 })
+
+await ta('status 的会话生效值必须带上模型状态，面板才能显示上次选择', async () => {
+  const h = await wireHost({ sid: 'wire-state-status', policy: { advisor: false } })
+  const saved = await h.ctx.post('/settings', { sessionId: h.session.id, bySession: { [h.session.id]: { modelState: 'extreme' } } })
+  ok(saved.body.ok === true)
+  const st = await h.ctx.getApi('/status?session=' + h.session.id)
+  eq(st.body.sessionEffective.modelState, 'extreme')
+})
 console.log(JSON.stringify({
   suite: 'po06-wire', phase: 'v3-pre-send',
   total: pass + failures.length, pass, fail: failures.length, failures,

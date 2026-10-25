@@ -468,7 +468,7 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
           sessionId: qsid || null,
           sessionEffective: sessEff
             ? { tier: sessDesc.tier, assist: sessEff.assist, detail: sessEff.detail, budget: sessEff.budget,
-                reasoningBoost:sessEff.reasoningBoost,reasoningMode:sessEff.reasoningMode,reasoningCandidates:sessEff.reasoningCandidates,reasoningRounds:sessEff.reasoningRounds,reasoningPace:sessEff.reasoningPace,englishMode:sessEff.englishMode }
+                reasoningBoost:sessEff.reasoningBoost,reasoningMode:sessEff.reasoningMode,reasoningCandidates:sessEff.reasoningCandidates,reasoningRounds:sessEff.reasoningRounds,reasoningPace:sessEff.reasoningPace,englishMode:sessEff.englishMode,modelState:sessEff.modelState === 'extreme' ? 'extreme' : 'normal' }
             : null,
           sessionDescribed: sessDesc,
           // ⚠ 启动闸门自己的字段（enabled / rollout / settingsVersion）**不是**"不认识的字段"，
