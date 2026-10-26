@@ -17,6 +17,9 @@
     ".": {
       "default": "./lib/index.js"
     },
+    "./check": {
+      "default": "./lib/wish-check.js"
+    },
     "./client": {
       "default": "./lib/client.js"
     },
@@ -35,6 +38,7 @@
   "files": [
     "lib",
     "runtime",
+    "presets",
     "cordis.patch.yml",
     "README.md",
     "HELP-0.6.md",
