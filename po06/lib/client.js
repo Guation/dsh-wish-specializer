@@ -105,6 +105,82 @@ const withIcon = (glyph, node) => [
         : newHoldRun(sessionId, { runId: hold.runId, generation: hold.generation })
     }
 
+    // ── 刷新/失败恢复：待恢复记录 + 判定（2026-10-26 从 0.8.4 分支移植）──────────
+    // window 桥（__PO06_HOLD__）只能扛住组件重挂载，**活不过页面刷新**。跨刷新要靠
+    // localStorage 里的一行 run 身份，再回宿主按 runId 取留档。
+    const PENDING_KEY = (sid) => 'po06:pending:' + String(sid || '')
+    function readPending(sid) {
+      try { const raw = window.localStorage.getItem(PENDING_KEY(sid)); return raw ? JSON.parse(raw) : null } catch { return null }
+    }
+    function writePending(sid, rec) {
+      // 存不进去只是让这一轮不可恢复，绝不能打断发送
+      try { window.localStorage.setItem(PENDING_KEY(sid), JSON.stringify(rec)) } catch { /* noop */ }
+    }
+    function clearPending(sid) {
+      try { window.localStorage.removeItem(PENDING_KEY(sid)) } catch { /* noop */ }
+    }
+    /**
+     * 该不该把某一轮贴回面板。四态：
+     *   poll   running                        —— 还在跑：贴回"优化中"并接着轮询
+     *   review done 且 result.ok === true     —— 跑完了且成功：贴回审查态可提交
+     *   none   无记录 / 串号 / 已发出 / 取消 / 失败轮 / gone / 未知态 —— 调用方清掉记录
+     *   retry  progress 查不到（请求失败）     —— **不能当 gone**，保留记录下次再试
+     */
+    function resolveRestore(saved, progress, opts) {
+      const o = opts || {}
+      if (!saved || typeof saved !== 'object') return { action: 'none', reason: 'no-pending' }
+      const rid = typeof saved.runId === 'string' ? saved.runId : ''
+      if (!rid) return { action: 'none', reason: 'invalid-pending' }
+      // ⚠ 已经确认发出去了的轮次不是待恢复任务：不管 progress 说什么都不能贴回
+      //   （真机 2026-10-19：发送成功后记录按设计保留，旧实现会把旧结果弹回面板）
+      if (o.arrived === true) return { action: 'none', reason: 'already-sent' }
+      if (!progress || typeof progress !== 'object') return { action: 'retry', reason: 'progress-missing' }
+      if (progress.ok !== true) return { action: 'retry', reason: 'progress-unavailable' }
+      const pid = typeof progress.runId === 'string' ? progress.runId : ''
+      if (pid && pid !== rid) return { action: 'none', reason: 'run-id-mismatch' }
+      const state = typeof progress.state === 'string' ? progress.state : ''
+      if (state === 'running') return { action: 'poll', reason: 'running' }
+      if (state === 'done') {
+        const r = progress.result
+        return (r && typeof r === 'object' && r.ok === true)
+          ? { action: 'review', reason: 'done' }
+          : { action: 'none', reason: 'failed-round' }
+      }
+      if (state === 'cancelled') return { action: 'none', reason: 'cancelled' }
+      if (state === 'gone') return { action: 'none', reason: 'gone' }
+      return { action: 'none', reason: 'unknown-state' }
+    }
+    /** 纯构造：返回要贴回面板的 hold；不该恢复时返回 null。 */
+    function buildRestoredHold(saved, progress, opts) {
+      const o = opts || {}
+      const d = resolveRestore(saved, progress, { arrived: o.arrived === true })
+      if (d.action !== 'poll' && d.action !== 'review') return null
+      const at = typeof o.now === 'function' ? o.now() : Date.now()
+      const base = {
+        runId: (saved && saved.runId) || null,
+        generation: Number.isSafeInteger(saved && saved.generation) ? saved.generation : 0,
+        text: String((saved && saved.text) || ''),
+        via: 'restore',
+        t0: Number(saved && saved.startedAt) || at,
+      }
+      if (d.action === 'poll') {
+        return { ...base, englishMode: o.englishMode === true, phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
+      }
+      const r = (progress && progress.result) || {}
+      const packet = typeof r.packet === 'string' ? r.packet : ''
+      return { ...base, englishMode: r.englishMode === true, phase: 'review',
+        outgoingText: typeof r.outgoingText === 'string' ? r.outgoingText : base.text,
+        translation: r.translation || null,
+        understood: r.understood === true, noAddition: r.noAddition === true,
+        understanding: r.understanding || null, support: r.support || null,
+        packet, chars: typeof r.chars === 'number' ? r.chars : 0,
+        ms: typeof r.ms === 'number' ? r.ms : null,
+        unsourced: r.unsourced == null ? null : r.unsourced, route: r.route || null,
+        edited: packet, usage: r.usage || null,
+        usageTotal: typeof r.usageTotal === 'number' ? r.usageTotal : null,
+        restored: true }
+    }
+
 function holdBridgeRead(sessionId) {
       try { return (window.__PO06_HOLD__ || {})[sessionId] || null } catch { return null }
     }
@@ -3795,6 +3871,32 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (ownsHoldView()) { holdRef.current = value; _setHold(value) }
         holdBridgeWrite(sessionId, value)
       }
+      /** 把恢复出来的 hold 真正挂到界面上（组件作用域）。 */
+      const applyRestoredHold = (h) => {
+        if (!h) return false
+        holdRef.current = h
+        _setHold(h)
+        holdBridgeWrite(sessionId, h)
+        return true
+      }
+      /** 挂载时（页面刷新后）按 localStorage 里的 run 身份恢复。 */
+      const restoreOnMount = (sid, accept) => {
+        const saved = readPending(sid)
+        if (!saved || !saved.runId) return
+        Promise.all([
+          Promise.resolve(apiGet('/sent-check?runId=' + encodeURIComponent(saved.runId))).catch(() => null),
+          Promise.resolve(apiGet('/interpret-progress?runId=' + encodeURIComponent(saved.runId))).catch(() => null),
+        ]).then((pair) => {
+          const s = pair[0], p = pair[1]
+          const arrived = !!(s && s.ok === true && s.state === 'arrived')
+          // arrived ⇒ 判定返回 none/already-sent ⇒ 不贴回，随后清掉这条陈旧记录
+          const h = buildRestoredHold(saved, p, { arrived, englishMode: englishRef.current })
+          if (h) { accept(h); return }
+          if (arrived) { clearPending(sid); return }
+          if (!p || p.ok !== true) return          // 查不到 ⇒ 保留记录，下次挂载再试
+          clearPending(sid)                         // gone / 失败轮 / 取消
+        })
+      }
       const clearHoldSoon = (h) => {
         window.setTimeout(() => {
           const saved = holdBridgeRead(sessionId)
@@ -3842,7 +3944,7 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
         if (!run || run.retired || run.protocolMismatch || run.submitted || !ownsHoldView()) return false
         if (disposition === 'send' && run.intent && run.intent !== 'send') return false
         if (run.intent !== disposition || !run.commit) {
-          if (disposition !== 'send') { run.stopped = true; abortHoldRequests(run) }
+          if (disposition !== 'send') { run.stopped = true; abortHoldRequests(run); clearPending(sessionId) }
           run.intent = disposition
           const action = ++run.action
           const pending = { ...h, phase: 'review', pendingAuto: disposition !== 'cancel', pendingDisposition: disposition, pendingMark: mark }
@@ -3907,10 +4009,31 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
       const beginHold = (text, via) => {
         if (!ownsHoldView() || holdRef.current) return
         setInterceptCount((n) => n + 1)
+        // ── 发送失败恢复（2026-10-26 移植）──────────────────────────────────
+        // 上一次发送如果**根本没进会话**，就把那一轮的结果原样还回来（像没点过发送），
+        // 不重跑优化。查不到（unknown）一律按"没进"处理会冒重复发送的风险，所以走重新优化。
+        const prev = readPending(sessionId)
+        if (prev && prev.runId && String(prev.text || '').trim() === String(text || '').trim()) {
+          Promise.resolve(apiGet('/sent-check?runId=' + encodeURIComponent(prev.runId))).then((s) => {
+            const state = (s && s.ok === true) ? String(s.state || '') : 'unknown'
+            if (state !== 'absent') { clearPending(sessionId); startOptimize(text, via); return }
+            Promise.resolve(apiGet('/interpret-progress?runId=' + encodeURIComponent(prev.runId))).then((p) => {
+              if (applyRestoredHold(buildRestoredHold(prev, p, { arrived: false, englishMode: englishRef.current }))) return
+              clearPending(sessionId); startOptimize(text, via)
+            }, () => startOptimize(text, via))
+          }, () => startOptimize(text, via))
+          return
+        }
+        startOptimize(text, via)
+      }
+      const startOptimize = (text, via) => {
+        if (!ownsHoldView() || holdRef.current) return
         const run = newHoldRun(sessionId, { floor: data?.capability?.optimization?.generation })
         const ac = typeof AbortController === 'function' ? new AbortController() : null
         run.controller = ac
         const h = { runId: run.runId, generation: run.generation, text, via, englishMode: englishOn, t0: Date.now(), phase: 'optimizing', packet: '', chars: 0, ms: null, reason: null }
+        // 记下这一轮的 run 身份：刷新后靠它回宿主取留档
+        writePending(sessionId, { runId: run.runId, generation: run.generation, text, startedAt: h.t0 })
         setHold(h)
         apiPost('/interpret', { sessionId, text, messageId: run.runId, generation: run.generation }, ac ? { signal: ac.signal } : undefined).then((r) => {
           if (!pipelineRef.current.ready || !currentHoldRun(sessionId, run) || run.stopped || run.intent) return
@@ -4071,7 +4194,10 @@ const useStatus = (sessionId) => usePoll(React.useCallback(
           }
         }
         const off = holdBridgeOn(sessionId, accept)
-        accept(holdBridgeRead(sessionId))
+        const fromBridge = holdBridgeRead(sessionId)
+        accept(fromBridge)
+        // 刷新恢复：window 桥活不过刷新；用 localStorage 里的 run 身份回宿主取留档。
+        if (!fromBridge) restoreOnMount(sessionId, accept)
         return off
       }, [sessionId, canArm])
 
@@ -5814,6 +5940,8 @@ const react = require("react")
       // 测试钩子：让 Node 侧的单测能真的驱动"重挂"这条路（用来验单例闸门）。
       // 生产路径不读它；带 __ 前缀以免与宿主契约上的字段混淆。
       // `locale` / `detectLocale` 用来钉住"语言只来自 DSH 的 locale 服务"这条契约（真机事故：猜属性名 ⇒ 恒中文）。
+      // 仅供 node 单测读取（浏览器侧不使用）
+      exports.__restore = { resolveRestore, buildRestoredHold }
       exports.__debug = {
         remount: (slot) => (typeof remounts[slot] === 'function' ? remounts[slot]() : null),
         locale: () => LOCALE,

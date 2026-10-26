@@ -524,19 +524,30 @@ await ta('explicit cancel aborts in-flight stream and rejects late result and su
   eq(llm.calls.length, 1)
 })
 
-await ta('aborted HTTP connection cancels the owner and cannot publish a complete-looking late response', async () => {
+await ta('aborted HTTP connection no longer cancels the run; the result is retained by runId and never delivered late', async () => {
+  // 契约变更（2026-10-26）：socket 关闭是**传输层事件**，不再等于用户取消。
+  // 旧契约把它当取消（signal.abort + 499 + 丢弃），代价是网络抖一下/刷新一次这一轮就白跑。
+  // 新契约：任务照常跑完、结果按 runId 留档（刷新可恢复），但**绝不回包**——
+  // socket 已经没了，迟到的"完整答复"不能被当成客户端收到过。
   const llm = controlledLlm()
   const h = await wireHost({ sid: 'wire-http-abort', llm })
   const request = h.ctx.start('POST', '/interpret', { sessionId: h.session.id, messageId: 'connection-run', text: USER_TEXT })
   const call = await within(llm.waitForCall(), 'connection stream')
   request.req.emit('aborted')
-  eq(call.options.signal.aborted, true)
+  eq(call.options.signal.aborted, false, '断开连接不得中止模型调用')
   call.complete(optimizerReply())
   const result = await within(request.promise, 'connection completion')
-  eq(result.status, 499)
-  eq(result.body.reason, 'aborted')
-  eq(h.mod.adapter.getIntentText(h.session.id), '')
-  eq(h.context(), '')
+  eq(result.writableEnded, false, '连接已断 ⇒ 不回包')
+  eq(result.status, null, '不回包（既不是 200 也不是 499）')
+  // 结果必须留档：这是"刷新后能接回来"的前提
+  const prog = await h.ctx.getApi('/interpret-progress?runId=connection-run')
+  eq(prog.body.state, 'done', '留档状态')
+  eq(prog.body.result && prog.body.result.ok, true, '留档里应有完整结果')
+  // 留档 ≠ 已经发给用户：没有 ack 就不产生消息/卡片
+  eq(h.session.appended, [], '断开后不产生任何注入卡片或消息')
+  // 包留在本轮意图里是**设计如此**：刷新后要贴回面板、可编辑、可提交。
+  // 它不影响"是否会发出去"——真正发送要经过 /packet 的 ack + 宿主 submit，两者都没发生。
+  ok(h.mod.adapter.getIntentText(h.session.id).length > 0, '包保留在本轮意图里，供刷新恢复')
 })
 
 await ta('skip suppresses the entire advisor context without starting an optimizer or creating a card', async () => {

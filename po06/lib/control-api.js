@@ -282,10 +282,34 @@ function readTextSafe(path) {
  *                         宿主就不知道政策变了。返回值原样带回给界面（诊断用）。
  * @param opts.now         注入时钟（测试用）
  */
-export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, capabilityProbe = null, workingText = null, workingTextInfo = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, sessionFirstSeen = null, getPresets = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null } = {}) {
+export function createControlHandler({ home, stateDir, ledgerPath, version = null, resolveEfforts = null, sessionModel = null, capabilityProbe = null, workingText = null, workingTextInfo = null, listModels = async () => ({ models: [], problems: [] }), listTools = null, toolState = null, now = () => Date.now(), help = {}, interpret = null, setPacket = null, progress = null, advisorProgress = null, rollbackPacket = null, getPacket = null, getInjection = null, getNotice = null, clearNotice = null, clearNotices = null, getPreset = null, inspectPreset = null, presetDismissed = null, getPresetPending = null, getPresetAt = null, clearPresetPending = null, sessionFirstSeen = null, getPresets = null, onSettingsWritten = null, gateSummary = null, registeredCommands = null, advisorStageStatus = null, capabilityStatus = null, inferenceStatus = null, inferenceList = null, inferenceGet = null, inferenceCancel = null,englishStatus=null,englishGet=null,optimizerStatus=null,advisorDelivery=null,lastUserMessageId=null } = {}) {
   const H = String(home)
   const cfgPath = join(H, 'po06.json')
   const ledger = ledgerPath || join(H, 'po06-wire.jsonl')
+
+    // ── 断线不取消 + 结果留档（2026-10-26 从 0.8.4 分支移植）────────────────
+    // 一次 /interpret 可能跑 20–60 秒。旧实现把 socket 关闭当取消 ⇒ 网络抖一下就白跑，
+    // 刷新页面也接不回来。现在连接断开只记 clientGone：任务照常跑完、结果按 runId 留档；
+    // **取消必须显式** POST /interpret-cancel（跳过/取消按钮仍走它，语义不变）。
+    const interpretJobs = new Map()
+    const JOB_RETENTION_MS = 24 * 60 * 60 * 1000
+    const JOB_MAX = 50
+    const touchJob = (job) => {
+      interpretJobs.delete(job.runId)
+      interpretJobs.set(job.runId, job)
+      while (interpretJobs.size > JOB_MAX) {
+        const oldest = interpretJobs.keys().next().value
+        if (oldest === undefined) break
+        const old = interpretJobs.get(oldest)
+        if (old && old.state === 'running') break
+        interpretJobs.delete(oldest)
+      }
+      return job
+    }
+    const sweepJobs = () => {
+      const t = now()
+      for (const [k, j] of interpretJobs) if (j.state !== 'running' && t - (j.at || 0) > JOB_RETENTION_MS) interpretJobs.delete(k)
+    }
   const states = stateDir || join(H, 'po06-state')
 
   const readBody = (req) => new Promise((resolve) => {
@@ -560,35 +584,46 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
             note: '按需解释需要宿主侧的 pipeline（本 profile 未提供）——客户端应按原文放行',
           })
         }
-        // 用户「跳过并发送」/「取消」时，浏览器会 **abort 这次 fetch**。宿主必须跟着停——
-        // 否则模型还在跑，跑完还会把包写进动态上下文（用户已经**明确拒绝**了这一轮的结果）。
-        // 这里把"连接断了"变成一个真正的取消信号，一路传到 pipeline 与模型调用。
+        // ── 连接断开**不再等于取消**（2026-10-26）──────────────────────────────
+        // 网络抖动、刷新页面都会关掉这个 socket，但用户并没有拒绝这一轮。旧实现把它当取消
+        // ⇒ 这一轮白跑、面板还得重来。现在断开只记 clientGone：任务照常跑完、结果按 runId
+        // 留档，刷新后可用 GET /interpret-progress?runId= 取回；**取消必须显式**
+        // POST /interpret-cancel（跳过/取消按钮仍走它，语义不变）。
+        const sid = String(v.sessionId || '')
+        const runKey = String(v.messageId || v.runId || v.requestId || '').trim() || ('run-' + now())
         const ac = typeof AbortController === 'function' ? new AbortController() : null
-        if (ac) {
-          const onGone = () => { try { ac.abort() } catch { /* 已经断了 */ } }
-          // ⚠ 事件口要**逐个判空**：定点核对的桩里 req/res 只是带 headers 的普通对象，
-          //   直接 `.on(...)` 会让整条路由抛 500（这正是本轮 control-api 测试抓到的那条）。
-          try { if (typeof req.on === 'function') req.on('aborted', onGone) } catch { /* 桩没有事件口 */ }
-          try {
-            if (res && typeof res.on === 'function') {
-              res.on('close', () => { if (!res.writableEnded) onGone() })
-            }
-          } catch { /* 同上 */ }
+        let clientGone = false
+        const markGone = () => { clientGone = true }
+        // ⚠ 事件口要**逐个判空**：定点核对的桩里 req/res 只是带 headers 的普通对象。
+        try { if (typeof req.on === 'function') req.on('aborted', markGone) } catch { /* 桩没有事件口 */ }
+        try {
+          if (res && typeof res.on === 'function') res.on('close', () => { if (!res.writableEnded) markGone() })
+        } catch { /* 同上 */ }
+        sweepJobs()
+        const job = touchJob({ runId: runKey, sessionId: sid, state: 'running', result: null,
+          controller: ac, cancelled: false, at: now(),
+          beforeMessageId: (typeof lastUserMessageId === 'function') ? lastUserMessageId(sid) : null })
+        let r
+        try {
+          r = await interpret({ sessionId: sid, text: String(v.text || ''), messageId: v.messageId || null, generation: Number.isSafeInteger(v.generation) ? v.generation : null, signal: ac ? ac.signal : null })
+        } catch (e) {
+          job.state = 'failed'; job.reason = String((e && e.message) || e); job.at = now()
+          throw e
         }
-        const r = await interpret({ sessionId: String(v.sessionId || ''), text: String(v.text || ''), messageId: v.messageId || null, generation: Number.isSafeInteger(v.generation) ? v.generation : null, signal: ac ? ac.signal : null })
-        if (ac && ac.signal.aborted) {
-          // 已经断开 ⇒ 不写、不回包（客户端那边世代号也已作废）
-          return send(499, { ok: false, reason: 'aborted', note: '客户端已取消（跳过/取消），这一轮不产出' })
+        if (job.cancelled === true) {
+          job.state = 'cancelled'; job.result = null; job.at = now()
+          // 只有"用户显式取消"才回 499；单纯连接断了没人收，写不写都行
+          return clientGone ? undefined : send(499, { ok: false, runId: runKey, reason: 'aborted', note: '客户端已取消（跳过/取消），这一轮不产出' })
         }
         const out = (r && typeof r === 'object') ? r : { ok: false, reason: 'bad-hook-result' }
         // P11 修复（2026-09-26）：**token 用量必须随这次响应一起回去**。
         // 原先只 progressSet 进进度面，而进度面在拦截结束那一刻就被界面清掉了
         // （client 的轮询在 phase 不是 optimizing 时 setProg(null)）⇒ 用量收着了却永远送不到界面，
         // 界面恒显示占位符。这里从进度面读出来、随结果一起回，界面就能在审查态显示数字。
-        const progForUsage = (typeof progress === 'function') ? progress(String(v.sessionId || '')) : null
+        const progForUsage = (typeof progress === 'function') ? progress(sid) : null
         const usageOut = (progForUsage && progForUsage.usage && typeof progForUsage.usage === 'object') ? progForUsage.usage : null
-        return send(out.ok === true ? 200 : 400, {
-          ok: out.ok === true, reason: out.reason || null, runId: out.runId || null, status: out.status || null,
+        const payload = {
+          ok: out.ok === true, reason: out.reason || null, runId: out.runId || runKey, status: out.status || null,
           packet: typeof out.packet === 'string' ? out.packet : '',
           // 2026-10-18：第 5 项（注入折叠卡片）的数据出口。真实注入文由 interpret 提供，缺省为 null。
           injected: typeof out.injected === 'string' ? out.injected.slice(0, 4000) : null,
@@ -605,7 +640,37 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
           // 界面据此对"兜底"明说一句——**不许把兜底模型当成用户会话的模型**静默使用。
           route: typeof out.route === 'string' ? out.route : null,
           gate: typeof out.gate === 'string' ? out.gate : null,
-        })
+        }
+        // 结果无论有没有人收都留档：刷新后按 runId 取回
+        job.state = 'done'; job.result = payload; job.at = now()
+        if (clientGone) return undefined          // 连接断了 ⇒ 不回包，但留档已经完成
+        return send(out.ok === true ? 200 : 400, payload)
+      }
+      if (method === 'POST' && path === API_PREFIX + '/interpret-cancel') {
+        // 显式取消——这是**唯一**会中止解释任务的通道（连接断开不再算取消）。
+        const body = await readBody(req)
+        if (!body.ok) return send(400, { ok: false, reason: body.reason })
+        const v = body.value || {}
+        const rid = String(v.runId || v.requestId || '').trim()
+        if (!rid) return send(400, { ok: false, reason: 'runId-required' })
+        const job = interpretJobs.get(rid)
+        if (!job) return send(404, { ok: false, runId: rid, reason: 'no-such-run' })
+        job.cancelled = true
+        try { if (job.controller) job.controller.abort() } catch { /* 尽力而为 */ }
+        return send(200, { ok: true, runId: rid, state: 'cancelled' })
+      }
+      if (method === 'GET' && path === API_PREFIX + '/sent-check') {
+        // "上一轮到底进没进会话？"——用宿主自己的账本回答（不在客户端猜 DOM）。
+        //   水位线 = 这一轮开始时的最后一条真人消息 id；现在有新的 ⇒ arrived。
+        const rid = String(query.get('runId') || query.get('requestId') || '').trim()
+        if (!rid) return send(400, { ok: false, reason: 'runId-required' })
+        const job = interpretJobs.get(rid)
+        if (!job) return send(200, { ok: true, runId: rid, state: 'unknown', note: 'no-such-run' })
+        const nowId = (typeof lastUserMessageId === 'function') ? lastUserMessageId(job.sessionId) : null
+        if (nowId === null) return send(200, { ok: true, runId: rid, state: 'unknown', note: 'probe-unavailable' })
+        const arrived = nowId !== job.beforeMessageId
+        return send(200, { ok: true, runId: rid, state: arrived ? 'arrived' : 'absent',
+          beforeMessageId: job.beforeMessageId || null, lastUserMessageId: nowId })
       }
       if (method === 'POST' && path === API_PREFIX + '/packet') {
         // P11：审查态里用户**改过的正文**就是本轮要注入的包（空串 = 清掉这一轮的包）。
@@ -658,6 +723,17 @@ try { m = (typeof sessionModel === 'function') ? await sessionModel(sid) : null 
         const draftRound = query.get('draftRound')
         const run = typeof advisorProgress === 'function' ? advisorProgress(sid, { callId, runId, since, draftSince, draftRound }) : null
         return send(200, { ok: true, run })
+      }
+      if (method === 'GET' && path === API_PREFIX + '/interpret-progress' && String(query.get('runId') || '').trim()) {
+        // 按 runId 取回某一轮的结果（刷新恢复用）。留档在内存里，进程重启后回 gone。
+        const rid = String(query.get('runId') || '').trim()
+        const job = interpretJobs.get(rid)
+        if (!job) return send(200, { ok: true, active: false, runId: rid, state: 'gone', result: null })
+        const liveProg = job.state === 'running' && typeof progress === 'function' ? progress(job.sessionId) : null
+        return send(200, { ok: true, runId: rid, active: job.state === 'running', state: job.state,
+          text: (liveProg && typeof liveProg.text === 'string') ? liveProg.text : '',
+          textChars: (liveProg && typeof liveProg.text === 'string') ? liveProg.text.length : 0,
+          result: job.result || null })
       }
       if (method === 'GET' && path === API_PREFIX + '/interpret-progress') {
         // P11：让"优化中"那几十秒看得见（阶段 + 流式正文尾部）。**只读、无副作用**；

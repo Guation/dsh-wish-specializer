@@ -2361,6 +2361,11 @@ let syncAdvisorToolsRef=null
           home: DSH_HOME, version: PKG_VERSION, now: () => Date.now(),
            capabilityStatus: sid => ({...adapter.capability.status(sid),moduleUrl:import.meta.url,pipelineRevision:'single-run-1',features:['transport-retry','tool-result-continuation'],optimization:sid ? (()=>{const run=adapter.optimizationRuns.get(sid);return run?{runId:run.runId,generation:run.generation,status:run.status,packetChars:adapter.optimizationRuns.packet(sid).length}:null})() : null}),
            optimizerStatus: sid => sid ? optimizerRequests.get(String(sid)) || null : null,
+           // 到达判据（只读）：该会话最后一条**真人**消息的 id。宿主本来就在记账
+           // （lastRealUserMessageBySession 的写入点），这里只是暴露给 /sent-check。
+           lastUserMessageId: sid => {
+             try { return String(adapter.lastRealUserMessageBySession.get(String(sid || '')) || '') || null } catch { return null }
+           },
           // P11：前置拦截的按需解释（客户端拦下发送后调它；失败即由客户端按原文放行）
           interpret: (p) => runInterceptInput(ctx, p),
           // P11：拦截进度面（"优化中"那几十秒要看得见它在想什么）
